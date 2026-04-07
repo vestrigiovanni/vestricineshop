@@ -1,0 +1,196 @@
+.main {
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: 4rem;
+}
+
+.backdropContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60vh;
+  min-height: 400px;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.backdropImage {
+  object-fit: cover;
+  object-position: center 20%;
+  opacity: 0.4;
+}
+
+.backdropGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, var(--background) 0%, transparent 100%),
+              linear-gradient(to right, var(--background) 0%, transparent 100%);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  padding-top: 2rem;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 2rem;
+  transition: var(--transition);
+}
+
+.backButton:hover {
+  color: #fff;
+  transform: translateX(-4px);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+.posterWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--glass-border);
+}
+
+.posterImage {
+  object-fit: cover;
+}
+
+.posterPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.infoWrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.tagGroup {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tag {
+  color: var(--text-muted);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.genres {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.genreTag {
+  background: var(--surface);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  border: 1px solid var(--surface-border);
+}
+
+.overview {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2rem;
+}
+
+.credits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 3rem;
+  padding-bottom: 3rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.creditItem {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.creditLabel {
+  color: var(--text-muted);
+  min-width: 60px;
+}
+
+.creditValue {
+  color: #fff;
+  font-weight: 500;
+}
+
+.checkoutSection {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.sectionDesc {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: 350px 1fr;
+  }
+
+  .title {
+    font-size: 3.5rem;
+  }
+}

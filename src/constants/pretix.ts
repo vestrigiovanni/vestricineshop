@@ -1,0 +1,14 @@
+export const ITEM_INTERO_ID = 264975;
+export const ITEM_VIP_ID = 344653;
+
+export const ROOM_NAMES: Record<number, string> = {
+  4081: 'SALA 1',
+  5391: 'SALA NICCOLINI',
+  5392: 'SALA FOSSATI',
+  5393: 'SALA ARIPALMARIA',
+  6550: 'SALA MARTINO',
+  6439: 'SALA AGOSTINO FOSSATI',
+  6983: 'SALA CRAVEDI',
+  7354: "SALA CA' GRANDA",
+  7016: 'SALA ANORA',
+};

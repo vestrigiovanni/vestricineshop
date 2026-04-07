@@ -1,0 +1,348 @@
+/* ═══════════════════════════════════════════════════════════
+   SOUVENIR TICKET MASTERPIECE v4.0 — TicketPDF.module.css
+   840×592px landscape | A5 Official Movie Card Format
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Preview Wrapper ─────────────────────────────────────── */
+.previewWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: transparent;
+  padding: 10px;
+}
+
+/* ── Ticket Container ────────────────────────────────────── */
+.ticketContainer {
+  width: 840px;
+  height: 592px;
+  position: relative;
+  overflow: hidden; /* Strict boundary enforcement */
+  background-color: #000;
+  font-family: 'Inter', 'Helvetica Neue', -apple-system, sans-serif;
+  color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+
+/* ── Layer 1: Backdrop ───────────────────────────────────── */
+.backdropLayer {
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* Stable background behind everything */
+  overflow: hidden; 
+}
+
+.backdropImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  /* Cinematic darkening for text protection */
+  filter: brightness(0.4) contrast(1.1) saturate(0.9);
+}
+
+/* Strong linear gradients (Top + Bottom) for text protection */
+.gradientBottom {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.7) 35%,
+    rgba(0, 0, 0, 0) 65%
+  );
+  z-index: 2; /* Moved above the backdropImage but below contentWrapper */
+}
+
+.gradientTop {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.5) 20%,
+    rgba(0, 0, 0, 0) 45%
+  );
+  z-index: 2;
+}
+
+/* ── Layer 2: Content (High Z-Index) ── */
+.contentWrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* Top padding reduced slightly; Bottom padding increased for total safe zone */
+  padding: 30px 60px 45px 60px; 
+}
+
+/* ── VERTICAL SIDEBAR: Order Code (Left Margin) ── */
+.verticalSidebar {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: center center;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  z-index: 100;
+  white-space: nowrap;
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 1);
+}
+
+/* ── TRUE ZERO-MARGIN BRAND LOGO (Top-Left) ── */
+.personalLogo {
+  position: absolute;
+  top: -5px; /* Forced against edge */
+  left: -5px; /* Forced against edge */
+  width: 336px;
+  z-index: 110;
+}
+
+.personalLogoImg {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  /* White + Clear Cinematic Drop Shadow */
+  filter: brightness(0) invert(1) drop-shadow(0 0 15px rgba(0,0,0,0.9));
+}
+
+/* ── QR CODE (Top-Right) ── */
+.qrBox {
+  position: absolute;
+  top: 35px;
+  right: 60px;
+  background: #FFF;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  line-height: 0;
+  z-index: 110;
+}
+
+/* ── TOP SECTION: Director · Logo · Tagline ──────────────── */
+.topSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  margin-top: 40px; /* RECOVERED Vertical Space */
+}
+
+/* "A FILM BY [NAME]" — pure white, spaced caps */
+.directorCredit {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 7px;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 1);
+}
+
+/* Logo container */
+.logoContainer {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Official movie logo PNG */
+.movieLogo {
+  max-width: 550px;
+  max-height: 120px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 25px rgba(0, 0, 0, 0.9));
+}
+
+/* Fallback: no logo — elegant serif title */
+.fallbackTitle {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 4rem;
+  font-weight: 400;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 12px;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(0, 0, 0, 1);
+}
+
+.tagline {
+  font-family: 'Georgia', 'Palatino', serif;
+  font-style: italic;
+  font-size: 1.4rem;
+  font-weight: 300;
+  color: #FFFFFF;
+  max-width: 90%;
+  line-height: 1.4;
+  margin-top: 5px;
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 1);
+}
+
+/* ── MIDDLE: Seat Block ───────────────────────────────────── */
+.seatBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 5px 0 10px 0; /* RECOVERED Vertical Space */
+}
+
+.salaName {
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 7px;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 1);
+}
+
+.seatRow {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.seatItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.seatItemLabel {
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 1);
+}
+
+.seatItemValue {
+  font-size: 4.8rem;
+  font-weight: 950;
+  line-height: 1;
+  color: #FFF;
+  letter-spacing: -3px;
+  text-shadow: 0 0 50px rgba(255, 255, 255, 0.2), 0 5px 20px rgba(0, 0, 0, 1);
+}
+
+.seatDivider {
+  font-size: 3rem;
+  color: #FFF;
+  opacity: 0.5;
+  line-height: 1;
+}
+
+/* Cast — Cinematic Credits Style */
+.castLineCentral {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-align: center;
+  color: #FFFFFF;
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 1);
+  margin-top: 5px;
+  padding: 0 20px;
+  max-width: 600px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── BOTTOM SECTION ───────────────────────────────────────── */
+.bottomSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  width: 100%;
+  margin-bottom: 25px; /* TOTAL SAFE ZONE Pullup */
+}
+
+/* Symmetric 3-column layout to force absolute center for the middle block */
+.showInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  text-shadow: 0 4px 15px rgba(0, 0, 0, 1);
+}
+
+.showInfoLeft, .showInfoRight {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.showInfoLeft {
+  justify-content: flex-end;
+}
+
+.showInfoRight {
+  justify-content: flex-start;
+}
+
+.showInfoCenter {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+/* Equal gaps around the pivot bars */
+.dot {
+  color: #FFFFFF;
+  opacity: 0.6;
+  margin: 0 25px;
+}
+
+.onTimeWarning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem; /* Larger footer warning */
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9); /* Higher Contrast */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 1);
+  margin-top: 8px;
+}
+
+
+/* ── Perforation ─────────────────────────────────────────── */
+.perforationLeft,
+.perforationRight {
+  position: absolute;
+  top: 50%;
+  width: 30px;
+  height: 60px;
+  background: #000;
+  z-index: 100;
+  transform: translateY(-50%);
+}
+
+.perforationLeft {
+  left: -15px;
+  border-radius: 0 30px 30px 0;
+}
+
+.perforationRight {
+  right: -15px;
+  border-radius: 30px 0 0 30px;
+}
+

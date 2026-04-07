@@ -1,0 +1,1411 @@
+/* ============================================================
+   CassaInterface.module.css — POS Terminal Dark UI
+   ============================================================ */
+
+/* Root wrapper */
+.posRoot {
+  min-height: 100vh;
+  background: #0a0a0f;
+  color: #fff;
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Top Bar ─────────────────────────────────────────────── */
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  gap: 1rem;
+}
+
+.topBarLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.posLogo {
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #fff;
+}
+
+.posSubtitle {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+}
+
+.separator {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.clock {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #e2e8f0;
+}
+
+.btnHistory {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnHistory:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.btnRefresh {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnRefresh:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.btnPrintTest {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  background: rgba(192, 132, 252, 0.1);
+  border: 1px solid rgba(192, 132, 252, 0.25);
+  border-radius: 0.5rem;
+  color: #c084fc;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnPrintTest:hover {
+  background: rgba(192, 132, 252, 0.2);
+  border-color: #c084fc;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(192, 132, 252, 0.2);
+}
+
+/* ─── Step Indicator ─────────────────────────────────────── */
+.stepBar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.stepItem {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
+  border-bottom: 4px solid transparent;
+
+  transition: all 0.3s;
+}
+
+.stepItemActive {
+  color: #c084fc;
+  border-bottom-color: #c084fc;
+}
+
+
+.stepItemDone {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.stepNumber {
+  width: 28px;
+  height: 28px;
+
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+
+  font-weight: 800;
+}
+
+.stepNumberActive {
+  background: #c084fc;
+  color: #fff;
+}
+
+.stepNumberDone {
+  background: #22c55e;
+  color: #fff;
+}
+
+/* ─── Main Content Area ──────────────────────────────────── */
+.content {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 0;
+}
+
+/* ─── Date Navigation ────────────────────────────────────── */
+.dateNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding: 1.25rem 1.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.25rem;
+  gap: 1.5rem;
+}
+
+.dateInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.currentDateDisplay {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.dateControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.arrowGroup {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.navArrow {
+  padding: 0.7rem 1rem;
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.navArrow:hover {
+  background: rgba(192, 132, 252, 0.2);
+  color: #fff;
+}
+
+.navArrow:first-child {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btnToday {
+  padding: 0.5rem 1rem;
+  background: rgba(192, 132, 252, 0.1);
+  border: 1px solid rgba(192, 132, 252, 0.3);
+  border-radius: 0.6rem;
+  color: #c084fc;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnToday:hover {
+  background: rgba(192, 132, 252, 0.2);
+  color: #fff;
+}
+
+/* ─── STEP 1: Film Grid ──────────────────────────────────── */
+.screeningGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.screeningCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.screeningCard:hover {
+  background: rgba(192, 132, 252, 0.12);
+  border-color: rgba(192, 132, 252, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(192, 132, 252, 0.15);
+}
+
+.screeningCard:active {
+  transform: translateY(0);
+}
+
+.screeningCardSoldOut {
+  background: rgba(239, 68, 68, 0.05) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  cursor: not-allowed;
+  opacity: 0.8 !important;
+}
+
+
+.screeningCardSoldOut:hover {
+  transform: none;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.screeningTime {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: #FFFFFF;
+  margin-bottom: 0.25rem;
+  line-height: 1;
+}
+
+.screeningTimeSoldOut {
+  text-decoration: line-through;
+  color: #ef4444;
+}
+
+.soldOutBadge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  background: #ef4444;
+  border-radius: 0.35rem;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.screeningTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+  color: #FFFFFF;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+
+  overflow: hidden;
+  height: 2.6rem;
+}
+
+.screeningTitleSoldOut {
+  color: #ef4444;
+  opacity: 0.7;
+}
+
+.screeningMeta {
+  font-size: 0.75rem;
+  color: #E0E0E0;
+  font-weight: 500;
+  opacity: 0.9;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.availBadge {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #22c55e;
+  font-weight: 800;
+  background: rgba(34, 197, 94, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  display: inline-block;
+}
+
+/* ─── STEP 2: Seats ──────────────────────────────────────── */
+.seatSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.selectedInfo {
+  gap: 1.5rem;
+}
+
+.selectedInfoContent {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+}
+
+.selectionSummary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(192, 132, 252, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(192, 132, 252, 0.3);
+}
+
+.selectionCount {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.btnContinue {
+  background: #c084fc;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.btnContinue:hover {
+  background: #a855f7;
+  transform: translateX(3px);
+}
+
+
+.selectedInfoTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #e9d5ff;
+}
+
+.selectedInfoMeta {
+  font-size: 0.8rem;
+  color: #c084fc;
+}
+
+.btnBack {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnBack:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Seat grid */
+.seatGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 0.5rem;
+}
+
+.seatBtn {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 0.6rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  gap: 2px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #22c55e;
+}
+
+.seatBtn:hover:not(:disabled) {
+  background: rgba(192, 132, 252, 0.15);
+  border-color: #c084fc;
+  color: #e9d5ff;
+  transform: scale(1.05);
+}
+
+.seatBtnSelected {
+  background: #c084fc !important;
+  border-color: #a855f7 !important;
+  color: #fff !important;
+  box-shadow: 0 0 12px rgba(192, 132, 252, 0.4);
+}
+
+.seatBtnBlocked {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.15) !important;
+  cursor: not-allowed !important;
+  text-decoration: line-through;
+}
+
+.seatBtnVip {
+  border-color: rgba(251, 191, 36, 0.3);
+  background: rgba(251, 191, 36, 0.06);
+  color: #fbbf24;
+}
+
+.seatRow {
+  font-size: 0.6rem;
+  opacity: 0.65;
+  font-weight: 500;
+}
+
+/* Seat Loading */
+.seatLoader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+}
+
+/* Seat legend */
+.seatLegend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legendDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* ─── STEP 3: Confirm + Price ────────────────────────────── */
+.confirmSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .confirmSection {
+    grid-template-columns: 1fr;
+  }
+}
+
+.confirmCard {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.confirmRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.confirmRow:last-child {
+  border-bottom: none;
+}
+
+.confirmValue {
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.priceSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.priceLabel {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.priceNote {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+.priceInputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  transition: all 0.15s;
+  justify-content: space-between;
+}
+
+.totalSummary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  margin-top: 0.5rem;
+}
+
+.totalValue {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: #86efac;
+}
+
+.seatListSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-end;
+}
+
+
+.priceInputWrapper:focus-within {
+  border-color: #c084fc;
+  background: rgba(192, 132, 252, 0.07);
+  box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.1);
+}
+
+.eurSymbol {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.priceInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 2rem;
+  font-weight: 900;
+  color: #fff;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.btnConfirm {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 1.1rem;
+  background: linear-gradient(135deg, #c084fc, #818cf8);
+  border: none;
+  border-radius: 0.85rem;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 20px rgba(192, 132, 252, 0.35);
+  transition: all 0.2s;
+}
+
+.btnConfirm:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(192, 132, 252, 0.5);
+  filter: brightness(1.05);
+}
+
+.btnConfirm:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btnConfirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── STEP 4: Ticket Preview + Print ────────────────────── */
+.successSection {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .successSection {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ticketPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ticketActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 302px;
+}
+
+.btnPrint {
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  background: #16a34a;
+  border: none;
+  border-radius: 0.7rem;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
+  transition: all 0.2s;
+}
+
+.btnPrint:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+.btnDownload {
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.7rem;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.btnDownload:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* ─── Search Bar ─────────────────────────────────────────── */
+.searchContainer {
+  margin-bottom: 1.5rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 1.25rem;
+  color: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.searchInput {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.1rem 1rem 1.1rem 3.5rem;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.searchInput:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(192, 132, 252, 0.5);
+  box-shadow: 0 0 20px rgba(192, 132, 252, 0.15);
+}
+
+.searchInput:focus + .searchIcon {
+  color: #c084fc;
+}
+
+/* ─── Global Search Results ─────────────────────────────── */
+.globalSection {
+  margin-top: 3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 2rem;
+}
+
+.globalBadge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: rgba(192, 132, 252, 0.15);
+  color: #c084fc;
+  padding: 0.2rem 0.6rem;
+  border-radius: 2rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-left: 0.75rem;
+  vertical-align: middle;
+}
+
+.noResults {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 1.5rem;
+  color: rgba(255, 255, 255, 0.3);
+  gap: 1rem;
+  font-weight: 500;
+}
+
+/* ─── Quick Schedule View ──────────────────────────────── */
+.btnFindAltIcon {
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  transition: all 0.2s;
+}
+
+.btnFindAltIcon:hover {
+  background: rgba(192, 132, 252, 0.2);
+  color: #fff;
+}
+
+.btnNewSale {
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 1rem 1.2rem;
+  background: linear-gradient(135deg, #c084fc, #818cf8);
+  border: none;
+  border-radius: 0.7rem;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 20px rgba(192, 132, 252, 0.3);
+  transition: all 0.2s;
+}
+
+.btnNewSale:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(192, 132, 252, 0.45);
+}
+
+.successInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.successTitle {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #86efac;
+}
+
+.successCode {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #c084fc;
+}
+
+.successDetails {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.successDetailRow {
+  display: flex;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.successDetailRow span:last-child {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+/* ─── History Panel ──────────────────────────────────────── */
+.historyPanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: #111118;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.historyTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.btnClosePanel {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.btnClosePanel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.historyList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.historyItem {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: default;
+  transition: background 0.15s;
+}
+
+.historyItem:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.historyItemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  overflow: hidden;
+}
+
+.historyMovieTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.historyMeta {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.historyCode {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #c084fc;
+}
+
+.historyPrice {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #86efac;
+  white-space: nowrap;
+}
+
+.btnReprint {
+  padding: 0.35rem 0.7rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.45rem;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.btnReprint:hover {
+  background: rgba(192, 132, 252, 0.12);
+  border-color: rgba(192, 132, 252, 0.3);
+  color: #c084fc;
+}
+
+.historyEmpty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 0.85rem;
+}
+
+.historyCleanup {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.btnCleanup {
+  width: 100%;
+  padding: 0.6rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 0.5rem;
+  color: #f87171;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.btnCleanup:hover {
+  background: rgba(239, 68, 68, 0.14);
+}
+
+/* ─── Empty / Loading States ─────────────────────────────── */
+.emptyState {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.25);
+  gap: 0.75rem;
+}
+
+.emptyStateTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.loadingSpinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Overlay for reprint preview ────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.overlayCard {
+  background: #111118;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+}
+
+.overlayActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* ─── Print root helper ──────────────────────────────────── */
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.btnFindAltIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  color: #fff;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btnFindAltIcon:hover {
+  background: #6366f1;
+  border-color: #6366f1;
+  transform: scale(1.1);
+}
+
+.soldOutBadge {
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 900;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+  letter-spacing: 0.05em;
+}
+
+.btnFindAlt {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+
+.btnFindAlt:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #fff;
+}
+
+.btnDownloadTicket {
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.7rem;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  transition: all 0.2s;
+}
+
+.btnDownloadTicket:hover:not(:disabled) {
+  background: #334155;
+}
+
+.btnDownloadTicket:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Alternatives Modal */
+.overlayCardAlt {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.overlayHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #1e293b;
+  padding-bottom: 1rem;
+}
+
+.overlayTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.overlaySubtitle {
+  font-size: 0.9rem;
+  color: #cbd5e1;
+}
+
+.altList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.altItem {
+  background: #1e293b;
+  border: 1px solid transparent;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.altItem:hover {
+  background: #334155;
+  border-color: #6366f1;
+}
+
+.altTimeInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.altDay {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.altTime {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #fff;
+}
+
+.altDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.altRoom {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.altSeats {
+  font-size: 0.75rem;
+  color: #22c55e;
+  font-weight: 800;
+}
+
+.btnQuickSelect {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+
+/* ─── Keyboard Shortcuts & Tooltips ──────────────────────── */
+.kbdHint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.6);
+  margin-left: 0.6rem;
+  text-transform: uppercase;
+  font-family: var(--font-inter), sans-serif;
+  box-shadow: 0 2px 0 rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
+.shortcutActive {
+  transform: scale(0.96) translateY(2px) !important;
+  filter: brightness(1.2) !important;
+  box-shadow: 0 0 20px rgba(192, 132, 252, 0.6) !important;
+  transition: all 0.05s ease-out !important;
+}
+
+.priceShortcutHint {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(192, 132, 252, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.4rem;
+}

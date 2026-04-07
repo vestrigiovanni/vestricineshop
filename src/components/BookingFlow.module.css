@@ -1,0 +1,302 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 0;
+  position: relative;
+  background-color: transparent;
+  color: #fff;
+}
+
+.header {
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  position: relative;
+  z-index: 10;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.titleBlock {
+  max-width: 600px;
+}
+
+.title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.languageDetail {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start; /* Defaulting to left to match title, but let's check user request */
+  gap: 1rem;
+  margin: 0.5rem 0;
+  flex-wrap: wrap;
+}
+
+.langItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.langIcon {
+  color: #FFE066; /* Giallo ocra tenue */
+  flex-shrink: 0;
+}
+
+.langHighlight {
+  color: #FFE066;
+  font-weight: 700;
+}
+
+.langSeparator {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 1rem;
+}
+
+.desc {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.changeTimeBtn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.changeTimeBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.seatMapWrapper {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at center, rgba(30, 30, 50, 0.15) 0%, transparent 80%);
+}
+
+.footer {
+  padding: 1rem 1.5rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 100%);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.summaryInfo {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.summaryLabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.summaryValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.summaryDivider {
+  width: 1px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.actionBlock {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.proceedBtn {
+  width: 100%;
+  padding: 1.1rem 2rem;
+  background-color: #fff;
+  color: #000;
+  border: none;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 20px -5px rgba(255, 255, 255, 0.2);
+  opacity: 0.5;
+  transform: translateY(10px);
+}
+
+.proceedBtn.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.proceedBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px -5px rgba(255, 255, 255, 0.3);
+  background-color: #f0f0f0;
+}
+
+.proceedBtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.proceedBtn:disabled {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.2);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.hintText {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+  text-align: right;
+}
+
+.seatsSummary {
+  padding: 0.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.seatsSummaryLabel {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.seatsList {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Subevent listing and other states — maintain but refine if needed */
+.subeventList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem 2rem;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.subeventBtn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: #fff;
+  text-align: left;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.subeventBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.subeventInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.metaIcon {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.subeventTime {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.soldOutBadge {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.2rem 0.5rem;
+  background: rgba(239, 68, 68, 0.15);
+  color: rgb(239, 68, 68);
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 768px) {
+  .subeventBtn {
+    padding: 1rem;
+  }
+  
+  .changeTimeBtn {
+    position: static;
+    transform: none;
+    margin-top: 1rem;
+  }
+  
+  .footer {
+    padding: 1.5rem;
+  }
+  
+  .summaryInfo {
+    gap: 1.5rem;
+  }
+}

@@ -1,0 +1,80 @@
+.section {
+  padding: 2.5rem 0;
+  overflow: hidden;
+}
+
+.galleryTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  padding: 0 1.5rem;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+}
+
+.galleryContainer {
+  position: relative;
+  width: 100%;
+}
+
+.galleryScroll {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  padding: 0.5rem 1.5rem 1.5rem;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.galleryScroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.cardWrapper {
+  flex: 0 0 240px; /* Base width for movie cards in scroll */
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.cardWrapper:hover {
+  transform: translateY(-8px) scale(1.03);
+  z-index: 10;
+}
+
+.dateLabel {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.metaIcon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.cardWrapper:hover .dateLabel {
+  opacity: 1;
+}
+
+@media (min-width: 768px) {
+  .cardWrapper {
+    flex: 0 0 280px;
+  }
+}

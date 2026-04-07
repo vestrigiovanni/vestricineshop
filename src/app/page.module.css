@@ -1,0 +1,131 @@
+.main {
+  min-height: 100vh;
+  padding-bottom: 5rem;
+}
+
+.hero {
+  position: relative;
+  height: 80vh;
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+  color: #fff;
+  overflow: hidden;
+}
+
+.heroBackdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+}
+
+.heroImage {
+  object-fit: cover;
+  object-position: center 20%;
+}
+
+.heroOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 15, 19, 0.4) 0%,
+    rgba(15, 15, 19, 0) 50%,
+    rgba(15, 15, 19, 0.9) 85%,
+    var(--background) 100%
+  ),
+  linear-gradient(
+    to right,
+    rgba(15, 15, 19, 1) 0%,
+    rgba(15, 15, 19, 0.6) 40%,
+    rgba(15, 15, 19, 0) 100%
+  );
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+  max-width: 650px;
+}
+
+.nowPlaying {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.heroTitle {
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  font-weight: 800;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.heroOverview {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 2.5rem;
+  max-width: 500px;
+}
+
+.heroActions {
+  display: flex;
+  gap: 1rem;
+}
+
+.heroSimple {
+  padding: 8rem 0 4rem;
+  text-align: center;
+}
+
+.title {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.accent {
+  color: var(--primary);
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+}
+
+.galleries {
+  margin-top: -100px; /* Pull galleries up over the hero gradient */
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 768px) {
+  .hero {
+    height: 70vh;
+    align-items: flex-end;
+    padding-bottom: 120px;
+  }
+  
+  .heroOverlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(15, 15, 19, 0.2) 0%,
+      rgba(15, 15, 19, 0.8) 70%,
+      var(--background) 100%
+    );
+  }
+  
+  .galleries {
+    margin-top: -40px;
+  }
+}

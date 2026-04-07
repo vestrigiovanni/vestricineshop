@@ -1,0 +1,131 @@
+.footer {
+  background-color: #111;
+  color: #888;
+  padding: 1rem 0;
+  margin-top: auto;
+  font-size: 0.875rem;
+  text-align: center;
+  position: relative;
+  width: 100%;
+}
+
+.container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.adminButton {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.1);
+  font-size: 0.65rem;
+  padding: 4px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  text-transform: lowercase;
+}
+
+.adminButton:hover {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.modalContent {
+  background-color: #1a1a1a;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  width: 90%;
+  max-width: 400px;
+  color: #fff;
+  text-align: left;
+  border: 1px solid #333;
+}
+
+.modalContent h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  color: #e50914;
+}
+
+.modalContent p {
+  color: #aaa;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background-color: #2a2a2a;
+  color: #fff;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #e50914;
+}
+
+.error {
+  color: #e50914;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.cancelButton,
+.submitButton {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.3s;
+}
+
+.cancelButton {
+  background-color: transparent;
+  color: #aaa;
+}
+
+.cancelButton:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.submitButton {
+  background-color: #e50914;
+  color: #fff;
+}
+
+.submitButton:hover {
+  background-color: #f6121d;
+}

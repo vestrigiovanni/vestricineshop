@@ -1,0 +1,80 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: rgba(10, 10, 10, 0.98);
+  backdrop-filter: blur(10px);
+  overflow-y: auto;
+  color: white;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  background-color: rgba(15, 15, 15, 0.95);
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 10;
+}
+
+.headerTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e50914;
+  letter-spacing: 0.1em;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.closeBtn:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: rotate(90deg);
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.loaderContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  gap: 1rem;
+  color: #888;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
