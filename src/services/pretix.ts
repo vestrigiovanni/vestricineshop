@@ -190,11 +190,7 @@ async function fetchPretix(endpoint: string, options: RequestInit = {}) {
   const response = await fetch(url, {
     ...options,
     headers,
-    // @ts-ignore - Next.js extended RequestInit
-    next: { 
-      tags: ['availability', ...( (options as any)?.next?.tags || []) ],
-      revalidate: (options as any)?.next?.revalidate ?? false
-    }
+    cache: 'no-store',
   });
 
   if (!response.ok) {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { revalidateTag } from 'next/cache';
+import { revalidateTag, revalidatePath } from 'next/cache';
 
 /**
  * Handle Pretix Webhooks for Real-time Availability Sync.
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
     if (relevantActions.includes(action)) {
       console.log('[Pretix Webhook] Triggering revalidation for "availability" tag');
       revalidateTag('availability', { expire: 0 });
+      revalidatePath('/');
     }
 
     return NextResponse.json({ received: true });

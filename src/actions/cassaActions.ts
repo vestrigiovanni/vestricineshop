@@ -347,6 +347,7 @@ export async function cassaExecuteSale(params: {
   // Records are returned directly to the client for processing.
 
   revalidatePath('/admin/cassa');
+  revalidatePath('/');
 
   return { success: true, orderCode, orderUrl, records };
 }
