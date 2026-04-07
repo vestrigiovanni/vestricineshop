@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, Check, Loader2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, X, Loader2 } from 'lucide-react';
 import { getSeatingPlan, getAvailability } from '@/services/pretix';
 import styles from './SeatMap.module.css';
 
@@ -9,6 +9,7 @@ interface SeatMapProps {
   selectedSeats: Set<string>;
   onSeatToggle: (seatId: string, label: string) => void;
   subeventId?: number | null;
+  onClose?: () => void;
 }
 
 interface Seat {
@@ -23,7 +24,7 @@ interface Seat {
   seatName?: string;
 }
 
-export default function SeatMap({ selectedSeats, onSeatToggle, subeventId }: SeatMapProps) {
+export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClose }: SeatMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [seats, setSeats] = useState<Seat[]>([]);
@@ -253,9 +254,12 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId }: Sea
       </div>
 
       <div className={styles.controlsMinimal}>
-        <button onClick={() => setTransform(p => ({ ...p, scale: p.scale * 1.2 }))} className={styles.miniBtn}><ZoomIn size={18} /></button>
-        <button onClick={() => setTransform(p => ({ ...p, scale: p.scale * 0.8 }))} className={styles.miniBtn}><ZoomOut size={18} /></button>
-        <button onClick={resetZoom} className={styles.miniBtn}><RotateCcw size={18} /></button>
+        <button onClick={() => setTransform(p => ({ ...p, scale: p.scale * 1.2 }))} className={styles.miniBtn} title="Ingrandisci"><ZoomIn size={18} /></button>
+        <button onClick={() => setTransform(p => ({ ...p, scale: p.scale * 0.8 }))} className={styles.miniBtn} title="Rimpicciolisci"><ZoomOut size={18} /></button>
+        <button onClick={resetZoom} className={styles.miniBtn} title="Ripristina vista"><RotateCcw size={18} /></button>
+        {onClose && (
+          <button onClick={onClose} className={styles.miniBtn} title="Chiudi"><X size={18} /></button>
+        )}
       </div>
 
       <div className={styles.legend}>

@@ -66,28 +66,6 @@
   text-align: center;
 }
 
-.closeButton {
-  position: absolute;
-  right: 1.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  padding: 0.6rem;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.closeButton:hover {
-  color: #fff;
-  background-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-50%) scale(1.05);
-}
 
 .drawerContent {
   flex: 1;

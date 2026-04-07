@@ -8,11 +8,12 @@ import CheckoutButton from './CheckoutButton';
 import { listSubEvents, getItemAvailability, getSubEvent, listQuotas } from '@/services/pretix';
 import { ITEM_INTERO_ID } from '@/constants/pretix';
 import { getLanguageFull, getSubtitleFull } from '@/utils/languageUtils';
-import { Loader2, Calendar, Clock, ChevronLeft, Info, AlertTriangle, Globe, MessageSquare } from 'lucide-react';
+import { Loader2, Calendar, Clock, ChevronLeft, Info, AlertTriangle, Globe, MessageSquare, X } from 'lucide-react';
 import styles from './BookingFlow.module.css';
 
 interface BookingFlowProps {
   subeventId?: number;
+  onClose?: () => void;
 }
 
 function LanguageDetailView({ lingua, sottotitoli }: { lingua?: string; sottotitoli?: string }) {
@@ -52,7 +53,7 @@ function LanguageDetailView({ lingua, sottotitoli }: { lingua?: string; sottotit
   );
 }
 
-export default function BookingFlow({ subeventId }: BookingFlowProps) {
+export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   const [selectedSeats, setSelectedSeats] = useState<Map<string, string>>(new Map());
   const [checkoutStarted, setCheckoutStarted] = useState(false);
   const [subevents, setSubevents] = useState<any[]>([]);
@@ -148,10 +149,13 @@ export default function BookingFlow({ subeventId }: BookingFlowProps) {
   }
 
   // ── Sold Out State ────────────────────────────────────────────
-  if (isSoldOut) {
-    return (
       <div className={styles.container}>
         <div className={styles.soldOutContainer}>
+          {onClose && (
+            <button className={styles.closeBtnOverlay} onClick={onClose} aria-label="Chiudi">
+              <X size={20} />
+            </button>
+          )}
           <AlertTriangle size={48} className={styles.soldOutIcon} />
           <h2 className={styles.soldOutTitle}>Posti Esauriti</h2>
           <p className={styles.soldOutDesc}>
@@ -170,8 +174,6 @@ export default function BookingFlow({ subeventId }: BookingFlowProps) {
           )}
         </div>
       </div>
-    );
-  }
 
   // ── Checkout ─────────────────────────────────────────────────
   if (checkoutStarted) {
@@ -209,9 +211,16 @@ export default function BookingFlow({ subeventId }: BookingFlowProps) {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleBlock}>
-          <h2 className={styles.title}>
-            {selectedSubeventId ? `${movieTitle} — ${timeStr}` : 'Scegli la proiezione'}
-          </h2>
+          <div className={styles.titleRow}>
+            <h2 className={styles.title}>
+              {selectedSubeventId ? `${movieTitle} — ${timeStr}` : 'Scegli la proiezione'}
+            </h2>
+            {onClose && !selectedSubeventId && (
+              <button className={styles.closeButtonMinimal} onClick={onClose} aria-label="Chiudi">
+                <X size={20} />
+              </button>
+            )}
+          </div>
           {selectedSubeventId && selectedSubEvent && (
             <LanguageDetailView 
               lingua={selectedSubEvent.meta_data?.lingua} 
@@ -281,6 +290,7 @@ export default function BookingFlow({ subeventId }: BookingFlowProps) {
               selectedSeats={new Set(selectedSeats.keys())}
               onSeatToggle={handleSeatToggle}
               subeventId={selectedSubeventId}
+              onClose={onClose}
             />
           </div>
 

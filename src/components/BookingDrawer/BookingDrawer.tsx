@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { X } from 'lucide-react';
 import styles from './BookingDrawer.module.css';
 import BookingFlow from '../BookingFlow';
 
@@ -37,18 +36,13 @@ export default function BookingDrawer({ isOpen, onClose, subeventId, movieTitle 
 
       {/* Centered Modal Container */}
       <div className={`${styles.drawerContainer} ${isOpen ? styles.open : ''}`}>
-        <button 
-          className={styles.closeButton} 
-          onClick={onClose} 
-          aria-label="Chiudi"
-        >
-          <X size={20} />
-        </button>
-        
         <div className={styles.drawerContent}>
           {/* Render context-aware booking flow */}
           {isOpen && (
-            <BookingFlow subeventId={subeventId || undefined} />
+            <BookingFlow 
+              subeventId={subeventId || undefined} 
+              onClose={onClose}
+            />
           )}
         </div>
       </div>
