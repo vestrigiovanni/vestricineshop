@@ -1,7 +1,5 @@
 'use server';
 
-import fs from 'fs';
-import path from 'path';
 import {
   listSubEvents,
   listQuotas,
@@ -14,11 +12,8 @@ import { getMovieDetails } from '@/services/tmdb';
 import { revalidatePath } from 'next/cache';
 
 // ─────────────────────────────────────────────────────────────────
-// ARCHIVE HELPERS
-// ─────────────────────────────────────────────────────────────────
-
-const ARCHIVE_DIR = path.join(process.cwd(), 'public', 'tickets', 'cassa');
-const ARCHIVE_INDEX = path.join(ARCHIVE_DIR, 'index.json');
+// NOTE: Filesystem archiving is disabled to support read-only environments like Vercel.
+// Sales history is now session-based in the client.
 
 export interface CassaTicketRecord {
   id: string;           // e.g. "20260406_ABC12"
@@ -41,29 +36,6 @@ export interface CassaTicketRecord {
   year?: string;
   rating?: string;
 }
-
-function ensureArchiveDir() {
-  if (!fs.existsSync(ARCHIVE_DIR)) {
-    fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
-  }
-}
-
-function readIndex(): CassaTicketRecord[] {
-  ensureArchiveDir();
-  if (!fs.existsSync(ARCHIVE_INDEX)) return [];
-  try {
-    return JSON.parse(fs.readFileSync(ARCHIVE_INDEX, 'utf-8'));
-  } catch {
-    return [];
-  }
-}
-
-function writeIndex(records: CassaTicketRecord[]) {
-  ensureArchiveDir();
-  fs.writeFileSync(ARCHIVE_INDEX, JSON.stringify(records, null, 2), 'utf-8');
-}
-
-// ─────────────────────────────────────────────────────────────────
 // TODAY'S SCREENINGS
 // ─────────────────────────────────────────────────────────────────
 
@@ -370,12 +342,9 @@ export async function cassaExecuteSale(params: {
     };
   });
 
-  // 3. Save records to archive index
-  const allRecords = readIndex();
-  // Add all new records to the top
-  const updatedRecords = [...records, ...allRecords];
-  // Keep max 500 records in memory
-  writeIndex(updatedRecords.slice(0, 500));
+  // 3. (REMOVED) Save records to archive index
+  // We no longer write to the file system to avoid EROFS on Vercel.
+  // Records are returned directly to the client for processing.
 
   revalidatePath('/admin/cassa');
 
@@ -388,8 +357,8 @@ export async function cassaExecuteSale(params: {
 // ─────────────────────────────────────────────────────────────────
 
 export async function cassaGetRecentSales(limit = 50): Promise<CassaTicketRecord[]> {
-  const records = readIndex();
-  return records.slice(0, limit);
+  // Stateless POS: Recent sales are no longer stored on the server disk.
+  return [];
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -397,40 +366,8 @@ export async function cassaGetRecentSales(limit = 50): Promise<CassaTicketRecord
 // ─────────────────────────────────────────────────────────────────
 
 export async function cassaCleanupOldPDFs(): Promise<{ deleted: number; kept: number }> {
-  const records = readIndex();
-  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-
-  let deleted = 0;
-  const kept: CassaTicketRecord[] = [];
-
-  for (const record of records) {
-    const recordDate = new Date(record.date).getTime();
-    if (recordDate < cutoff) {
-      // Try to delete the PDF
-      const pdfPath = path.join(ARCHIVE_DIR, `${record.id}.pdf`);
-      if (fs.existsSync(pdfPath)) {
-        try {
-          fs.unlinkSync(pdfPath);
-          deleted++;
-        } catch (e) {
-          console.error(`Failed to delete PDF ${pdfPath}:`, e);
-          kept.push(record); // keep record if we couldn't delete
-          continue;
-        }
-      }
-      deleted++;
-    } else {
-      kept.push(record);
-    }
-  }
-
-  writeIndex(kept);
-  return { deleted, kept: kept.length };
+  // Stateless POS: No longer managing PDF files on disk.
+  return { deleted: 0, kept: 0 };
 }
 
-// ─────────────────────────────────────────────────────────────────
-// SAVE PDF BLOB (called from client after PDF generation)
-// ─────────────────────────────────────────────────────────────────
-// NOTE: PDF generation itself happens client-side (html2canvas + jsPDF).
-// The client uploads the base64 blob to /api/cassa/save-pdf,
-// which calls this action. This keeps the Server Action boundary clean.
+
