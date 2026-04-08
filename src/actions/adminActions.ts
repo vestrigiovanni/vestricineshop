@@ -33,15 +33,32 @@ function formatManualISO(d: Date) {
  */
 async function getBlockedIntervals(seatingPlanId: number) {
   const events = await listSubEvents(true);
-  const MANDATORY_GAP = 10 * 60000; // 10 minutes mandatory buffer as requested
+  const CLEANING_BUFFER_EXISTING = 15 * 60000; // 15 minutes as requested for existing screenings
   
   return events
     .filter((e: any) => Number(e.seating_plan) === seatingPlanId)
     .map((e: any) => {
       const s = new Date(e.date_from).getTime();
-      const e_end = e.date_to ? new Date(e.date_to).getTime() : s + (120 * 60000);
-      // Red Zone: Start until End + 10m Cleaning
-      return { start: s, end: e_end + MANDATORY_GAP, title: e.name.it || e.name };
+      let e_end: number;
+      
+      if (e.date_to) {
+        e_end = new Date(e.date_to).getTime();
+      } else {
+        // Try parsing runtime from comment field (stored as JSON)
+        let runtimeMs = 120 * 60000; // Default 2 hours
+        try {
+          if (e.comment) {
+            const metadata = JSON.parse(e.comment);
+            if (metadata.runtime) {
+              runtimeMs = metadata.runtime * 60000;
+            }
+          }
+        } catch { /* ignore parse errors */ }
+        e_end = s + runtimeMs;
+      }
+      
+      // Red Zone: Start until End + 15m Cleaning
+      return { start: s, end: e_end + CLEANING_BUFFER_EXISTING, title: e.name.it || e.name };
     });
 }
 
@@ -143,10 +160,10 @@ export async function adminScheduleMovie(
 
   // 5. Algorithm No-Overlap Check (Strict Sliding Window Logic)
   const runtimeMinutes = (details.runtime || 120);
-  const MANDATORY_GAP = 10 * 60000; // 10m
+  const CLEANING_BUFFER_NEW = 10 * 60000; // 10m cleaning for the new movie footprint
   const startDate = toDate(date, { timeZone: TIMEZONE });
   const sNew = startDate.getTime();
-  const eNew = sNew + (runtimeMinutes * 60000) + MANDATORY_GAP; // Movie + Buffer block
+  const eNew = sNew + (runtimeMinutes * 60000) + CLEANING_BUFFER_NEW; // Movie + Footprint block
   
   const blockedIntervals = await getBlockedIntervals(seatingPlanId);
   const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
@@ -308,7 +325,8 @@ export async function adminGetQuotaAvailability(quotaId: number) {
 export async function adminGetSmartSuggestion(tmdbId: string, seatingPlanId: number, buffer: number = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
-  const runtimeWithBufferMs = (runtime + buffer) * 60000;
+  const CLEANING_BUFFER_NEW = 10 * 60000;
+  const runtimeWithBufferMs = (runtime * 60000) + CLEANING_BUFFER_NEW;
   const roundingMs = 5 * 60000;
 
   const now = new Date();
@@ -348,8 +366,8 @@ export async function adminCheckConflict(date: string, tmdbId: string, seatingPl
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
   const sNew = toDate(date, { timeZone: TIMEZONE }).getTime();
-  const MANDATORY_GAP = 10 * 60000; // 10m
-  const eNew = sNew + (runtime * 60000) + MANDATORY_GAP;
+  const CLEANING_BUFFER_NEW = 10 * 60000;
+  const eNew = sNew + (runtime * 60000) + CLEANING_BUFFER_NEW;
 
   const blockedIntervals = await getBlockedIntervals(seatingPlanId);
   const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
@@ -378,7 +396,8 @@ export async function adminCheckConflict(date: string, tmdbId: string, seatingPl
 export async function adminFindNearestSlots(date: string, tmdbId: string, seatingPlanId: number, buffer: number = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = details?.runtime || 120;
-  const runtimeWithBufferMs = (runtime + buffer) * 60000;
+  const CLEANING_BUFFER_NEW = 10 * 60000;
+  const runtimeWithBufferMs = (runtime * 60000) + CLEANING_BUFFER_NEW;
   const roundingMs = 5 * 60000;
 
   const targetDateMs = toDate(date, { timeZone: TIMEZONE }).getTime();
@@ -425,9 +444,9 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
 export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number, daysCount = 14, buffer = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
-  const MANDATORY_GAP = 10 * 60000; // 10m buffer
-  const runtimeWithBufferMs = (runtime * 60000) + MANDATORY_GAP;
-  const SCAN_STEP_MS = 5 * 60000; // Scan every 5 minutes as requested
+  const CLEANING_BUFFER_NEW = 10 * 60000; // 10m buffer for new movie
+  const runtimeWithBufferMs = (runtime * 60000) + CLEANING_BUFFER_NEW;
+  const SCAN_STEP_MS = 5 * 60000; // Scan every 5 minutes
 
   const blockedIntervals = await getBlockedIntervals(seatingPlanId);
   const suggestions: { date: string; label: string; isOccupied: boolean; isMorning?: boolean }[] = [];
@@ -437,7 +456,7 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
     const dayDate = new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
     dayDate.setHours(0, 0, 0, 0);
     
-    // Timeline boundary for scanning: Starts at 08:00 as requested
+    // Timeline boundary: 08:00 to 23:30 (last possible start)
     const timelineStart = new Date(dayDate);
     timelineStart.setHours(8, 0, 0, 0);
     const timelineEnd = new Date(dayDate.getTime() + 23.5 * 60 * 60 * 1000);
@@ -445,7 +464,10 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
     let currentPointer = timelineStart.getTime();
 
     const daySlots: typeof suggestions = [];
-    while (currentPointer + runtimeWithBufferMs <= timelineEnd.getTime()) {
+    while (currentPointer + runtimeWithBufferMs <= timelineEnd.getTime() + (runtimeWithBufferMs)) { 
+      // Allow mapping slots that start before 23:30.
+      if (currentPointer > timelineEnd.getTime()) break;
+
       const sNew = currentPointer;
       const eNew = sNew + runtimeWithBufferMs;
 
