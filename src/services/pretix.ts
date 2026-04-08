@@ -1,6 +1,9 @@
 'use server';
 
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
+import { formatInTimeZone, toDate } from 'date-fns-tz';
+
+const TIMEZONE = 'Europe/Rome';
 
 const PRETIX_API_URL = 'https://pretix.eu/api/v1';
 const PRETIX_ORGANIZER = 'vestri';
@@ -37,7 +40,7 @@ export async function createEvent(movieData: { title: string; slug: string; date
       name: { it: movieData.title },
       slug: movieData.slug,
       live: true,
-      date_from: movieData.date,
+      date_from: formatInTimeZone(toDate(movieData.date, { timeZone: TIMEZONE }), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX"),
       description: movieData.description ? { it: movieData.description } : undefined,
       currency: 'EUR',
       plugins: ['pretix.plugins.statistics']
@@ -250,7 +253,7 @@ export async function getSeatingPlan(subeventId?: number) {
     if (subeventId) {
       return await getSubEventSeats(subeventId);
     }
-    
+
     // Organizer-level plans
     const data = await fetchPretix(`/organizers/${PRETIX_ORGANIZER}/seatingplans/`);
     const results = data?.results || (Array.isArray(data) ? data : []);
@@ -430,7 +433,7 @@ export async function isSubEventSoldOut(subeventId: number) {
     const se = await getSubEvent(subeventId);
     const quotas = await listQuotas(subeventId);
     const interoQuota = quotas.find((q: any) => q.items.includes(ITEM_INTERO_ID));
-    
+
     return (
       (interoQuota && interoQuota.available_number !== null && interoQuota.available_number <= 0) ||
       se.best_availability_state === 'sold_out' ||
@@ -452,7 +455,7 @@ export async function finalizeBooking(email: string, seats: string[], subeventId
     if (subeventId && seats.length > 0) {
       const seatsData = await fetchPretix(`/subevents/${subeventId}/seats/`);
       const allSeats: any[] = seatsData?.results || [];
-      
+
       const vipGuidSet = new Set(
         allSeats
           .filter((s: any) => s.product === ITEM_VIP_ID)
@@ -575,9 +578,22 @@ export async function createSubEvent(movieData: {
   logoPath?: string;
 }) {
   try {
-    const startDate = new Date(movieData.date);
+    // If the date string looks like a naive local date (no Z or offset), 
+    // interpret it as Europe/Rome.
+    const startDate = movieData.date.includes('Z') || movieData.date.includes('+')
+      ? new Date(movieData.date)
+      : toDate(movieData.date, { timeZone: TIMEZONE });
+
     const runtimeMinutes = movieData.runtime || 120;
     const endDate = new Date(startDate.getTime() + runtimeMinutes * 60000);
+
+    const dateFrom = formatInTimeZone(startDate, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+    const dateTo = formatInTimeZone(endDate, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+
+    console.log(`[Pretix] Creating sub-event "${movieData.title}"`);
+    console.log(`[Pretix] Original date string: ${movieData.date}`);
+    console.log(`[Pretix] Formatted date_from: ${dateFrom}`);
+    console.log(`[Pretix] Formatted date_to:   ${dateTo}`);
 
     // Format description as HTML for frontpage_text
     const descriptionHtml = `
@@ -612,8 +628,8 @@ export async function createSubEvent(movieData: {
       name: { it: movieData.title },
       active: true,
       is_public: true,
-      date_from: startDate.toISOString(),
-      date_to: endDate.toISOString(),
+      date_from: dateFrom,
+      date_to: dateTo,
       frontpage_text: { it: descriptionHtml },
       seating_plan: movieData.seatingPlanId,
       seat_category_mapping: movieData.seatCategoryMapping,

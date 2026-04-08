@@ -53,12 +53,13 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [conflict, setConflict] = useState<string | null>(null);
   const [conflictEndTime, setConflictEndTime] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const [weeklySlots, setWeeklySlots] = useState<{ date: string; label: string; isOccupied?: boolean; conflictWith?: string; isMorning?: boolean }[]>([]);
+  const [weeklySlots, setWeeklySlots] = useState<{ date: string; label: string; isOccupied?: boolean; conflictWith?: string; isMorning?: boolean; isOptimized?: boolean }[]>([]);
   const [loadingWeeklySlots, setLoadingWeeklySlots] = useState(false);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [slotFilter, setSlotFilter] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
   const [loadingBulk, setLoadingBulk] = useState(false);
   const [expandedMovies, setExpandedMovies] = useState<Set<string>>(new Set());
+  const [cleaningBuffer, setCleaningBuffer] = useState(15);
   const [nearestSuggestions, setNearestSuggestions] = useState<{ preSuggestion: string | null; postSuggestion: string | null }>({ preSuggestion: null, postSuggestion: null });
   const [showDisplayModal, setShowDisplayModal] = useState(false);
   const [prerollMin, setPrerollMin] = useState(10);
@@ -150,8 +151,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     try {
       setLoadingWeeklySlots(true);
       const [sug, weekly] = await Promise.all([
-        adminGetSmartSuggestion(movie.id.toString(), parseInt(defaultRoom)),
-        adminGetWeeklySlots(movie.id.toString(), parseInt(defaultRoom))
+        adminGetSmartSuggestion(movie.id.toString(), parseInt(defaultRoom), cleaningBuffer),
+        adminGetWeeklySlots(movie.id.toString(), parseInt(defaultRoom), 14, cleaningBuffer)
       ]);
       setScheduledSuggestion(sug);
       setWeeklySlots(weekly);
@@ -202,10 +203,10 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     // Smart Suggestion
     try {
       const roomToUse = event.seating_plan?.toString() || defaultSalaId || FIXED_ROOMS[0].id.toString();
-      const sug = await adminGetSmartSuggestion(movie.id.toString(), parseInt(roomToUse));
+      const sug = await adminGetSmartSuggestion(movie.id.toString(), parseInt(roomToUse), cleaningBuffer);
       setScheduledSuggestion(sug);
       
-      const weekly = await adminGetWeeklySlots(movie.id.toString(), parseInt(roomToUse));
+      const weekly = await adminGetWeeklySlots(movie.id.toString(), parseInt(roomToUse), 14, cleaningBuffer);
       setWeeklySlots(weekly);
       setSelectedSlots([]); // Reset selection
     } catch (e) {
@@ -214,33 +215,33 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   };
 
   useEffect(() => {
-    // Re-fetch weekly slots if room changes while modal is open
+    // Re-fetch weekly slots if room or buffer changes while modal is open
     if (showModal && selectedMovie) {
       setLoadingWeeklySlots(true);
       Promise.all([
-        adminGetSmartSuggestion(selectedMovie.id.toString(), parseInt(formState.roomId)),
-        adminGetWeeklySlots(selectedMovie.id.toString(), parseInt(formState.roomId))
+        adminGetSmartSuggestion(selectedMovie.id.toString(), parseInt(formState.roomId), cleaningBuffer),
+        adminGetWeeklySlots(selectedMovie.id.toString(), parseInt(formState.roomId), 14, cleaningBuffer)
       ]).then(([sug, weekly]) => {
         setScheduledSuggestion(sug);
         setWeeklySlots(weekly);
       }).catch(console.error)
         .finally(() => setLoadingWeeklySlots(false));
     }
-  }, [formState.roomId, showModal, selectedMovie]);
+  }, [formState.roomId, showModal, selectedMovie, cleaningBuffer]);
 
   useEffect(() => {
     if (!showModal || !selectedMovie || !formState.date) return;
-
+ 
     const check = async () => {
       setIsValidating(true);
       try {
-        const res = await adminCheckConflict(formState.date, selectedMovie.id.toString(), parseInt(formState.roomId));
+        const res = await adminCheckConflict(formState.date, selectedMovie.id.toString(), parseInt(formState.roomId), cleaningBuffer);
         if (res.hasConflict) {
           setConflict(res.movieTitle);
           setConflictEndTime(res.conflictEndTime || null);
           
           // Prendi suggerimenti vicini
-          const suggestions = await adminFindNearestSlots(formState.date, selectedMovie.id.toString(), parseInt(formState.roomId));
+          const suggestions = await adminFindNearestSlots(formState.date, selectedMovie.id.toString(), parseInt(formState.roomId), cleaningBuffer);
           setNearestSuggestions(suggestions);
         } else {
           setConflict(null);
@@ -253,10 +254,10 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         setIsValidating(false);
       }
     };
-
+ 
     const timer = setTimeout(check, 500);
     return () => clearTimeout(timer);
-  }, [formState.date, formState.roomId, showModal, selectedMovie]);
+  }, [formState.date, formState.roomId, showModal, selectedMovie, cleaningBuffer]);
 
   const applySmartSuggestion = (isoDate?: string) => {
     const target = (typeof isoDate === 'string' ? isoDate : null) || scheduledSuggestion;
@@ -285,7 +286,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           posterPath: formState.posterPath,
           language: formState.language,
           subtitles: formState.subtitles
-        }, selectedSlots, parseInt(formState.roomId));
+        }, selectedSlots, parseInt(formState.roomId), cleaningBuffer);
         alert(res.summary);
       } else {
         if (!formState.date) return;
@@ -296,7 +297,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           posterPath: formState.posterPath,
           language: formState.language,
           subtitles: formState.subtitles
-        }, formState.date, parseInt(formState.roomId), !!conflict);
+        }, formState.date, parseInt(formState.roomId), !!conflict, cleaningBuffer);
         alert(conflict ? 'Spettacolo programmato con successo (Override)!' : 'Spettacolo programmato con successo!');
       }
 
@@ -787,6 +788,22 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                           className={styles.modalInput}
                         />
                       </div>
+
+                      <div className={styles.formGroup}>
+                        <label className={styles.modalLabel}>Intervallo Pulizia (min)</label>
+                        <div className={styles.bufferToggle}>
+                          {[10, 15, 20].map(val => (
+                            <button
+                              key={val}
+                              type="button"
+                              onClick={() => setCleaningBuffer(val)}
+                              className={`${styles.bufferBtn} ${cleaningBuffer === val ? styles.bufferActive : ''}`}
+                            >
+                              {val}m
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -839,16 +856,16 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                                   return true;
                                 })
                                 .map(slot => (
-                                <button
-                                  key={slot.date}
-                                  type="button"
-                                  onClick={() => !slot.isOccupied && toggleSlotSelection(slot.date)}
-                                  className={`${styles.slotBadge} ${selectedSlots.includes(slot.date) ? styles.slotSelected : ''} ${slot.isOccupied ? styles.slotOccupied : ''} ${slot.isMorning ? styles.slotMorning : ''}`}
-                                  disabled={slot.isOccupied}
-                                  title={slot.isOccupied ? `Occupato da: ${slot.conflictWith}` : 'Slot disponibile – clicca per selezionare'}
-                                >
-                                  {slot.label}
-                                </button>
+                                  <button
+                                    key={slot.date}
+                                    type="button"
+                                    onClick={() => !slot.isOccupied && toggleSlotSelection(slot.date)}
+                                    className={`${styles.slotBadge} ${selectedSlots.includes(slot.date) ? styles.slotSelected : ''} ${slot.isOccupied ? styles.slotOccupied : ''} ${slot.isMorning ? styles.slotMorning : ''} ${slot.isOptimized ? styles.slotOptimized : ''}`}
+                                    disabled={slot.isOccupied}
+                                    title={slot.isOccupied ? `Occupato da: ${slot.conflictWith}` : slot.isOptimized ? 'Gap ottimizzato trovato dal sistema!' : 'Slot disponibile – clicca per selezionare'}
+                                  >
+                                    {slot.label}
+                                  </button>
                                 ))}
                             </div>
                           </div>
