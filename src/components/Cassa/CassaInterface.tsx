@@ -318,10 +318,33 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     setGeneratingPdf(true);
     try {
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [148, 105] });
+      
       for (let i = 0; i < result.records.length; i++) {
         const element = document.getElementById(`ticket-pdf-current-${i}`);
         if (!element) continue;
-        const canvas = await html2canvas(element, { scale: 4, useCORS: true, backgroundColor: '#000000', logging: false });
+        
+        // Ensure all images are loaded before capturing
+        const images = element.querySelectorAll('img');
+        await Promise.all(Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise(resolve => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        }));
+        
+        // Small buffer to ensure rendering is complete after image load
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const canvas = await html2canvas(element, { 
+          scale: 4, 
+          useCORS: true, 
+          backgroundColor: '#000000', 
+          logging: false,
+          allowTaint: false,
+          imageTimeout: 15000
+        });
+        
         const imgData = canvas.toDataURL('image/jpeg', 1.0);
         if (i > 0) pdf.addPage([148, 105], 'landscape');
         pdf.addImage(imgData, 'JPEG', 0, 0, 148, 105);
@@ -772,6 +795,16 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
                 ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {generatingPdf && (
+        <div className={styles.downloadOverlay}>
+          <div className={styles.downloadOverlayContent}>
+            <Loader2 size={48} className={styles.loadingSpinner} />
+            <h2>Preparazione biglietti in corso... attendi.</h2>
+            <p>Generazione dei PDF in corso, non chiudere la pagina.</p>
           </div>
         </div>
       )}
