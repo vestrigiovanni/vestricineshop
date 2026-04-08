@@ -189,11 +189,11 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
     >
       {/* ── Layer 1: Backdrop Image (USING DIV BACKGROUND FOR STABLE COVER SCALING) ── */}
       <div className={styles.backdropLayer}>
-        <div 
+        <img 
+          src={backdropSrc}
+          alt=""
           className={styles.backdropImage}
-          style={{ 
-            backgroundImage: `url(${backdropSrc})`,
-          }}
+          crossOrigin="anonymous"
         />
         <div className={styles.gradientBottom} />
         <div className={styles.gradientTop} />

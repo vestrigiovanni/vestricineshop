@@ -5,7 +5,7 @@ import styles from './AdminPanel.module.css';
 import { adminSearchMovies, adminGetMovieById, adminScheduleMovie, adminDeleteEvent, adminDeleteEventGroup, adminUpdateEventDate, adminListEvents, adminGetSeatingPlans, adminGetSmartSuggestion, adminCheckConflict, adminGetWeeklySlots, adminBulkScheduleMovie, adminFindNearestSlots } from '@/actions/adminActions';
 import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb';
 import Image from 'next/image';
-import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink } from 'lucide-react';
+import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode } from 'lucide-react';
 import { adminListQuotas, adminUpdateQuota, adminDeleteQuota, adminGetQuotaAvailability } from '@/actions/adminActions';
 
 interface AdminDashboardProps {
@@ -1036,15 +1036,26 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.title}>Programmazione Attuale (Pretix)</h2>
-          <a
-            href="https://pretix.eu/vestri/npkez/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.btnExternalLink}
-          >
-            <ExternalLink size={14} />
-            VAI A PRETIX
-          </a>
+          <div className="flex flex-col gap-2 items-end">
+            <a
+              href="https://pretix.eu/vestri/npkez/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.btnExternalLink}
+            >
+              <ExternalLink size={14} />
+              VAI A PRETIX
+            </a>
+            <a
+              href="https://pretix.eu/control/event/vestri/npkez/webcheckin/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.btnExternalLink}
+            >
+              <QrCode size={14} />
+              WEB CHECK-IN
+            </a>
+          </div>
         </div>
 
         <div className={styles.eventList}>

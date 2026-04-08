@@ -654,12 +654,21 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
       currentPointer += SCAN_STEP_MS;
     }
 
-    // Filter to only show 2 slots per band per day to avoid clutter
-    const morningSlots = daySlots.filter(s => parseInt(s.label.split(':')[0], 10) < 14).slice(0, 2);
-    const afternoonSlots = daySlots.filter(s => { const h = parseInt(s.label.split(':')[0], 10); return h >= 14 && h < 18; }).slice(0, 2);
-    const eveningSlots = daySlots.filter(s => parseInt(s.label.split(':')[0], 10) >= 18).slice(0, 2);
+    // Filter slots to show one every 30 minutes to provide a dense but readable grid
+    // If the room is free, this will show e.g. 09:00, 09:30, 10:00...
+    const groupedSlots: typeof suggestions = [];
+    const seenIntervals = new Set<string>();
 
-    suggestions.push(...morningSlots, ...afternoonSlots, ...eveningSlots);
+    daySlots.forEach(s => {
+      const [h, m] = s.label.split(':').map(Number);
+      const intervalKey = `${h}:${m < 30 ? '00' : '30'}`;
+      if (!seenIntervals.has(intervalKey)) {
+        groupedSlots.push(s);
+        seenIntervals.add(intervalKey);
+      }
+    });
+
+    suggestions.push(...groupedSlots);
   }
 
   console.log(`[adminGetWeeklySlots] Trovati ${suggestions.length} slot liberi nei prossimi ${daysCount} giorni.`);
