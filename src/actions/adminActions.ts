@@ -301,31 +301,37 @@ export async function adminGetQuotaAvailability(quotaId: number) {
 export async function adminGetSmartSuggestion(tmdbId: string, seatingPlanId: number, buffer: number = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
+  const now = new Date();
+  const bufferMs = buffer * 60 * 1000;
+  const runtimeWithBufferMs = (runtime * 60000) + bufferMs;
+  const CLEANING_BUFFER_FOR_EXISTING = 15 * 60000;
+  const roundingMs = 5 * 60000;
 
   const events = await listSubEvents(true);
   const roomEvents = events
     .filter((e: any) => Number(e.seating_plan) === seatingPlanId)
     .sort((a: any, b: any) => new Date(a.date_from).getTime() - new Date(b.date_from).getTime());
 
-  if (roomEvents.length === 0) {
-    // No events today, suggest start of next hour
-    const now = new Date();
-    now.setHours(now.getHours() + 1, 0, 0, 0);
-    return formatInTimeZone(now, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+  // Search for the first gap after now
+  let currentPointer = now.getTime();
+  
+  for (const e of roomEvents) {
+    const eStart = new Date(e.date_from).getTime();
+    const eEnd = e.date_to ? new Date(e.date_to).getTime() : eStart + (120 * 60000);
+    
+    const gapSize = eStart - currentPointer;
+    if (gapSize >= runtimeWithBufferMs) {
+      const suggestedTime = Math.ceil(currentPointer / roundingMs) * roundingMs;
+      if (suggestedTime + runtimeWithBufferMs <= eStart) {
+        return formatManualISO(new Date(suggestedTime));
+      }
+    }
+    currentPointer = Math.max(currentPointer, eEnd + CLEANING_BUFFER_FOR_EXISTING);
   }
 
-  // Find the last event of the day
-  const lastEvent = roomEvents[roomEvents.length - 1];
-  const lastEventEnd = lastEvent.date_to 
-    ? new Date(lastEvent.date_to).getTime() 
-    : new Date(lastEvent.date_from).getTime() + (120 + buffer) * 60000;
-
-  // Add buffer and round to nearest 5 minutes
-  const bufferMs = buffer * 60 * 1000;
-  const roundingMs = 5 * 60 * 1000;
-  const proposedTimeMs = Math.ceil((lastEventEnd + bufferMs) / roundingMs) * roundingMs;
-  
-  return formatInTimeZone(new Date(proposedTimeMs), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+  // If no gap found between events, suggest after the last one
+  const suggestedTime = Math.ceil(currentPointer / roundingMs) * roundingMs;
+  return formatManualISO(new Date(suggestedTime));
 }
 
 /**
@@ -443,110 +449,68 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
 
   const suggestions: { date: string; label: string; isOccupied: boolean; conflictWith?: string; isMorning?: boolean; isOptimized?: boolean }[] = [];
   const now = new Date();
-
   for (let d = 0; d < daysCount; d++) {
     const dayDate = new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
-    dayDate.setMinutes(0, 0, 0); // Normalized start of day
+    dayDate.setHours(0, 0, 0, 0);
     
-    const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
-    
-    // Timeline boundary: 09:00 to 00:30 (next day)
+    // Timeline boundary: 09:00 to 00:30 next day
     const timelineStart = new Date(dayDate);
     timelineStart.setHours(9, 0, 0, 0);
-    
-    const absoluteEnd = new Date(dayDate.getTime() + 24.5 * 60 * 60 * 1000); // 00:30 next day
+    const absoluteEnd = new Date(dayDate.getTime() + 24.5 * 60 * 60 * 1000);
 
-    // 1. Candidate Times (Predefined standard slots)
-    let candidateTimes: { label: string; isOptimized?: boolean }[] = [];
-    
-    if (isWeekend) {
-      candidateTimes = [{ label: '09:30' }, { label: '11:15' }, { label: '13:30' }, { label: '15:45' }, { label: '18:15' }, { label: '20:45' }];
-    } else {
-      candidateTimes = [{ label: '09:30' }, { label: '11:30' }, { label: '14:00' }, { label: '16:20' }, { label: '18:40' }, { label: '21:00' }];
-    }
-
-    // 2. Intelligent Gap Detection
-    const sortedRoomEvents = roomEvents
+    const dayEvents = roomEvents
       .filter((e: any) => {
         const start = new Date(e.date_from);
-        return start.getFullYear() === dayDate.getFullYear() && 
-               start.getMonth() === dayDate.getMonth() && 
-               start.getDate() === dayDate.getDate();
+        return start.toDateString() === dayDate.toDateString() || 
+               (start.getTime() > dayDate.getTime() && start.getTime() < absoluteEnd.getTime());
       })
       .sort((a: any, b: any) => new Date(a.date_from).getTime() - new Date(b.date_from).getTime());
 
-    // Check gap before first event
-    let firstEventStart = sortedRoomEvents.length > 0 ? new Date(sortedRoomEvents[0].date_from).getTime() : absoluteEnd.getTime();
-    if (firstEventStart - timelineStart.getTime() >= runtimeWithBufferMs) {
-      candidateTimes.push({ label: '09:00', isOptimized: true });
-    }
+    let currentPointer = timelineStart.getTime();
+    const roundingMs = 5 * 60000;
+    const CLEANING_BUFFER_FOR_EXISTING = 15 * 60000;
 
-    // Check gaps between events
-    let lastOccupiedEnd = timelineStart.getTime();
-    sortedRoomEvents.forEach((e: any) => {
-      const eStart = new Date(e.date_from).getTime();
-      const eEnd = e.date_to ? new Date(e.date_to).getTime() : eStart + (120 * 60000);
-      const eEndWithBuffer = eEnd + bufferMs;
+    const findSlotsInGap = (gapStart: number, gapEnd: number) => {
+      const availableMs = gapEnd - gapStart;
+      if (availableMs < runtimeWithBufferMs) return;
 
-      const gapSize = eStart - lastOccupiedEnd;
-      if (gapSize >= runtimeWithBufferMs) {
-        const gapSlot = new Date(lastOccupiedEnd);
-        const rounded = new Date(Math.ceil(gapSlot.getTime() / (5 * 60000)) * (5 * 60000));
-        const hh = String(rounded.getHours()).padStart(2, '0');
-        const mm = String(rounded.getMinutes()).padStart(2, '0');
-        const timeLabel = `${hh}:${mm}`;
-        
-        if (!candidateTimes.some(c => c.label === timeLabel)) {
-          candidateTimes.push({ label: timeLabel, isOptimized: true });
+      // 1. Suggest start of gap (rounded)
+      const s1 = Math.ceil(gapStart / roundingMs) * roundingMs;
+      if (s1 + runtimeWithBufferMs <= gapEnd && s1 > now.getTime()) {
+        const d1 = new Date(s1);
+        suggestions.push({
+          date: formatManualISO(d1),
+          label: `${pad(d1.getHours())}:${pad(d1.getMinutes())}`,
+          isOccupied: false,
+          isMorning: d1.getHours() < 13 && d1.getHours() >= 5
+        });
+
+        // 2. For short films, suggest another slot if there's space
+        if (runtime < 30 && availableMs > runtimeWithBufferMs + 20 * 60000) {
+          const s2 = s1 + 20 * 60000; // 20 min later
+          if (s2 + runtimeWithBufferMs <= gapEnd) {
+            const d2 = new Date(s2);
+            suggestions.push({
+              date: formatManualISO(d2),
+              label: `${pad(d2.getHours())}:${pad(d2.getMinutes())}`,
+              isOccupied: false,
+              isMorning: d2.getHours() < 13 && d2.getHours() >= 5
+            });
+          }
         }
       }
-      lastOccupiedEnd = Math.max(lastOccupiedEnd, eEndWithBuffer);
+    };
+
+    dayEvents.forEach((e: any) => {
+      const eStart = new Date(e.date_from).getTime();
+      const eEnd = e.date_to ? new Date(e.date_to).getTime() : eStart + (120 * 60000);
+      
+      findSlotsInGap(currentPointer, eStart);
+      currentPointer = Math.max(currentPointer, eEnd + CLEANING_BUFFER_FOR_EXISTING);
     });
 
-    // Check gap after last event
-    const finalGap = absoluteEnd.getTime() - lastOccupiedEnd;
-    if (finalGap >= runtimeWithBufferMs) {
-      const gapSlot = new Date(lastOccupiedEnd);
-      const rounded = new Date(Math.ceil(gapSlot.getTime() / (5 * 60000)) * (5 * 60000));
-      const hh = String(rounded.getHours()).padStart(2, '0');
-      const mm = String(rounded.getMinutes()).padStart(2, '0');
-      const timeLabel = `${hh}:${mm}`;
-      if (!candidateTimes.some(c => c.label === timeLabel)) {
-        candidateTimes.push({ label: timeLabel, isOptimized: true });
-      }
-    }
-
-    // Sort and validate each candidate
-    candidateTimes.sort((a,b) => a.label.localeCompare(b.label));
-
-    candidateTimes.forEach(c => {
-      const [hh, mm] = c.label.split(':').map(Number);
-      const sProposed = new Date(dayDate);
-      if (hh < 4) sProposed.setDate(sProposed.getDate() + 1);
-      sProposed.setHours(hh, mm, 0, 0);
-
-      const sProposedMs = sProposed.getTime();
-      const totalWindowProposed = sProposedMs + runtimeWithBufferMs;
-
-      // Check conflict
-      const conflict = roomEvents.find((e: any) => {
-        const sExist = new Date(e.date_from).getTime();
-        const eExist = e.date_to ? new Date(e.date_to).getTime() : sExist + (120 * 60000);
-        // FORCE 15m buffer for existing projections as requested
-        const totalWindowExist = eExist + (15 * 60000);
-        return sProposedMs < totalWindowExist && totalWindowProposed > sExist;
-      });
-
-      if (sProposedMs > now.getTime() && !conflict) {
-        suggestions.push({
-          date: formatInTimeZone(sProposed, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX"),
-          label: c.label,
-          isOccupied: false,
-          isMorning: hh < 13 && hh >= 5,
-          isOptimized: c.isOptimized
-        });
-      }
-    });
+    // Check final gap
+    findSlotsInGap(currentPointer, absoluteEnd.getTime());
   }
 
   return suggestions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

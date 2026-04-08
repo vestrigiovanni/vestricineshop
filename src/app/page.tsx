@@ -5,7 +5,7 @@ import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieSho
 import WeeklyCinemaCalendar from '@/components/WeeklyCinemaCalendar/WeeklyCinemaCalendar';
 import styles from './page.module.css';
 
-export const revalidate = 10; // Revalidate every 10 seconds
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   // Step 1: Get all future sub-events
