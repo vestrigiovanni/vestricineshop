@@ -56,7 +56,7 @@ export async function adminScheduleMovie(
   date: string,
   seatingPlanId: number,
   override: boolean = false,
-  buffer: number = 15
+  buffer: number = 0
 ) {
   // 1. Fetch full details from TMDB (for Director, Language, Runtime)
   const details = await getMovieDetails(movieData.id);
@@ -288,7 +288,7 @@ export async function adminGetQuotaAvailability(quotaId: number) {
 /**
  * SMART SCHEDULING: Get the first available slot for a given movie/room.
  */
-export async function adminGetSmartSuggestion(tmdbId: string, seatingPlanId: number, buffer: number = 15) {
+export async function adminGetSmartSuggestion(tmdbId: string, seatingPlanId: number, buffer: number = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
 
@@ -301,7 +301,7 @@ export async function adminGetSmartSuggestion(tmdbId: string, seatingPlanId: num
     // No events today, suggest start of next hour
     const now = new Date();
     now.setHours(now.getHours() + 1, 0, 0, 0);
-    return now.toISOString();
+    return formatInTimeZone(now, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
   }
 
   // Find the last event of the day
@@ -321,7 +321,7 @@ export async function adminGetSmartSuggestion(tmdbId: string, seatingPlanId: num
 /**
  * SMART SCHEDULING: Check if a specific time slot overlaps.
  */
-export async function adminCheckConflict(date: string, tmdbId: string, seatingPlanId: number, buffer: number = 15) {
+export async function adminCheckConflict(date: string, tmdbId: string, seatingPlanId: number, buffer: number = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
   const sNew = toDate(date, { timeZone: TIMEZONE }).getTime();
@@ -364,7 +364,7 @@ export async function adminCheckConflict(date: string, tmdbId: string, seatingPl
  * Finds the nearest free slots before and after a conflict.
  * Returns suggestive ISO strings for the UI.
  */
-export async function adminFindNearestSlots(date: string, tmdbId: string, seatingPlanId: number, buffer: number = 15) {
+export async function adminFindNearestSlots(date: string, tmdbId: string, seatingPlanId: number, buffer: number = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = details?.runtime || 120;
   const CLEANING_BUFFER = buffer * 60 * 1000;
@@ -421,7 +421,7 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
  * BULK SCHEDULING: Get multiple available slots for the next 14 days.
  * Optimized to find real gaps based on runtime + buffer.
  */
-export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number, daysCount = 14, buffer = 15) {
+export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number, daysCount = 14, buffer = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
   const bufferMs = buffer * 60 * 1000;
@@ -525,12 +525,11 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
         return sProposedMs < totalWindowExist && totalWindowProposed > sExist;
       });
 
-      if (sProposedMs > now.getTime()) {
+      if (sProposedMs > now.getTime() && !conflict) {
         suggestions.push({
           date: formatInTimeZone(sProposed, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX"),
           label: c.label,
-          isOccupied: !!conflict,
-          conflictWith: conflict ? (conflict.name.it || conflict.name) : undefined,
+          isOccupied: false,
           isMorning: hh < 13 && hh >= 5,
           isOptimized: c.isOptimized
         });
@@ -549,7 +548,7 @@ export async function adminBulkScheduleMovie(
   movieData: { id: string; title: string; overview: string; posterPath: string; language: string; subtitles: string },
   selectedDates: string[],
   seatingPlanId: number,
-  buffer: number = 15
+  buffer: number = 0
 ) {
   let successCount = 0;
   let errorCount = 0;

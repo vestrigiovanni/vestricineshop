@@ -59,7 +59,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [slotFilter, setSlotFilter] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
   const [loadingBulk, setLoadingBulk] = useState(false);
   const [expandedMovies, setExpandedMovies] = useState<Set<string>>(new Set());
-  const [cleaningBuffer, setCleaningBuffer] = useState(15);
+  const [cleaningBuffer, setCleaningBuffer] = useState(0);
   const [nearestSuggestions, setNearestSuggestions] = useState<{ preSuggestion: string | null; postSuggestion: string | null }>({ preSuggestion: null, postSuggestion: null });
   const [showDisplayModal, setShowDisplayModal] = useState(false);
   const [prerollMin, setPrerollMin] = useState(10);
@@ -792,7 +792,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                       <div className={styles.formGroup}>
                         <label className={styles.modalLabel}>Intervallo Pulizia (min)</label>
                         <div className={styles.bufferToggle}>
-                          {[10, 15, 20].map(val => (
+                          {[0, 5, 10].map(val => (
                             <button
                               key={val}
                               type="button"
@@ -861,8 +861,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                                     type="button"
                                     onClick={() => !slot.isOccupied && toggleSlotSelection(slot.date)}
                                     className={`${styles.slotBadge} ${selectedSlots.includes(slot.date) ? styles.slotSelected : ''} ${slot.isOccupied ? styles.slotOccupied : ''} ${slot.isMorning ? styles.slotMorning : ''} ${slot.isOptimized ? styles.slotOptimized : ''}`}
-                                    disabled={slot.isOccupied}
-                                    title={slot.isOccupied ? `Occupato da: ${slot.conflictWith}` : slot.isOptimized ? 'Gap ottimizzato trovato dal sistema!' : 'Slot disponibile – clicca per selezionare'}
+                                    title="Slot disponibile – clicca per selezionare"
                                   >
                                     {slot.label}
                                   </button>

@@ -578,11 +578,16 @@ export async function createSubEvent(movieData: {
   logoPath?: string;
 }) {
   try {
-    // If the date string looks like a naive local date (no Z or offset), 
-    // interpret it as Europe/Rome.
-    const startDate = movieData.date.includes('Z') || movieData.date.includes('+')
-      ? new Date(movieData.date)
-      : toDate(movieData.date, { timeZone: TIMEZONE });
+    // Ensure the date is interpreted as Europe/Rome if it's a naive string.
+    // The user reported a 2-hour shift (e.g. 21:30 -> 23:30), which happens if 
+    // a naive string is interpreted as UTC and then converted to CEST (+2).
+    let startDate: Date;
+    if (movieData.date.includes('Z') || /[\+\-]\d{2}:?\d{2}$/.test(movieData.date)) {
+      startDate = new Date(movieData.date);
+    } else {
+      // It's a naive string from the UI (e.g. 2026-04-08T21:30)
+      startDate = toDate(movieData.date, { timeZone: TIMEZONE });
+    }
 
     const runtimeMinutes = movieData.runtime || 120;
     const endDate = new Date(startDate.getTime() + runtimeMinutes * 60000);
