@@ -67,6 +67,34 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [defaultSalaId, setDefaultSalaId] = useState<string | null>(null);
   const [selectedMovieRuntime, setSelectedMovieRuntime] = useState<number | null>(null);
 
+  // --- COLLISION LOGIC FOR AUTO-CLEANING GRID ---
+  const isColliding = (date1: string, date2: string) => {
+    const runtime = selectedMovieRuntime || 120;
+    const buffer = 10; // Parametro fisso richiesto dall'utente
+    const s1 = new Date(date1).getTime();
+    const e1 = s1 + (runtime + buffer) * 60000;
+    const s2 = new Date(date2).getTime();
+    const e2 = s2 + (runtime + buffer) * 60000;
+    return s1 < e2 && e1 > s2;
+  };
+
+  const hasCollisionWithSelected = (candidateDate: string, currentSelected: string[]) => {
+    return currentSelected.some(selectedDate => isColliding(candidateDate, selectedDate));
+  };
+
+  const internalCollisions = React.useMemo(() => {
+    if (selectedSlots.length < 2) return [];
+    const results: { a: string; b: string }[] = [];
+    for (let i = 0; i < selectedSlots.length; i++) {
+      for (let j = i + 1; j < selectedSlots.length; j++) {
+        if (isColliding(selectedSlots[i], selectedSlots[j])) {
+          results.push({ a: selectedSlots[i], b: selectedSlots[j] });
+        }
+      }
+    }
+    return results;
+  }, [selectedSlots, selectedMovieRuntime]);
+
 
   useEffect(() => {
     const saved = localStorage.getItem('defaultSalaId');
@@ -350,33 +378,69 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   };
 
   const toggleSlotSelection = (date: string) => {
-    setSelectedSlots(prev => 
-      prev.includes(date) ? prev.filter(d => d !== date) : [...prev, date]
-    );
+    setSelectedSlots(prev => {
+      // Se lo slot è già selezionato, lo rimuoviamo (Reset)
+      if (prev.includes(date)) return prev.filter(d => d !== date);
+      
+      // Se lo slot collide con uno già selezionato, impediamo la selezione
+      if (hasCollisionWithSelected(date, prev)) {
+        console.warn('[Collision] Impossibile selezionare slot: collisione rilevata.');
+        return prev;
+      }
+      
+      return [...prev, date];
+    });
   };
 
   const selectAllMornings = () => {
     const mornings = weeklySlots.filter(s => {
       const hour = new Date(s.date).getHours();
       return !s.isOccupied && hour < 14;
-    }).map(s => s.date);
-    setSelectedSlots(Array.from(new Set([...selectedSlots, ...mornings])));
+    });
+    
+    setSelectedSlots(prev => {
+      let newSelection = [...prev];
+      mornings.forEach(slot => {
+        if (!hasCollisionWithSelected(slot.date, newSelection)) {
+          newSelection.push(slot.date);
+        }
+      });
+      return newSelection;
+    });
   };
 
   const selectAllAfternoons = () => {
-    const afterNoons = weeklySlots.filter(s => {
+    const afternoons = weeklySlots.filter(s => {
       const hour = new Date(s.date).getHours();
       return !s.isOccupied && hour >= 14 && hour < 18;
-    }).map(s => s.date);
-    setSelectedSlots(Array.from(new Set([...selectedSlots, ...afterNoons])));
+    });
+    
+    setSelectedSlots(prev => {
+      let newSelection = [...prev];
+      afternoons.forEach(slot => {
+        if (!hasCollisionWithSelected(slot.date, newSelection)) {
+          newSelection.push(slot.date);
+        }
+      });
+      return newSelection;
+    });
   };
 
   const selectAllEvenings = () => {
     const evenings = weeklySlots.filter(s => {
       const hour = new Date(s.date).getHours();
       return !s.isOccupied && hour >= 18;
-    }).map(s => s.date);
-    setSelectedSlots(Array.from(new Set([...selectedSlots, ...evenings])));
+    });
+    
+    setSelectedSlots(prev => {
+      let newSelection = [...prev];
+      evenings.forEach(slot => {
+        if (!hasCollisionWithSelected(slot.date, newSelection)) {
+          newSelection.push(slot.date);
+        }
+      });
+      return newSelection;
+    });
   };
 
   const handleDelete = async (subeventId: number) => {
@@ -900,17 +964,30 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                                     Sala occupata: nessun buco disponibile
                                   </div>
                                 ) : (
-                                  slotsForDay.map(slot => (
-                                    <button
-                                      key={slot.date}
-                                      type="button"
-                                      onClick={() => !slot.isOccupied && toggleSlotSelection(slot.date)}
-                                      className={`${styles.slotBadge} ${selectedSlots.includes(slot.date) ? styles.slotSelected : ''} ${slot.isOccupied ? styles.slotOccupied : ''} ${slot.isMorning ? styles.slotMorning : ''} ${slot.isOptimized ? styles.slotOptimized : ''}`}
-                                      title="Slot disponibile – clicca per selezionare"
-                                    >
-                                      {slot.label}
-                                    </button>
-                                  ))
+                                  slotsForDay.map(slot => {
+                                    const isSelected = selectedSlots.includes(slot.date);
+                                    const isCollidingAsCandidate = !isSelected && hasCollisionWithSelected(slot.date, selectedSlots);
+                                    const isDisabled = slot.isOccupied || isCollidingAsCandidate;
+
+                                    return (
+                                      <button
+                                        key={slot.date}
+                                        type="button"
+                                        onClick={() => !isDisabled && toggleSlotSelection(slot.date)}
+                                        className={`${styles.slotBadge} ${isSelected ? styles.slotSelected : ''} ${isDisabled ? styles.slotOccupied : ''} ${slot.isMorning ? styles.slotMorning : ''} ${slot.isOptimized ? styles.slotOptimized : ''}`}
+                                        title={
+                                          slot.isOccupied 
+                                            ? 'Slot già occupato da un altro film' 
+                                            : isCollidingAsCandidate 
+                                              ? 'Collisione: troppo vicino a uno slot già selezionato' 
+                                              : 'Slot disponibile – clicca per selezionare'
+                                        }
+                                        disabled={isDisabled}
+                                      >
+                                        {slot.label}
+                                      </button>
+                                    );
+                                  })
                                 )}
                               </div>
                             </div>
@@ -943,18 +1020,22 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                 <button
                  type="submit"
                  form="schedule-form"
-                 className={`${styles.modalBtnSubmit} ${selectedSlots.length > 0 ? styles.btnBulkMode : ''} ${(selectedSlots.length === 0 && !!conflict) ? styles.btnOverride : ''}`}
-                 disabled={loading || (!formState.roomId) || (selectedSlots.length === 0 && (!formState.date))}
+                 className={`${styles.modalBtnSubmit} ${selectedSlots.length > 0 ? styles.btnBulkMode : ''} ${(selectedSlots.length === 0 && !!conflict) ? styles.btnOverride : ''} ${internalCollisions.length > 0 ? styles.btnDisabled : ''}`}
+                 disabled={loading || (!formState.roomId) || (selectedSlots.length === 0 && (!formState.date)) || internalCollisions.length > 0}
                  title={
-                   conflict
-                     ? `Orario non disponibile: il film finirebbe in conflitto con "${conflict}"${conflictEndTime ? ` (libero alle ${conflictEndTime})` : ''}`
-                     : selectedSlots.length > 0
-                       ? `Programma ${selectedSlots.length} spettacoli selezionati`
-                       : 'Conferma programmazione'
+                   internalCollisions.length > 0
+                     ? `Conflitto rilevato: lo spettacolo delle ${new Date(internalCollisions[0].a).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} finisce alle ${new Date(new Date(internalCollisions[0].a).getTime() + ((selectedMovieRuntime || 120) + 10) * 60000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} (inclusa pulizia). Rimuovi le sovrapposizioni per procedere.`
+                     : conflict
+                       ? `Orario non disponibile: il film finirebbe in conflitto con "${conflict}"${conflictEndTime ? ` (libero alle ${conflictEndTime})` : ''}`
+                       : selectedSlots.length > 0
+                         ? `Programma ${selectedSlots.length} spettacoli selezionati`
+                         : 'Conferma programmazione'
                  }
                >
                  {loading ? (
                    <Loader2 className="animate-spin" size={20} />
+                 ) : internalCollisions.length > 0 ? (
+                   <><TriangleAlert size={18} /> CONFLITTO RILEVATO</>
                  ) : selectedSlots.length > 0 ? (
                    <><Send size={18} /> Conferma e Programma {selectedSlots.length} Spettacoli</>
                  ) : conflict ? (
