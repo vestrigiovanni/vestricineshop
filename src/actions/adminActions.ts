@@ -1,12 +1,12 @@
 'use server';
 
 import { searchMovies, getMovieDetails, getDirector, getCast, getMovieLogo } from '@/services/tmdb';
-import { 
-  createSubEvent, 
-  deleteSubEvent, 
-  updateSubEvent, 
-  listSubEvents, 
-  createQuota, 
+import {
+  createSubEvent,
+  deleteSubEvent,
+  updateSubEvent,
+  listSubEvents,
+  createQuota,
   setSubEventPriceOverrides,
   getSeatingPlan,
   getSeatingPlanDetail,
@@ -26,6 +26,25 @@ const pad = (n: number) => n.toString().padStart(2, '0');
 function formatManualISO(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00+02:00`;
 }
+
+/**
+ * HELPER: Calculates blocked intervals for a specific room.
+ * Each interval is [Start, End + 15m Cleaning].
+ */
+async function getBlockedIntervals(seatingPlanId: number) {
+  const events = await listSubEvents(true);
+  const MANDATORY_GAP = 15 * 60000; // 15 minutes mandatory buffer
+  
+  return events
+    .filter((e: any) => Number(e.seating_plan) === seatingPlanId)
+    .map((e: any) => {
+      const s = new Date(e.date_from).getTime();
+      const e_end = e.date_to ? new Date(e.date_to).getTime() : s + (120 * 60000);
+      // Red Zone includes the mandatory cleaning time after the movie
+      return { start: s, end: e_end + MANDATORY_GAP, title: e.name.it || e.name };
+    });
+}
+
 
 export async function adminSearchMovies(query: string) {
   return await searchMovies(query);
@@ -57,7 +76,7 @@ const ROOM_CAPACITIES: Record<number, { intero: number; vip?: number }> = {
 };
 
 export async function adminScheduleMovie(
-  movieData: { id: string; title: string; overview: string; posterPath: string; language: string; subtitles: string }, 
+  movieData: { id: string; title: string; overview: string; posterPath: string; language: string; subtitles: string },
   date: string,
   seatingPlanId: number,
   override: boolean = false,
@@ -66,20 +85,20 @@ export async function adminScheduleMovie(
   // 1. Fetch full details from TMDB (for Director, Language, Runtime)
   const details = await getMovieDetails(movieData.id);
   if (!details) throw new Error('Could not fetch movie details from TMDB');
-  
+
   const director = getDirector(details);
   const cast = getCast(details);
-  
+
   // 2. Fetch Seating Plan Details to get exact category names
   const planDetail = await getSeatingPlanDetail(seatingPlanId);
   if (!planDetail) throw new Error(`Could not fetch seating plan detail for ID ${seatingPlanId}`);
 
   const categories = planDetail.layout?.categories || [];
   const categoryNames = categories.map((c: any) => c.name);
-  
+
   // 3. Build Seat Category Mapping
   const seatCategoryMapping: Record<string, number> = {};
-  
+
   // Ensure "INTERO" mapping exists explicitly
   seatCategoryMapping["INTERO"] = ITEM_INTERO_ID;
 
@@ -105,9 +124,9 @@ export async function adminScheduleMovie(
       zone.rows?.forEach((row: any) => {
         row.seats?.forEach((seat: any) => {
           if (seat.category && (seat.category.toUpperCase().includes('VIP') || seat.category.toUpperCase().includes('POLTRONA'))) {
-             vipSize++;
+            vipSize++;
           } else {
-             interoSize++;
+            interoSize++;
           }
         });
       });
@@ -117,38 +136,24 @@ export async function adminScheduleMovie(
 
   // Fallback to avoid capacity 0 for 'Intero'
   if (interoSize === 0) interoSize = 1000;
-  
+
   // Expand Quota Intero by 1 seat as requested by the user
   interoSize += 1;
 
-  // 5. Algorithm No-Overlap Check
-  const CLEANING_BUFFER = buffer;
+  // 5. Algorithm No-Overlap Check (Strict Sliding Window Logic)
   const runtimeMinutes = (details.runtime || 120);
+  const MANDATORY_GAP = 15 * 60000;
   const startDate = toDate(date, { timeZone: TIMEZONE });
-  const endDate = new Date(startDate.getTime() + (runtimeMinutes + CLEANING_BUFFER) * 60000);
+  const sNew = startDate.getTime();
+  const eNew = sNew + (runtimeMinutes * 60000) + MANDATORY_GAP; // Movie + Buffer block
   
-  // Fetch existing sub-events for the same day/room to check for overlaps
-  const existingEvents = await listSubEvents(true);
-  const conflicts = existingEvents.filter((e: any) => {
-    // Only check same room
-    if (Number(e.seating_plan) !== seatingPlanId) return false;
-    
-    const eStart = new Date(e.date_from).getTime();
-    const eEnd = e.date_to ? new Date(e.date_to).getTime() : eStart + (120 + CLEANING_BUFFER) * 60000;
-    
-    const sNew = startDate.getTime();
-    const eNew = endDate.getTime();
-    
-    // Condition of validity: S_nuovo >= E_esist OR E_nuovo <= S_esist
-    // Conflict if: NOT (S_nuovo >= E_esist OR E_nuovo <= S_esist)
-    // Which is: S_nuovo < E_esist AND E_nuovo > S_esist
-    return sNew < eEnd && eNew > eStart;
-  });
+  const blockedIntervals = await getBlockedIntervals(seatingPlanId);
+  const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
 
-  if (conflicts.length > 0 && !override) {
-    const conflictMovie = conflicts[0].name.it || conflicts[0].name;
-    throw new Error(`Conflitto rilevato: l'orario scelto si sovrappone alla proiezione di "${conflictMovie}" (incluse pulizie sala).`);
+  if (conflict && !override) {
+    throw new Error(`Conflitto rilevato: l'orario scelto si sovrappone alla proiezione di "${conflict.title}" (incluse pulizie sala).`);
   }
+
 
   // 6. Create the Sub-Event in Pretix with Mapping
   const subEvent = await createSubEvent({
@@ -168,8 +173,8 @@ export async function adminScheduleMovie(
     tagline: details.tagline || '',
     genres: details.genres?.map(g => g.name).join(', ') || '',
     year: details.release_date ? details.release_date.split('-')[0] : '',
-    rating: details.release_dates?.results?.find((r: any) => r.iso_3166_1 === 'IT')?.release_dates?.[0]?.certification || 
-            details.release_dates?.results?.find((r: any) => r.iso_3166_1 === 'US')?.release_dates?.[0]?.certification || '',
+    rating: details.release_dates?.results?.find((r: any) => r.iso_3166_1 === 'IT')?.release_dates?.[0]?.certification ||
+      details.release_dates?.results?.find((r: any) => r.iso_3166_1 === 'US')?.release_dates?.[0]?.certification || '',
     logoPath: getMovieLogo(details) || ''
   });
 
@@ -234,10 +239,10 @@ export async function adminDeleteEventGroup(subEventIds: number[]) {
   }
 
   revalidatePath('/');
-  return { 
-    success: true, 
+  return {
+    success: true,
     summary: `Eliminati ${successCount} spettacoli. Errori: ${errorCount}.`,
-    details: errors 
+    details: errors
   };
 }
 
@@ -246,7 +251,7 @@ export async function adminUpdateEventDate(subEventId: number, newDate: string) 
   try {
     // 1. Fetch current event to calculate duration
     const currentEvent = await getSubEvent(subEventId);
-    
+
     const start = new Date(currentEvent.date_from);
     const end = new Date(currentEvent.date_to);
     const durationMs = end.getTime() - start.getTime();
@@ -258,10 +263,10 @@ export async function adminUpdateEventDate(subEventId: number, newDate: string) 
     // 3. Update with both fields
     const dateFrom = formatManualISO(newStart);
     const dateTo = formatManualISO(newEnd);
-    
+
     console.log('STRINGA DATA AGGIORNATA INVIATA A PRETIX:', dateFrom);
 
-    await updateSubEvent(subEventId, { 
+    await updateSubEvent(subEventId, {
       date_from: dateFrom,
       date_to: dateTo
     });
@@ -301,37 +306,37 @@ export async function adminGetQuotaAvailability(quotaId: number) {
 export async function adminGetSmartSuggestion(tmdbId: string, seatingPlanId: number, buffer: number = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
-  const now = new Date();
-  const bufferMs = buffer * 60 * 1000;
-  const runtimeWithBufferMs = (runtime * 60000) + bufferMs;
-  const CLEANING_BUFFER_FOR_EXISTING = 15 * 60000;
+  const runtimeWithBufferMs = (runtime + buffer) * 60000;
   const roundingMs = 5 * 60000;
 
-  const events = await listSubEvents(true);
-  const roomEvents = events
-    .filter((e: any) => Number(e.seating_plan) === seatingPlanId)
-    .sort((a: any, b: any) => new Date(a.date_from).getTime() - new Date(b.date_from).getTime());
+  const now = new Date();
+  const blockedIntervals = await getBlockedIntervals(seatingPlanId);
 
-  // Search for the first gap after now
-  let currentPointer = now.getTime();
-  
-  for (const e of roomEvents) {
-    const eStart = new Date(e.date_from).getTime();
-    const eEnd = e.date_to ? new Date(e.date_to).getTime() : eStart + (120 * 60000);
-    
-    const gapSize = eStart - currentPointer;
-    if (gapSize >= runtimeWithBufferMs) {
-      const suggestedTime = Math.ceil(currentPointer / roundingMs) * roundingMs;
-      if (suggestedTime + runtimeWithBufferMs <= eStart) {
-        return formatManualISO(new Date(suggestedTime));
-      }
+  // Scan starting from now, rounded to 5 mins
+  let currentPointer = Math.ceil(now.getTime() / roundingMs) * roundingMs;
+
+  // Limit search to next 7 days for smart suggestion
+  const limitMs = now.getTime() + (7 * 24 * 60 * 60 * 1000);
+
+  while (currentPointer < limitMs) {
+    const sNew = currentPointer;
+    const eNew = sNew + runtimeWithBufferMs;
+
+    const hasConflict = blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start);
+    if (!hasConflict) {
+      return formatManualISO(new Date(sNew));
     }
-    currentPointer = Math.max(currentPointer, eEnd + CLEANING_BUFFER_FOR_EXISTING);
+
+    // Jump to the end of the conflicting interval to find the next gap
+    const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
+    if (conflict) {
+      currentPointer = Math.ceil(conflict.end / roundingMs) * roundingMs;
+    } else {
+      currentPointer += roundingMs;
+    }
   }
 
-  // If no gap found between events, suggest after the last one
-  const suggestedTime = Math.ceil(currentPointer / roundingMs) * roundingMs;
-  return formatManualISO(new Date(suggestedTime));
+  return formatManualISO(new Date(currentPointer));
 }
 
 /**
@@ -341,41 +346,26 @@ export async function adminCheckConflict(date: string, tmdbId: string, seatingPl
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
   const sNew = toDate(date, { timeZone: TIMEZONE }).getTime();
-  const eNew = sNew + (runtime * 60000);
-  const totalWindowNew = eNew + (buffer * 60000); // custom cleaning buffer
+  const eNew = sNew + (runtime + buffer) * 60000;
 
-  const events = await listSubEvents(true);
-  const conflict = events.find((e: any) => {
-    if (Number(e.seating_plan) !== seatingPlanId) return false;
-    const sExist = new Date(e.date_from).getTime();
-    // Use date_to if available, else assume 120min
-    const eExist = e.date_to ? new Date(e.date_to).getTime() : sExist + (120 * 60000);
-    // FORCE 15m buffer for existing projections as requested
-    const totalWindowExist = eExist + (15 * 60000); 
-    
-    // Condition: New starts before existing ends+buffer AND new ends+buffer starts after existing starts
-    return sNew < totalWindowExist && totalWindowNew > sExist;
-  });
+  const blockedIntervals = await getBlockedIntervals(seatingPlanId);
+  const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
 
   if (conflict) {
-    // Calculate when the room is free (end of conflicting event + buffer)
-    const conflictEnd = conflict.date_to
-      ? new Date(conflict.date_to).getTime()
-      : new Date(conflict.date_from).getTime() + (120 * 60000);
-    const roomFreeAt = new Date(conflictEnd + (buffer * 60 * 1000));
-    // Round to 5 mins
-    const roundedFreeAt = new Date(Math.ceil(roomFreeAt.getTime() / (5 * 60000)) * (5 * 60000));
+    // Round end to 5 mins
+    const roundedFreeAt = new Date(Math.ceil(conflict.end / (5 * 60000)) * (5 * 60000));
     const pad = (n: number) => String(n).padStart(2, '0');
     const conflictEndTime = `${pad(roundedFreeAt.getHours())}:${pad(roundedFreeAt.getMinutes())}`;
 
-    return { 
-      hasConflict: true, 
-      movieTitle: conflict.name.it || conflict.name,
+    return {
+      hasConflict: true,
+      movieTitle: conflict.title,
       conflictEndTime
     };
   }
   return { hasConflict: false };
 }
+
 
 /**
  * Finds the nearest free slots before and after a conflict.
@@ -384,55 +374,45 @@ export async function adminCheckConflict(date: string, tmdbId: string, seatingPl
 export async function adminFindNearestSlots(date: string, tmdbId: string, seatingPlanId: number, buffer: number = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = details?.runtime || 120;
-  const CLEANING_BUFFER = buffer * 60 * 1000;
-  const roundingMs = 5 * 60 * 1000;
-  
+  const runtimeWithBufferMs = (runtime + buffer) * 60000;
+  const roundingMs = 5 * 60000;
+
   const targetDateMs = toDate(date, { timeZone: TIMEZONE }).getTime();
-  
-  const events = await listSubEvents(true);
-  const roomEvents = events
-    .filter((e: any) => Number(e.seating_plan) === seatingPlanId)
-    .sort((a: any, b: any) => new Date(a.date_from).getTime() - new Date(b.date_from).getTime());
+  const blockedIntervals = await getBlockedIntervals(seatingPlanId);
 
-  // Helper to calculate end of an event
-  const getEndMs = (e: any) => {
-    return e.date_to ? new Date(e.date_to).getTime() : new Date(e.date_from).getTime() + (120 * 60000);
-  };
-
-  // Find pre-conflict slot (end of previous movie + buffer)
-  const previousEvent = [...roomEvents].reverse().find(e => new Date(e.date_from).getTime() < targetDateMs);
+  // Find pre-conflict slot (scan backwards from target)
   let preSuggestion: string | null = null;
-  if (previousEvent) {
-    const endMs = getEndMs(previousEvent);
-    const suggestedTime = Math.ceil((endMs + CLEANING_BUFFER) / roundingMs) * roundingMs;
-    preSuggestion = formatInTimeZone(new Date(suggestedTime), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+  let prePointer = targetDateMs - roundingMs;
+  const preLimit = targetDateMs - (12 * 60 * 60 * 1000); // 12h back max
+
+  while (prePointer > preLimit) {
+    const sNew = prePointer;
+    const eNew = sNew + runtimeWithBufferMs;
+    if (!blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start)) {
+      preSuggestion = formatInTimeZone(new Date(sNew), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+      break;
+    }
+    prePointer -= roundingMs;
   }
 
-  // Find post-conflict slot (end of current conflict + buffer)
-  const conflictingEvent = roomEvents.find(e => {
-    const sExist = new Date(e.date_from).getTime();
-    const eExist = getEndMs(e);
-    const totalWindowExist = eExist + CLEANING_BUFFER;
-    const eNew = targetDateMs + (runtime * 60000);
-    const totalWindowNew = eNew + CLEANING_BUFFER;
-
-    return targetDateMs < totalWindowExist && totalWindowNew > sExist;
-  });
-
+  // Find post-conflict slot (scan forwards from target)
   let postSuggestion: string | null = null;
-  if (conflictingEvent) {
-    const endMs = getEndMs(conflictingEvent);
-    const suggestedTime = Math.ceil((endMs + CLEANING_BUFFER) / roundingMs) * roundingMs;
-    postSuggestion = formatInTimeZone(new Date(suggestedTime), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
-  } else if (roomEvents.length > 0) {
-     const lastEvent = roomEvents[roomEvents.length - 1];
-     const endMs = getEndMs(lastEvent);
-     const suggestedTime = Math.ceil((endMs + CLEANING_BUFFER) / roundingMs) * roundingMs;
-     postSuggestion = formatInTimeZone(new Date(suggestedTime), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+  let postPointer = targetDateMs + roundingMs;
+  const postLimit = targetDateMs + (12 * 60 * 60 * 1000); // 12h forward max
+
+  while (postPointer < postLimit) {
+    const sNew = postPointer;
+    const eNew = sNew + runtimeWithBufferMs;
+    if (!blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start)) {
+      postSuggestion = formatInTimeZone(new Date(sNew), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+      break;
+    }
+    postPointer += roundingMs;
   }
 
   return { preSuggestion, postSuggestion };
 }
+
 
 /**
  * BULK SCHEDULING: Get multiple available slots for the next 14 days.
@@ -441,80 +421,51 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
 export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number, daysCount = 14, buffer = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
-  const bufferMs = buffer * 60 * 1000;
-  const runtimeWithBufferMs = (runtime * 60000) + bufferMs;
+  const MANDATORY_GAP = 15 * 60000;
+  const runtimeWithBufferMs = (runtime * 60000) + MANDATORY_GAP;
+  const SCAN_STEP_MS = 15 * 60000; // Scan every 15 minutes as requested
 
-  const events = await listSubEvents(true);
-  const roomEvents = events.filter((e: any) => Number(e.seating_plan) === seatingPlanId);
-
-  const suggestions: { date: string; label: string; isOccupied: boolean; conflictWith?: string; isMorning?: boolean; isOptimized?: boolean }[] = [];
+  const blockedIntervals = await getBlockedIntervals(seatingPlanId);
+  const suggestions: { date: string; label: string; isOccupied: boolean; isMorning?: boolean }[] = [];
   const now = new Date();
+
   for (let d = 0; d < daysCount; d++) {
     const dayDate = new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
     dayDate.setHours(0, 0, 0, 0);
     
-    // Timeline boundary: 09:00 to 00:30 next day
+    // Timeline boundary for scanning: Starts at 08:00 as requested
     const timelineStart = new Date(dayDate);
-    timelineStart.setHours(9, 0, 0, 0);
-    const absoluteEnd = new Date(dayDate.getTime() + 24.5 * 60 * 60 * 1000);
-
-    const dayEvents = roomEvents
-      .filter((e: any) => {
-        const start = new Date(e.date_from);
-        return start.toDateString() === dayDate.toDateString() || 
-               (start.getTime() > dayDate.getTime() && start.getTime() < absoluteEnd.getTime());
-      })
-      .sort((a: any, b: any) => new Date(a.date_from).getTime() - new Date(b.date_from).getTime());
+    timelineStart.setHours(8, 0, 0, 0);
+    const timelineEnd = new Date(dayDate.getTime() + 24.5 * 60 * 60 * 1000);
 
     let currentPointer = timelineStart.getTime();
-    const roundingMs = 5 * 60000;
-    const CLEANING_BUFFER_FOR_EXISTING = 15 * 60000;
 
-    const findSlotsInGap = (gapStart: number, gapEnd: number) => {
-      const availableMs = gapEnd - gapStart;
-      if (availableMs < runtimeWithBufferMs) return;
+    while (currentPointer + runtimeWithBufferMs <= timelineEnd.getTime()) {
+      const sNew = currentPointer;
+      const eNew = sNew + runtimeWithBufferMs;
 
-      // 1. Suggest start of gap (rounded)
-      const s1 = Math.ceil(gapStart / roundingMs) * roundingMs;
-      if (s1 + runtimeWithBufferMs <= gapEnd && s1 > now.getTime()) {
-        const d1 = new Date(s1);
-        suggestions.push({
-          date: formatManualISO(d1),
-          label: `${pad(d1.getHours())}:${pad(d1.getMinutes())}`,
-          isOccupied: false,
-          isMorning: d1.getHours() < 13 && d1.getHours() >= 5
-        });
-
-        // 2. For short films, suggest another slot if there's space
-        if (runtime < 30 && availableMs > runtimeWithBufferMs + 20 * 60000) {
-          const s2 = s1 + 20 * 60000; // 20 min later
-          if (s2 + runtimeWithBufferMs <= gapEnd) {
-            const d2 = new Date(s2);
-            suggestions.push({
-              date: formatManualISO(d2),
-              label: `${pad(d2.getHours())}:${pad(d2.getMinutes())}`,
-              isOccupied: false,
-              isMorning: d2.getHours() < 13 && d2.getHours() >= 5
-            });
-          }
+      // Skip slots in the past
+      if (sNew > now.getTime()) {
+        const hasConflict = blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start);
+        
+        if (!hasConflict) {
+          const dSlot = new Date(sNew);
+          suggestions.push({
+            date: formatManualISO(dSlot),
+            label: `${pad(dSlot.getHours())}:${pad(dSlot.getMinutes())}`,
+            isOccupied: false,
+            isMorning: dSlot.getHours() < 13 && dSlot.getHours() >= 5
+          });
         }
       }
-    };
-
-    dayEvents.forEach((e: any) => {
-      const eStart = new Date(e.date_from).getTime();
-      const eEnd = e.date_to ? new Date(e.date_to).getTime() : eStart + (120 * 60000);
       
-      findSlotsInGap(currentPointer, eStart);
-      currentPointer = Math.max(currentPointer, eEnd + CLEANING_BUFFER_FOR_EXISTING);
-    });
-
-    // Check final gap
-    findSlotsInGap(currentPointer, absoluteEnd.getTime());
+      currentPointer += SCAN_STEP_MS;
+    }
   }
 
-  return suggestions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return suggestions;
 }
+
 
 
 /**
@@ -529,7 +480,7 @@ export async function adminBulkScheduleMovie(
   let successCount = 0;
   let errorCount = 0;
   const errors: string[] = [];
- 
+
   for (const date of selectedDates) {
     try {
       await adminScheduleMovie(movieData, date, seatingPlanId, false, buffer);
@@ -540,11 +491,11 @@ export async function adminBulkScheduleMovie(
       errors.push(`${date}: ${e.message}`);
     }
   }
- 
+
   revalidatePath('/');
-  return { 
-    success: true, 
+  return {
+    success: true,
     summary: `Creati ${successCount} spettacoli. Errori: ${errorCount}.`,
-    details: errors 
+    details: errors
   };
 }
