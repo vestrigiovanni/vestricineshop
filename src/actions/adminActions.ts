@@ -21,6 +21,11 @@ import { revalidatePath } from 'next/cache';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
 
 const TIMEZONE = 'Europe/Rome';
+const pad = (n: number) => n.toString().padStart(2, '0');
+
+function formatManualISO(d: Date) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00+02:00`;
+}
 
 export async function adminSearchMovies(query: string) {
   return await searchMovies(query);
@@ -251,9 +256,14 @@ export async function adminUpdateEventDate(subEventId: number, newDate: string) 
     const newEnd = new Date(newStart.getTime() + durationMs);
 
     // 3. Update with both fields
+    const dateFrom = formatManualISO(newStart);
+    const dateTo = formatManualISO(newEnd);
+    
+    console.log('STRINGA DATA AGGIORNATA INVIATA A PRETIX:', dateFrom);
+
     await updateSubEvent(subEventId, { 
-      date_from: formatInTimeZone(newStart, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX"),
-      date_to: formatInTimeZone(newEnd, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX")
+      date_from: dateFrom,
+      date_to: dateTo
     });
 
     revalidatePath('/');
@@ -334,7 +344,8 @@ export async function adminCheckConflict(date: string, tmdbId: string, seatingPl
     const sExist = new Date(e.date_from).getTime();
     // Use date_to if available, else assume 120min
     const eExist = e.date_to ? new Date(e.date_to).getTime() : sExist + (120 * 60000);
-    const totalWindowExist = eExist + (buffer * 60000); 
+    // FORCE 15m buffer for existing projections as requested
+    const totalWindowExist = eExist + (15 * 60000); 
     
     // Condition: New starts before existing ends+buffer AND new ends+buffer starts after existing starts
     return sNew < totalWindowExist && totalWindowNew > sExist;
@@ -521,7 +532,8 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
       const conflict = roomEvents.find((e: any) => {
         const sExist = new Date(e.date_from).getTime();
         const eExist = e.date_to ? new Date(e.date_to).getTime() : sExist + (120 * 60000);
-        const totalWindowExist = eExist + bufferMs;
+        // FORCE 15m buffer for existing projections as requested
+        const totalWindowExist = eExist + (15 * 60000);
         return sProposedMs < totalWindowExist && totalWindowProposed > sExist;
       });
 

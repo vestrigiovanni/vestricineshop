@@ -9,6 +9,15 @@ const PRETIX_API_URL = 'https://pretix.eu/api/v1';
 const PRETIX_ORGANIZER = 'vestri';
 const PRETIX_EVENT = 'npkez';
 const PRETIX_TOKEN = process.env.PRETIX_TOKEN; // "Token uqvj3n2vyn1yc0xzqqcqw44f93ug86s8x8l5uj61jb2wd3aywsfdfmyq9apshgjb"
+const pad = (n: number) => n.toString().padStart(2, '0');
+
+/**
+ * Custom ISO formatter to bypass server UTC shifts.
+ * Hardcoded to Europe/Rome (+02:00 for CEST).
+ */
+function formatManualISO(d: Date) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00+02:00`;
+}
 
 /**
  * Fetches all events from the organizer.
@@ -592,9 +601,10 @@ export async function createSubEvent(movieData: {
     const runtimeMinutes = movieData.runtime || 120;
     const endDate = new Date(startDate.getTime() + runtimeMinutes * 60000);
 
-    const dateFrom = formatInTimeZone(startDate, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
-    const dateTo = formatInTimeZone(endDate, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+    const dateFrom = formatManualISO(startDate);
+    const dateTo = formatManualISO(endDate);
 
+    console.log('STRINGA DATA INVIATA A PRETIX:', dateFrom);
     console.log(`[Pretix] Creating sub-event "${movieData.title}"`);
     console.log(`[Pretix] Original date string: ${movieData.date}`);
     console.log(`[Pretix] Formatted date_from: ${dateFrom}`);
