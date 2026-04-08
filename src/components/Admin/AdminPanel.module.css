@@ -40,7 +40,8 @@
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35);
   letter-spacing: 0.3px;
-  margin-right: auto; /* push INFO ON SCREEN to the right */
+  margin-right: auto;
+  /* push INFO ON SCREEN to the right */
 }
 
 .btnCassaLauncher:hover {
@@ -172,7 +173,8 @@
 }
 
 .btnPrimary {
-  background: #e50914; /* Keeping a subtle brand red */
+  background: #e50914;
+  /* Keeping a subtle brand red */
   color: white;
   border-radius: 0.4rem;
   font-weight: 600;
@@ -425,7 +427,10 @@
 /* Modal Overhaul (Light Mode) */
 .modalOverlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(4px);
   display: flex;
@@ -684,7 +689,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .slotSelected {
@@ -979,7 +984,7 @@
 .bufferActive {
   background: #fff;
   color: #e50914;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .slotOptimized {
@@ -1004,5 +1009,5 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
