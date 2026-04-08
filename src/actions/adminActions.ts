@@ -33,17 +33,18 @@ function formatManualISO(d: Date) {
  */
 async function getBlockedIntervals(seatingPlanId: number) {
   const events = await listSubEvents(true);
-  const MANDATORY_GAP = 15 * 60000; // 15 minutes mandatory buffer
+  const MANDATORY_GAP = 10 * 60000; // 10 minutes mandatory buffer as requested
   
   return events
     .filter((e: any) => Number(e.seating_plan) === seatingPlanId)
     .map((e: any) => {
       const s = new Date(e.date_from).getTime();
       const e_end = e.date_to ? new Date(e.date_to).getTime() : s + (120 * 60000);
-      // Red Zone includes the mandatory cleaning time after the movie
+      // Red Zone: Start until End + 10m Cleaning
       return { start: s, end: e_end + MANDATORY_GAP, title: e.name.it || e.name };
     });
 }
+
 
 
 export async function adminSearchMovies(query: string) {
@@ -142,7 +143,7 @@ export async function adminScheduleMovie(
 
   // 5. Algorithm No-Overlap Check (Strict Sliding Window Logic)
   const runtimeMinutes = (details.runtime || 120);
-  const MANDATORY_GAP = 15 * 60000;
+  const MANDATORY_GAP = 10 * 60000; // 10m
   const startDate = toDate(date, { timeZone: TIMEZONE });
   const sNew = startDate.getTime();
   const eNew = sNew + (runtimeMinutes * 60000) + MANDATORY_GAP; // Movie + Buffer block
@@ -153,6 +154,7 @@ export async function adminScheduleMovie(
   if (conflict && !override) {
     throw new Error(`Conflitto rilevato: l'orario scelto si sovrappone alla proiezione di "${conflict.title}" (incluse pulizie sala).`);
   }
+
 
 
   // 6. Create the Sub-Event in Pretix with Mapping
@@ -346,7 +348,8 @@ export async function adminCheckConflict(date: string, tmdbId: string, seatingPl
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
   const sNew = toDate(date, { timeZone: TIMEZONE }).getTime();
-  const eNew = sNew + (runtime + buffer) * 60000;
+  const MANDATORY_GAP = 10 * 60000; // 10m
+  const eNew = sNew + (runtime * 60000) + MANDATORY_GAP;
 
   const blockedIntervals = await getBlockedIntervals(seatingPlanId);
   const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
@@ -357,14 +360,15 @@ export async function adminCheckConflict(date: string, tmdbId: string, seatingPl
     const pad = (n: number) => String(n).padStart(2, '0');
     const conflictEndTime = `${pad(roundedFreeAt.getHours())}:${pad(roundedFreeAt.getMinutes())}`;
 
-    return {
-      hasConflict: true,
+    return { 
+      hasConflict: true, 
       movieTitle: conflict.title,
       conflictEndTime
     };
   }
   return { hasConflict: false };
 }
+
 
 
 /**
@@ -421,9 +425,9 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
 export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number, daysCount = 14, buffer = 0) {
   const details = await getMovieDetails(tmdbId);
   const runtime = (details?.runtime || 120);
-  const MANDATORY_GAP = 15 * 60000;
+  const MANDATORY_GAP = 10 * 60000; // 10m buffer
   const runtimeWithBufferMs = (runtime * 60000) + MANDATORY_GAP;
-  const SCAN_STEP_MS = 15 * 60000; // Scan every 15 minutes as requested
+  const SCAN_STEP_MS = 5 * 60000; // Scan every 5 minutes as requested
 
   const blockedIntervals = await getBlockedIntervals(seatingPlanId);
   const suggestions: { date: string; label: string; isOccupied: boolean; isMorning?: boolean }[] = [];
@@ -436,10 +440,11 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
     // Timeline boundary for scanning: Starts at 08:00 as requested
     const timelineStart = new Date(dayDate);
     timelineStart.setHours(8, 0, 0, 0);
-    const timelineEnd = new Date(dayDate.getTime() + 24.5 * 60 * 60 * 1000);
+    const timelineEnd = new Date(dayDate.getTime() + 23.5 * 60 * 60 * 1000);
 
     let currentPointer = timelineStart.getTime();
 
+    const daySlots: typeof suggestions = [];
     while (currentPointer + runtimeWithBufferMs <= timelineEnd.getTime()) {
       const sNew = currentPointer;
       const eNew = sNew + runtimeWithBufferMs;
@@ -450,7 +455,7 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
         
         if (!hasConflict) {
           const dSlot = new Date(sNew);
-          suggestions.push({
+          daySlots.push({
             date: formatManualISO(dSlot),
             label: `${pad(dSlot.getHours())}:${pad(dSlot.getMinutes())}`,
             isOccupied: false,
@@ -458,9 +463,18 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
           });
         }
       }
-      
       currentPointer += SCAN_STEP_MS;
     }
+
+    // Filter to only show 2 slots per band per day to avoid clutter
+    const morningSlots = daySlots.filter(s => new Date(s.date).getHours() < 14).slice(0, 2);
+    const afternoonSlots = daySlots.filter(s => {
+      const h = new Date(s.date).getHours();
+      return h >= 14 && h < 18;
+    }).slice(0, 2);
+    const eveningSlots = daySlots.filter(s => new Date(s.date).getHours() >= 18).slice(0, 2);
+
+    suggestions.push(...morningSlots, ...afternoonSlots, ...eveningSlots);
   }
 
   return suggestions;

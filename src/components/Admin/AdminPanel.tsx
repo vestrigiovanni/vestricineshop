@@ -65,6 +65,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [prerollMin, setPrerollMin] = useState(10);
   const [prerollSec, setPrerollSec] = useState(0);
   const [defaultSalaId, setDefaultSalaId] = useState<string | null>(null);
+  const [selectedMovieRuntime, setSelectedMovieRuntime] = useState<number | null>(null);
+
 
   useEffect(() => {
     const saved = localStorage.getItem('defaultSalaId');
@@ -150,6 +152,9 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     // Carica slot settimanali e suggerimento smart per il film appena selezionato
     try {
       setLoadingWeeklySlots(true);
+      const details = await adminGetMovieById(movie.id.toString());
+      if (details?.runtime) setSelectedMovieRuntime(details.runtime);
+
       const [sug, weekly] = await Promise.all([
         adminGetSmartSuggestion(movie.id.toString(), parseInt(defaultRoom), cleaningBuffer),
         adminGetWeeklySlots(movie.id.toString(), parseInt(defaultRoom), 14, cleaningBuffer)
@@ -162,6 +167,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       setLoadingWeeklySlots(false);
     }
   };
+
 
   const handleReplica = async (event: any) => {
     let metadata = { tmdbId: '', overview: '', posterPath: '', language: '', subtitles: '' };
@@ -202,6 +208,10 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     
     // Smart Suggestion
     try {
+      setLoadingWeeklySlots(true);
+      const details = await adminGetMovieById(movie.id.toString());
+      if (details?.runtime) setSelectedMovieRuntime(details.runtime);
+
       const roomToUse = event.seating_plan?.toString() || defaultSalaId || FIXED_ROOMS[0].id.toString();
       const sug = await adminGetSmartSuggestion(movie.id.toString(), parseInt(roomToUse), cleaningBuffer);
       setScheduledSuggestion(sug);
@@ -211,8 +221,11 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       setSelectedSlots([]); // Reset selection
     } catch (e) {
       console.error('Failed to get smart suggestion', e);
+    } finally {
+      setLoadingWeeklySlots(false);
     }
   };
+
 
   useEffect(() => {
     // Re-fetch weekly slots if room or buffer changes while modal is open
@@ -637,7 +650,13 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
               <h2>
                 <Calendar size={22} color="#e50914" />
                 Programma Spettacolo
+                {selectedMovieRuntime && (
+                  <span className="ml-4 text-xs font-medium text-zinc-500 bg-zinc-100 px-2 py-1 rounded-full">
+                    DURATA ESTRATTA: {selectedMovieRuntime} min
+                  </span>
+                )}
               </h2>
+
               <button
                 onClick={() => setShowModal(false)}
                 className={styles.modalClose}
@@ -841,34 +860,44 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                           <span>Nessuno slot libero trovato in questa sala per i prossimi 14 giorni.</span>
                         </div>
                       ) : (
-                        [...new Set(weeklySlots.map(s => new Date(s.date).toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' })))].map(dayLabel => (
-                          <div key={dayLabel} className={styles.dayColumn}>
-                            <span className={styles.dayLabel}>{dayLabel}</span>
-                            <div className={styles.daySlots}>
-                              {weeklySlots
-                                .filter(s => new Date(s.date).toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' }) === dayLabel)
-                                .filter(s => {
-                                  if (slotFilter === 'all') return true;
-                                  const h = new Date(s.date).getHours();
-                                  if (slotFilter === 'morning') return h < 14;
-                                  if (slotFilter === 'afternoon') return h >= 14 && h < 18;
-                                  if (slotFilter === 'evening') return h >= 18;
-                                  return true;
-                                })
-                                .map(slot => (
-                                  <button
-                                    key={slot.date}
-                                    type="button"
-                                    onClick={() => !slot.isOccupied && toggleSlotSelection(slot.date)}
-                                    className={`${styles.slotBadge} ${selectedSlots.includes(slot.date) ? styles.slotSelected : ''} ${slot.isOccupied ? styles.slotOccupied : ''} ${slot.isMorning ? styles.slotMorning : ''} ${slot.isOptimized ? styles.slotOptimized : ''}`}
-                                    title="Slot disponibile – clicca per selezionare"
-                                  >
-                                    {slot.label}
-                                  </button>
-                                ))}
+                        [...new Set(weeklySlots.map(s => new Date(s.date).toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' })))].map(dayLabel => {
+                          const slotsForDay = weeklySlots
+                            .filter(s => new Date(s.date).toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' }) === dayLabel)
+                            .filter(s => {
+                              if (slotFilter === 'all') return true;
+                              const h = new Date(s.date).getHours();
+                              if (slotFilter === 'morning') return h < 14;
+                              if (slotFilter === 'afternoon') return h >= 14 && h < 18;
+                              if (slotFilter === 'evening') return h >= 18;
+                              return true;
+                            });
+
+                          return (
+                            <div key={dayLabel} className={styles.dayColumn}>
+                              <span className={styles.dayLabel}>{dayLabel}</span>
+                              <div className={styles.daySlots}>
+                                {slotsForDay.length === 0 ? (
+                                  <div className="text-[10px] text-zinc-400 italic py-2 text-center bg-zinc-100/50 rounded border border-dashed border-zinc-200">
+                                    Sala occupata: nessun buco disponibile
+                                  </div>
+                                ) : (
+                                  slotsForDay.map(slot => (
+                                    <button
+                                      key={slot.date}
+                                      type="button"
+                                      onClick={() => !slot.isOccupied && toggleSlotSelection(slot.date)}
+                                      className={`${styles.slotBadge} ${selectedSlots.includes(slot.date) ? styles.slotSelected : ''} ${slot.isOccupied ? styles.slotOccupied : ''} ${slot.isMorning ? styles.slotMorning : ''} ${slot.isOptimized ? styles.slotOptimized : ''}`}
+                                      title="Slot disponibile – clicca per selezionare"
+                                    >
+                                      {slot.label}
+                                    </button>
+                                  ))
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
+
                       )}
                     </div>
                   </div>
