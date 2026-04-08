@@ -2,6 +2,7 @@
 
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
+import { calculatePretixDateTime } from '@/utils/dateUtils';
 
 const TIMEZONE = 'Europe/Rome';
 
@@ -14,9 +15,11 @@ const pad = (n: number) => n.toString().padStart(2, '0');
 /**
  * Custom ISO formatter to bypass server UTC shifts.
  * Hardcoded to Europe/Rome (+02:00 for CEST).
+ * USES PURE MATH TO PREVENT TIMEZONE GHOSTS.
  */
 function formatManualISO(d: Date) {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00+02:00`;
+  // Usiamo formatInTimeZone per estrarre i pezzi in modo sicuro rispetto al fuso di Roma
+  return `${formatInTimeZone(d, TIMEZONE, 'yyyy-MM-dd')}T${formatInTimeZone(d, TIMEZONE, 'HH:mm')}:00+02:00`;
 }
 
 /**
@@ -590,24 +593,15 @@ export async function createSubEvent(movieData: {
   try {
     const runtimeMinutes = movieData.runtime || 120;
 
-    // --- TECNICA DELLA STRINGA CRUDA (Zero Logic + Auto Offset) ---
-    // Determiniamo l'offset corretto per l'Italia in QUELLA specifica data
-    // toDate interpreta la stringa come ora locale italiana, NON del server.
-    const refDate = toDate(`${movieData.date}T${movieData.time}`, { timeZone: 'Europe/Rome' });
-    const offset = formatInTimeZone(refDate, 'Europe/Rome', 'XXX');
+    // --- PROTOCOLLO EMERGENZA MATEMATICA (PURE STRING) ---
+    const dateFrom = calculatePretixDateTime(movieData.date, movieData.time, 0);
+    const dateTo = calculatePretixDateTime(movieData.date, movieData.time, runtimeMinutes);
 
-    // Inizio: Incolliamo i pezzi con l'offset dinamico
-    const dateFrom = `${movieData.date}T${movieData.time}:00${offset}`;
-
-    // Fine: Calcoliamo aggiungendo la durata
-    const dEnd = new Date(refDate.getTime() + runtimeMinutes * 60000);
-    const dateTo = formatInTimeZone(dEnd, 'Europe/Rome', "yyyy-MM-dd'T'HH:mm:ssXXX");
-
-    console.log('--- PROTOCOLLO EMERGENZA (AUTO-OFFSET) ---');
-    console.log(`[Dynamic] Date=${movieData.date}, Time=${movieData.time}, Offset Rilevato=${offset}`);
-    console.log(`[Dynamic] Inviato a Pretix (date_from): ${dateFrom}`);
-    console.log(`[Dynamic] Inviato a Pretix (date_to):   ${dateTo}`);
-    console.log('------------------------------------------');
+    console.log('--- PROTOCOLLO EMERGENZA (MATEMATICA PURA) ---');
+    console.log(`[Math] Input Date=${movieData.date}, Time=${movieData.time}, Durata=${runtimeMinutes}m`);
+    console.log(`[Math] Inviato a Pretix (date_from): ${dateFrom}`);
+    console.log(`[Math] Inviato a Pretix (date_to):   ${dateTo}`);
+    console.log('---------------------------------------------');
 
     // Format description as HTML for frontpage_text
     const descriptionHtml = `

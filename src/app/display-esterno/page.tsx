@@ -5,6 +5,9 @@ import { getDisplayData, DisplayMovieData } from '@/actions/displayActions';
 import styles from './DisplayEsterno.module.css';
 import { getTMDBImageUrl } from '@/services/tmdb';
 import { Maximize, Minimize } from 'lucide-react';
+import { toZonedTime } from 'date-fns-tz';
+
+const TIMEZONE = 'Europe/Rome';
 
 export default function DisplayEsterno() {
   const [movies, setMovies] = useState<DisplayMovieData[]>([]);
@@ -104,8 +107,13 @@ export default function DisplayEsterno() {
     
     // An event is "current" if it's currently playing OR in preroll phase
     const current = movies.find(m => {
-      const startWithPreroll = new Date(m.date_from).getTime() - (preroll * 1000);
-      const end = new Date(m.date_to).getTime();
+      const itNow = toZonedTime(now, TIMEZONE);
+      const itStart = toZonedTime(new Date(m.date_from), TIMEZONE);
+      const itEnd = toZonedTime(new Date(m.date_to), TIMEZONE);
+      
+      const currentTime = itNow.getTime();
+      const startWithPreroll = itStart.getTime() - (preroll * 1000);
+      const end = itEnd.getTime();
       return currentTime >= startWithPreroll && currentTime < end;
     });
 
@@ -115,7 +123,9 @@ export default function DisplayEsterno() {
     // If not, next is the first one in the future, and nextNext is the one after that
     const futureMovies = movies.filter((m, idx) => {
        if (current) return idx > currentIdx;
-       return new Date(m.date_from).getTime() > currentTime;
+       const itNow = toZonedTime(now, TIMEZONE);
+       const itStart = toZonedTime(new Date(m.date_from), TIMEZONE);
+       return itStart.getTime() > itNow.getTime();
     });
 
     return { 
@@ -136,9 +146,13 @@ export default function DisplayEsterno() {
     const heroMovie = selectedMovie || (isSwapped ? nextMovie : (currentMovie || nextMovie));
     if (!heroMovie) return { label: 'In attesa di proiezioni', value: '--:--', type: 'idle' };
 
-    const currentTime = now.getTime();
-    const startTime = new Date(heroMovie.date_from).getTime();
-    const endTime = new Date(heroMovie.date_to).getTime();
+    const itNow = toZonedTime(now, TIMEZONE);
+    const itStart = toZonedTime(new Date(heroMovie.date_from), TIMEZONE);
+    const itEnd = toZonedTime(new Date(heroMovie.date_to), TIMEZONE);
+
+    const currentTime = itNow.getTime();
+    const startTime = itStart.getTime();
+    const endTime = itEnd.getTime();
     const prerollStartsAt = startTime - (preroll * 1000);
 
     const formatDuration = (ms: number) => {
@@ -344,11 +358,13 @@ export default function DisplayEsterno() {
             <h3 className={styles.nextTitle}>{sideBoxMovie.title}</h3>
             <span className={styles.nextCountdown}>
               {isSwapped ? (() => {
-                const diff = Math.max(0, new Date(sideBoxMovie.date_to).getTime() - now.getTime());
+                const itNow = toZonedTime(now, TIMEZONE);
+                const itEnd = toZonedTime(new Date(sideBoxMovie.date_to), TIMEZONE);
+                const diff = Math.max(0, itEnd.getTime() - itNow.getTime());
                 const mins = Math.floor(diff / 60000);
                 return `Fine tra: ${mins} min`;
               })() : (
-                new Date(sideBoxMovie.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+                toZonedTime(new Date(sideBoxMovie.date_from), TIMEZONE).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
               )}
             </span>
           </div>
@@ -381,7 +397,7 @@ export default function DisplayEsterno() {
                 <img src={getTMDBImageUrl(movie.posterPath, 'w185')} alt="" className={styles.selectorItemPoster} />
                 <div className={styles.selectorItemInfo}>
                   <span className={styles.selectorItemTime}>
-                    {new Date(movie.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                    {toZonedTime(new Date(movie.date_from), TIMEZONE).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   <h3 className={styles.selectorItemTitle}>{movie.title}</h3>
                 </div>

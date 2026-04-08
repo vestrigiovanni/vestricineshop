@@ -16,6 +16,7 @@ import {
   deleteQuota,
   getQuotaAvailability
 } from '@/services/pretix';
+import { calculatePretixDateTime } from '@/utils/dateUtils';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import { revalidatePath } from 'next/cache';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
@@ -23,10 +24,17 @@ import { toDate, formatInTimeZone } from 'date-fns-tz';
 const TIMEZONE = 'Europe/Rome';
 const pad = (n: number) => n.toString().padStart(2, '0');
 
+/**
+ * Custom ISO formatter to bypass server UTC shifts.
+ * Hardcoded to Europe/Rome (+02:00 for CEST).
+ * USES PURE MATH PIECES TO PREVENT TIMEZONE GHOSTS.
+ */
 function formatManualISO(d: Date) {
-  // Usiamo formatInTimeZone per estrarre l'ISO completo con l'offset corretto (XXX)
-  // Questo gestisce automaticamente il cambio tra +01:00 e +02:00 senza logica cablata.
-  return formatInTimeZone(d, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+  // Usiamo formatInTimeZone SOLO per estrarre i pezzi (anno, mese, giorno, ora, min)
+  // garantendo che siano quelli di Roma, ignorando il fuso di sistema di Vercel.
+  const datestr = formatInTimeZone(d, TIMEZONE, 'yyyy-MM-dd');
+  const timestr = formatInTimeZone(d, TIMEZONE, 'HH:mm');
+  return `${datestr}T${timestr}:00+02:00`;
 }
 
 /**
@@ -413,19 +421,12 @@ export async function adminUpdateEventDate(subEventId: number, newDate: string) 
     // 2. Calculate new start and end components
     // Assumiamo che newDate arrivi dal frontend come YYYY-MM-DDTHH:mm
     const [datePart, timePart] = newDate.split('T');
-    const [y, mo, day] = datePart.split('-').map(Number);
-    const [h, mi] = timePart.split(':').map(Number);
+    
+    // Calcoliamo Inizio e Fine con la matematica pura (zero oggetti Date per il calcolo orario)
+    const dateFrom = calculatePretixDateTime(datePart, timePart, 0);
+    const dateTo = calculatePretixDateTime(datePart, timePart, Math.round(durationMs / 60000));
 
-    const dateFrom = `${datePart}T${timePart}:00${formatInTimeZone(toDate(newDate, { timeZone: TIMEZONE }), TIMEZONE, 'XXX')}`;
-
-    // Per dateTo usiamo la tecnica UTC "neutra" ma estraiamo l'ISO corretto per l'Italia
-    const dEnd = new Date(Date.UTC(y, mo - 1, day, h, mi));
-    dEnd.setUTCMinutes(dEnd.getUTCMinutes() + Math.round(durationMs / 60000));
-
-    // formatManualISO accetta un Date e restituisce la stringa corretta con offset
-    const dateTo = formatManualISO(dEnd);
-
-    console.log('[adminUpdateEventDate] Zero Logic Update:', { dateFrom, dateTo });
+    console.log('[adminUpdateEventDate] Zero Logic Update (Math Pura):', { dateFrom, dateTo });
 
     await updateSubEvent(subEventId, {
       date_from: dateFrom,
