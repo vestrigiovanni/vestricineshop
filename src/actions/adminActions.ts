@@ -24,7 +24,9 @@ const TIMEZONE = 'Europe/Rome';
 const pad = (n: number) => n.toString().padStart(2, '0');
 
 function formatManualISO(d: Date) {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00+02:00`;
+  // Usiamo formatInTimeZone per estrarre l'ISO completo con l'offset corretto (XXX)
+  // Questo gestisce automaticamente il cambio tra +01:00 e +02:00 senza logica cablata.
+  return formatInTimeZone(d, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
 }
 
 /**
@@ -188,15 +190,17 @@ const ROOM_CAPACITIES: Record<number, { intero: number; vip?: number }> = {
 
 export async function adminScheduleMovie(
   movieData: { id: string; title: string; overview: string; posterPath: string; language: string; subtitles: string },
-  date: string,
+  dateStr: string,
+  timeStr: string,
   seatingPlanId: number,
   override: boolean = false,
   buffer: number = 0
 ) {
   // ── TRACCIAMENTO ESECUZIONE (visibile nei log Vercel) ──────────────────────
-  console.log(`[adminScheduleMovie] ▶ START`, {
+  console.log(`[adminScheduleMovie] ▶ START (TECNICA STRINGA CRUDA)`, {
     movieTitle: movieData.title,
-    date,
+    dateStr,
+    timeStr,
     seatingPlanId,
     override,
     serverTime: new Date().toISOString()
@@ -263,15 +267,17 @@ export async function adminScheduleMovie(
   // 5. Algorithm No-Overlap Check (Nuclear Bit-Map Logic)
   const runtimeMinutes = (details.runtime || 120);
   const CLEANING_BUFFER_NEW = 10 * 60000;
-  // toDate interpreta la stringa datetime-local del frontend come ora in Europe/Rome
-  const startDate = toDate(date, { timeZone: TIMEZONE });
+  
+  // Per i calcoli interni della bitmap, usiamo STILL toDate ma solo per posizionarci
+  // NON lo usiamo per la stringa finale Pretix.
+  const dateInput = `${dateStr}T${timeStr}`;
+  const startDate = toDate(dateInput, { timeZone: TIMEZONE });
   const sNew = startDate.getTime();
   const eNew = sNew + (runtimeMinutes * 60000) + CLEANING_BUFFER_NEW;
 
   console.log(`[adminScheduleMovie] ⏱ Calcolo occupazione`, {
     runtimeMinutes,
     startISO: startDate.toISOString(),
-    endISO: new Date(eNew).toISOString(),
     override
   });
 
@@ -302,7 +308,8 @@ export async function adminScheduleMovie(
   // 6. Create the Sub-Event in Pretix with Mapping
   const subEvent = await createSubEvent({
     title: movieData.title,
-    date: date, // Pass the original string, createSubEvent now handles the offset
+    date: dateStr, 
+    time: timeStr,
     tmdbId: movieData.id,
     overview: movieData.overview,
     posterPath: movieData.posterPath,
@@ -403,15 +410,22 @@ export async function adminUpdateEventDate(subEventId: number, newDate: string) 
     const end = new Date(currentEvent.date_to);
     const durationMs = end.getTime() - start.getTime();
 
-    // 2. Calculate new start and end
-    const newStart = toDate(newDate, { timeZone: TIMEZONE });
-    const newEnd = new Date(newStart.getTime() + durationMs);
+    // 2. Calculate new start and end components
+    // Assumiamo che newDate arrivi dal frontend come YYYY-MM-DDTHH:mm
+    const [datePart, timePart] = newDate.split('T');
+    const [y, mo, day] = datePart.split('-').map(Number);
+    const [h, mi] = timePart.split(':').map(Number);
 
-    // 3. Update with both fields
-    const dateFrom = formatManualISO(newStart);
-    const dateTo = formatManualISO(newEnd);
+    const dateFrom = `${datePart}T${timePart}:00${formatInTimeZone(toDate(newDate, { timeZone: TIMEZONE }), TIMEZONE, 'XXX')}`;
 
-    console.log('STRINGA DATA AGGIORNATA INVIATA A PRETIX:', dateFrom);
+    // Per dateTo usiamo la tecnica UTC "neutra" ma estraiamo l'ISO corretto per l'Italia
+    const dEnd = new Date(Date.UTC(y, mo - 1, day, h, mi));
+    dEnd.setUTCMinutes(dEnd.getUTCMinutes() + Math.round(durationMs / 60000));
+
+    // formatManualISO accetta un Date e restituisce la stringa corretta con offset
+    const dateTo = formatManualISO(dEnd);
+
+    console.log('[adminUpdateEventDate] Zero Logic Update:', { dateFrom, dateTo });
 
     await updateSubEvent(subEventId, {
       date_from: dateFrom,
@@ -667,14 +681,19 @@ export async function adminBulkScheduleMovie(
   let errorCount = 0;
   const errors: string[] = [];
 
-  for (const date of selectedDates) {
+  for (const fullDate of selectedDates) {
     try {
-      await adminScheduleMovie(movieData, date, seatingPlanId, false, buffer);
+      const [datePart, timePart] = fullDate.includes('T') ? fullDate.split('T') : [fullDate, "00:00"];
+      // Clean up timePart if it has seconds/offset
+      const cleanTime = timePart.substring(0, 5); 
+      
+      console.log(`[adminBulkScheduleMovie] Processing slot: ${datePart} ${cleanTime}`);
+      await adminScheduleMovie(movieData, datePart, cleanTime, seatingPlanId, false, buffer);
       successCount++;
     } catch (e: any) {
-      console.error(`Bulk Error at ${date}:`, e);
+      console.error(`Bulk Error at ${fullDate}:`, e);
       errorCount++;
-      errors.push(`${date}: ${e.message}`);
+      errors.push(`${fullDate}: ${e.message}`);
     }
   }
 

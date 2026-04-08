@@ -291,9 +291,11 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     if (!selectedMovie || !formState.roomId) return;
 
     // ── CLIENT-SIDE TRACCIAMENTO ──────────────────────────────────────────────
-    console.log('[handleSchedule] ▶ Invio programmazione', {
+    const [rawDate, rawTime] = formState.date.split('T');
+    console.log('[handleSchedule] ▶ Invio programmazione (TECNICA STRINGA CRUDA)', {
       movie: formState.title,
-      date: formState.date,
+      rawDate,
+      rawTime,
       roomId: formState.roomId,
       conflict,
       override: !!conflict,
@@ -325,7 +327,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           posterPath: formState.posterPath,
           language: formState.language,
           subtitles: formState.subtitles
-        }, formState.date, parseInt(formState.roomId), !!conflict, cleaningBuffer);
+        }, rawDate, rawTime, parseInt(formState.roomId), !!conflict, cleaningBuffer);
         console.log('[handleSchedule] ✅ Risposta server:', result);
         alert(conflict ? 'Spettacolo programmato con successo (Override)!' : 'Spettacolo programmato con successo!');
       }

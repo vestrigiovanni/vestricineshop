@@ -569,6 +569,7 @@ export async function getSubEvent(subEventId: number) {
 export async function createSubEvent(movieData: {
   title: string;
   date: string;
+  time: string;
   tmdbId: string;
   overview: string;
   posterPath: string;
@@ -587,28 +588,26 @@ export async function createSubEvent(movieData: {
   logoPath?: string;
 }) {
   try {
-    // Ensure the date is interpreted as Europe/Rome if it's a naive string.
-    // The user reported a 2-hour shift (e.g. 21:30 -> 23:30), which happens if 
-    // a naive string is interpreted as UTC and then converted to CEST (+2).
-    let startDate: Date;
-    if (movieData.date.includes('Z') || /[\+\-]\d{2}:?\d{2}$/.test(movieData.date)) {
-      startDate = new Date(movieData.date);
-    } else {
-      // It's a naive string from the UI (e.g. 2026-04-08T21:30)
-      startDate = toDate(movieData.date, { timeZone: TIMEZONE });
-    }
-
     const runtimeMinutes = movieData.runtime || 120;
-    const endDate = new Date(startDate.getTime() + runtimeMinutes * 60000);
 
-    const dateFrom = formatManualISO(startDate);
-    const dateTo = formatManualISO(endDate);
+    // --- TECNICA DELLA STRINGA CRUDA (Zero Logic + Auto Offset) ---
+    // Determiniamo l'offset corretto per l'Italia in QUELLA specifica data
+    // toDate interpreta la stringa come ora locale italiana, NON del server.
+    const refDate = toDate(`${movieData.date}T${movieData.time}`, { timeZone: 'Europe/Rome' });
+    const offset = formatInTimeZone(refDate, 'Europe/Rome', 'XXX');
 
-    console.log('STRINGA DATA INVIATA A PRETIX:', dateFrom);
-    console.log(`[Pretix] Creating sub-event "${movieData.title}"`);
-    console.log(`[Pretix] Original date string: ${movieData.date}`);
-    console.log(`[Pretix] Formatted date_from: ${dateFrom}`);
-    console.log(`[Pretix] Formatted date_to:   ${dateTo}`);
+    // Inizio: Incolliamo i pezzi con l'offset dinamico
+    const dateFrom = `${movieData.date}T${movieData.time}:00${offset}`;
+
+    // Fine: Calcoliamo aggiungendo la durata
+    const dEnd = new Date(refDate.getTime() + runtimeMinutes * 60000);
+    const dateTo = formatInTimeZone(dEnd, 'Europe/Rome', "yyyy-MM-dd'T'HH:mm:ssXXX");
+
+    console.log('--- PROTOCOLLO EMERGENZA (AUTO-OFFSET) ---');
+    console.log(`[Dynamic] Date=${movieData.date}, Time=${movieData.time}, Offset Rilevato=${offset}`);
+    console.log(`[Dynamic] Inviato a Pretix (date_from): ${dateFrom}`);
+    console.log(`[Dynamic] Inviato a Pretix (date_to):   ${dateTo}`);
+    console.log('------------------------------------------');
 
     // Format description as HTML for frontpage_text
     const descriptionHtml = `
