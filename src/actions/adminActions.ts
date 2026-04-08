@@ -81,9 +81,9 @@ async function getBlockedIntervals(seatingPlanId: number) {
         }
       }
 
-      const interval = { 
-        start: s, 
-        end: e_end + CLEANING_BUFFER_EXISTING, 
+      const interval = {
+        start: s,
+        end: e_end + CLEANING_BUFFER_EXISTING,
         title: e.name.it || e.name,
         runtime: runtimeMin,
         source
@@ -91,7 +91,7 @@ async function getBlockedIntervals(seatingPlanId: number) {
 
       const dateStr = formatInTimeZone(new Date(s), TIMEZONE, "dd/MM HH:mm");
       console.log(`[${dateStr}] ${interval.title.padEnd(25)} | Fine: ${formatInTimeZone(new Date(e_end), TIMEZONE, "HH:mm")} | Durata: ${runtimeMin}m | Fonte: ${source}`);
-      
+
       return interval;
     }));
 
@@ -100,23 +100,39 @@ async function getBlockedIntervals(seatingPlanId: number) {
 }
 
 /**
+ * HELPER: Returns the UTC timestamp for 00:00:00 in Europe/Rome timezone
+ * for the day containing the given Date reference.
+ *
+ * CRITICAL: Never use `new Date(d).setHours(0,0,0,0)` on a UTC server (Vercel).
+ * That gives UTC midnight, off by -2h from Roman midnight, causing the entire
+ * bitmap to be misaligned by 120 minutes.
+ */
+function getRomeDayStartMs(d: Date): number {
+  const dateStr = formatInTimeZone(d, TIMEZONE, 'yyyy-MM-dd');
+  // Build the explicit Rome midnight with +02:00 suffix so new Date() parses it correctly
+  return new Date(`${dateStr}T00:00:00+02:00`).getTime();
+}
+
+/**
  * HELPER: Generates a minute-by-minute occupancy map for a specific day.
  * Array of 1440 entries (0 = free, 1 = occupied).
+ *
+ * Index 0 = 00:00 Rome, Index 1 = 00:01 Rome, ..., Index 1439 = 23:59 Rome.
  */
 function getDayOccupancyMap(intervals: any[], dayDate: Date) {
   const map = new Uint8Array(1440).fill(0);
-  const dayStart = new Date(dayDate);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayStartMs = dayStart.getTime();
+
+  // CRITICAL FIX: anchor to Rome midnight, not UTC midnight
+  const dayStartMs = getRomeDayStartMs(dayDate);
+  const dayEndMs = dayStartMs + 24 * 60 * 60 * 1000;
 
   for (const interval of intervals) {
     // Only map intervals that overlap with this day
-    const dayEndMs = dayStartMs + 24 * 60 * 60 * 1000;
     if (interval.end <= dayStartMs || interval.start >= dayEndMs) continue;
 
     // Convert start/end to minute indices [0..1439]
     const startIdx = Math.max(0, Math.floor((interval.start - dayStartMs) / 60000));
-    const endIdx = Math.min(1439, Math.ceil((interval.end - dayStartMs) / 60000));
+    const endIdx = Math.min(1440, Math.ceil((interval.end - dayStartMs) / 60000));
 
     for (let i = startIdx; i < endIdx; i++) {
       map[i] = 1;
@@ -134,7 +150,7 @@ function getDayOccupancyMap(intervals: any[], dayDate: Date) {
 function isRangeFree(map: Uint8Array, startMs: number, endMs: number, dayStartMs: number) {
   const startIdx = Math.max(0, Math.floor((startMs - dayStartMs) / 60000));
   const endIdx = Math.min(1439, Math.ceil((endMs - dayStartMs) / 60000));
-  
+
   for (let i = startIdx; i < endIdx; i++) {
     if (map[i] === 1) return false;
   }
@@ -177,6 +193,15 @@ export async function adminScheduleMovie(
   override: boolean = false,
   buffer: number = 0
 ) {
+  // ── TRACCIAMENTO ESECUZIONE (visibile nei log Vercel) ──────────────────────
+  console.log(`[adminScheduleMovie] ▶ START`, {
+    movieTitle: movieData.title,
+    date,
+    seatingPlanId,
+    override,
+    serverTime: new Date().toISOString()
+  });
+
   // 1. Fetch full details from TMDB (for Director, Language, Runtime)
   const details = await getMovieDetails(movieData.id);
   if (!details) throw new Error('Could not fetch movie details from TMDB');
@@ -238,22 +263,38 @@ export async function adminScheduleMovie(
   // 5. Algorithm No-Overlap Check (Nuclear Bit-Map Logic)
   const runtimeMinutes = (details.runtime || 120);
   const CLEANING_BUFFER_NEW = 10 * 60000;
+  // toDate interpreta la stringa datetime-local del frontend come ora in Europe/Rome
   const startDate = toDate(date, { timeZone: TIMEZONE });
   const sNew = startDate.getTime();
   const eNew = sNew + (runtimeMinutes * 60000) + CLEANING_BUFFER_NEW;
-  
+
+  console.log(`[adminScheduleMovie] ⏱ Calcolo occupazione`, {
+    runtimeMinutes,
+    startISO: startDate.toISOString(),
+    endISO: new Date(eNew).toISOString(),
+    override
+  });
+
   const blockedIntervals = await getBlockedIntervals(seatingPlanId);
-  
-  // Create map for the target day
-  const dayStart = new Date(startDate);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayMap = getDayOccupancyMap(blockedIntervals, dayStart);
-  
-  const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStart.getTime());
+
+  // CRITICAL: use timezone-aware Rome midnight for the bitmap anchor
+  const dayStartMs = getRomeDayStartMs(startDate);
+  const dayMap = getDayOccupancyMap(blockedIntervals, startDate);
+
+  const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs);
+
+  console.log(`[adminScheduleMovie] 🔍 Conflict check →`, { hasConflict, override });
 
   if (hasConflict && !override) {
     const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
-    throw new Error(`Conflitto rilevato: l'orario scelto si sovrappone alla proiezione di "${conflict?.title || 'un altro film'}" (incluse pulizie sala).`);
+    const msg = `Conflitto rilevato: l'orario scelto si sovrappone alla proiezione di "${conflict?.title || 'un altro film'}" (incluse pulizie sala).`;
+    console.log(`[adminScheduleMovie] ⛔ ${msg}`);
+    throw new Error(msg);
+  }
+
+  // override === true: ignora il conflitto e procedi comunque
+  if (hasConflict && override) {
+    console.log(`[adminScheduleMovie] ⚠️ Override attivo: procedo con il salvataggio nonostante il conflitto.`);
   }
 
 
@@ -312,7 +353,10 @@ export async function adminScheduleMovie(
   }
 
   revalidatePath('/');
-  return { success: true, subeventId: subeventId };
+
+  console.log(`[adminScheduleMovie] ✅ END – Subevent creato ID=${subeventId}, runtime=${runtimeMinutes}m`);
+
+  return { success: true, subeventId: subeventId, runtimeMinutes };
 }
 
 export async function adminDeleteEvent(subEventId: number) {
@@ -426,11 +470,12 @@ export async function adminGetSmartSuggestion(tmdbId: string, seatingPlanId: num
     const sNew = currentPointer;
     const eNew = sNew + runtimeWithBufferMs;
 
-    const dayStart = new Date(sNew);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayMap = getDayOccupancyMap(blockedIntervals, dayStart);
+    const dRef = new Date(sNew);
+    // CRITICAL: timezone-aware Rome midnight for bitmap anchor
+    const dayStartMs = getRomeDayStartMs(dRef);
+    const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
 
-    const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStart.getTime());
+    const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs);
     if (!hasConflict) {
       return formatManualISO(new Date(sNew));
     }
@@ -459,27 +504,27 @@ export async function adminCheckConflict(date: string, tmdbId: string, seatingPl
   const eNew = sNew + (runtime * 60000) + CLEANING_BUFFER_NEW;
 
   const blockedIntervals = await getBlockedIntervals(seatingPlanId);
-  
-  const dayStart = new Date(sDate);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayMap = getDayOccupancyMap(blockedIntervals, dayStart);
-  
-  const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStart.getTime());
+
+  // CRITICAL: timezone-aware Rome midnight for bitmap anchor
+  const dayStartMs = getRomeDayStartMs(sDate);
+  const dayMap = getDayOccupancyMap(blockedIntervals, sDate);
+
+  const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs);
 
   if (hasConflict) {
     const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
-    // Round end to 5 mins
+    // Round end to 5 mins and display in Rome timezone
     const roundedFreeAt = new Date(Math.ceil((conflict?.end || 0) / (5 * 60000)) * (5 * 60000));
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const conflictEndTime = `${pad(roundedFreeAt.getHours())}:${pad(roundedFreeAt.getMinutes())}`;
+    const conflictEndTime = formatInTimeZone(roundedFreeAt, TIMEZONE, 'HH:mm');
 
-    return { 
-      hasConflict: true, 
+    return {
+      hasConflict: true,
       movieTitle: conflict?.title || 'un altro film',
-      conflictEndTime
+      conflictEndTime,
+      runtime
     };
   }
-  return { hasConflict: false };
+  return { hasConflict: false, runtime };
 }
 
 
@@ -506,12 +551,11 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
   while (prePointer > preLimit) {
     const sNew = prePointer;
     const eNew = sNew + runtimeWithBufferMs;
-    
-    const dStart = new Date(sNew);
-    dStart.setHours(0, 0, 0, 0);
-    const dayMap = getDayOccupancyMap(blockedIntervals, dStart);
-    
-    if (isRangeFree(dayMap, sNew, eNew, dStart.getTime())) {
+    const dRef = new Date(sNew);
+    // CRITICAL: timezone-aware Rome midnight
+    const dayStartMs = getRomeDayStartMs(dRef);
+    const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
+    if (isRangeFree(dayMap, sNew, eNew, dayStartMs)) {
       preSuggestion = formatInTimeZone(new Date(sNew), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
       break;
     }
@@ -526,19 +570,18 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
   while (postPointer < postLimit) {
     const sNew = postPointer;
     const eNew = sNew + runtimeWithBufferMs;
-    
-    const dStart = new Date(sNew);
-    dStart.setHours(0, 0, 0, 0);
-    const dayMap = getDayOccupancyMap(blockedIntervals, dStart);
-    
-    if (isRangeFree(dayMap, sNew, eNew, dStart.getTime())) {
+    const dRef = new Date(sNew);
+    // CRITICAL: timezone-aware Rome midnight
+    const dayStartMs = getRomeDayStartMs(dRef);
+    const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
+    if (isRangeFree(dayMap, sNew, eNew, dayStartMs)) {
       postSuggestion = formatInTimeZone(new Date(sNew), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
       break;
     }
     postPointer += roundingMs;
   }
 
-  return { preSuggestion, postSuggestion };
+  return { preSuggestion, postSuggestion, runtime };
 }
 
 
@@ -553,42 +596,44 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
   const runtimeWithBufferMs = (runtime * 60000) + CLEANING_BUFFER_NEW;
   const SCAN_STEP_MS = 5 * 60000; // Scan every 5 minutes
 
+  console.log(`[adminGetWeeklySlots] Film: ${tmdbId} | Runtime: ${runtime}m | Sala: ${seatingPlanId}`);
+
   const blockedIntervals = await getBlockedIntervals(seatingPlanId);
-  const suggestions: { date: string; label: string; isOccupied: boolean; isMorning?: boolean }[] = [];
-  const now = new Date();
+  const suggestions: { date: string; label: string; isOccupied: boolean; isMorning?: boolean; runtime: number }[] = [];
+  const nowMs = Date.now();
 
   for (let d = 0; d < daysCount; d++) {
-    const dayDate = new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
-    dayDate.setHours(0, 0, 0, 0);
-    
-    // Timeline boundary: 08:00 to 23:30 (last possible start)
-    const timelineStart = new Date(dayDate);
-    timelineStart.setHours(8, 0, 0, 0);
-    const timelineEnd = new Date(dayDate.getTime() + 23.5 * 60 * 60 * 1000);
+    // Compute Rome midnight for day d using an approximate UTC ms reference then correcting with getRomeDayStartMs
+    const approxDayMs = nowMs + d * 24 * 60 * 60 * 1000;
+    const dayStartMs = getRomeDayStartMs(new Date(approxDayMs)); // 00:00 in Rome
 
-    let currentPointer = timelineStart.getTime();
+    // Timeline boundary in Rome time: 08:00 = +8h, 23:30 = +23.5h
+    const timelineStartMs = dayStartMs + 8 * 60 * 60 * 1000;
+    const timelineEndMs = dayStartMs + (23 * 60 + 30) * 60 * 1000;
+
+    let currentPointer = timelineStartMs;
 
     const daySlots: typeof suggestions = [];
-    const dayMap = getDayOccupancyMap(blockedIntervals, dayDate);
-    
-    while (currentPointer + runtimeWithBufferMs <= timelineEnd.getTime() + (runtimeWithBufferMs)) { 
-      // Allow mapping slots that start before 23:30.
-      if (currentPointer > timelineEnd.getTime()) break;
+    const dayMap = getDayOccupancyMap(blockedIntervals, new Date(dayStartMs));
 
+    while (currentPointer <= timelineEndMs) {
       const sNew = currentPointer;
       const eNew = sNew + runtimeWithBufferMs;
 
       // Skip slots in the past
-      if (sNew > now.getTime()) {
-        const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayDate.getTime());
-        
+      if (sNew > nowMs) {
+        const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs);
+
         if (!hasConflict) {
-          const dSlot = new Date(sNew);
+          // Build the display label in Rome timezone (correct even on UTC Vercel)
+          const romeHHmm = formatInTimeZone(new Date(sNew), TIMEZONE, 'HH:mm');
+          const h = parseInt(romeHHmm.split(':')[0], 10);
           daySlots.push({
-            date: formatManualISO(dSlot),
-            label: `${pad(dSlot.getHours())}:${pad(dSlot.getMinutes())}`,
+            date: formatManualISO(new Date(sNew)),
+            label: romeHHmm,
             isOccupied: false,
-            isMorning: dSlot.getHours() < 13 && dSlot.getHours() >= 5
+            isMorning: h >= 5 && h < 13,
+            runtime
           });
         }
       }
@@ -596,16 +641,14 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
     }
 
     // Filter to only show 2 slots per band per day to avoid clutter
-    const morningSlots = daySlots.filter(s => new Date(s.date).getHours() < 14).slice(0, 2);
-    const afternoonSlots = daySlots.filter(s => {
-      const h = new Date(s.date).getHours();
-      return h >= 14 && h < 18;
-    }).slice(0, 2);
-    const eveningSlots = daySlots.filter(s => new Date(s.date).getHours() >= 18).slice(0, 2);
+    const morningSlots = daySlots.filter(s => parseInt(s.label.split(':')[0], 10) < 14).slice(0, 2);
+    const afternoonSlots = daySlots.filter(s => { const h = parseInt(s.label.split(':')[0], 10); return h >= 14 && h < 18; }).slice(0, 2);
+    const eveningSlots = daySlots.filter(s => parseInt(s.label.split(':')[0], 10) >= 18).slice(0, 2);
 
     suggestions.push(...morningSlots, ...afternoonSlots, ...eveningSlots);
   }
 
+  console.log(`[adminGetWeeklySlots] Trovati ${suggestions.length} slot liberi nei prossimi ${daysCount} giorni.`);
   return suggestions;
 }
 

@@ -249,6 +249,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       setIsValidating(true);
       try {
         const res = await adminCheckConflict(formState.date, selectedMovie.id.toString(), parseInt(formState.roomId), cleaningBuffer);
+        // Always update the detected runtime displayed in the modal header
+        if (res.runtime && res.runtime > 0) setSelectedMovieRuntime(res.runtime);
         if (res.hasConflict) {
           setConflict(res.movieTitle);
           setConflictEndTime(res.conflictEndTime || null);
@@ -288,6 +290,16 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     e.preventDefault();
     if (!selectedMovie || !formState.roomId) return;
 
+    // ── CLIENT-SIDE TRACCIAMENTO ──────────────────────────────────────────────
+    console.log('[handleSchedule] ▶ Invio programmazione', {
+      movie: formState.title,
+      date: formState.date,
+      roomId: formState.roomId,
+      conflict,
+      override: !!conflict,
+      selectedSlots: selectedSlots.length
+    });
+
     setLoading(true);
     try {
       if (selectedSlots.length > 0) {
@@ -302,8 +314,11 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         }, selectedSlots, parseInt(formState.roomId), cleaningBuffer);
         alert(res.summary);
       } else {
-        if (!formState.date) return;
-        await adminScheduleMovie({
+        if (!formState.date) {
+          console.warn('[handleSchedule] ⚠️ Nessuna data selezionata, skip.');
+          return;
+        }
+        const result = await adminScheduleMovie({
           id: selectedMovie.id.toString(),
           title: formState.title,
           overview: formState.overview,
@@ -311,6 +326,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           language: formState.language,
           subtitles: formState.subtitles
         }, formState.date, parseInt(formState.roomId), !!conflict, cleaningBuffer);
+        console.log('[handleSchedule] ✅ Risposta server:', result);
         alert(conflict ? 'Spettacolo programmato con successo (Override)!' : 'Spettacolo programmato con successo!');
       }
 
@@ -323,6 +339,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       setSearchQuery('');
       setSearchResults([]);
     } catch (error) {
+      console.error('[handleSchedule] ❌ Errore:', error);
       alert('Errore durante la programmazione: ' + error);
     } finally {
       setLoading(false);
@@ -652,7 +669,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                 Programma Spettacolo
                 {selectedMovieRuntime && (
                   <span className="ml-4 text-xs font-medium text-zinc-500 bg-zinc-100 px-2 py-1 rounded-full">
-                    DURATA ESTRATTA: {selectedMovieRuntime} min
+                    Durata rilevata per calcolo: {selectedMovieRuntime} min
                   </span>
                 )}
               </h2>
