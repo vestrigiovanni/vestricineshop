@@ -1489,9 +1489,9 @@
   
   /* Fix zoom automatico su iPhone per input */
   .priceInput,
-  input,
-  select,
-  textarea {
+  :global(input),
+  :global(select),
+  :global(textarea) {
     font-size: 16px !important;
   }
   
