@@ -1454,3 +1454,75 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* ZERO-TOUCH MOBILE RESPONSIVE TWEAKS */
+@media (max-width: 768px) {
+  .posRoot {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .content {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .topBar {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .topBarLeft, .topBarRight {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  /* Colonne a colonna singola per sezioni Conferma/Cassa */
+  .confirmSection, .successSection {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Fix zoom automatico su iPhone per input */
+  .priceInput,
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Pulsanti cassa grandi a prova di pollice */
+  .btnConfirm,
+  .btnPrint,
+  .btnDownload,
+  .btnContinue {
+    padding: 1.25rem !important;
+    font-size: 1.1rem !important;
+    min-height: 60px;
+    width: 100%;
+  }
+  
+  /* Ottimizzazione griglia posti su mobile se presente */
+  .seatGrid {
+    gap: 0.25rem;
+  }
+  
+  .seatBtn {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+  
+  .dateNav {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .screeningGrid {
+    grid-template-columns: 1fr;
+  }
+}
