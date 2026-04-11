@@ -64,6 +64,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [showDisplayModal, setShowDisplayModal] = useState(false);
   const [defaultSalaId, setDefaultSalaId] = useState<string | null>(null);
   const [selectedMovieRuntime, setSelectedMovieRuntime] = useState<number | null>(null);
+  const [prerollMin, setPrerollMin] = useState<number>(0);
+  const [prerollSec, setPrerollSec] = useState<number>(0);
 
   // --- COLLISION LOGIC FOR AUTO-CLEANING GRID ---
   const isColliding = (date1: string, date2: string) => {
