@@ -323,7 +323,7 @@ export async function adminScheduleMovie(
     posterPath: movieData.posterPath,
     runtime: runtimeMinutes,
     director: director,
-    cast: cast,
+    cast: Array.isArray(cast) ? cast.join(', ') : (cast || ""),
     language: movieData.language,
     subtitles: movieData.subtitles,
     seatingPlanId: seatingPlanId,

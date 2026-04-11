@@ -101,7 +101,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess }:
           posterPath: meta.posterPath || '',
           duration: meta.runtime || 120,
           director: meta.director || '',
-          cast: meta.cast || '',
+          cast: Array.isArray(meta.cast) ? meta.cast.join(', ') : (meta.cast || ''),
           roomName: ROOM_NAMES[Number(se.seating_plan)] || se.seating_plan_name || 'Sala Cinema',
           date: se.date_from,
           backdropPath: meta.backdropPath || '',

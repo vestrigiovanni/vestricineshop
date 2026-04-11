@@ -105,7 +105,8 @@ async function mapSubEventsToCassaScreenings(subEvents: any[]): Promise<CassaScr
           posterPath = meta.posterPath || '';
           runtime = meta.runtime || 120;
           director = meta.director || '';
-          cast = meta.cast || '';
+          const castVal = meta.cast || '';
+          cast = Array.isArray(castVal) ? castVal.join(', ') : castVal;
           backdropPath = meta.backdropPath || '';
           logoPath = meta.logoPath || '';
           tagline = meta.tagline || '';

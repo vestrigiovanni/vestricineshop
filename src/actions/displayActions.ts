@@ -82,7 +82,7 @@ export async function getDisplayData() {
         backdropPath,
         logoPath,
         director: metadata.director || 'N/D',
-        cast: metadata.cast || '',
+        cast: Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || ''),
         overview: metadata.overview || '',
         runtime: metadata.runtime || 120,
         language: metadata.language || 'Italiano',
