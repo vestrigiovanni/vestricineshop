@@ -24,6 +24,7 @@ export interface GroupedMovie {
   director?: string;
   runtime?: number;
   isSoldOut?: boolean;
+  cast?: string[];
   subevents: {
     id: number;
     date: string;
@@ -149,6 +150,8 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
 
   const activeMovie = sortedMovies.find(m => m.id === activeMovieId) || sortedMovies[0];
 
+  console.log("Cast per film " + activeMovie?.title, activeMovie?.cast);
+
   const handleShowtimeClick = (subeventId: number, isSoldOut: boolean) => {
     if (isSoldOut) return;
     setCheckoutSubeventId(subeventId);
@@ -206,6 +209,11 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
             <p className={`${styles.overview} ${isOverviewExpanded ? styles.expanded : ''}`}>
               {activeMovie.overview}
             </p>
+            {isOverviewExpanded && activeMovie.cast && activeMovie.cast.length > 0 && (
+              <p className={styles.castList}>
+                <strong>Con:</strong> {activeMovie.cast.join(', ')}
+              </p>
+            )}
             {activeMovie.overview && activeMovie.overview.length > 150 && (
               <button 
                 className={styles.readMoreBtn}

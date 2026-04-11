@@ -107,16 +107,23 @@ export async function searchMovies(query: string = ''): Promise<MovieItem[]> {
  */
 export async function getMovieDetails(id: string): Promise<MovieDetails | null> {
   try {
+    console.log(`[TMDB DEBUG] Recupero dettagli per ID: ${id}`);
     const url = `${TMDB_BASE_URL}/movie/${id}?language=it-IT&append_to_response=credits,images,release_dates&include_image_language=it,en,null&api_key=${TMDB_API_KEY}`;
     
     const response = await fetch(url, {
       headers: { 'accept': 'application/json' },
-      next: { revalidate: 3600 }
+      cache: 'no-store'
     });
 
     if (!response.ok) throw new Error('Failed to fetch movie details');
 
     const data = await response.json();
+    console.log(`[TMDB DEBUG] Dati ricevuti per ${id}. Keys:`, Object.keys(data).join(', '));
+    if (data.credits) {
+      console.log(`[TMDB DEBUG] Crediti presenti. Cast count: ${data.credits.cast?.length || 0}`);
+    } else {
+      console.log(`[TMDB DEBUG] ATTENZIONE: Proprietà "credits" MANCANTE in risposta TMDB`);
+    }
     return data;
   } catch (error) {
     console.error(`Error fetching details for movie ${id}:`, error);
@@ -135,12 +142,22 @@ export function getDirector(details: MovieDetails): string {
 /**
  * Extracts the main cast members (top 5-6) from the movie details.
  */
-export function getCast(details: MovieDetails, limit: number = 6): string {
-  if (!details.credits?.cast) return '';
-  return details.credits.cast
+export function getCast(details: any, limit: number = 5): string[] {
+  const credits = details?.credits;
+  if (!credits) {
+    console.warn(`[TMDB WARNING] Nessun credito trovato per il film: ${details?.title}`);
+    return [];
+  }
+  
+  const cast = credits.cast;
+  if (!cast || !Array.isArray(cast) || cast.length === 0) {
+    console.warn(`[TMDB WARNING] Cast non trovato o vuoto per il film: ${details?.title}`);
+    return [];
+  }
+
+  return cast
     .slice(0, limit)
-    .map(person => person.name)
-    .join(', ');
+    .map((person: any) => person.name);
 }
 
 /**

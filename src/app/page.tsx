@@ -1,4 +1,4 @@
-import { getMovieDetails } from '@/services/tmdb';
+import { getMovieDetails, getCast } from '@/services/tmdb';
 import { listSubEvents, listQuotas } from '@/services/pretix';
 import { ITEM_INTERO_ID } from '@/constants/pretix';
 import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
@@ -150,8 +150,10 @@ export default async function Home() {
       runtime: entry.tmdbMovie.runtime,
       subevents: entry.subevents,
       isSoldOut: isSoldOut,
+      cast: getCast(entry.tmdbMovie, 5),
     };
   });
+
 
   return (
     <main className={styles.main}>

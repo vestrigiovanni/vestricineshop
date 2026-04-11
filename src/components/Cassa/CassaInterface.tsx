@@ -172,19 +172,19 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     else fetchDateScreenings(viewDate);
   }, [viewDate, isDefaultView, screenings, fetchDateScreenings]);
 
-  const handleNextDay = () => {
+  const handleNextDay = useCallback(() => {
     setIsDefaultView(false);
     const d = new Date(viewDate);
     d.setDate(d.getDate() + 1);
     setViewDate(d.toISOString().split('T')[0]);
-  };
+  }, [viewDate]);
 
-  const handlePrevDay = () => {
+  const handlePrevDay = useCallback(() => {
     setIsDefaultView(false);
     const d = new Date(viewDate);
     d.setDate(d.getDate() - 1);
     setViewDate(d.toISOString().split('T')[0]);
-  };
+  }, [viewDate]);
 
   const handleResetToToday = () => {
     const d = new Date();
@@ -195,7 +195,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     setIsDefaultView(true);
   };
 
-  const handleSelectScreening = async (screening: CassaScreening) => {
+  const handleSelectScreening = useCallback(async (screening: CassaScreening) => {
     if (screening.isSoldOut) return;
     setSelectedScreening(screening);
     setStep('seat');
@@ -209,7 +209,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     } finally {
       setLoadingSeats(false);
     }
-  };
+  }, []);
 
   const handleFindAlternatives = async (screening: CassaScreening) => {
     setIsSearchingAlt(true);
@@ -419,7 +419,24 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
         return;
       }
 
-      if (step === 'seat') {
+      if (step === 'film') {
+        if (e.key.toLowerCase() === 'r') {
+          e.preventDefault();
+          window.location.reload();
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          handleNextDay();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          handlePrevDay();
+        } else if (/[1-9]/.test(e.key)) {
+          const index = parseInt(e.key) - 1;
+          if (filteredLocal[index]) {
+            e.preventDefault();
+            handleSelectScreening(filteredLocal[index]);
+          }
+        }
+      } else if (step === 'seat') {
         if (/[1-9]/.test(e.key)) {
           e.preventDefault();
           autoSelectSeats(parseInt(e.key));
@@ -428,6 +445,9 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
             e.preventDefault();
             setStep('confirm');
           }
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          setStep('film');
         }
       } else if (step === 'confirm') {
         if (/[0-9]/.test(e.key)) {
@@ -469,7 +489,22 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [step, selectedSeats, autoSelectSeats, handlePriceKey, handlePriceBackspace, handleConfirmSale, handleDownloadTicket, handlePrint, handleNewSale, triggerShortcutEffect]);
+  }, [
+    step, 
+    filteredLocal, 
+    handleNextDay, 
+    handlePrevDay, 
+    handleSelectScreening, 
+    selectedSeats, 
+    autoSelectSeats, 
+    handlePriceKey, 
+    handlePriceBackspace, 
+    handleConfirmSale, 
+    handleDownloadTicket, 
+    handlePrint, 
+    handleNewSale, 
+    triggerShortcutEffect
+  ]);
 
   const STEPS: { id: Step; label: string }[] = [
     { id: 'film', label: 'Film' }, { id: 'seat', label: 'Posto' },
@@ -549,7 +584,6 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
                   placeholder="Cerca film per titolo..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  autoFocus
                 />
                 <Search className={styles.searchIcon} size={20} />
               </div>
@@ -636,7 +670,10 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
             <div className={styles.seatSection}>
               <div className={styles.selectedInfo}>
                 <div className={styles.selectedInfoContent}>
-                  <button className={styles.btnBack} onClick={() => setStep('film')}><ArrowLeft size={16} /> Cambia film</button>
+                  <button className={styles.btnBack} onClick={() => setStep('film')}>
+                    <ArrowLeft size={16} /> Cambia film
+                    <span className={styles.kbdHint}>ESC</span>
+                  </button>
                   <div>
                     <div className={styles.selectedInfoTitle}>{selectedScreening.movieTitle}</div>
                     <div className={styles.selectedInfoMeta}>{formatScreeningLabel(selectedScreening.dateFrom)} • {selectedScreening.roomName}</div>

@@ -144,6 +144,14 @@
   display: block;
 }
 
+.castList {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 0.75rem;
+  line-height: 1.4;
+  animation: fadeIn 0.4s ease forwards;
+}
+
 .readMoreBtn {
   background: rgba(255, 255, 255, 0.08); /* glassmorphism base */
   backdrop-filter: blur(8px);

@@ -62,8 +62,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [cleaningBuffer, setCleaningBuffer] = useState(0);
   const [nearestSuggestions, setNearestSuggestions] = useState<{ preSuggestion: string | null; postSuggestion: string | null }>({ preSuggestion: null, postSuggestion: null });
   const [showDisplayModal, setShowDisplayModal] = useState(false);
-  const [prerollMin, setPrerollMin] = useState(10);
-  const [prerollSec, setPrerollSec] = useState(0);
   const [defaultSalaId, setDefaultSalaId] = useState<string | null>(null);
   const [selectedMovieRuntime, setSelectedMovieRuntime] = useState<number | null>(null);
 
@@ -114,7 +112,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
     try {
       const isId = /^\d+$/.test(searchQuery.trim());
-      
+
       if (isId) {
         // Direct search by TMDB ID
         const movie = await adminGetMovieById(searchQuery.trim());
@@ -222,7 +220,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     const replicaSubtitles = metadata.subtitles
       ? metadata.subtitles
       : replicaLang === 'Italiano' ? 'Nessuno' : 'Italiano';
-    
+
     setFormState({
       title: movie.title,
       overview: movie.overview,
@@ -233,7 +231,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       subtitles: replicaSubtitles
     });
     setShowModal(true);
-    
+
     // Smart Suggestion
     try {
       setLoadingWeeklySlots(true);
@@ -243,7 +241,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       const roomToUse = event.seating_plan?.toString() || defaultSalaId || FIXED_ROOMS[0].id.toString();
       const sug = await adminGetSmartSuggestion(movie.id.toString(), parseInt(roomToUse), cleaningBuffer);
       setScheduledSuggestion(sug);
-      
+
       const weekly = await adminGetWeeklySlots(movie.id.toString(), parseInt(roomToUse), 14, cleaningBuffer);
       setWeeklySlots(weekly);
       setSelectedSlots([]); // Reset selection
@@ -272,7 +270,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
   useEffect(() => {
     if (!showModal || !selectedMovie || !formState.date) return;
- 
+
     const check = async () => {
       setIsValidating(true);
       try {
@@ -282,7 +280,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         if (res.hasConflict) {
           setConflict(res.movieTitle);
           setConflictEndTime(res.conflictEndTime || null);
-          
+
           // Prendi suggerimenti vicini
           const suggestions = await adminFindNearestSlots(formState.date, selectedMovie.id.toString(), parseInt(formState.roomId), cleaningBuffer);
           setNearestSuggestions(suggestions);
@@ -297,7 +295,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         setIsValidating(false);
       }
     };
- 
+
     const timer = setTimeout(check, 500);
     return () => clearTimeout(timer);
   }, [formState.date, formState.roomId, showModal, selectedMovie, cleaningBuffer]);
@@ -381,13 +379,13 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     setSelectedSlots(prev => {
       // Se lo slot è già selezionato, lo rimuoviamo (Reset)
       if (prev.includes(date)) return prev.filter(d => d !== date);
-      
+
       // Se lo slot collide con uno già selezionato, impediamo la selezione
       if (hasCollisionWithSelected(date, prev)) {
         console.warn('[Collision] Impossibile selezionare slot: collisione rilevata.');
         return prev;
       }
-      
+
       return [...prev, date];
     });
   };
@@ -397,7 +395,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       const hour = new Date(s.date).getHours();
       return !s.isOccupied && hour < 14;
     });
-    
+
     setSelectedSlots(prev => {
       let newSelection = [...prev];
       mornings.forEach(slot => {
@@ -414,7 +412,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       const hour = new Date(s.date).getHours();
       return !s.isOccupied && hour >= 14 && hour < 18;
     });
-    
+
     setSelectedSlots(prev => {
       let newSelection = [...prev];
       afternoons.forEach(slot => {
@@ -431,7 +429,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       const hour = new Date(s.date).getHours();
       return !s.isOccupied && hour >= 18;
     });
-    
+
     setSelectedSlots(prev => {
       let newSelection = [...prev];
       evenings.forEach(slot => {
@@ -459,7 +457,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
   const handleDeleteGroup = async (title: string, subeventIds: number[]) => {
     if (!confirm(`Sei sicuro di voler eliminare il film "${title}" e tutte le sue ${subeventIds.length} repliche?\n\nQuesta azione è irreversibile.`)) return;
-    
+
     setLoading(true);
     try {
       const res = await adminDeleteEventGroup(subeventIds);
@@ -468,7 +466,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       } else {
         alert('Film e repliche eliminati con successo!');
       }
-      
+
       const updatedEvents = await adminListEvents();
       setEvents(updatedEvents);
     } catch (error) {
@@ -650,7 +648,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       <div className={styles.topBar}>
         <div className={styles.defaultSalaContainer}>
           <label className={styles.defaultSalaLabel}>SALA DEFAULT:</label>
-          <select 
+          <select
             className={styles.defaultSalaSelect}
             value={defaultSalaId || ''}
             onChange={(e) => handleSetDefaultSala(e.target.value)}
@@ -669,7 +667,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           <ShoppingBag size={18} />
           APRI CASSA
         </button>
-        <button 
+        <button
           onClick={() => setShowDisplayModal(true)}
           className={styles.btnDisplayLauncher}
         >
@@ -810,8 +808,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                             <span className={styles.suggestionLabel}>Suggerimenti:</span>
                             <div className={styles.suggestionButtons}>
                               {nearestSuggestions.preSuggestion && (
-                                <button 
-                                  type="button" 
+                                <button
+                                  type="button"
                                   onClick={() => applySmartSuggestion(nearestSuggestions.preSuggestion!)}
                                   className={styles.suggestionBtn}
                                 >
@@ -819,8 +817,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                                 </button>
                               )}
                               {nearestSuggestions.postSuggestion && (
-                                <button 
-                                  type="button" 
+                                <button
+                                  type="button"
                                   onClick={() => applySmartSuggestion(nearestSuggestions.postSuggestion!)}
                                   className={styles.suggestionBtn}
                                 >
@@ -843,8 +841,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                         <div className="flex justify-between items-center mb-1">
                           <label className={styles.modalLabel}>Scegli Sala</label>
                           {formState.roomId !== defaultSalaId && (
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               onClick={() => handleSetDefaultSala(formState.roomId)}
                               className={styles.btnSaveDefault}
                               title="Imposta come sala predefinita"
@@ -930,7 +928,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className={styles.weeklyGrid}>
                       {loadingWeeklySlots ? (
                         <div className={styles.noSlotsFound}>
@@ -976,10 +974,10 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                                         onClick={() => !isDisabled && toggleSlotSelection(slot.date)}
                                         className={`${styles.slotBadge} ${isSelected ? styles.slotSelected : ''} ${isDisabled ? styles.slotOccupied : ''} ${slot.isMorning ? styles.slotMorning : ''} ${slot.isOptimized ? styles.slotOptimized : ''}`}
                                         title={
-                                          slot.isOccupied 
-                                            ? 'Slot già occupato da un altro film' 
-                                            : isCollidingAsCandidate 
-                                              ? 'Collisione: troppo vicino a uno slot già selezionato' 
+                                          slot.isOccupied
+                                            ? 'Slot già occupato da un altro film'
+                                            : isCollidingAsCandidate
+                                              ? 'Collisione: troppo vicino a uno slot già selezionato'
                                               : 'Slot disponibile – clicca per selezionare'
                                         }
                                         disabled={isDisabled}
@@ -1017,33 +1015,33 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
               >
                 Annulla
               </button>
-                <button
-                 type="submit"
-                 form="schedule-form"
-                 className={`${styles.modalBtnSubmit} ${selectedSlots.length > 0 ? styles.btnBulkMode : ''} ${(selectedSlots.length === 0 && !!conflict) ? styles.btnOverride : ''} ${internalCollisions.length > 0 ? styles.btnDisabled : ''}`}
-                 disabled={loading || (!formState.roomId) || (selectedSlots.length === 0 && (!formState.date)) || internalCollisions.length > 0}
-                 title={
-                   internalCollisions.length > 0
-                     ? `Conflitto rilevato: lo spettacolo delle ${new Date(internalCollisions[0].a).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} finisce alle ${new Date(new Date(internalCollisions[0].a).getTime() + ((selectedMovieRuntime || 120) + 10) * 60000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} (inclusa pulizia). Rimuovi le sovrapposizioni per procedere.`
-                     : conflict
-                       ? `Orario non disponibile: il film finirebbe in conflitto con "${conflict}"${conflictEndTime ? ` (libero alle ${conflictEndTime})` : ''}`
-                       : selectedSlots.length > 0
-                         ? `Programma ${selectedSlots.length} spettacoli selezionati`
-                         : 'Conferma programmazione'
-                 }
-               >
-                 {loading ? (
-                   <Loader2 className="animate-spin" size={20} />
-                 ) : internalCollisions.length > 0 ? (
-                   <><TriangleAlert size={18} /> CONFLITTO RILEVATO</>
-                 ) : selectedSlots.length > 0 ? (
-                   <><Send size={18} /> Conferma e Programma {selectedSlots.length} Spettacoli</>
-                 ) : conflict ? (
-                   <><TriangleAlert size={18} /> PROGRAMMA COMUNQUE</>
-                 ) : (
-                   <><Calendar size={18} /> Conferma e Programma 1 Spettacolo</>
-                 )}
-               </button>
+              <button
+                type="submit"
+                form="schedule-form"
+                className={`${styles.modalBtnSubmit} ${selectedSlots.length > 0 ? styles.btnBulkMode : ''} ${(selectedSlots.length === 0 && !!conflict) ? styles.btnOverride : ''} ${internalCollisions.length > 0 ? styles.btnDisabled : ''}`}
+                disabled={loading || (!formState.roomId) || (selectedSlots.length === 0 && (!formState.date)) || internalCollisions.length > 0}
+                title={
+                  internalCollisions.length > 0
+                    ? `Conflitto rilevato: lo spettacolo delle ${new Date(internalCollisions[0].a).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} finisce alle ${new Date(new Date(internalCollisions[0].a).getTime() + ((selectedMovieRuntime || 120) + 10) * 60000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} (inclusa pulizia). Rimuovi le sovrapposizioni per procedere.`
+                    : conflict
+                      ? `Orario non disponibile: il film finirebbe in conflitto con "${conflict}"${conflictEndTime ? ` (libero alle ${conflictEndTime})` : ''}`
+                      : selectedSlots.length > 0
+                        ? `Programma ${selectedSlots.length} spettacoli selezionati`
+                        : 'Conferma programmazione'
+                }
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : internalCollisions.length > 0 ? (
+                  <><TriangleAlert size={18} /> CONFLITTO RILEVATO</>
+                ) : selectedSlots.length > 0 ? (
+                  <><Send size={18} /> Conferma e Programma {selectedSlots.length} Spettacoli</>
+                ) : conflict ? (
+                  <><TriangleAlert size={18} /> PROGRAMMA COMUNQUE</>
+                ) : (
+                  <><Calendar size={18} /> Conferma e Programma 1 Spettacolo</>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -1074,30 +1072,30 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
               <div className={styles.prerollInputs}>
                 <div className={styles.prerollField}>
                   <label className={styles.modalLabel}>Minuti</label>
-                  <input 
-                    type="number" 
-                    min="0" 
+                  <input
+                    type="number"
+                    min="0"
                     max="59"
                     value={prerollMin}
                     onChange={(e) => setPrerollMin(parseInt(e.target.value) || 0)}
-                    className={styles.prerollInput} 
+                    className={styles.prerollInput}
                   />
                 </div>
                 <span className="text-2xl font-bold mt-6">:</span>
                 <div className={styles.prerollField}>
                   <label className={styles.modalLabel}>Secondi</label>
-                  <input 
-                    type="number" 
-                    min="0" 
+                  <input
+                    type="number"
+                    min="0"
                     max="59"
                     value={prerollSec}
                     onChange={(e) => setPrerollSec(parseInt(e.target.value) || 0)}
-                    className={styles.prerollInput} 
+                    className={styles.prerollInput}
                   />
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={() => {
                   const totalSeconds = (prerollMin * 60) + prerollSec;
                   window.open(`/display-esterno?preroll=${totalSeconds}`, '_blank');
@@ -1154,7 +1152,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
               return (
                 <div key={group.title} className={styles.movieGroup}>
-                  <div 
+                  <div
                     className={`${styles.movieRow} ${isExpanded ? styles.movieRowExpanded : ''}`}
                     onClick={() => toggleMovieExpand(group.title)}
                   >
@@ -1172,16 +1170,16 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                       </div>
                     </div>
                     <div className={styles.movieRowActions}>
-                       <button 
-                         className={styles.btnDeleteGroup}
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           handleDeleteGroup(group.title, group.items.map(i => i.id));
-                         }}
-                         title="Elimina film e tutte le repliche"
-                       >
-                         <Trash2 size={18} />
-                       </button>
+                      <button
+                        className={styles.btnDeleteGroup}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteGroup(group.title, group.items.map(i => i.id));
+                        }}
+                        title="Elimina film e tutte le repliche"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
                   </div>
 
@@ -1207,7 +1205,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                                   </span>
                                 )}
                               </div>
-                              
+
                               {isOverlapping && (
                                 <div className={styles.suggestionPanel}>
                                   <div className={styles.suggestionHeader}>
@@ -1245,37 +1243,37 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                                 </div>
                               )}
                             </div>
-                            
+
                             <div className={styles.actions}>
-                                <button
-                                  className={styles.btnActionIcon}
-                                  onClick={() => handleCheckAvailability(event.id)}
-                                  disabled={loadingQuotas[event.id]}
-                                  title="Disponibilità"
-                                >
-                                  {loadingQuotas[event.id] ? <Loader2 className="animate-spin" size={14} /> : <Ticket size={14} />}
-                                </button>
-                                <button
-                                  className={styles.btnActionIcon}
-                                  onClick={() => handleReplica(event)}
-                                  title="Copia"
-                                >
-                                  <Calendar size={14} />
-                                </button>
-                                <button
-                                  className={styles.btnActionIcon}
-                                  onClick={() => handleUpdateDate(event.id, event.date_from)}
-                                  title="Sposta"
-                                >
-                                  <Edit3 size={14} />
-                                </button>
-                                <button
-                                  className={`${styles.btnActionIcon} ${styles.btnActionDanger}`}
-                                  onClick={() => handleDelete(event.id)}
-                                  title="Elimina"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
+                              <button
+                                className={styles.btnActionIcon}
+                                onClick={() => handleCheckAvailability(event.id)}
+                                disabled={loadingQuotas[event.id]}
+                                title="Disponibilità"
+                              >
+                                {loadingQuotas[event.id] ? <Loader2 className="animate-spin" size={14} /> : <Ticket size={14} />}
+                              </button>
+                              <button
+                                className={styles.btnActionIcon}
+                                onClick={() => handleReplica(event)}
+                                title="Copia"
+                              >
+                                <Calendar size={14} />
+                              </button>
+                              <button
+                                className={styles.btnActionIcon}
+                                onClick={() => handleUpdateDate(event.id, event.date_from)}
+                                title="Sposta"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                className={`${styles.btnActionIcon} ${styles.btnActionDanger}`}
+                                onClick={() => handleDelete(event.id)}
+                                title="Elimina"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </div>
                           </div>
                         );
