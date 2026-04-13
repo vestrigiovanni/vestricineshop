@@ -7,6 +7,7 @@ import styles from './MovieShowcase.module.css';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import { getMovieTags, TagInfo } from '@/utils/languageUtils';
 import { useAutoScroll } from '@/context/AutoScrollContext';
+import { Video } from 'lucide-react';
 import useSWR from 'swr';
 
 const AUTO_SCROLL_INTERVAL = 5000;
@@ -25,6 +26,7 @@ export interface GroupedMovie {
   runtime?: number;
   isSoldOut?: boolean;
   cast?: string[];
+  trailerKey?: string | null;
   subevents: {
     id: number;
     date: string;
@@ -94,6 +96,13 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
   const [checkoutSubeventId, setCheckoutSubeventId] = useState<number | null>(null);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
   const [timerKey, setTimerKey] = useState(0);
+  const [trailerOpen, setTrailerOpen] = useState(false);
+  const [activeTrailerKey, setActiveTrailerKey] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const { isAutoScrollEnabled, disableAutoScroll } = useAutoScroll();
 
@@ -126,10 +135,10 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
   }, [goToNextMovie, availableMovies.length, timerKey, isAutoScrollEnabled]);
 
   useEffect(() => {
-    if (drawerOpen || isOverviewExpanded) {
+    if (drawerOpen || isOverviewExpanded || trailerOpen) {
       disableAutoScroll();
     }
-  }, [drawerOpen, isOverviewExpanded, disableAutoScroll]);
+  }, [drawerOpen, isOverviewExpanded, trailerOpen, disableAutoScroll]);
 
   useEffect(() => {
     setIsOverviewExpanded(false);
@@ -200,7 +209,21 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
             {activeMovie.director && (
               <>
                 <span>•</span>
-                <span>Regia: {activeMovie.director}</span>
+                <span className={isMounted ? styles.directorBlock : ''}>
+                  Regia: {activeMovie.director}
+                  {isMounted && activeMovie.trailerKey && (
+                    <button 
+                      className={styles.trailerBtn} 
+                      onClick={() => {
+                        setActiveTrailerKey(activeMovie.trailerKey || null);
+                        setTrailerOpen(true);
+                      }}
+                      title="Guarda il trailer"
+                    >
+                      <Video size={18} />
+                    </button>
+                  )}
+                </span>
               </>
             )}
           </div>
@@ -310,6 +333,28 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
         subeventId={checkoutSubeventId}
         movieTitle={activeMovie.title}
       />
+
+      {/* Trailer Popup */}
+      {trailerOpen && activeTrailerKey && (
+        <div className={styles.trailerOverlay} onClick={() => setTrailerOpen(false)}>
+          <div className={styles.trailerModal} onClick={e => e.stopPropagation()}>
+            <button className={styles.closeTrailer} onClick={() => setTrailerOpen(false)}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+            <div className={styles.videoWrapper}>
+              <iframe
+                src={`https://www.youtube.com/embed/${activeTrailerKey}?autoplay=1&cc_load_policy=1&cc_lang_pref=it&hl=it&rel=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                title="Movie Trailer"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

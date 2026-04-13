@@ -185,7 +185,14 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
           <div className={styles.titleBlock}>
             <h2 className={styles.title}>Completa la prenotazione</h2>
           </div>
-          <CheckoutTimer maxTimeSeconds={600} onExpire={() => setCheckoutStarted(false)} />
+          <div className={styles.headerActions}>
+            <CheckoutTimer maxTimeSeconds={600} onExpire={() => setCheckoutStarted(false)} />
+            {onClose && (
+              <button className={styles.closeButtonMinimal} onClick={onClose} aria-label="Chiudi">
+                <X size={20} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className={styles.seatsSummary}>
@@ -215,7 +222,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
             <h2 className={styles.title}>
               {selectedSubeventId ? `${movieTitle} — ${timeStr}` : 'Scegli la proiezione'}
             </h2>
-            {onClose && !selectedSubeventId && (
+            {onClose && (
               <button className={styles.closeButtonMinimal} onClick={onClose} aria-label="Chiudi">
                 <X size={20} />
               </button>

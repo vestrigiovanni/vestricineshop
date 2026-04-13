@@ -112,19 +112,27 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
     
     const response = await fetch(url, {
       headers: { 'accept': 'application/json' },
-      cache: 'no-store'
+      next: { revalidate: 3600 }
     });
+    
+    if (!response.ok) return null;
+    const details = await response.json();
 
-    if (!response.ok) throw new Error('Failed to fetch movie details');
-
-    const data = await response.json();
-    console.log(`[TMDB DEBUG] Dati ricevuti per ${id}. Keys:`, Object.keys(data).join(', '));
-    if (data.credits) {
-      console.log(`[TMDB DEBUG] Crediti presenti. Cast count: ${data.credits.cast?.length || 0}`);
-    } else {
-      console.log(`[TMDB DEBUG] ATTENZIONE: Proprietà "credits" MANCANTE in risposta TMDB`);
+    // Recupero video separato senza filtro lingua per ottenere TUTTE le versioni (identifica l'originale con precisione)
+    const videoUrl = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}`;
+    try {
+      const videoResponse = await fetch(videoUrl, {
+        headers: { 'accept': 'application/json' },
+        next: { revalidate: 3600 }
+      });
+      if (videoResponse.ok) {
+        details.videos = await videoResponse.json();
+      }
+    } catch (e) {
+      console.error(`[TMDB ERROR] Impossibile recuperare i video per ${id}:`, e);
     }
-    return data;
+
+    return details;
   } catch (error) {
     console.error(`Error fetching details for movie ${id}:`, error);
     return null;
@@ -158,6 +166,43 @@ export function getCast(details: any, limit: number = 5): string[] {
   return cast
     .slice(0, limit)
     .map((person: any) => person.name);
+}
+
+/**
+ * Extracts the best trailer key (YouTube) following strict user rules:
+ * a) Matches original_language exactly.
+ * b) Fallback to 'en'.
+ * c) Fallback to first available trailer.
+ */
+export function getTrailerKey(details: any): string | null {
+  const videos = details?.videos?.results;
+  if (!videos || !Array.isArray(videos)) return null;
+
+  const originalLang = details.original_language;
+
+  // a) Cerca il trailer dove iso_639_1 è identico alla original_language del film
+  const originalTrailer = videos.find((v: any) => 
+    v.site === 'YouTube' && 
+    v.type === 'Trailer' && 
+    v.iso_639_1 === originalLang
+  );
+  if (originalTrailer) return originalTrailer.key;
+
+  // b) Se non trovato, cerca il trailer con iso_639_1: "en"
+  const englishTrailer = videos.find((v: any) => 
+    v.site === 'YouTube' && 
+    v.type === 'Trailer' && 
+    v.iso_639_1 === 'en'
+  );
+  if (englishTrailer) return englishTrailer.key;
+
+  // c) Se no, prendi il primo trailer disponibile nell'elenco (Trailer su YouTube)
+  const anyTrailer = videos.find((v: any) => 
+    v.site === 'YouTube' && 
+    v.type === 'Trailer'
+  );
+  
+  return anyTrailer ? anyTrailer.key : null;
 }
 
 /**

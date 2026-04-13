@@ -275,7 +275,7 @@ export async function adminScheduleMovie(
   // 5. Algorithm No-Overlap Check (Nuclear Bit-Map Logic)
   const runtimeMinutes = (details.runtime || 120);
   const CLEANING_BUFFER_NEW = 10 * 60000;
-  
+
   // Per i calcoli interni della bitmap, usiamo STILL toDate ma solo per posizionarci
   // NON lo usiamo per la stringa finale Pretix.
   const dateInput = `${dateStr}T${timeStr}`;
@@ -316,7 +316,7 @@ export async function adminScheduleMovie(
   // 6. Create the Sub-Event in Pretix with Mapping
   const subEvent = await createSubEvent({
     title: movieData.title,
-    date: dateStr, 
+    date: dateStr,
     time: timeStr,
     tmdbId: movieData.id,
     overview: movieData.overview,
@@ -421,7 +421,7 @@ export async function adminUpdateEventDate(subEventId: number, newDate: string) 
     // 2. Calculate new start and end components
     // Assumiamo che newDate arrivi dal frontend come YYYY-MM-DDTHH:mm
     const [datePart, timePart] = newDate.split('T');
-    
+
     // Calcoliamo Inizio e Fine con la matematica pura (zero oggetti Date per il calcolo orario)
     const dateFrom = calculatePretixDateTime(datePart, timePart, 0);
     const dateTo = calculatePretixDateTime(datePart, timePart, Math.round(durationMs / 60000));
@@ -695,8 +695,8 @@ export async function adminBulkScheduleMovie(
     try {
       const [datePart, timePart] = fullDate.includes('T') ? fullDate.split('T') : [fullDate, "00:00"];
       // Clean up timePart if it has seconds/offset
-      const cleanTime = timePart.substring(0, 5); 
-      
+      const cleanTime = timePart.substring(0, 5);
+
       console.log(`[adminBulkScheduleMovie] Processing slot: ${datePart} ${cleanTime}`);
       await adminScheduleMovie(movieData, datePart, cleanTime, seatingPlanId, false, buffer);
       successCount++;
