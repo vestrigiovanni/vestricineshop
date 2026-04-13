@@ -599,6 +599,40 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
   return { preSuggestion, postSuggestion, runtime };
 }
 
+/**
+ * Get all future empty projections (0 tickets sold)
+ */
+export async function adminGetEmptyProjections() {
+  const futureEvents = await listSubEvents(true);
+
+  // To avoid rate-limiting, we'll fetch quotas in batches of 5 if there are many,
+  // or just Promise.all since the count of future events shouldn't be massive.
+  const checks = await Promise.all(futureEvents.map(async (event: any) => {
+    try {
+      const quotas = await listQuotas(event.id);
+      let isEmpty = true;
+      if (quotas.length > 0) {
+        for (const q of quotas) {
+          // If any quota has less available than the total size, it means something was sold.
+          // Note: if size is null (unlimited), available_number is also null, so we skip.
+          if (q.size !== null && q.available_number !== null && q.available_number < q.size) {
+            isEmpty = false;
+            break;
+          }
+        }
+      }
+      return isEmpty ? event : null;
+    } catch {
+      return null;
+    }
+  }));
+
+  const emptyEvents = checks.filter(Boolean);
+
+  // Sort chronologically (closest first)
+  return emptyEvents.sort((a, b) => new Date(a.date_from).getTime() - new Date(b.date_from).getTime());
+}
+
 
 /**
  * BULK SCHEDULING: Get multiple available slots for the next 14 days.

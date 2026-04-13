@@ -6,7 +6,7 @@ import { adminSearchMovies, adminGetMovieById, adminScheduleMovie, adminDeleteEv
 import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb';
 import Image from 'next/image';
 import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode } from 'lucide-react';
-import { adminListQuotas, adminUpdateQuota, adminDeleteQuota, adminGetQuotaAvailability } from '@/actions/adminActions';
+import { adminListQuotas, adminUpdateQuota, adminDeleteQuota, adminGetQuotaAvailability, adminGetEmptyProjections } from '@/actions/adminActions';
 
 interface AdminDashboardProps {
   initialEvents: any[];
@@ -66,6 +66,9 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [selectedMovieRuntime, setSelectedMovieRuntime] = useState<number | null>(null);
   const [prerollMin, setPrerollMin] = useState<number>(0);
   const [prerollSec, setPrerollSec] = useState<number>(0);
+  const [showCleaningModal, setShowCleaningModal] = useState(false);
+  const [emptyProjections, setEmptyProjections] = useState<any[]>([]);
+  const [loadingCleaning, setLoadingCleaning] = useState(false);
 
   // --- COLLISION LOGIC FOR AUTO-CLEANING GRID ---
   const isColliding = (date1: string, date2: string) => {
@@ -644,6 +647,34 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     }
   };
 
+  const handleOpenCleaningModal = async () => {
+    setShowCleaningModal(true);
+    setLoadingCleaning(true);
+    try {
+      const data = await adminGetEmptyProjections();
+      setEmptyProjections(data);
+    } catch (e) {
+      alert('Errore caricamento proiezioni vuote.');
+    } finally {
+      setLoadingCleaning(false);
+    }
+  };
+
+  const handleDeleteEmptyProjection = async (subeventId: number) => {
+    if (!confirm('Attenzione: eliminerai definitivamente questa proiezione da Pretix. Procedere?')) return;
+    setLoading(true); // Usiamo il loading globale in modo sicuro
+    try {
+      await adminDeleteEvent(subeventId);
+      setEmptyProjections(prev => prev.filter(p => p.id !== subeventId));
+      const updatedEvents = await adminListEvents();
+      setEvents(updatedEvents);
+    } catch (error: any) {
+      alert('Errore durante la cancellazione: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className={styles.dashboard}>
       {/* TOP BAR */}
@@ -1118,6 +1149,14 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         <div className={styles.sectionHeader}>
           <h2 className={styles.title}>Programmazione Attuale (Pretix)</h2>
           <div className="flex flex-col gap-2 items-end">
+            <button
+              onClick={handleOpenCleaningModal}
+              className={styles.btnExternalLink}
+              style={{ backgroundColor: '#dc2626', color: 'white', borderColor: '#b91c1c' }}
+            >
+              <Trash2 size={14} />
+              PULIZIA PROIEZIONI
+            </button>
             <a
               href="https://pretix.eu/vestri/npkez/"
               target="_blank"
@@ -1288,6 +1327,102 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           )}
         </div>
       </section>
+      {/* CLEANING MODAL */}
+      {showCleaningModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: '600px' }}>
+            <div className={styles.modalHeader}>
+              <h2>
+                <Trash2 size={22} color="#dc2626" />
+                Pulizia Proiezioni Vuote
+              </h2>
+              <button
+                onClick={() => setShowCleaningModal(false)}
+                className={styles.modalClose}
+                title="Chiudi"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.modalBody} style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              {loadingCleaning ? (
+                <div className="flex flex-col items-center justify-center p-12 gap-4">
+                  <Loader2 size={36} className="animate-spin text-red-600" />
+                  <p className="text-zinc-600 font-medium">Calcolo proiezioni con 0 biglietti venduti in corso... Questa operazione richiede di controllare una ad una tutte le proiezioni future su Pretix.</p>
+                </div>
+              ) : emptyProjections.length === 0 ? (
+                <div className="p-12 text-center text-zinc-500 flex flex-col items-center gap-4">
+                  <Info size={40} className="text-zinc-400" />
+                  <p>Non ci sono proiezioni vuote future.<br/>Tutti gli spettacoli in programma hanno almeno un biglietto venduto o bloccato.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {emptyProjections.map(proj => {
+                    const title = proj.name.it || proj.name;
+                    const d = new Date(proj.date_from);
+                    const dateStr = d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
+                    const timeStr = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                    
+                    let runtime = 120;
+                    try {
+                      if (proj.comment) {
+                        const metadata = JSON.parse(proj.comment);
+                        if (metadata.runtime) runtime = metadata.runtime;
+                      }
+                    } catch (e) {}
+
+                    const replicaCount = events.filter(e => (e.name.it || e.name) === title).length;
+
+                    return (
+                      <div key={proj.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', backgroundColor: '#fff', marginBottom: '0.75rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', textAlign: 'left', flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, backgroundColor: '#f1f5f9', color: '#475569', padding: '0.2rem 0.5rem', borderRadius: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.2rem', letterSpacing: '0.5px' }}>
+                              <Clock size={12} /> {runtime} MIN
+                            </span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, backgroundColor: replicaCount > 1 ? '#eff6ff' : '#f8fafc', color: replicaCount > 1 ? '#2563eb' : '#64748b', border: `1px solid ${replicaCount > 1 ? '#bfdbfe' : '#e2e8f0'}`, padding: '0.2rem 0.5rem', borderRadius: '0.4rem', letterSpacing: '0.5px' }}>
+                              {replicaCount} {replicaCount === 1 ? 'REPLICA' : 'REPLICHE'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexShrink: 0 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>{dateStr}</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>{timeStr}</span>
+                          </div>
+                          
+                          <button 
+                            onClick={() => handleDeleteEmptyProjection(proj.id)}
+                            style={{ 
+                              padding: '0.6rem', 
+                              backgroundColor: '#f8fafc', 
+                              color: '#94a3b8', 
+                              border: '1px solid #e2e8f0', 
+                              borderRadius: '0.5rem', 
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s'
+                            }}
+                            title="Elimina proiezione vuota"
+                            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.borderColor = '#fecaca'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
