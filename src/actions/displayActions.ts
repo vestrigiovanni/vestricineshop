@@ -1,11 +1,12 @@
 'use server';
 
-import { listSubEvents, listQuotas } from '@/services/pretix';
+import { listSubEvents, listQuotas, getSeatingPlansMap } from '@/services/pretix';
 import { ITEM_INTERO_ID } from '@/constants/pretix';
 import { getMovieDetails } from '@/services/tmdb';
 
 export interface DisplayMovieData {
   id: number;
+
   title: string;
   date_from: string;
   date_to: string;
@@ -19,14 +20,16 @@ export interface DisplayMovieData {
   subtitles: string;
   logoPath?: string;
   isSoldOut?: boolean;
+  roomName?: string;
 }
 
 export async function getDisplayData() {
   try {
     // 1. Fetch all upcoming/current events from Pretix and all quotas
-    const [events, allQuotas] = await Promise.all([
+    const [events, allQuotas, roomsMap] = await Promise.all([
       listSubEvents(true),
-      listQuotas()
+      listQuotas(),
+      getSeatingPlansMap()
     ]);
     
     // 2. Parse metadata and check availability from event object
@@ -73,6 +76,9 @@ export async function getDisplayData() {
         }
       }
 
+      // 5. Map Room Name
+      const roomName = event.seating_plan ? (roomsMap[event.seating_plan] || 'Sala') : 'Sala';
+
       return {
         id: event.id,
         title: event.name.it || event.name,
@@ -87,9 +93,11 @@ export async function getDisplayData() {
         runtime: metadata.runtime || 120,
         language: metadata.language || 'Italiano',
         subtitles: metadata.subtitles || 'Italiano',
-        isSoldOut
+        isSoldOut,
+        roomName
       } as DisplayMovieData;
     });
+
 
     const displayMovies = await Promise.all(movieDetailsPromises);
     

@@ -1,21 +1,25 @@
 import { getMovieDetails, getCast, getTrailerKey } from '@/services/tmdb';
-import { listSubEvents, listQuotas } from '@/services/pretix';
-import { ITEM_INTERO_ID } from '@/constants/pretix';
+import { listSubEvents, listQuotas, getSeatingPlansMap, limitConcurrency } from '@/services/pretix';
+import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '@/components/WeeklyCinemaCalendar/WeeklyCinemaCalendar';
 import styles from './page.module.css';
+import roomsRegistry from '@/constants/rooms_registry.json';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  // Step 1: Get all future sub-events
-  const rawSubEvents = await listSubEvents(true);
+  // Step 1: Get all future sub-events and seating plans
+  const [rawSubEvents, roomsMap] = await Promise.all([
+    listSubEvents(true),
+    getSeatingPlansMap(),
+  ]);
 
-  // Step 2: For each sub-event, fetch its specific quotas in parallel.
-  // This is critical because fetching ALL quotas (6000+) only returns the first
-  // page (50 results) which contains old/past sub-events, never the current ones.
-  const quotaResults = await Promise.all(
-    rawSubEvents.map(se => listQuotas(se.id))
+  // Step 2: For each sub-event, fetch its specific quotas in parallel with concurrency limit.
+  // This prevents 429 errors when many sub-events are present.
+  const quotaResults = await limitConcurrency(
+    rawSubEvents.map(se => () => listQuotas(se.id)),
+    5 // Slightly higher limit for homepage if only fetching one type of data
   );
 
   // Step 3: Build a Map of subeventId -> quotas for fast lookup
@@ -24,37 +28,62 @@ export default async function Home() {
     quotasBySubevent.set(se.id, quotaResults[index]);
   });
 
-  // Step 4: Calculate isSoldOut for EVERY subevent using the precise 'Intero' quota
+  // Step 4: Calculate isSoldOut and map roomName for EVERY subevent
   const subEvents = rawSubEvents.map(se => {
     const seQuotas = quotasBySubevent.get(se.id) || [];
-
-    // Find the quota that governs "Biglietto Intero" (Item ID 264975)
-    const interoQuota = seQuotas.find((q: any) =>
-      Array.isArray(q.items) && q.items.includes(ITEM_INTERO_ID)
-    );
-
-    // --- Sold Out Logic ---
-    // Priority 1: Intero quota available_number is explicitly 0 or below
-    // Priority 2: Intero quota has available === false (Pretix boolean flag)
-    // Priority 3: Pretix overall best_availability_state says sold_out
-    // Safety: If no intero quota found, do NOT mark as sold out (avoid false positives)
-    const isSoldOut = interoQuota
-      ? (interoQuota.available === false || (interoQuota.available_number !== null && interoQuota.available_number <= 0))
-      : (se.best_availability_state === 'sold_out');
-
-    // Diagnostic log (server-side only, visible in terminal running `npm run dev`)
-    if (isSoldOut) {
-      const title = typeof se.name === 'string' ? se.name : se.name?.it || '?';
-      console.log(
-        `🔴 SOLD OUT | "${title}" | SubEvent ${se.id} | ` +
-        `Quota: ${interoQuota ? `available=${interoQuota.available}, available_number=${interoQuota.available_number}` : 'NO INTERO QUOTA'} | ` +
-        `best_availability_state=${se.best_availability_state}`
-      );
+    
+    // --- Mirror System filtering ---
+    const planId = se.seating_plan ? String(se.seating_plan) : 'DEFAULT';
+    const roomConfig = (roomsRegistry as any)[planId] || (roomsRegistry as any)['DEFAULT'];
+    
+    let isHidden = false;
+    if (roomConfig?.isHidden) {
+      isHidden = true;
     }
+
+    let isSoldOut = false;
+    let totalAvailable = 0;
+
+    if (!isHidden) {
+      if (!seQuotas || seQuotas.length === 0) {
+        // FAIL-SAFE: Se non ci sono dati sulle quote o l'API fallisce, la variabile isSoldOut deve essere sempre FALSE.
+        isSoldOut = false;
+      } else {
+        // Filtriamo le quote usando String() per evitare errori tra numero e stringa
+        const relevantQuotas = seQuotas.filter((q: any) => 
+          Array.isArray(q.items) && q.items.some((id: any) => 
+            String(id) === String(ITEM_INTERO_ID) || String(id) === String(ITEM_VIP_ID)
+          )
+        );
+
+        const hasUnlimited = relevantQuotas.some((q: any) => q.available_number === null);
+        
+        if (hasUnlimited) {
+          isSoldOut = false;
+        } else {
+          totalAvailable = relevantQuotas.reduce((acc: number, q: any) => acc + (Number(q.available_number) || 0), 0);
+          isSoldOut = totalAvailable === 0; // Solo se la somma totale è zero è davvero esaurito
+        }
+      }
+
+      // Manual presale override
+      if (se.active && se.presale_is_running === false) {
+        isSoldOut = true;
+      }
+    } else {
+       // if room is hidden, ignore completely the quotas and do not show it
+       // We can mark it as sold out or just handle the filtering later. The prompt says "ignora completamente le quote e non mostrarla".
+       // Later we have `if (se.isHidden) continue;`. Let's add `isHidden` to the mapped object.
+    }
+
+    // --- Dynamic Room Name ---
+    const roomName = roomConfig?.alias || roomConfig?.name || (se.seating_plan ? (roomsMap[se.seating_plan] || 'Sala') : 'Sala');
 
     return {
       ...se,
       isSoldOut,
+      isHidden,
+      roomName,
     };
   });
 
@@ -66,7 +95,7 @@ export default async function Home() {
 
   for (const se of subEvents) {
     // ── Pre-Filter ───────────────────────────────────────────
-    if (!se.active) continue;
+    if (!se.active || se.isHidden) continue;
     
     // EXTREMELY IMPORTANT: Only include sub-events that have an ASSIGNED seating plan.
     // If seating_plan is null, the sub-event is "General Admission" (Posto Libero)

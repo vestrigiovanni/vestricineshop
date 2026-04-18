@@ -196,7 +196,12 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
   };
 
   const handleSelectScreening = useCallback(async (screening: CassaScreening) => {
-    if (screening.isSoldOut) return;
+    // ── Eccezione VIP ──────────────────────────────────────────────────────────
+    // Se la proiezione è sold-out, blocchiamo l'accesso standard MA lasciamo
+    // passare l'operatore per poter vendere l'eventuale Poltrona VIP.
+    // Lo stato "ESAURITO" rimane invariato per il pubblico.
+    // Se isSoldOut la apriremo comunque; la selezione verrà limitata al VIP.
+    // ──────────────────────────────────────────────────────────────────────────
     setSelectedScreening(screening);
     setStep('seat');
     setSelectedSeats([]);
@@ -233,7 +238,13 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
   };
 
   const handleSelectSeat = (seat: CassaSeat) => {
-    if (seat.isBlocked || seat.isVip) return;
+    // ── Eccezione VIP ──────────────────────────────────────────────────────────
+    // Il posto VIP è selezionabile anche se la proiezione è sold-out.
+    // Viene bloccato solo se già occupato/venduto (isBlocked).
+    // ──────────────────────────────────────────────────────────────────────────
+    if (seat.isBlocked) return;
+    // Se la proiezione è sold-out, consentiamo solo la selezione del VIP
+    if (selectedScreening?.isSoldOut && !seat.isVip) return;
     setSelectedSeats(prev => {
       const exists = prev.find(s => s.guid === seat.guid);
       if (exists) return prev.filter(s => s.guid !== seat.guid);
@@ -256,7 +267,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     try {
       const orderResult = await cassaExecuteSale({
         subeventId: selectedScreening.subeventId,
-        seats: selectedSeats.map(s => ({ guid: s.guid, name: s.name, row: s.row, seat: s.seat })),
+        seats: selectedSeats.map(s => ({ guid: s.guid, name: s.name, row: s.row, seat: s.seat, isVip: s.isVip })),
         movieTitle: selectedScreening.movieTitle,
         screening: formatScreeningLabel(selectedScreening.dateFrom),
         roomName: selectedScreening.roomName,
@@ -612,10 +623,19 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
                 ) : (
                   <>
                     {filteredLocal.map((s) => (
-                      <button key={s.subeventId} className={`${styles.screeningCard} ${s.isSoldOut ? styles.screeningCardSoldOut : ''}`} onClick={() => handleSelectScreening(s)}>
+                      <button
+                        key={s.subeventId}
+                        className={`${styles.screeningCard} ${s.isSoldOut ? styles.screeningCardSoldOutVip : ''}`}
+                        onClick={() => handleSelectScreening(s)}
+                      >
                         <div className={styles.cardHeader}>
                           {s.isSoldOut ? (
-                            <span className={styles.soldOutBadge}>ESAURITO</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                              <span className={styles.soldOutBadge}>ESAURITO</span>
+                              {s.isVipAvailable && (
+                                <span className={styles.vipAvailBadge}>⭐ VIP disponibile</span>
+                              )}
+                            </div>
                           ) : (
                             <div className={styles.availBadge}>{s.availableSeats} posti liberi</div>
                           )}
@@ -638,10 +658,19 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
                     )}
 
                     {globalResults.map((s) => (
-                      <button key={s.subeventId} className={`${styles.screeningCard} ${s.isSoldOut ? styles.screeningCardSoldOut : ''}`} onClick={() => handleSelectScreening(s)}>
+                      <button
+                        key={s.subeventId}
+                        className={`${styles.screeningCard} ${s.isSoldOut ? styles.screeningCardSoldOutVip : ''}`}
+                        onClick={() => handleSelectScreening(s)}
+                      >
                         <div className={styles.cardHeader}>
                           {s.isSoldOut ? (
-                            <span className={styles.soldOutBadge}>ESAURITO</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                              <span className={styles.soldOutBadge}>ESAURITO</span>
+                              {s.isVipAvailable && (
+                                <span className={styles.vipAvailBadge}>⭐ VIP disponibile</span>
+                              )}
+                            </div>
                           ) : (
                             <div className={styles.availBadge}>{s.availableSeats} posti liberi</div>
                           )}
@@ -694,14 +723,30 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
                     <div className={styles.legendItem}><div className={styles.legendDot} style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.4)' }} /> Disponibile</div>
                     <div className={styles.legendItem}><div className={styles.legendDot} style={{ background: '#c084fc' }} /> Selezionato</div>
                     <div className={styles.legendItem}><div className={styles.legendDot} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} /> Occupato</div>
+                    <div className={styles.legendItem}><div className={styles.legendDot} style={{ background: 'rgba(251, 191, 36, 0.15)', border: '1px solid rgba(251, 191, 36, 0.5)' }} /> ⭐ Poltrona VIP</div>
                   </div>
+                  {selectedScreening?.isSoldOut && (
+                    <div className={styles.vipSoldOutNotice}>
+                      <span>⭐</span>
+                      <span>Proiezione <strong>esaurita</strong> — solo la <strong>Poltrona VIP</strong> è selezionabile.</span>
+                    </div>
+                  )}
                   <div className={styles.seatGrid}>
-                    {seats.map(seat => (
-                      <button key={seat.guid} className={`${styles.seatBtn} ${selectedSeats.find(s=>s.guid===seat.guid)?styles.seatBtnSelected:''} ${seat.isBlocked?styles.seatBtnBlocked:''} ${seat.isVip?styles.seatBtnVip:''}`} 
-                        onClick={()=>handleSelectSeat(seat)} disabled={seat.isBlocked||seat.isVip}>
-                        <span>{seat.seat}</span><span className={styles.seatRow}>F{seat.row}</span>
-                      </button>
-                    ))}
+                    {seats.map(seat => {
+                      // Seat è disabilitato se: già occupato/venduto, OPPURE se la proiezione è
+                      // sold-out e il posto NON è VIP (standard non selezionabili in sold-out).
+                      const isDisabled = seat.isBlocked || (selectedScreening?.isSoldOut && !seat.isVip);
+                      return (
+                        <button
+                          key={seat.guid}
+                          className={`${styles.seatBtn} ${selectedSeats.find(s=>s.guid===seat.guid)?styles.seatBtnSelected:''} ${seat.isBlocked?styles.seatBtnBlocked:''} ${isDisabled && !seat.isBlocked ? styles.seatBtnBlockedBySoldOut : ''} ${seat.isVip?styles.seatBtnVip:''}`}
+                          onClick={()=>handleSelectSeat(seat)}
+                          disabled={isDisabled}
+                        >
+                          <span>{seat.seat}</span><span className={styles.seatRow}>F{seat.row}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </>
               )}

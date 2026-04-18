@@ -30,7 +30,7 @@
   height: 4px;
   background: white;
   border-radius: 50%;
-  filter: drop-shadow(0 0 10px white);
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8));
   opacity: 0.8;
 }
 
@@ -46,89 +46,112 @@
 .container {
   flex: 1;
   width: 100%;
-  position: relative;
-  overflow: hidden;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02) 0%, transparent 70%);
-}
-
-.svgSeat {
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  fill: rgba(255, 255, 255, 0.03);
-  stroke: rgba(255, 255, 255, 0.15);
-  stroke-width: 1.5px;
-}
-
-.svgAvailable:hover {
-  fill: rgba(255, 255, 255, 0.1);
-  stroke: rgba(255, 255, 255, 0.4);
-  transform: translateY(-2px);
-}
-
-.svgSelected {
-  fill: #fff !important;
-  stroke: #fff !important;
-  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.6));
-}
-
-.svgOccupied {
-  fill: rgba(255, 255, 255, 0.01) !important;
-  stroke: rgba(255, 255, 255, 0.05) !important;
-  opacity: 0.2;
-}
-
-.svgVip {
-  stroke: #ffd700 !important;
-  fill: rgba(255, 215, 0, 0.05) !important;
-  stroke-width: 2px;
-}
-
-.svgText {
-  pointer-events: none;
-  user-select: none;
-  font-weight: 700;
-  font-family: var(--font-outfit), sans-serif;
-  fill: rgba(255, 255, 255, 0.5);
-  font-size: 14px; /* Larger text for larger seats */
-}
-
-.svgSelected + .svgText {
-  fill: #000; /* Black text on white selected seat */
-}
-
-/* ── Controls ── */
-
-.controlsMinimal {
-  position: absolute;
-  right: 1.5rem;
-  top: 1.5rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  z-index: 20;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
-.miniBtn {
-  width: 42px;
-  height: 42px;
+.seatsRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+  min-width: min-content;
+}
+
+/* ── Seat Component ── */
+
+.seat {
+  width: 50px;
+  height: 50px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.seat:disabled {
+  cursor: not-allowed;
+}
+
+.seatLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--font-outfit), sans-serif;
+  pointer-events: none;
+}
+
+/* ── States ── */
+
+.available:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-4px);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.selected {
+  background: #fff !important;
+  border-color: #fff !important;
+  color: #000 !important;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.occupied {
+  background: rgba(255, 255, 255, 0.01) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  opacity: 0.2;
+}
+
+.vip {
+  border-color: #ffd700 !important;
+  background: rgba(255, 215, 0, 0.05) !important;
+  box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.1);
+}
+
+/* ── Actions & Legend ── */
+
+.bottomActions {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
   transition: all 0.2s;
 }
 
-.miniBtn:hover {
-  background: rgba(255, 255, 255, 0.15);
+.closeBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
   border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
 }
-
-/* ── Legend ── */
 
 .legend {
   padding: 1.5rem;
@@ -156,7 +179,7 @@
 .dotSelected { background: #fff; box-shadow: 0 0 10px white; }
 .dotOccupied { background: rgba(255, 255, 255, 0.15); }
 
-/* ── Loading & Errors ── */
+/* ── Loading ── */
 
 .loadingContainer {
   flex: 1;
@@ -176,51 +199,8 @@
   to { transform: rotate(360deg); }
 }
 
-.noSeats {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 3rem;
-  gap: 1rem;
-}
-
-.errorTitle {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: #ef4444;
-  margin: 0;
-}
-
-.noSeats span {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.errorHint {
-  max-width: 400px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 1rem;
-  border-radius: 12px;
-  font-size: 0.8rem !important;
-  line-height: 1.5;
-}
-
-.noSeatsIcon {
-  color: #ef4444;
-  opacity: 0.5;
-}
-
 @media (max-width: 768px) {
   .legend {
     gap: 1rem;
-  }
-  .controlsMinimal {
-    top: auto;
-    bottom: 5rem;
-    right: 1rem;
   }
 }

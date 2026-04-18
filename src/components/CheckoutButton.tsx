@@ -102,7 +102,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess }:
           duration: meta.runtime || 120,
           director: meta.director || '',
           cast: Array.isArray(meta.cast) ? meta.cast.join(', ') : (meta.cast || ''),
-          roomName: ROOM_NAMES[Number(se.seating_plan)] || se.seating_plan_name || 'Sala Cinema',
+          roomName: ROOM_NAMES[Number(se.seating_plan)] || se.seating_plan_name || 'SALA',
           date: se.date_from,
           backdropPath: meta.backdropPath || '',
           logoPath: meta.logoPath || '',

@@ -6,8 +6,9 @@ import {
   createCassaOrder,
   getSubEvent,
   getSubEventSeats,
+  getSeatingPlansMap,
 } from '@/services/pretix';
-import { ITEM_INTERO_ID, ITEM_VIP_ID, ROOM_NAMES } from '@/constants/pretix';
+import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import { getMovieDetails } from '@/services/tmdb';
 import { revalidatePath } from 'next/cache';
 
@@ -49,6 +50,11 @@ export interface CassaScreening {
   seatingPlanId: number;
   availableSeats: number | null; // null = unlimited
   isSoldOut: boolean;
+  /**
+   * TRUE solo se esiste almeno un posto VIP nel seating plan che NON è occupato/bloccato.
+   * Evita il "falso positivo" dove il badge VIP appare anche se il VIP è già venduto.
+   */
+  isVipAvailable: boolean;
   tmdbId: string | null;
   runtime: number;
   director: string;
@@ -62,10 +68,10 @@ export interface CassaScreening {
 }
 
 async function mapSubEventsToCassaScreenings(subEvents: any[]): Promise<CassaScreening[]> {
-  // Fetch quotas in parallel for all relevant sub-events
-  const quotaResults = await Promise.all(
-    subEvents.map((se: any) => listQuotas(se.id))
-  );
+  const [quotaResults, roomsMap] = await Promise.all([
+    Promise.all(subEvents.map((se: any) => listQuotas(se.id))),
+    getSeatingPlansMap(),
+  ]);
 
   return Promise.all(
     subEvents.map(async (se: any, i: number) => {
@@ -73,12 +79,39 @@ async function mapSubEventsToCassaScreenings(subEvents: any[]): Promise<CassaScr
       const interoQuota = quotas.find(
         (q: any) => Array.isArray(q.items) && q.items.includes(ITEM_INTERO_ID)
       );
+      const vipQuota = quotas.find(
+        (q: any) => Array.isArray(q.items) && q.items.includes(ITEM_VIP_ID)
+      );
 
       const isSoldOut = interoQuota
         ? interoQuota.available === false ||
           (interoQuota.available_number !== null &&
             interoQuota.available_number <= 0)
         : se.best_availability_state === 'sold_out';
+
+      // ── FIX VIP BADGE ────────────────────────────────────────────────────────
+      // Il badge "VIP disponibile" deve apparire SOLO SE:
+      // Il seat fisico marcato come VIP ha lo stato "available: true".
+      let isVipAvailable = false;
+      try {
+        const seats = await getSubEventSeats(se.id);
+        const hasAvailableVipSeat = seats.some((s: any) => {
+          const isVipSeat =
+            s.product === ITEM_VIP_ID ||
+            s.item === ITEM_VIP_ID ||
+            (typeof s.seat_guid === 'string' && s.seat_guid.toUpperCase().includes('VIP')) ||
+            (typeof s.category === 'string' && (s.category.toUpperCase().includes('VIP') || s.category.toUpperCase().includes('POLTRONA')));
+          
+          const isFree = s.available === true || s.is_available === true || (!s.blocked && !s.orderposition && s.available !== false && s.is_available !== false);
+          return isVipSeat && isFree;
+        });
+        isVipAvailable = hasAvailableVipSeat;
+      } catch {
+        // In caso di errore API, fallback logico
+        if (vipQuota && vipQuota.available_number !== null && vipQuota.available_number > 0) {
+          isVipAvailable = true;
+        }
+      }
 
       const availableSeats =
         interoQuota?.available_number !== undefined
@@ -117,7 +150,8 @@ async function mapSubEventsToCassaScreenings(subEvents: any[]): Promise<CassaScr
       }
 
       const seatingPlanId = Number(se.seating_plan);
-      const roomName = ROOM_NAMES[seatingPlanId] || se.seating_plan_name || 'SALA CINEMA';
+      // Mirror System: Prioritize alias from registry
+      const roomName = roomsMap[seatingPlanId] || se.seating_plan_name || 'Sala';
 
       const movieTitle =
         typeof se.name === 'string' ? se.name : se.name?.it || 'Film';
@@ -132,6 +166,7 @@ async function mapSubEventsToCassaScreenings(subEvents: any[]): Promise<CassaScr
         seatingPlanId,
         availableSeats,
         isSoldOut,
+        isVipAvailable,
         tmdbId,
         runtime,
         director,
@@ -243,8 +278,9 @@ export async function cassaGetSeats(subeventId: number): Promise<CassaSeat[]> {
   return seats.map((s: any) => {
     const isVip =
       s.product === ITEM_VIP_ID ||
-      (typeof s.seat_guid === 'string' &&
-        s.seat_guid.toUpperCase().includes('VIP'));
+      s.item === ITEM_VIP_ID ||
+      (typeof s.seat_guid === 'string' && s.seat_guid.toUpperCase().includes('VIP')) ||
+      (typeof s.category === 'string' && (s.category.toUpperCase().includes('VIP') || s.category.toUpperCase().includes('POLTRONA')));
 
     // 1. Try to use Pretix dedicated fields (row_name, seat_number)
     // 2. Fallback to extracting from name if fields are empty
@@ -264,7 +300,7 @@ export async function cassaGetSeats(subeventId: number): Promise<CassaSeat[]> {
       row,
       seat,
       isVip,
-      isBlocked: !!s.blocked || !!s.orderposition,
+      isBlocked: s.available === false || s.is_available === false || !!s.blocked || !!s.orderposition,
     };
   });
 }
@@ -287,6 +323,7 @@ export async function cassaExecuteSale(params: {
     name: string;
     row: string;
     seat: string;
+    isVip?: boolean; // Se true, usa ITEM_VIP_ID — previene overlap tra quota Intero e quota VIP
   }[];
   movieTitle: string;
   screening: string;
@@ -303,9 +340,13 @@ export async function cassaExecuteSale(params: {
   rating?: string;
 }): Promise<CassaOrderResult> {
   // 1. Create order on Pretix (price always 0.00)
+  // FIX OVERLAP: usa ITEM_VIP_ID per i posti VIP e ITEM_INTERO_ID per il resto
   const order = await createCassaOrder({
     subeventId: params.subeventId,
-    seats: params.seats.map(s => ({ guid: s.guid })),
+    seats: params.seats.map(s => ({
+      guid: s.guid,
+      itemId: s.isVip ? ITEM_VIP_ID : ITEM_INTERO_ID,
+    })),
   });
 
   const orderCode: string = order.code;

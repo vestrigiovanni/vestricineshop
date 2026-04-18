@@ -5,8 +5,8 @@ import Link from 'next/link';
 import SeatMap from './SeatMap';
 import CheckoutTimer from './CheckoutTimer';
 import CheckoutButton from './CheckoutButton';
-import { listSubEvents, getItemAvailability, getSubEvent, listQuotas } from '@/services/pretix';
-import { ITEM_INTERO_ID } from '@/constants/pretix';
+import { listSubEvents, getItemAvailability, getSubEvent, listQuotas, getSubEventSeats } from '@/services/pretix';
+import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import { getLanguageFull, getSubtitleFull } from '@/utils/languageUtils';
 import { Loader2, Calendar, Clock, ChevronLeft, Info, AlertTriangle, Globe, MessageSquare, X } from 'lucide-react';
 import styles from './BookingFlow.module.css';
@@ -71,14 +71,44 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
       ]);
 
       if (subeventId) {
-        const se = data.find((s: any) => s.id === subeventId) || await getSubEvent(subeventId);
-        const interoQuota = allQuotas.find((q: any) => q.subevent === subeventId && q.items.includes(ITEM_INTERO_ID));
-        
-        setIsSoldOut(
-          (interoQuota && interoQuota.available_number !== null && interoQuota.available_number <= 0) ||
-          se.best_availability_state === 'sold_out' ||
-          (se.active && se.presale_is_running === false)
+        const [se, seQuotas, seSeats] = await Promise.all([
+          data.find((s: any) => s.id === subeventId) || await getSubEvent(subeventId),
+          listQuotas(subeventId),
+          getSubEventSeats(subeventId)
+        ]);
+
+        // Resilient Sold Out Logic
+        // 1. Quotas (PRIMARY)
+        const relevantQuotas = seQuotas.filter((q: any) => 
+          Array.isArray(q.items) && (q.items.includes(ITEM_INTERO_ID) || q.items.includes(ITEM_VIP_ID))
         );
+
+        let quotaSoldOut = false;
+        if (relevantQuotas.length > 0) {
+          const totalQuotaAvailable = relevantQuotas.reduce((sum: number, q: any) => {
+            return sum + (q.available_number !== null ? Math.max(0, q.available_number) : 0);
+          }, 0);
+          const allQuotasUnavailable = relevantQuotas.every((q: any) => q.available === false);
+          if (allQuotasUnavailable || totalQuotaAvailable <= 0) {
+            quotaSoldOut = true;
+          }
+        }
+
+        // 2. Seats (SECONDARY / FALLBACK)
+        let seatsSoldOut = false;
+        if (Array.isArray(seSeats) && seSeats.length > 0) {
+          const availableSeatsCount = seSeats.filter((s: any) => 
+            s.available !== false && !s.blocked && s.orderposition === null && s.cartposition === null
+          ).length;
+          if (availableSeatsCount <= 0) {
+            seatsSoldOut = true;
+          }
+        }
+
+        // 3. Overall State
+        const pretixStateSoldOut = se.best_availability_state === 'sold_out' || (se.active && se.presale_is_running === false);
+
+        setIsSoldOut(pretixStateSoldOut || quotaSoldOut || seatsSoldOut);
         setSelectedSubEvent(se);
         setLoading(false);
         return;
@@ -149,6 +179,8 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   }
 
   // ── Sold Out State ────────────────────────────────────────────
+  if (isSoldOut) {
+    return (
       <div className={styles.container}>
         <div className={styles.soldOutContainer}>
           {onClose && (
@@ -159,7 +191,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
           <AlertTriangle size={48} className={styles.soldOutIcon} />
           <h2 className={styles.soldOutTitle}>Posti Esauriti</h2>
           <p className={styles.soldOutDesc}>
-            Siamo spiacenti, ma tutti i posti per questa proiezione sono stati prenotati.
+            Siamo spiacenti, ma i posti per questa proiezione sono terminati.
           </p>
           {!subeventId && (
             <button 
@@ -167,6 +199,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
               onClick={() => {
                 setSelectedSubeventId(null);
                 setSelectedSubEvent(null);
+                setIsSoldOut(false);
               }}
             >
               Scegli un altro orario
@@ -174,6 +207,8 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
           )}
         </div>
       </div>
+    );
+  }
 
   // ── Checkout ─────────────────────────────────────────────────
   if (checkoutStarted) {

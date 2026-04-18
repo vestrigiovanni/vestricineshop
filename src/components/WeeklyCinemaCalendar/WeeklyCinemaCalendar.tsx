@@ -16,6 +16,7 @@ interface SubEvent {
   date_from: string;
   date_to?: string;
   seating_plan?: number;
+  roomName?: string;
   meta_data?: Record<string, string>;
   comment?: string;
   isSoldOut?: boolean;
@@ -24,18 +25,6 @@ interface SubEvent {
 interface WeeklyCinemaCalendarProps {
   subEvents: SubEvent[];
 }
-
-const FIXED_ROOMS: Record<number, string> = {
-  4081: 'SALA 1',
-  5391: 'SALA NICCOLINI',
-  5392: 'SALA FOSSATI',
-  5393: 'SALA ARIPALMARIA',
-  6550: 'SALA MARTINO',
-  6439: '24 SALA AGOSTINO FOSSATI',
-  6983: 'SALA CRAVEDI',
-  7354: 'SALA CA\' GRANDA',
-  7016: 'SALA ANORA',
-};
 
 // Helper function to get local YYYY-MM-DD string
 const toLocalDateStr = (d: Date) => {
@@ -179,7 +168,7 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
                     dayScreenings.map((se) => {
                       const time = new Date(se.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
                       const title = typeof se.name === 'string' ? se.name : se.name.it;
-                      const room = se.seating_plan ? (FIXED_ROOMS[se.seating_plan] || 'SALA') : 'SALA';
+                      const room = se.roomName || 'SALA';
                       
                       const tags = getMovieTags(se.meta_data?.lingua || '', se.meta_data?.sottotitoli || '', se.meta_data?.format || (title.toUpperCase().includes('3D') ? '3D' : ''));
 
@@ -206,6 +195,7 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
                           </div>
                           <span className={styles.slotTitle}>{title}</span>
                           <span className={styles.slotRoom}>{room}</span>
+
                           
                           {isSoldOut ? (
                             <>

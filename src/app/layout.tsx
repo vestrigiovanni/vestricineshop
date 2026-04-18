@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description: 'Book your free tickets seamlessly with VESTRICINEMA.',
 };
 
+import { AutoScrollProvider } from '@/context/AutoScrollContext';
 import Providers from '@/components/Providers';
 
 export default function RootLayout({
@@ -23,10 +24,12 @@ export default function RootLayout({
   return (
     <html lang="it">
       <body className={`${inter.variable} antialiased`} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Providers>
-          <main style={{ flex: '1' }}>{children}</main>
-          <ClientFooter />
-        </Providers>
+        <AutoScrollProvider>
+          <Providers>
+            <main style={{ flex: '1' }}>{children}</main>
+            <ClientFooter />
+          </Providers>
+        </AutoScrollProvider>
       </body>
     </html>
   );

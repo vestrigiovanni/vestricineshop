@@ -304,6 +304,9 @@ export default function DisplayEsterno() {
             <div className={styles.movieDetails}>
               <span className={styles.director}>Regia di {mainStageMovie.director}</span>
               <span className={styles.cast}>{mainStageMovie.cast}</span>
+              {mainStageMovie.roomName && (
+                <span className={styles.roomName}>{mainStageMovie.roomName}</span>
+              )}
             </div>
           </div>
         </div>

@@ -1,5 +1,7 @@
 'use server';
 
+import fs from 'fs';
+import path from 'path';
 import { searchMovies, getMovieDetails, getDirector, getCast, getMovieLogo } from '@/services/tmdb';
 import {
   createSubEvent,
@@ -14,12 +16,18 @@ import {
   listQuotas,
   updateQuota,
   deleteQuota,
-  getQuotaAvailability
+  getQuotaAvailability,
+  updateSeatingPlan,
+  createSeatingPlan,
+  syncSeatingPlansWithMirror,
+  updateRoomMetadata
 } from '@/services/pretix';
 import { calculatePretixDateTime } from '@/utils/dateUtils';
-import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
+import { ITEM_INTERO_ID, ITEM_VIP_ID, SEATING_PLANS_CACHE_FILE } from '@/constants/pretix';
 import { revalidatePath } from 'next/cache';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
+
+// Legacy cache file logic removed in favor of Mirror System (rooms_registry.json)
 
 const TIMEZONE = 'Europe/Rome';
 const pad = (n: number) => n.toString().padStart(2, '0');
@@ -179,14 +187,229 @@ export async function adminListEvents() {
   return await listSubEvents(true);
 }
 
-export async function adminGetSeatingPlans() {
-  return await getSeatingPlan();
+export async function adminGetSeatingPlans(options: { includeHidden?: boolean } = { includeHidden: true }) {
+  return await getSeatingPlan(undefined, options);
 }
 
-// 2. Mapping of Room Capacities (Seating Plan ID -> Capacities)
-const ROOM_CAPACITIES: Record<number, { intero: number; vip?: number }> = {
+/**
+ * Manually triggers a Mirror Sync from Pretix API.
+ */
+export async function adminSyncMirror(forceLayoutUpdate: boolean = false) {
+  const result = await syncSeatingPlansWithMirror(forceLayoutUpdate);
+  revalidatePath('/');
+  return result;
+}
+
+export async function adminGetSeatingPlanDetail(planId: number) {
+  return await getSeatingPlanDetail(planId);
+}
+
+function injectDynamicLayoutSize(layout: any) {
+  if (!layout) return;
+
+  let maxX = 0;
+  let maxY = 0;
+
+  layout.zones?.forEach((zone: any) => {
+    zone.rows?.forEach((row: any) => {
+      row.seats?.forEach((seat: any) => {
+        let seatX = (zone.position?.x || 0) + (row.position?.x || 0) + (seat.position?.x || 0);
+        let seatY = (zone.position?.y || 0) + (row.position?.y || 0) + (seat.position?.y || 0);
+        if (seatX > maxX) maxX = seatX;
+        if (seatY > maxY) maxY = seatY;
+      });
+    });
+  });
+
+  layout.size = {
+    width: Math.max(800, maxX + 200),
+    height: Math.max(600, maxY + 200)
+  };
+}
+
+export async function adminUpdateSeatingPlan(planId: number, patchData: any) {
+  try {
+    if (patchData?.layout) {
+      injectDynamicLayoutSize(patchData.layout);
+    }
+    await updateSeatingPlan(planId, patchData);
+    revalidatePath('/');
+    revalidatePath('/cassa');
+    // Mirror sync handled by service
+    return { success: true };
+  } catch (error: any) {
+    if (error.message && error.message.includes('403')) {
+      console.log('403 received, triggering Clone & Swap for plan:', planId);
+      // Clone & Swap
+      const newData = { ...patchData };
+      delete newData.id;
+
+      const newPlan = await createSeatingPlan(newData);
+      const swapRes = await adminSwapFutureSeatingPlans(planId, newPlan.id);
+
+      revalidatePath('/');
+      revalidatePath('/cassa');
+      return { success: true, swappedCount: swapRes.swappedCount, cloned: true };
+    }
+    console.error('Error in adminUpdateSeatingPlan:', error);
+    // Vogliamo lanciare di proposito per la UI se c'è un blocco di biglietti venduti
+    throw error;
+  }
+}
+
+export async function adminCreateSeatingPlan(postData: any) {
+  try {
+    if (postData?.layout) {
+      injectDynamicLayoutSize(postData.layout);
+    }
+    const result = await createSeatingPlan(postData);
+    revalidatePath('/');
+    revalidatePath('/cassa');
+    // Mirror sync handled by service
+    return result;
+  } catch (error: any) {
+    console.error('Error in adminCreateSeatingPlan:', error);
+    throw new Error(error.message || 'Errore durante la creazione della sala');
+  }
+}
+
+/**
+ * Returns a compatibility layer of seating meta for the legacy UI.
+ * Now derived from the Mirror Registry.
+ */
+export async function adminGetSeatingMeta() {
+  const plans = await getSeatingPlan(undefined, { includeHidden: true, onlyFromMirror: true });
+  const meta = {
+    hiddenIds: [] as number[],
+    archivedIds: [] as number[],
+    favoriteId: null as number | null
+  };
+
+  plans.forEach((p: any) => {
+    if (p.isHidden) meta.hiddenIds.push(p.id);
+    if (p.isFavorite) meta.favoriteId = p.id;
+  });
+
+  return meta;
+}
+
+export async function adminToggleHideSeatingPlan(planId: number) {
+  const plans = await getSeatingPlan(undefined, { includeHidden: true, onlyFromMirror: true });
+  const plan = plans.find((p: any) => p.id === planId);
+  const result = await updateRoomMetadata(planId, { isHidden: !plan?.isHidden });
+  revalidatePath('/');
+  return await adminGetSeatingMeta();
+}
+
+export async function adminToggleArchiveSeatingPlan(planId: number) {
+  // Archive is now unified with Hidden in the Mirror System for simplicity.
+  // We just toggle isHidden.
+  return await adminToggleHideSeatingPlan(planId);
+}
+
+export async function adminToggleFavoriteSeatingPlan(planId: number) {
+  const plans = await getSeatingPlan(undefined, { includeHidden: true, onlyFromMirror: true });
+  const plan = plans.find((p: any) => p.id === planId);
+  const result = await updateRoomMetadata(planId, { isFavorite: !plan?.isFavorite });
+  revalidatePath('/');
+  return await adminGetSeatingMeta();
+}
+
+/**
+ * Updates metadata for a room in the mirror (alias, isHidden, isFavorite, etc).
+ */
+export async function adminUpdateRoomMetadata(planId: number, metadata: { alias?: string; internalName?: string; isHidden?: boolean; isFavorite?: boolean }) {
+  const result = await updateRoomMetadata(planId, metadata);
+  revalidatePath('/');
+  return result;
+}
+
+
+/**
+ * HELPER: Syncs all seating plans from Pretix to the local seating_plans.json file.
+ */
+export async function syncSeatingPlansToFile() {
+  try {
+    const plans = await getSeatingPlan();
+    fs.writeFileSync(SEATING_PLANS_CACHE_FILE, JSON.stringify(plans, null, 2));
+    console.log(`[syncSeatingPlansToFile] ✅ Cached ${plans.length} plans to ${SEATING_PLANS_CACHE_FILE}`);
+  } catch (error) {
+    console.error('[syncSeatingPlansToFile] ❌ Error syncing seating plans:', error);
+  }
+}
+
+/**
+ * HELPER: Calculates capacities for standard and VIP seats directly from a seating plan layout.
+ */
+function calculateCapacitiesFromLayout(layout: any) {
+  let intero = 0;
+  let vip = 0;
+
+  layout?.zones?.forEach((zone: any) => {
+    zone.rows?.forEach((row: any) => {
+      row.seats?.forEach((seat: any) => {
+        const isVip = seat.category && (
+          seat.category.toUpperCase().includes('VIP') ||
+          seat.category.toUpperCase().includes('POLTRONA')
+        );
+        if (isVip) {
+          vip++;
+        } else {
+          intero++;
+        }
+      });
+    });
+  });
+
+  return { intero, vip };
+}
+
+export async function adminSwapFutureSeatingPlans(oldPlanId: number, newPlanId: number) {
+  try {
+    // 1. Prendi tutti gli eventi futuri
+    const futureEvents = await listSubEvents(true);
+
+    // 2. Filtra quelli che usano la vecchia sala
+    const targetEvents = futureEvents.filter((ev: any) => ev.seating_plan === oldPlanId);
+
+    let swappedCount = 0;
+
+    // 3. Verifica per ognuno che non ci siano vendite reali prima di swappare
+    for (const ev of targetEvents) {
+      try {
+        const quotas = await listQuotas(ev.id);
+        const hasSales = quotas.some((q: any) =>
+          q.size !== null && q.available_number !== null && q.available_number < q.size
+        );
+
+        if (!hasSales) {
+          await updateSubEvent(ev.id, { seating_plan: newPlanId });
+          swappedCount++;
+        } else {
+          console.warn(`[Swap] Evento ${ev.id} ha già vendite. Salto.`);
+        }
+      } catch (err) {
+        console.warn(`[Swap] Errore durante il controllo/update dell'evento ${ev.id}:`, err);
+      }
+    }
+
+    // 4. Mirror System: Automatically hide the old plan as it's now obsolete
+    await updateRoomMetadata(oldPlanId, { isHidden: true });
+
+    revalidatePath('/');
+    revalidatePath('/cassa');
+    return { success: true, swappedCount };
+  } catch (error: any) {
+    console.error('Error swapping future seating plans:', error);
+    throw new Error('Errore durante lo swap della sala negli eventi futuri');
+  }
+}
+
+// 2. Mapping of Room Capacities (DEPRECATED: Use calculateCapacitiesFromLayout instead)
+// This remains only as a potential fallback for very old plans without layout data.
+const ROOM_CAPACITIES_FALLBACK: Record<number, { intero: number; vip?: number }> = {
   4081: { intero: 8 },         // SALA 1
-  5391: { intero: 3, vip: 1 },  // SALA NICCOLINI
+  5391: { intero: 6, vip: 1 },  // SALA NICCOLINI
   5392: { intero: 3, vip: 1 },  // SALA FOSSATI
   5393: { intero: 9, vip: 1 },  // SALA ARIPALMARIA
   6550: { intero: 3, vip: 1 },  // SALA MARTINO
@@ -242,35 +465,25 @@ export async function adminScheduleMovie(
     }
   });
 
-  // 4. Calculate Capacities if not in ROOM_CAPACITIES
-  let interoSize = 0;
-  let vipSize = 0;
+  // 4. Calculate Capacities DYNAMICALLY from the layout
+  const { intero: calculatedIntero, vip: calculatedVip } = calculateCapacitiesFromLayout(planDetail.layout);
 
-  const roomConfig = ROOM_CAPACITIES[seatingPlanId];
-  if (roomConfig) {
-    interoSize = roomConfig.intero;
-    vipSize = roomConfig.vip || 0;
-  } else {
-    // Count seats from the plan layout
-    planDetail.layout?.zones?.forEach((zone: any) => {
-      zone.rows?.forEach((row: any) => {
-        row.seats?.forEach((seat: any) => {
-          if (seat.category && (seat.category.toUpperCase().includes('VIP') || seat.category.toUpperCase().includes('POLTRONA'))) {
-            vipSize++;
-          } else {
-            interoSize++;
-          }
-        });
-      });
-    });
-    console.log(`Calculated capacities for unknown room ${seatingPlanId}: Intero=${interoSize}, VIP=${vipSize}`);
+  let interoSize = calculatedIntero;
+  let vipSize = calculatedVip;
+
+  // Use fallback ONLY if layout calculation returned 0 for both (e.g. malformed JSON)
+  if (interoSize === 0 && vipSize === 0) {
+    const roomConfig = ROOM_CAPACITIES_FALLBACK[seatingPlanId];
+    if (roomConfig) {
+      interoSize = roomConfig.intero;
+      vipSize = roomConfig.vip || 0;
+    }
   }
 
-  // Fallback to avoid capacity 0 for 'Intero'
-  if (interoSize === 0) interoSize = 1000;
-
-  // Expand Quota Intero by 1 seat as requested by the user
-  interoSize += 1;
+  // Final safety check
+  if (interoSize === 0 && vipSize === 0) {
+    interoSize = 1000; // Emergency fallback
+  }
 
   // 5. Algorithm No-Overlap Check (Nuclear Bit-Map Logic)
   const runtimeMinutes = (details.runtime || 120);
