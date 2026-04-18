@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import styles from './AdminPanel.module.css';
-import { adminSearchMovies, adminGetMovieById, adminScheduleMovie, adminDeleteEvent, adminDeleteEventGroup, adminUpdateEventDate, adminListEvents, adminGetSeatingPlans, adminGetSmartSuggestion, adminCheckConflict, adminGetWeeklySlots, adminBulkScheduleMovie, adminFindNearestSlots, adminGetSeatingPlanDetail, adminUpdateSeatingPlan, adminCreateSeatingPlan, adminToggleHideSeatingPlan, adminSwapFutureSeatingPlans, adminSyncMirror, adminUpdateRoomInternalName } from '@/actions/adminActions';
+import { adminSearchMovies, adminGetMovieById, adminScheduleMovie, adminDeleteEvent, adminDeleteEventGroup, adminUpdateEventDate, adminListEvents, adminGetSeatingPlans, adminGetSmartSuggestion, adminCheckConflict, adminGetWeeklySlots, adminBulkScheduleMovie, adminFindNearestSlots, adminGetSeatingPlanDetail, adminUpdateSeatingPlan, adminCreateSeatingPlan, adminToggleHideSeatingPlan, adminSwapFutureSeatingPlans, adminSyncMirror, adminUpdateRoomMetadata } from '@/actions/adminActions';
 import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb';
 import Image from 'next/image';
 import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw } from 'lucide-react';
