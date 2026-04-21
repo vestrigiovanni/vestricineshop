@@ -2,19 +2,37 @@
 
 import React, { useState, useEffect } from 'react';
 import styles from './AdminPanel.module.css';
-import { adminSearchMovies, adminGetMovieById, adminScheduleMovie, adminDeleteEvent, adminDeleteEventGroup, adminUpdateEventDate, adminListEvents, adminGetSeatingPlans, adminGetSmartSuggestion, adminCheckConflict, adminGetWeeklySlots, adminBulkScheduleMovie, adminFindNearestSlots, adminGetSeatingPlanDetail, adminUpdateSeatingPlan, adminCreateSeatingPlan, adminToggleHideSeatingPlan, adminSwapFutureSeatingPlans, adminSyncMirror, adminUpdateRoomMetadata } from '@/actions/adminActions';
+import { 
+  adminSearchMovies, 
+  adminGetMovieById, 
+  adminScheduleMovie, 
+  adminDeleteEvent, 
+  adminDeleteEventGroup, 
+  adminUpdateEventDate, 
+  adminListEvents, 
+  adminGetSeatingPlans, 
+  adminGetSmartSuggestion, 
+  adminCheckConflict, 
+  adminGetWeeklySlots, 
+  adminBulkScheduleMovie, 
+  adminFindNearestSlots, 
+  adminListQuotas, 
+  adminUpdateQuota, 
+  adminDeleteQuota, 
+  adminGetQuotaAvailability, 
+  adminGetEmptyProjections,
+  adminClearCache
+} from '@/actions/adminActions';
 import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb';
 import Image from 'next/image';
-import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw } from 'lucide-react';
-import { adminListQuotas, adminUpdateQuota, adminDeleteQuota, adminGetQuotaAvailability, adminGetEmptyProjections, adminGetSeatingMeta, adminToggleArchiveSeatingPlan, adminToggleFavoriteSeatingPlan } from '@/actions/adminActions';
+import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw, Settings } from 'lucide-react';
+import RoomManagementModal from './RoomManagementModal';
+
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 
 interface AdminDashboardProps {
   initialEvents: any[];
 }
-
-// FIXED_ROOMS constant removed in favor of dynamic seatingPlans from Pretix API.
-
 
 export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,32 +50,43 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     overview: '',
     posterPath: '',
     date: '',
-    roomId: '', // Inizialmente vuoto, popolato dal primo piano disponibile o default
+    roomId: '', // Inizialmente vuoto
     language: '',
     subtitles: 'Italiano'
   });
 
-  useEffect(() => {
-    const initPlans = async () => {
-      try {
-        const [plans, meta] = await Promise.all([
-          adminGetSeatingPlans({ includeHidden: false }),
-          adminGetSeatingMeta()
-        ]);
-        setSeatingPlans(plans);
-        setSeatingMeta(meta);
-        
-        // Se non c'è una sala selezionata nel form, prendi la prima disponibile
-        if (plans.length > 0) {
-          const firstId = meta.favoriteId?.toString() || plans[0].id.toString();
-          setFormState(prev => ({ ...prev, roomId: firstId }));
-        }
-      } catch (err) {
-        console.error('Error fetching initial data:', err);
+  const initPlans = async () => {
+    try {
+      const plans = await adminGetSeatingPlans();
+      setSeatingPlans(plans);
+      
+      if (plans.length > 0) {
+        setFormState(prev => ({ ...prev, roomId: plans[0].id.toString() }));
       }
-    };
+    } catch (err) {
+      console.error('Error fetching initial data:', err);
+    }
+  };
+
+  useEffect(() => {
     initPlans();
   }, []);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      await adminClearCache();
+      const updatedEvents = await adminListEvents();
+      setEvents(updatedEvents);
+      await initPlans();
+      alert('Sincronizzazione completata! I dati sono stati aggiornati da Pretix.');
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert('Errore durante la sincronizzazione.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
 
   const [showModal, setShowModal] = useState(false);
@@ -87,331 +116,9 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [showCleaningModal, setShowCleaningModal] = useState(false);
   const [emptyProjections, setEmptyProjections] = useState<any[]>([]);
   const [loadingCleaning, setLoadingCleaning] = useState(false);
-
-  // --- SEATING PLANS EDITOR ---
-  const [showSeatingPlansModal, setShowSeatingPlansModal] = useState(false);
-  const [loadingSeatingPlans, setLoadingSeatingPlans] = useState(false);
-  const [activeSeatingPlan, setActiveSeatingPlan] = useState<any | null>(null);
-  const [seatingPlanForm, setSeatingPlanForm] = useState<any | null>(null);
-  const [savingSeatingPlan, setSavingSeatingPlan] = useState(false);
-  const [seatingMeta, setSeatingMeta] = useState<{ hiddenIds: number[], archivedIds: number[], favoriteId: number | null }>({ hiddenIds: [], archivedIds: [], favoriteId: null });
-  const [seatingView, setSeatingView] = useState<'active' | 'archived'>('active');
-
-  // Filtering & Sorting (Mirrored)
-  const visibleSeatingPlans = seatingPlans
-    .filter(p => !seatingMeta.hiddenIds.includes(p.id))
-    .sort((a, b) => {
-      if (a.id === seatingMeta.favoriteId) return -1;
-      if (b.id === seatingMeta.favoriteId) return 1;
-      const nameA = a.internalName || a.name;
-      const nameB = b.internalName || b.name;
-      return nameA.localeCompare(nameB);
-    });
-
-  const availableSeatingPlans = visibleSeatingPlans;
-
-  const [clonePrompt, setClonePrompt] = useState<{ oldPlanId: number; payload: any } | null>(null);
-  const [swappingPlans, setSwappingPlans] = useState(false);
-  const [editorZoom, setEditorZoom] = useState(1);
-  const [selectedSeat, setSelectedSeat] = useState<{ zIdx: number, rIdx: number, sIdx: number } | null>(null);
-
-
-  const handleOpenSeatingPlans = async () => {
-    setShowSeatingPlansModal(true);
-    setLoadingSeatingPlans(true);
-    try {
-      const [plans, meta] = await Promise.all([
-        adminGetSeatingPlans({ includeHidden: true }),
-        adminGetSeatingMeta()
-      ]);
-      setSeatingPlans(plans);
-      setSeatingMeta(meta);
-    } catch (e) {
-      console.error(e);
-      alert('Errore caricamento Seating Plans.');
-    } finally {
-      setLoadingSeatingPlans(false);
-    }
-  };
-
-  const handleSyncMirror = async (force: boolean = false) => {
-    setIsSyncing(true);
-    try {
-      const result: any = await adminSyncMirror(force);
-      if (result.success) {
-        alert(`Sincronizzazione completata! ${result.count} sale trovate.`);
-        handleOpenSeatingPlans();
-      } else {
-        alert('Errore durante la sincronizzazione: ' + result.error);
-      }
-    } catch (err) {
-      alert('Errore durante la sincronizzazione.');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleRoomMetadataUpdate = async (planId: number, metadata: any) => {
-    try {
-      await adminUpdateRoomMetadata(planId, metadata);
-      // Aggiorna lo stato locale senza rifetchare tutto se possibile
-      setSeatingPlans(prev => prev.map(p => p.id === planId ? { ...p, ...metadata } : p));
-    } catch (err) {
-      console.error('Error updating room metadata', err);
-    }
-  };
-
-
-  const handleToggleHideRoom = async (e: React.MouseEvent, planId: number) => {
-    e.stopPropagation();
-    try {
-      const updatedMeta = await adminToggleHideSeatingPlan(planId);
-      setSeatingMeta(updatedMeta);
-    } catch (err) {
-      alert("Errore nell'occultamento della sala");
-    }
-  };
-
-  const handleToggleArchiveRoom = async (e: React.MouseEvent, planId: number) => {
-    // Archive and Hide are now the same in the Mirror System
-    return handleToggleHideRoom(e, planId);
-  };
-
-  const handleToggleFavoriteRoom = async (e: React.MouseEvent, planId: number) => {
-    e.stopPropagation();
-    try {
-      const updatedMeta = await adminToggleFavoriteSeatingPlan(planId);
-      setSeatingMeta(updatedMeta);
-    } catch (err) {
-      alert("Errore nell'impostazione della sala preferita");
-    }
-  };
-
-
-  const handleCreateNewSeatingPlan = () => {
-    const defaultLayout = {
-      name: "Nuova Sala",
-      categories: [{ name: "Category I", color: "#3b82f6" }, { name: "Poltrona VIP", color: "#eab308" }],
-      zones: [{
-        name: "Main",
-        position: { x: 0, y: 0 },
-        rows: [{
-          row_number: "1",
-          position: { x: 0, y: 0 },
-          seats: [{
-            seat_number: "1",
-            seat_guid: `NEW-SEAT-${Date.now()}`,
-            position: { x: 0, y: 0 },
-            category: "Category I"
-          }]
-        }]
-      }]
-    };
-    const newPlan = { id: 0, name: "Nuova Sala", layout: defaultLayout };
-    setActiveSeatingPlan(newPlan);
-    setSeatingPlanForm(JSON.parse(JSON.stringify(newPlan)));
-  };
-
-  const handleEditSeatingPlan = async (planId: number) => {
-    setLoadingSeatingPlans(true);
-    try {
-      const detailedPlan = await adminGetSeatingPlanDetail(planId);
-      if (detailedPlan) {
-        setActiveSeatingPlan(detailedPlan);
-        setSeatingPlanForm(JSON.parse(JSON.stringify(detailedPlan)));
-      }
-    } catch (e) {
-      alert('Errore caricamento dettaglio sala');
-    } finally {
-      setLoadingSeatingPlans(false);
-    }
-  };
-
-  const handleSaveSeatingPlan = async () => {
-    if (!seatingPlanForm) return;
-
-    // VALIDAZIONE: Blocca se la sala è vuota (nessun posto in nessuna zona/fila)
-    let totalSeats = 0;
-    seatingPlanForm.layout?.zones?.forEach((z: any) => {
-      z.rows?.forEach((r: any) => {
-        totalSeats += r.seats?.length || 0;
-      });
-    });
-
-    if (totalSeats === 0) {
-      alert("❌ Layout non valido: devi aggiungere almeno un posto per poter salvare la sala.");
-      return;
-    }
-
-    setSavingSeatingPlan(true);
-
-    setClonePrompt(null);
-    try {
-      // 1. Prepare dynamic layout and calculate size
-      const layoutPayload = JSON.parse(JSON.stringify(seatingPlanForm.layout));
-      
-      let maxX = 0;
-      let maxY = 0;
-
-      // Iterate through zones, rows and seats to find the boundaries
-      layoutPayload.zones?.forEach((zone: any) => {
-        zone.rows?.forEach((row: any) => {
-          row.seats?.forEach((seat: any) => {
-            if (seat.position.x > maxX) maxX = seat.position.x;
-            if (seat.position.y > maxY) maxY = seat.position.y;
-          });
-        });
-      });
-
-      // 2. Assign dynamic size with safety margin (+200px)
-      layoutPayload.size = {
-        width: Math.max(1000, maxX + 200),
-        height: Math.max(800, maxY + 200)
-      };
-
-      // 3. Ensure categories schema (enforcing "Category I" and "Poltrona VIP")
-      const baseCategories = [
-        { name: "Category I", color: "#3b82f6" },
-        { name: "Poltrona VIP", color: "#eab308" }
-      ];
-
-      // Merge current categories with required ones, ensuring no duplicates by name
-      const existingCategories = layoutPayload.categories || [];
-      const finalCategories = [...baseCategories];
-      
-      existingCategories.forEach((cat: any) => {
-        if (!finalCategories.some(c => c.name === cat.name)) {
-          finalCategories.push(cat);
-        }
-      });
-      
-      layoutPayload.categories = finalCategories;
-
-      const payload = {
-        name: seatingPlanForm.name,
-        layout: layoutPayload
-      };
-
-      if (seatingPlanForm.id === 0) {
-        await adminCreateSeatingPlan(payload);
-        alert('Nuova sala creata con successo!');
-        setActiveSeatingPlan(null);
-        setSeatingPlanForm(null);
-        handleOpenSeatingPlans();
-      } else {
-        await adminUpdateSeatingPlan(seatingPlanForm.id, payload);
-        alert('Sala aggiornata con successo su Pretix!');
-        setActiveSeatingPlan(null);
-        setSeatingPlanForm(null);
-        handleOpenSeatingPlans();
-      }
-    } catch (e: any) {
-      if (e.message?.includes('403') || e.message?.includes('in uso')) {
-        // Recalculate size for the clone payload as well
-        const cloneLayout = JSON.parse(JSON.stringify(seatingPlanForm.layout));
-        let cMaxX = 0;
-        let cMaxY = 0;
-        cloneLayout.zones?.forEach((z: any) => z.rows?.forEach((r: any) => r.seats?.forEach((s: any) => {
-          if (s.position.x > cMaxX) cMaxX = s.position.x;
-          if (s.position.y > cMaxY) cMaxY = s.position.y;
-        })));
-        cloneLayout.size = { width: Math.max(1000, cMaxX + 200), height: Math.max(800, cMaxY + 200) };
-        if (!cloneLayout.categories) cloneLayout.categories = [{ name: "Category I" }, { name: "Poltrona VIP" }];
-
-        setClonePrompt({
-          oldPlanId: seatingPlanForm.id,
-          payload: {
-            name: `${seatingPlanForm.name} - v2`,
-            layout: cloneLayout
-          }
-        });
-      } else {
-        alert(e.message || 'Errore durante il salvataggio.');
-      }
-    } finally {
-      setSavingSeatingPlan(false);
-    }
-  };
-
-  const handleExecuteCloneAndSwap = async () => {
-    if (!clonePrompt) return;
-    setSwappingPlans(true);
-    try {
-      // 1. Create the new Plan
-      const newPlan = await adminCreateSeatingPlan(clonePrompt.payload);
-
-      // 2. Swap all future events to this new plan
-      const swapResult = await adminSwapFutureSeatingPlans(clonePrompt.oldPlanId, newPlan.id);
-
-      // 3. Hide the old plan
-      await adminToggleHideSeatingPlan(clonePrompt.oldPlanId);
-
-      alert(`Clonazione completata! Creato "${clonePrompt.payload.name}" e aggiornato ${swapResult.swappedCount} eventi futuri.`);
-
-      setClonePrompt(null);
-      setActiveSeatingPlan(null);
-      setSeatingPlanForm(null);
-      handleOpenSeatingPlans();
-    } catch (err: any) {
-      alert("Errore fatale in clone & swap: " + err.message);
-    } finally {
-      setSwappingPlans(false);
-    }
-  };
-
-  const toggleSeatCategory = (zoneIndex: number, rowIndex: number, seatIndex: number) => {
-    // Deep clone to ensure immutable state update
-    const updatedForm = JSON.parse(JSON.stringify(seatingPlanForm));
-    const currentCat = updatedForm.layout.zones[zoneIndex].rows[rowIndex].seats[seatIndex].category;
-
-    const categories = updatedForm.layout.categories || [];
-    let vipCategoryName = 'Poltrona VIP';
-    let stdCategoryName = categories.length > 0 ? categories[0].name : 'Category I';
-
-    const existingVip = categories.find((c: any) => c.name.toUpperCase().includes('VIP') || c.name.toUpperCase().includes('POLTRONA'));
-    if (!existingVip) {
-      updatedForm.layout.categories.push({ name: 'Poltrona VIP', color: '#FFD700' });
-    } else {
-      vipCategoryName = existingVip.name;
-    }
-
-    const isVip = currentCat === vipCategoryName;
-    const newCat = isVip ? stdCategoryName : vipCategoryName;
-    updatedForm.layout.zones[zoneIndex].rows[rowIndex].seats[seatIndex].category = newCat;
-
-    setSeatingPlanForm(updatedForm);
-  };
-
-  const handleAddSeat = (zoneIndex: number, rowIndex: number) => {
-    const updatedForm = JSON.parse(JSON.stringify(seatingPlanForm));
-    const row = updatedForm.layout.zones[zoneIndex].rows[rowIndex];
-    if (!row.seats) row.seats = [];
-
-    const lastSeat = row.seats[row.seats.length - 1];
-    const newSeatNumber = lastSeat ? parseInt(lastSeat.seat_number || '0') + 1 : 1;
-    const newX = lastSeat ? lastSeat.position.x + 25 : 0;
-
-    const stdCategoryName = updatedForm.layout.categories?.length > 0 ? updatedForm.layout.categories[0].name : 'Category I';
-
-    row.seats.push({
-      seat_number: newSeatNumber.toString(),
-      seat_guid: `S${seatingPlanForm.id || 'NEW'}-R${row.row_number}-${newSeatNumber}-${Date.now().toString(36)}`,
-      position: { x: newX, y: lastSeat ? lastSeat.position.y : 0 },
-      category: stdCategoryName
-    });
-    setSeatingPlanForm(updatedForm);
-  };
-
-  const handleRemoveSeat = (zoneIndex: number, rowIndex: number) => {
-    const updatedForm = JSON.parse(JSON.stringify(seatingPlanForm));
-    const row = updatedForm.layout.zones[zoneIndex].rows[rowIndex];
-    if (row.seats && row.seats.length > 0) {
-      row.seats.pop();
-      setSeatingPlanForm(updatedForm);
-    }
-  };
-
-  // --- COLLISION LOGIC FOR AUTO-CLEANING GRID ---
+  const [showRoomModal, setShowRoomModal] = useState(false);
+  
+  const availableSeatingPlans = seatingPlans;
   const isColliding = (date1: string, date2: string) => {
     const runtime = selectedMovieRuntime || 120;
     const buffer = 10; // Parametro fisso richiesto dall'utente
@@ -507,9 +214,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     setSelectedMovie(movie);
     const isItalian = movie.original_language === 'it';
     
-    // Get the favorite or first available room
-    const defaultRoom = defaultSalaId || seatingMeta.favoriteId?.toString() || (availableSeatingPlans.length > 0 ? availableSeatingPlans[0].id.toString() : '');
-
+    // Get the first available room
+    const defaultRoom = defaultSalaId || (availableSeatingPlans.length > 0 ? availableSeatingPlans[0].id.toString() : '');
 
     setFormState({
       title: movie.title,
@@ -690,7 +396,10 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           language: formState.language,
           subtitles: formState.subtitles
         }, selectedSlots, parseInt(formState.roomId), cleaningBuffer);
-        alert(res.summary);
+        const errorDetails = res.details && res.details.length > 0 
+          ? `\n\nDettagli errori:\n${res.details.join('\n')}` 
+          : '';
+        alert(`${res.summary}${errorDetails}`);
       } else {
         if (!formState.date) {
           console.warn('[handleSchedule] ⚠️ Nessuna data selezionata, skip.');
@@ -1034,11 +743,20 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
             <option value="">Nessuna (Default)</option>
             {availableSeatingPlans.map(room => (
               <option key={room.id} value={room.id}>
-                {room.id === seatingMeta.favoriteId ? `⭐ ${room.name}` : room.name}
+                {room.isFavorite ? '⭐' : ''} [{room.id}] {room.internalName || room.name}
               </option>
             ))}
           </select>
         </div>
+
+        <button
+          onClick={() => setShowRoomModal(true)}
+          className={styles.btnCassaLauncher}
+          style={{ backgroundColor: '#222', color: 'white', border: '1px solid #444', marginRight: '1rem' }}
+        >
+          <Settings size={18} />
+          <span>GESTISCI SALE</span>
+        </button>
 
         <button
           onClick={() => window.open('/admin/cassa', '_blank', 'width=1200,height=800,noopener,noreferrer')}
@@ -1046,13 +764,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         >
           <ShoppingBag size={18} />
           APRI CASSA
-        </button>
-        <button
-          onClick={handleOpenSeatingPlans}
-          className={styles.btnSeatingLauncher}
-        >
-          <Grid size={18} />
-          GESTIONE SALE
         </button>
         <button
           onClick={() => setShowDisplayModal(true)}
@@ -1091,7 +802,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                   <div className={styles.movieResultPoster}>
                     {movie.poster_path ? (
                       <Image
-                        src={getTMDBImageUrl(movie.poster_path, 'w185')}
+                        src={getTMDBImageUrl(movie.poster_path, 'w185')!}
                         alt={movie.title}
                         fill
                         sizes="185px"
@@ -1141,7 +852,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                     <div className={styles.modalPoster}>
                       {formState.posterPath ? (
                         <Image
-                          src={getTMDBImageUrl(formState.posterPath, 'w342')}
+                          src={getTMDBImageUrl(formState.posterPath, 'w342')!}
                           alt="Poster"
                           fill
                           sizes="140px"
@@ -1247,7 +958,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                           {availableSeatingPlans
                             .map((room) => (
                               <option key={room.id} value={room.id}>
-                                {room.id.toString() === defaultSalaId ? `⭐ ${room.internalName || room.name}` : (room.internalName || room.name)}
+                                [{room.id}] {room.id.toString() === defaultSalaId ? `⭐ ${room.internalName || room.name}` : (room.internalName || room.name)}
                               </option>
                             ))}
                         </select>
@@ -1778,442 +1489,15 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           </div>
         </div>
       )}
-      {/* SEATING PLANS MODAL (OLD - DISABLED) */}
-      {false && showSeatingPlansModal && !activeSeatingPlan && (
-        <div className={styles.modalOverlay} onClick={() => setShowSeatingPlansModal(false)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2>Gestione Sale (Seating Plans)</h2>
-              <button
-                onClick={() => setShowSeatingPlansModal(false)}
-                className={styles.closeBtn}
-              ><X /></button>
-            </div>
 
-            <div className={styles.seatingPlansList}>
-              <div className={styles.seatingPlansListHeader}>
-                <div className={styles.viewTabs}>
-                  <button 
-                    onClick={() => setSeatingView('active')} 
-                    className={`${styles.viewTab} ${seatingView === 'active' ? styles.viewTabActive : ''}`}
-                  >
-                    Sale Attive
-                  </button>
-                  <button 
-                    onClick={() => setSeatingView('archived')} 
-                    className={`${styles.viewTab} ${seatingView === 'archived' ? styles.viewTabActive : ''}`}
-                  >
-                    Archivio
-                  </button>
-                </div>
-                <button
-                  onClick={handleCreateNewSeatingPlan}
-                  className={styles.btnPrimary}
-                >
-                  <FilePlus size={18} /> Crea Nuova Sala
-                </button>
-              </div>
 
-              {loadingSeatingPlans ? (
-                <div className={styles.loadingState}><Loader2 className={styles.spinner} /> Caricamento...</div>
-              ) : (
-                <div className={styles.plansGridContainer}>
-                  {visibleSeatingPlans.length === 0 ? (
-                    <div className={styles.emptyPlans}>
-                      <Info size={32} />
-                      <p>{seatingView === 'active' ? 'Nessuna sala attiva trovata.' : 'L\'archivio è vuoto.'}</p>
-                    </div>
-                  ) : (
-                    visibleSeatingPlans.map(plan => {
-                      const isHidden = seatingMeta.hiddenIds.includes(plan.id);
-                      const isFavorite = seatingMeta.favoriteId === plan.id;
-                      
-                      return (
-                        <div key={plan.id} className={`${styles.seatingPlanCard} ${isFavorite ? styles.cardFavorite : ''}`}>
-                          <div className={styles.seatingPlanInfo}>
-                            <div className="flex items-center gap-2">
-                              {isFavorite && <Star size={16} fill="#eab308" color="#eab308" />}
-                              <h3>{plan.name} {isHidden && <span className={styles.hiddenLabel}>(Nascosta)</span>}</h3>
-                            </div>
-                            <span className={styles.seatingPlanId}>ID: {plan.id}</span>
-                          </div>
-                          <div className={styles.seatingPlanActions}>
-                            <button
-                              onClick={(e) => handleToggleFavoriteRoom(e, plan.id)}
-                              className={`${styles.btnActionIcon} ${isFavorite ? styles.btnActionFavorite : ''}`}
-                              title={isFavorite ? "Rimuovi dai preferiti" : "Imposta come preferita"}
-                            >
-                              <Star size={16} fill={isFavorite ? "#eab308" : "none"} />
-                            </button>
-                            <button
-                              onClick={(e) => handleToggleHideRoom(e, plan.id)}
-                              className={`${styles.btnActionIcon} ${isHidden ? styles.btnActionHidden : ''}`}
-                              title={isHidden ? "Mostra sala" : "Nascondi sala"}
-                            >
-                              {isHidden ? <Eye size={16} /> : <EyeOff size={16} />}
-                            </button>
-                            <button
-                              onClick={(e) => handleToggleArchiveRoom(e, plan.id)}
-                              className={styles.btnActionIcon}
-                              title={seatingView === 'active' ? "Archivia sala" : "Ripristina sala"}
-                            >
-                              {seatingView === 'active' ? <Archive size={16} /> : <RotateCcw size={16} />}
-                            </button>
-                            <button
-                              onClick={() => handleEditSeatingPlan(plan.id)}
-                              className={styles.btnEditSeating}
-                            >
-                              <Edit3 size={16} /> Edit
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {showRoomModal && (
+        <RoomManagementModal 
+          onClose={() => setShowRoomModal(false)}
+          onUpdate={() => initPlans()}
+        />
       )}
 
-      {/* SEATING PLAN EDITOR MODAL */}
-      {showSeatingPlansModal && activeSeatingPlan && seatingPlanForm && (
-        <div className={styles.modalOverlay} onClick={() => setActiveSeatingPlan(null)}>
-          <div className={`${styles.modalContent} ${styles.largeModal}`} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2>Modifica Layout: {activeSeatingPlan.name}</h2>
-              <button
-                onClick={() => setActiveSeatingPlan(null)}
-                className={styles.closeBtn}
-              ><X /></button>
-            </div>
-
-            <div className={styles.layoutEditorMain}>
-              {/* SIDEBAR */}
-              <div className={styles.editorSidebar}>
-                <div className={styles.sidebarSection}>
-                  <label className={styles.sidebarLabel}>Nome Sala</label>
-                  <input
-                    type="text"
-                    value={seatingPlanForm.name}
-                    onChange={e => setSeatingPlanForm({ ...seatingPlanForm, name: e.target.value })}
-                    className={styles.sidebarInput}
-                  />
-                </div>
-
-                <div className={styles.sidebarSection}>
-                  <label className={styles.sidebarLabel}>Zoom Editor</label>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setEditorZoom(prev => Math.max(0.5, prev - 0.1))} className={styles.btnZoom}>-</button>
-                    <span className="text-xs font-bold text-zinc-500">{Math.round(editorZoom * 100)}%</span>
-                    <button onClick={() => setEditorZoom(prev => Math.min(2, prev + 0.1))} className={styles.btnZoom}>+</button>
-                  </div>
-                </div>
-
-                <div className={styles.sidebarSection}>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className={styles.sidebarLabel}>Zone e File</label>
-                    <button onClick={() => {
-                        const newLayout = JSON.parse(JSON.stringify(seatingPlanForm.layout));
-                        newLayout.zones[0].rows.push({
-                          row_number: (newLayout.zones[0].rows.length + 1).toString(),
-                          position: { x: 0, y: newLayout.zones[0].rows.length * 40 },
-                          seats: []
-                        });
-                        setSeatingPlanForm({ ...seatingPlanForm, layout: newLayout });
-                      }} className={styles.btnMiniPlus}>
-                        <PlusCircle size={14} /> Fila
-                    </button>
-                  </div>
-                  <div className={styles.miniList}>
-                    {seatingPlanForm.layout?.zones?.map((zone: any, zIdx: number) => (
-                      zone.rows.map((row: any, rIdx: number) => (
-                        <div key={`${zIdx}-${rIdx}`} className={styles.miniRowItem}>
-                           <span>Fila {row.row_number}</span>
-                           <button onClick={() => handleAddSeat(zIdx, rIdx)} className={styles.btnMiniPlus}><Plus size={14} /></button>
-                        </div>
-                      ))
-                    ))}
-                  </div>
-                </div>
-
-                {selectedSeat && (
-                  <div className={`${styles.sidebarSection} ${styles.selectedSeatSection}`}>
-                    <label className={styles.sidebarLabel}>Dettagli Posto</label>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      <div>
-                        <span className="text-[10px] text-zinc-400 uppercase">Num</span>
-                        <input 
-                          type="text"
-                          value={seatingPlanForm.layout.zones[selectedSeat.zIdx].rows[selectedSeat.rIdx].seats[selectedSeat.sIdx].seat_number}
-                          onChange={(e) => {
-                            const newForm = JSON.parse(JSON.stringify(seatingPlanForm));
-                            newForm.layout.zones[selectedSeat.zIdx].rows[selectedSeat.rIdx].seats[selectedSeat.sIdx].seat_number = e.target.value;
-                            setSeatingPlanForm(newForm);
-                          }}
-                          className={styles.sidebarInputSmall}
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-zinc-400 uppercase">Cat</span>
-                        <button 
-                          onClick={() => toggleSeatCategory(selectedSeat.zIdx, selectedSeat.rIdx, selectedSeat.sIdx)}
-                          className={styles.sidebarBtnToggle}
-                        >
-                          {seatingPlanForm.layout.zones[selectedSeat.zIdx].rows[selectedSeat.rIdx].seats[selectedSeat.sIdx].category || 'Standard'}
-                        </button>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-zinc-400 uppercase">X</span>
-                        <input 
-                          type="number"
-                          value={seatingPlanForm.layout.zones[selectedSeat.zIdx].rows[selectedSeat.rIdx].seats[selectedSeat.sIdx].position.x}
-                          onChange={(e) => {
-                            const newForm = JSON.parse(JSON.stringify(seatingPlanForm));
-                            newForm.layout.zones[selectedSeat.zIdx].rows[selectedSeat.rIdx].seats[selectedSeat.sIdx].position.x = parseInt(e.target.value) || 0;
-                            setSeatingPlanForm(newForm);
-                          }}
-                          className={styles.sidebarInputSmall}
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-zinc-400 uppercase">Y</span>
-                        <input 
-                          type="number"
-                          value={seatingPlanForm.layout.zones[selectedSeat.zIdx].rows[selectedSeat.rIdx].seats[selectedSeat.sIdx].position.y}
-                          onChange={(e) => {
-                            const newForm = JSON.parse(JSON.stringify(seatingPlanForm));
-                            newForm.layout.zones[selectedSeat.zIdx].rows[selectedSeat.rIdx].seats[selectedSeat.sIdx].position.y = parseInt(e.target.value) || 0;
-                            setSeatingPlanForm(newForm);
-                          }}
-                          className={styles.sidebarInputSmall}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* CANVAS */}
-              <div className={styles.canvasArea}>
-                <div 
-                  className={styles.canvasTarget}
-                  style={{ transform: `scale(${editorZoom})`, transformOrigin: '0 0' }}
-                >
-                  <div className={styles.screenIndicator}>SCHERMO</div>
-                  
-                  {seatingPlanForm.layout?.zones?.map((zone: any, zIdx: number) => (
-                    <div key={zIdx} style={{ position: 'absolute', left: zone.position.x, top: zone.position.y }}>
-                      {zone.rows?.map((row: any, rIdx: number) => (
-                        <div key={rIdx} style={{ position: 'absolute', left: row.position.x, top: row.position.y }}>
-                          {row.seats?.map((seat: any, sIdx: number) => {
-                            const isVip = seat.category?.toUpperCase().includes('VIP') || seat.category?.toUpperCase().includes('POLTRONA');
-                            const isSelected = selectedSeat?.zIdx === zIdx && selectedSeat?.rIdx === rIdx && selectedSeat?.sIdx === sIdx;
-                            
-                            return (
-                              <div
-                                key={sIdx}
-                                onClick={() => setSelectedSeat({ zIdx, rIdx, sIdx })}
-                                className={`${styles.canvasSeat} ${isVip ? styles.seatVip : styles.seatStandard} ${isSelected ? styles.seatSelected : ''}`}
-                                style={{ 
-                                  position: 'absolute', 
-                                  left: seat.position.x, 
-                                  top: seat.position.y,
-                                  width: '32px',
-                                  height: '32px'
-                                }}
-                                title={`Posto: ${seat.seat_number} - ${seat.category}`}
-                              >
-                                {seat.seat_number}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {clonePrompt && (
-              <div className={styles.cloneOverlay}>
-                 <div className={styles.clonePopup}>
-                    <h4><TriangleAlert size={18} /> Azione Correttiva</h4>
-                    <p>Piano originale bloccato (vendite attive). Vuoi creare una <strong>v2</strong>?</p>
-                    <div className={styles.cloneActions}>
-                      <button onClick={handleExecuteCloneAndSwap} disabled={swappingPlans} className={styles.btnSwapConfirm}>
-                        {swappingPlans ? <Loader2 className="animate-spin" /> : <Copy size={16} />} Clona ed Applica
-                      </button>
-                      <button onClick={() => setClonePrompt(null)} className={styles.btnSwapCancel}>Annulla</button>
-                    </div>
-                 </div>
-              </div>
-            )}
-
-            <div className={styles.editorFooter}>
-              <button
-                onClick={handleSaveSeatingPlan}
-                disabled={savingSeatingPlan}
-                className={styles.btnPrimary}
-              >
-                {savingSeatingPlan ? <><Loader2 className={styles.spinner} /> Salvataggio...</> : 'Salva Modifiche'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* MODAL ROOM MANAGEMENT (MIRROR SYSTEM) */}
-      {showSeatingPlansModal && !activeSeatingPlan && (
-        <div className={styles.modalOverlay}>
-          <div className={`${styles.modalContent} !max-w-4xl`}>
-            <div className={styles.modalHeader}>
-              <div className="flex items-center gap-4 flex-1">
-                <h2>
-                  <Grid size={22} color="#2563eb" />
-                  Mirror System: Gestione Sale
-                </h2>
-                <button 
-                  className={styles.btnSyncMirror} 
-                  onClick={() => handleSyncMirror(false)}
-                  disabled={isSyncing}
-                >
-                  <RotateCcw size={16} className={isSyncing ? styles.syncingIcon : ''} />
-                  {isSyncing ? 'Sincronizzazione...' : 'Sincronizza Specchio'}
-                </button>
-                <button
-                  className={`${styles.btnPrimary} flex items-center gap-2 !px-4 !py-2 text-sm ml-auto mr-4`}
-                  onClick={handleCreateNewSeatingPlan}
-                >
-                  <PlusCircle size={16} />
-                  Nuova Sala
-                </button>
-              </div>
-              <button onClick={() => setShowSeatingPlansModal(false)} className={styles.modalClose}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className={styles.modalBody}>
-              <div className={styles.tabsContainer}>
-                <button 
-                  className={`${styles.tabButton} ${seatingView === 'active' ? styles.activeTab : ''}`}
-                  onClick={() => setSeatingView('active')}
-                >
-                  <Eye size={18} />
-                  SALE ATTIVE
-                  <span className={styles.badgeCount}>
-                    {seatingPlans.filter(p => !seatingMeta.hiddenIds.includes(p.id)).length}
-                  </span>
-                </button>
-                <button 
-                  className={`${styles.tabButton} ${seatingView === 'archived' ? styles.activeTab : ''}`}
-                  onClick={() => setSeatingView('archived')}
-                >
-                  <Archive size={18} />
-                  ARCHIVIO / NASCOSTE
-                  <span className={styles.badgeCount}>
-                    {seatingPlans.filter(p => seatingMeta.hiddenIds.includes(p.id)).length}
-                  </span>
-                </button>
-              </div>
-
-              {loadingSeatingPlans ? (
-                <div className="flex flex-col items-center justify-center p-20 gap-4">
-                  <Loader2 className="animate-spin text-blue-600" size={40} />
-                  <p className="text-zinc-500 font-medium">Caricamento registro sale...</p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {seatingPlans
-                    .filter(p => seatingView === 'active' ? !seatingMeta.hiddenIds.includes(p.id) : seatingMeta.hiddenIds.includes(p.id))
-                    .sort((a, b) => {
-                      if (a.id === seatingMeta.favoriteId) return -1;
-                      if (b.id === seatingMeta.favoriteId) return 1;
-                      return (a.internalName || a.name).localeCompare(b.internalName || b.name);
-                    })
-                    .map(plan => (
-                      <div key={plan.id} className={styles.roomCard}>
-                        <div className={styles.roomInfo}>
-                          <div className={styles.roomNameWrapper}>
-                            <input 
-                              type="text"
-                              className={styles.internalNameInput}
-                              value={plan.alias || ''}
-                              onChange={(e) => handleRoomMetadataUpdate(plan.id, { alias: e.target.value })}
-                              placeholder="Alias per il sito (es. Sala Grande)..."
-                              title="Nome visualizzato sul sito pubblico"
-                            />
-                            <input 
-                              type="text"
-                              className={styles.internalNameInput + ' opacity-60 text-xs'}
-                              value={plan.internalName || plan.name}
-                              onChange={(e) => handleRoomMetadataUpdate(plan.id, { internalName: e.target.value })}
-                              placeholder="Nome interno..."
-                              title="Nome di riferimento per l'admin"
-                            />
-                            {plan.isOrphaned && <span className={styles.orphanBadge}>Orfana</span>}
-                            {plan.id === seatingMeta.favoriteId && <Star size={16} fill="#ea580c" color="#ea580c" />}
-                          </div>
-                          <span className={styles.pretixName}>Pretix: {plan.name} (ID: {plan.id})</span>
-                          <span className={styles.lastSync}>Ultimo sync: {plan.lastSync ? new Date(plan.lastSync).toLocaleString('it-IT') : 'Mai'}</span>
-                        </div>
-
-                        <div className={styles.roomActions}>
-                          <button 
-                            className={styles.btnRoomAction}
-                            onClick={() => handleEditSeatingPlan(plan.id)}
-                            title="Modifica Layout"
-                          >
-                            <Edit3 size={18} />
-                          </button>
-                          <button 
-                            className={`${styles.btnRoomAction} ${plan.id === seatingMeta.favoriteId ? styles.btnRoomFavorite : ''}`}
-                            onClick={(e) => handleToggleFavoriteRoom(e, plan.id)}
-                            title={plan.id === seatingMeta.favoriteId ? "Rimuovi dai preferiti" : "Imposta come preferita per scheduling"}
-                          >
-                            <Star size={18} />
-                          </button>
-                          <button 
-                            className={`${styles.btnRoomAction} ${!seatingMeta.hiddenIds.includes(plan.id) ? styles.btnRoomActive : ''}`}
-                            onClick={(e) => handleToggleHideRoom(e, plan.id)}
-                            title={seatingMeta.hiddenIds.includes(plan.id) ? "Ripristina sala" : "Nascondi sala everywhere"}
-                          >
-                            {seatingMeta.hiddenIds.includes(plan.id) ? <Eye size={18} /> : <EyeOff size={18} />}
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  }
-                  
-                  {seatingPlans.filter(p => seatingView === 'active' ? !seatingMeta.hiddenIds.includes(p.id) : seatingMeta.hiddenIds.includes(p.id)).length === 0 && (
-                    <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-zinc-200 rounded-xl bg-zinc-50">
-                      <Grid size={40} className="text-zinc-300 mb-2" />
-                      <p className="text-zinc-500 font-medium">Nessuna sala in questa categoria.</p>
-                      {seatingView === 'active' && (
-                        <button className="mt-4 text-blue-600 font-bold flex items-center gap-2" onClick={() => handleSyncMirror()}>
-                          <RotateCcw size={16} /> Sincronizza ora
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <div className="mt-8 flex justify-center">
-                <button
-                  onClick={handleCreateNewSeatingPlan}
-                  className={styles.btnPrimary + ' flex items-center gap-2 !px-8 !py-3 !rounded-full shadow-lg'}
-                >
-                  <PlusCircle size={20} />
-                  CREA NUOVA SALA SU PRETIX
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

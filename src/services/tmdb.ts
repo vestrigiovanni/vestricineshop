@@ -226,7 +226,7 @@ export function getMovieLogo(details: MovieDetails): string | null {
  * Helper to construct the full image URL from TMDB path.
  * Size can be 'w500', 'original', etc.
  */
-export function getTMDBImageUrl(path: string | null, size: string = 'w500'): string {
-  if (!path) return ''; // Could return a local fallback placeholder
+export function getTMDBImageUrl(path: string | null | undefined, size: string = 'w500'): string | undefined {
+  if (!path) return undefined;
   return `https://image.tmdb.org/t/p/${size}${path}`;
 }

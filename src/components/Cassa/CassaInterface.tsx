@@ -83,6 +83,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
   const [clock, setClock] = useState('');
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [showTestTicket, setShowTestTicket] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const [viewDate, setViewDate] = useState(() => {
     const d = new Date();
@@ -306,7 +307,10 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     }
   }, [selectedScreening, selectedSeats, prezzoFisico, viewDate, fetchDateScreenings]);
 
-  const buildTicketData = useCallback((record?: CassaTicketRecord): ThermalTicketData | null => {
+  const buildTicketData = useCallback((
+    record?: CassaTicketRecord,
+    screening?: CassaScreening | null,
+  ): ThermalTicketData | null => {
     if (!record) return null;
     return {
       movieTitle: record.movieTitle,
@@ -319,16 +323,100 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
       qrValue: record.qrValue,
       price: record.price,
       printDate: formatSaleTime(record.date),
+      // Campi arricchiti per il layout avanzato (logo, orario fine)
+      logoPath: screening?.logoPath,
+      duration: screening?.runtime,
+      dateFrom: screening?.dateFrom,
     };
   }, []);
 
-  const handlePrint = useCallback(() => window.print(), []);
+  // ─── PRINT HANDLERS ────────────────────────────────────────────────────────
+
+  /**
+   * handlePrint — Invia i biglietti alla stampante termica via API server-side.
+   * Usa lpr direttamente, bypassando completamente il browser print dialog.
+   * Fallback a window.print() se l'API non è disponibile.
+   */
+  // Cattura un elemento DOM come PNG via html2canvas e lo invia all'API di stampa
+  const captureAndPrint = useCallback(async (elementId: string, orderCode: string): Promise<boolean> => {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      console.warn(`[PRINT] Elemento non trovato: ${elementId}`);
+      return false;
+    }
+    // Attendi caricamento immagini dentro l'elemento
+    const imgs = element.querySelectorAll('img');
+    await Promise.all(Array.from(imgs).map(img =>
+      img.complete ? Promise.resolve() : new Promise<void>(res => {
+        img.onload = () => res();
+        img.onerror = () => res();
+        setTimeout(res, 5000); // timeout sicurezza
+      })
+    ));
+    // Buffer per il rendering
+    await new Promise(res => setTimeout(res, 400));
+
+    const canvas = await html2canvas(element, {
+      scale: 1, // 1:1 capture since we set width to 384px (printer pixels)
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      allowTaint: false,
+      imageTimeout: 10000,
+    });
+    const imageData = canvas.toDataURL('image/png');
+
+    const res = await fetch('/api/print/thermal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageData, orderCode }),
+    });
+    const json = await res.json();
+    if (!json.ok) console.error('[PRINT] API error:', json.error);
+    else console.log('[PRINT] ✅', json.message);
+    return json.ok;
+  }, []);
+
+  const handlePrint = useCallback(async () => {
+    if (!result?.records?.length) return;
+    setIsPrinting(true);
+    try {
+      let allOk = true;
+      for (let i = 0; i < result.records.length; i++) {
+        const ok = await captureAndPrint(`thermal-capture-${i}`, result.records[i].orderCode);
+        if (!ok) allOk = false;
+      }
+      if (!allOk) {
+        console.warn('[PRINT] Alcuni biglietti non stampati — fallback window.print()');
+        window.print();
+      }
+    } catch (err) {
+      console.error('[PRINT] Errore:', err);
+      window.print();
+    } finally {
+      setIsPrinting(false);
+    }
+  }, [result, captureAndPrint]);
+
+  const handlePrintTest = async () => {
+    setIsPrinting(true);
+    try {
+      const ok = await captureAndPrint('thermal-capture-test', 'TEST');
+      if (ok) alert('✅ Test di stampa inviato! Controlla la stampante.');
+      else alert('❌ Errore durante il test di stampa.');
+    } catch (err: any) {
+      alert('❌ Errore: ' + err.message);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   const handleDownloadTicket = useCallback(async () => {
     if (!result || !result.records.length || !selectedScreening) return;
     setGeneratingPdf(true);
     try {
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [148, 105] });
+
       
       for (let i = 0; i < result.records.length; i++) {
         const element = document.getElementById(`ticket-pdf-current-${i}`);
@@ -371,10 +459,6 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
 
   const handleReprint = (record: CassaTicketRecord) => setReprintRecord(record);
   const handleReprintClose = () => setReprintRecord(null);
-  const handlePrintTest = () => {
-    setShowTestTicket(true);
-    setTimeout(() => { window.print(); setShowTestTicket(false); }, 100);
-  };
 
   const handleNewSale = useCallback(() => {
     clearAllOrderData();
@@ -525,23 +609,37 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
 
   return (
     <>
-      {result?.records && step === 'success' && (
-        <div className={styles.printOnly}>
-          {result.records.map((rec, idx) => (
-            <ThermalTicket key={rec.id} id={`thermal-current-${idx}`} data={buildTicketData(rec)!} />
-          ))}
+      {/* ── Div nascosti off-screen per la cattura html2canvas ─────────── */}
+      <div style={{ position: 'fixed', top: 0, left: '-9999px', pointerEvents: 'none', zIndex: -1 }}>
+
+        {/* Test ticket — sempre renderizzato per il pulsante "Test di Stampa" */}
+        <div id="thermal-capture-test" style={{ width: 576, background: 'white' }}>
+          <ThermalTicket data={{
+            movieTitle: 'TEST STAMPA',
+            screening: 'OGGI, 21:00',
+            roomName: 'SALA TEST',
+            rowLabel: '5', seatLabel: '12', seatName: 'Fila 5, Posto 12',
+            orderCode: 'TEST99',
+            qrValue: 'https://vestricinema.it',
+            price: '0.00',
+            printDate: '20/04/2026, 21:40:00',
+          }} />
         </div>
-      )}
-      {reprintRecord && (
-        <div className={styles.printOnly}>
-          <ThermalTicket ref={reprintTicketRef} id="thermal-reprint" data={buildTicketData(reprintRecord)!} />
-        </div>
-      )}
-      {showTestTicket && (
-        <div className={styles.printOnly}>
-          <ThermalTicket id="thermal-test" data={{ movieTitle: 'TEST', screening: 'TEST', roomName: 'TEST', rowLabel: '0', seatLabel: '0', seatName: 'TEST', orderCode: 'TEST', qrValue: 'TEST', price: '0', printDate: 'TEST' }} />
-        </div>
-      )}
+
+        {/* Biglietti vendita corrente */}
+        {result?.records && selectedScreening && result.records.map((rec, idx) => (
+          <div key={`capture-${rec.id}`} id={`thermal-capture-${idx}`} style={{ width: 576, background: 'white' }}>
+            <ThermalTicket data={buildTicketData(rec, selectedScreening)!} />
+          </div>
+        ))}
+
+        {/* Biglietto ristampa */}
+        {reprintRecord && (
+          <div id="thermal-capture-reprint" style={{ width: 576, background: 'white' }}>
+            <ThermalTicket data={buildTicketData(reprintRecord)!} />
+          </div>
+        )}
+      </div>
 
       <div style={{ position: 'fixed', top: 0, left: '-9999px', pointerEvents: 'none' }}>
         {result?.records && selectedScreening && result.records.map((rec, idx) => (
@@ -569,7 +667,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
           <div className={styles.topBarRight}>
             <span className={styles.clock}>{clock}</span>
             <button className={styles.btnRefresh} onClick={() => window.location.reload()}><RefreshCw size={14} /> Aggiorna</button>
-            <button className={styles.btnPrintTest} onClick={handlePrintTest}><Printer size={14} /> Test di Stampa</button>
+            <button className={styles.btnPrintTest} onClick={handlePrintTest} disabled={isPrinting}>{isPrinting ? <Loader2 size={14} className={styles.loadingSpinner} /> : <Printer size={14} />} Test di Stampa</button>
             <button className={styles.btnHistory} onClick={() => setShowHistory(true)}><History size={15} /> Ultime Vendite ({recentSales.length})</button>
           </div>
         </header>
@@ -798,8 +896,10 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
                   <button 
                     className={`${styles.btnPrint} ${activeShortcut === 'thermal' ? styles.shortcutActive : ''}`} 
                     onClick={handlePrint}
+                    disabled={isPrinting}
                   >
-                    <Printer size={16} /> Stampa Scontrini <span className={styles.kbdHint}>P</span>
+                    {isPrinting ? <Loader2 size={16} className={styles.loadingSpinner} /> : <Printer size={16} />} 
+                    {isPrinting ? 'Stampa in corso...' : 'Stampa Scontrini'} <span className={styles.kbdHint}>P</span>
                   </button>
                   <button 
                     className={`${styles.btnDownloadTicket} ${activeShortcut === 'pdf' ? styles.shortcutActive : ''}`} 
@@ -851,7 +951,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
           <div className={styles.overlayCard} onClick={e => e.stopPropagation()}>
             <ThermalTicket ref={reprintTicketRef} id="thermal-reprint" data={buildTicketData(reprintRecord)!} />
             <div className={styles.overlayActions}>
-              <button onClick={() => window.print()}><Printer size={16} /> Ristampa</button>
+              <button onClick={async () => { setIsPrinting(true); await captureAndPrint('thermal-capture-reprint', reprintRecord?.orderCode || ''); setIsPrinting(false); }}><Printer size={16} /> {isPrinting ? 'Stampa...' : 'Ristampa'}</button>
               <button onClick={handleReprintClose}><X size={14} /></button>
             </div>
           </div>

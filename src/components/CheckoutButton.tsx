@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import { useState, useEffect, useRef } from 'react';
 import { Download, CheckCircle2 } from 'lucide-react';
 import { finalizeBooking, getSubEvent } from '@/services/pretix';
-import { ROOM_NAMES } from '@/constants/pretix';
 import TicketPDF, { generateTicketPDF } from './TicketPDF';
 import styles from './CheckoutButton.module.css';
 
@@ -65,6 +63,8 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess }:
     }
   }, [subeventId]);
 
+
+
   const handleCheckout = async (targetEmail?: string) => {
     const finalEmail = targetEmail || email;
     if (!finalEmail) {
@@ -96,21 +96,93 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess }:
           console.error('Failed to parse metadata', e);
         }
 
+        // Lookup del nome sala reale dal seating plan ID
+        // Usiamo la API route /api/seating-plans per NON esporre il token Pretix lato client
+        let roomName = 'SALA';
+        if (se.seating_plan) {
+          try {
+            const plansRes = await fetch('/api/seating-plans');
+            if (plansRes.ok) {
+              const plansMap = await plansRes.json();
+              const planName = plansMap[se.seating_plan];
+              if (planName) roomName = `SALA ${planName}`;
+            }
+          } catch (e) {
+            console.warn('Could not resolve seating plan name', e);
+          }
+        }
+
+        // --- TMDB Fallback for legacy subevents without metadata in comment ---
+        // If tmdbId is missing from the comment, resolve it from TMDB by title.
+        // Then fetch full details to enrich backdropPath and logoPath if not set.
+        let resolvedTmdbId = meta.tmdbId || '';
+        let resolvedBackdropPath = meta.backdropPath || '';
+        let resolvedLogoPath = meta.logoPath || '';
+
+        const movieTitleForSearch = se.name?.it || se.name || '';
+        if (!resolvedTmdbId && movieTitleForSearch) {
+          try {
+            const cleanTitle = movieTitleForSearch
+              .replace(/\(.*?\)/g, '')
+              .replace(/\[.*?\]/g, '')
+              .replace(/Proiezione\s+\d+/gi, '')
+              .replace(/ - /g, ' ')
+              .trim();
+            const searchRes = await fetch(
+              `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(cleanTitle)}&language=it-IT&page=1&api_key=00ea09c7fb5bf89b064f6001a2de3122`
+            );
+            if (searchRes.ok) {
+              const searchData = await searchRes.json();
+              const firstResult = searchData.results?.[0];
+              if (firstResult) {
+                resolvedTmdbId = String(firstResult.id);
+                console.log(`[CheckoutButton] TMDB fallback: resolved "${cleanTitle}" → ID ${resolvedTmdbId}`);
+              }
+            }
+          } catch (e) {
+            console.warn('[CheckoutButton] TMDB title search failed', e);
+          }
+        }
+
+        // If we have a tmdbId but are missing backdrop or logo, fetch them from TMDB
+        if (resolvedTmdbId && (!resolvedBackdropPath || !resolvedLogoPath)) {
+          try {
+            const detailsRes = await fetch(
+              `https://api.themoviedb.org/3/movie/${resolvedTmdbId}?append_to_response=images&include_image_language=it,en,null&api_key=00ea09c7fb5bf89b064f6001a2de3122`
+            );
+            if (detailsRes.ok) {
+              const details = await detailsRes.json();
+              if (!resolvedBackdropPath && details.backdrop_path) {
+                resolvedBackdropPath = details.backdrop_path;
+              }
+              if (!resolvedLogoPath) {
+                const logos = details.images?.logos || [];
+                const itLogo = logos.find((l: any) => l.iso_639_1 === 'it');
+                const enLogo = logos.find((l: any) => l.iso_639_1 === 'en');
+                const bestLogo = itLogo?.file_path || enLogo?.file_path || logos[0]?.file_path;
+                if (bestLogo) resolvedLogoPath = bestLogo;
+              }
+            }
+          } catch (e) {
+            console.warn('[CheckoutButton] TMDB details fetch failed', e);
+          }
+        }
+
         const newSubeventData = {
           movieTitle: se.name?.it || se.name || 'Film',
           posterPath: meta.posterPath || '',
           duration: meta.runtime || 120,
           director: meta.director || '',
           cast: Array.isArray(meta.cast) ? meta.cast.join(', ') : (meta.cast || ''),
-          roomName: ROOM_NAMES[Number(se.seating_plan)] || se.seating_plan_name || 'SALA',
+          roomName,
           date: se.date_from,
-          backdropPath: meta.backdropPath || '',
-          logoPath: meta.logoPath || '',
+          backdropPath: resolvedBackdropPath,
+          logoPath: resolvedLogoPath,
           tagline: meta.tagline || '',
           genres: meta.genres || '',
           year: meta.year || '',
           rating: meta.rating || '',
-          tmdbId: meta.tmdbId || '',
+          tmdbId: resolvedTmdbId,
         };
         setSubeventData(newSubeventData);
         
@@ -142,12 +214,26 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess }:
       }
       
       setSuccess(true);
+
       if (onSuccess) {
         console.log('[CHECKOUT] Triggering refresh callback...');
         onSuccess();
       }
     } catch (err: any) {
       setError(err?.message || "Errore durante la prenotazione. Riprova.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    setLoading(true);
+    try {
+      const ticketIds = tickets.map(t => `full-ticket-${t.secret}`);
+      await generateTicketPDF(ticketIds, `biglietti_${orderCode}`);
+    } catch (err) {
+      console.error('Failed to generate PDF', err);
+      setError("Errore durante la generazione del PDF.");
     } finally {
       setLoading(false);
     }
@@ -164,23 +250,6 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess }:
     setIsAnonymous(true);
     handleCheckout('guest_ANONIMO@vestricinema.it');
   };
-
-  const handleDownloadPDF = async () => {
-    if (!tickets.length || !subeventData) return;
-    setLoading(true);
-    try {
-      const elementIds = tickets.map(t => `full-ticket-${t.secret}`);
-      // Naming: Biglietti_[TitoloFilm]_[CodiceOrdine].pdf
-      const cleanMovieTitle = subeventData.movieTitle.replace(/[^a-z0-9]/gi, '_');
-      const fileName = `biglietto_vestricinema_${orderCode}`;
-      await generateTicketPDF(elementIds, fileName);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (success) {
     return (
       <div className={styles.successContainer}>
@@ -194,41 +263,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess }:
           </div>
         </div>
 
-        <div className={styles.splitLayout}>
-        {/* Visible Preview of Souvenir Tickets */}
-        <div className={styles.ticketPreviewList}>
-          {subeventData && tickets.map((ticket, idx) => (
-            <TicketPDF 
-              key={ticket.id}
-              preview={true}
-              compact={true}
-              id={`preview-ticket-${ticket.secret}`}
-              backdropIndex={idx}
-              data={{
-                movieTitle: subeventData.movieTitle,
-                posterPath: subeventData.posterPath,
-                date: subeventData.date,
-                duration: subeventData.duration,
-                director: subeventData.director,
-                cast: subeventData.cast,
-                roomName: subeventData.roomName,
-                seatName: ticket.seat_name || 'Posto Unico',
-                orderCode: orderCode,
-                qrSecret: ticket.secret,
-                purchaseDate: new Date().toLocaleDateString('it-IT'),
-                backdropPath: subeventData.backdropPath,
-                logoPath: subeventData.logoPath,
-                tagline: subeventData.tagline,
-                genres: subeventData.genres,
-                year: subeventData.year,
-                rating: subeventData.rating,
-                tmdbId: subeventData.tmdbId,
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Hidden area for PDF generation rendering (at full scale) */}
+        {/* Hidden area for PDF generation rendering (at full scale) — outside visible layout */}
         <div style={{ position: 'fixed', top: 0, left: '-9999px', display: 'block', pointerEvents: 'none', zIndex: -999 }}>
           {subeventData && tickets.map((ticket, idx) => (
             <TicketPDF 
@@ -259,33 +294,66 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess }:
             />
           ))}
         </div>
-        
-        <div className={styles.actionArea}>
-          <button 
-            className={`btn-primary ${styles.giantDownloadBtn}`} 
-            onClick={handleDownloadPDF}
-            disabled={loading}
-          >
-            {loading ? (
-                <>Generazione PDF...</>
-            ) : (
-                <>
-                    <Download size={24} />
-                    SCARICA IL TUO BIGLIETTO ORA
-                </>
+
+        {/* Biglietto Souvenir Preview + Action Area — side by side on wide screens */}
+        <div className={styles.splitLayout}>
+          <div className={styles.ticketPreviewList}>
+            {subeventData && tickets.map((ticket, idx) => (
+              <TicketPDF 
+                key={ticket.id}
+                preview={true}
+                compact={true}
+                backdropIndex={idx}
+                data={{
+                  movieTitle: subeventData.movieTitle,
+                  posterPath: subeventData.posterPath,
+                  date: subeventData.date,
+                  duration: subeventData.duration,
+                  director: subeventData.director,
+                  cast: subeventData.cast,
+                  roomName: subeventData.roomName,
+                  seatName: ticket.seat_name || 'Posto Unico',
+                  orderCode: orderCode,
+                  qrSecret: ticket.secret,
+                  purchaseDate: new Date().toLocaleDateString('it-IT'),
+                  backdropPath: subeventData.backdropPath,
+                  logoPath: subeventData.logoPath,
+                  tagline: subeventData.tagline,
+                  genres: subeventData.genres,
+                  year: subeventData.year,
+                  rating: subeventData.rating,
+                  tmdbId: subeventData.tmdbId,
+                }}
+              />
+            ))}
+          </div>
+
+          <div className={styles.actionArea}>
+            <button 
+              className={`btn-primary ${styles.giantDownloadBtn}`} 
+              onClick={handleDownloadPDF}
+              disabled={loading}
+            >
+              {loading ? (
+                  <>Generazione PDF...</>
+              ) : (
+                  <>
+                      <Download size={24} />
+                      SCARICA IL TUO BIGLIETTO ORA
+                  </>
+              )}
+            </button>
+            
+            {isAnonymous && (
+              <div className={styles.anonymousDisclaimer}>
+                <p>⚠️ <strong>Nota bene:</strong> Non riceverai una copia via email. Assicurati di scaricare o fare uno screenshot del biglietto ora.</p>
+              </div>
             )}
-          </button>
-          
-          {isAnonymous && (
-            <div className={styles.anonymousDisclaimer}>
-              <p>⚠️ <strong>Nota bene:</strong> Non riceverai una copia via email. Assicurati di scaricare o fare uno screenshot del biglietto ora.</p>
-            </div>
-          )}
-          
-          {!isAnonymous && <p className={styles.downloadHint}>Il PDF verrà scaricato direttamente sul tuo dispositivo.</p>}
-        </div>
+            
+            {!isAnonymous && <p className={styles.downloadHint}>Il PDF verrà scaricato direttamente sul tuo dispositivo.</p>}
+          </div>
+        </div> {/* end splitLayout */}
       </div>
-    </div>
     );
   }
 

@@ -154,10 +154,10 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
     if (preview && containerRef?.current) {
       const parent = containerRef.current.parentElement;
       if (parent) {
-        const parentWidth = parent.clientWidth;
-        const ticketWidth = 600;
-        let newScale = Math.min(1, parentWidth / ticketWidth);
-        if (compact) newScale *= 0.5; // Force 50% scale for compact miniature
+        const parentWidth = parent.clientWidth || 400;
+        // Scale to fit the parent container, using the full 840px ticket width as reference
+        let newScale = Math.min(1, parentWidth / 840);
+        if (compact) newScale = Math.min(newScale, 0.5); // Cap at 50% for miniature previews
         setScale(newScale);
       }
     }
@@ -184,7 +184,6 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
       style={{
         transform: preview ? `scale(${scale})` : 'none',
         transformOrigin: 'top center',
-        marginBottom: preview ? `${(scale - 1) * 592}px` : '0',
       }}
     >
       {/* ── Layer 1: Backdrop Image (USING DIV BACKGROUND FOR STABLE COVER SCALING) ── */}
@@ -239,7 +238,7 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
           <div className={styles.logoContainer}>
             {activeLogo ? (
               <img
-                src={getTMDBImageUrl(activeLogo, 'w500')}
+                src={getTMDBImageUrl(activeLogo, 'w500')!}
                 alt={data.movieTitle}
                 className={styles.movieLogo}
                 crossOrigin="anonymous"
@@ -319,7 +318,15 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
   );
 
   return preview ? (
-    <div className={styles.previewWrapper}>
+    <div
+      className={styles.previewWrapper}
+      style={{
+        width: '100%',
+        height: `${Math.round(592 * scale)}px`,
+        overflow: 'hidden',
+        flexShrink: 0,
+      }}
+    >
       {ticketContent}
     </div>
   ) : (

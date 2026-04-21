@@ -1,10 +1,9 @@
-import { getMovieDetails, getCast, getTrailerKey } from '@/services/tmdb';
+import { getMovieDetails, getCast, getTrailerKey, searchMovies } from '@/services/tmdb';
 import { listSubEvents, listQuotas, getSeatingPlansMap, limitConcurrency } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '@/components/WeeklyCinemaCalendar/WeeklyCinemaCalendar';
 import styles from './page.module.css';
-import roomsRegistry from '@/constants/rooms_registry.json';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,62 +26,46 @@ export default async function Home() {
   rawSubEvents.forEach((se, index) => {
     quotasBySubevent.set(se.id, quotaResults[index]);
   });
-
   // Step 4: Calculate isSoldOut and map roomName for EVERY subevent
   const subEvents = rawSubEvents.map(se => {
     const seQuotas = quotasBySubevent.get(se.id) || [];
-    
-    // --- Mirror System filtering ---
-    const planId = se.seating_plan ? String(se.seating_plan) : 'DEFAULT';
-    const roomConfig = (roomsRegistry as any)[planId] || (roomsRegistry as any)['DEFAULT'];
-    
-    let isHidden = false;
-    if (roomConfig?.isHidden) {
-      isHidden = true;
-    }
 
     let isSoldOut = false;
     let totalAvailable = 0;
 
-    if (!isHidden) {
-      if (!seQuotas || seQuotas.length === 0) {
-        // FAIL-SAFE: Se non ci sono dati sulle quote o l'API fallisce, la variabile isSoldOut deve essere sempre FALSE.
+    if (!seQuotas || seQuotas.length === 0) {
+      // FAIL-SAFE: Se non ci sono dati sulle quote o l'API fallisce, la variabile isSoldOut deve essere sempre FALSE.
+      isSoldOut = false;
+    } else {
+      const relevantQuotas = seQuotas.filter((q: any) =>
+        Array.isArray(q.items) && q.items.some((id: any) =>
+          String(id) === String(ITEM_INTERO_ID) || String(id) === String(ITEM_VIP_ID)
+        )
+      );
+
+      const hasUnlimited = relevantQuotas.some((q: any) => q.available_number === null);
+
+      if (relevantQuotas.length === 0 || hasUnlimited) {
+        // FAIL-SAFE: Se non troviamo quote specifiche o sono illimitate, consideriamo disponibile.
         isSoldOut = false;
       } else {
-        // Filtriamo le quote usando String() per evitare errori tra numero e stringa
-        const relevantQuotas = seQuotas.filter((q: any) => 
-          Array.isArray(q.items) && q.items.some((id: any) => 
-            String(id) === String(ITEM_INTERO_ID) || String(id) === String(ITEM_VIP_ID)
-          )
-        );
-
-        const hasUnlimited = relevantQuotas.some((q: any) => q.available_number === null);
-        
-        if (hasUnlimited) {
-          isSoldOut = false;
-        } else {
-          totalAvailable = relevantQuotas.reduce((acc: number, q: any) => acc + (Number(q.available_number) || 0), 0);
-          isSoldOut = totalAvailable === 0; // Solo se la somma totale è zero è davvero esaurito
-        }
+        totalAvailable = relevantQuotas.reduce((acc: number, q: any) => acc + (Number(q.available_number) || 0), 0);
+        isSoldOut = totalAvailable === 0; // Solo se la somma totale è zero è davvero esaurito
       }
+    }
 
-      // Manual presale override
-      if (se.active && se.presale_is_running === false) {
-        isSoldOut = true;
-      }
-    } else {
-       // if room is hidden, ignore completely the quotas and do not show it
-       // We can mark it as sold out or just handle the filtering later. The prompt says "ignora completamente le quote e non mostrarla".
-       // Later we have `if (se.isHidden) continue;`. Let's add `isHidden` to the mapped object.
+    // Manual presale override
+    if (se.active && se.presale_is_running === false) {
+      isSoldOut = true;
     }
 
     // --- Dynamic Room Name ---
-    const roomName = roomConfig?.alias || roomConfig?.name || (se.seating_plan ? (roomsMap[se.seating_plan] || 'Sala') : 'Sala');
+    const roomName = se.seating_plan ? (roomsMap[se.seating_plan] || 'Sala') : 'Sala';
 
     return {
       ...se,
       isSoldOut,
-      isHidden,
+      isHidden: false,
       roomName,
     };
   });
@@ -96,7 +79,7 @@ export default async function Home() {
   for (const se of subEvents) {
     // ── Pre-Filter ───────────────────────────────────────────
     if (!se.active || se.isHidden) continue;
-    
+
     // EXTREMELY IMPORTANT: Only include sub-events that have an ASSIGNED seating plan.
     // If seating_plan is null, the sub-event is "General Admission" (Posto Libero)
     // and the interactive SeatMap will fail/be empty.
@@ -122,9 +105,29 @@ export default async function Home() {
         tmdbId = tmdbIdMatch ? tmdbIdMatch[1] : null;
       }
     }
-    
-    if (!tmdbId) continue;
-    
+
+    if (!tmdbId && se.name?.it) {
+      // Auto-resolve TMDB ID if comment is missing
+      const cleanTitle = se.name.it
+        .replace(/\(.*?\)/g, "")
+        .replace(/\[.*?\]/g, "")
+        .replace(/Proiezione\s+\d+/gi, "")
+        .replace(/ - /g, " ")
+        .trim();
+        
+      const results = await searchMovies(cleanTitle);
+      if (results && results.length > 0) {
+        tmdbId = results[0].id.toString();
+        // Fire & Forget: logging info per debug
+        console.log(`[Home] 🌟 Auto-resolved TMDB ID ${tmdbId} for "${se.name.it}"`);
+      }
+    }
+
+    if (!tmdbId) {
+      console.log(`[Home] ⚠️ Skipping sub-event ${se.id} ("${se.name?.it}") - NO TMDB ID`);
+      continue;
+    }
+
     if (!groupedRecord[tmdbId]) {
       const tmdbMovie = await getMovieDetails(tmdbId);
       if (tmdbMovie) {
@@ -154,10 +157,10 @@ export default async function Home() {
   // Format the grouped movies array
   const movies: GroupedMovie[] = Object.values(groupedRecord).map(entry => {
     const director = entry.tmdbMovie.credits?.crew?.find((c: any) => c.job === 'Director')?.name || 'Sconosciuto';
-    
+
     // Movie-level sold out: ALL future screenings are sold out
     const isSoldOut = entry.subevents.length > 0 && entry.subevents.every(se => se.isSoldOut === true);
-    
+
     // Extract best logo (Italian first, then English, then first available)
     let logo_path = null;
     if (entry.tmdbMovie.images?.logos && entry.tmdbMovie.images.logos.length > 0) {

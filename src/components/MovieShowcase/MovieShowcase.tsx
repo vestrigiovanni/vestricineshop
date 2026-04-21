@@ -173,7 +173,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
       <div className={styles.hero}>
         <div className={styles.heroBackdrop}>
           <Image 
-            src={getTMDBImageUrl(activeMovie.backdrop_path, 'original') || getTMDBImageUrl(activeMovie.poster_path, 'original')} 
+            src={getTMDBImageUrl(activeMovie.backdrop_path, 'original') || getTMDBImageUrl(activeMovie.poster_path, 'original') || ''} 
             alt={activeMovie.title} 
             fill 
             className={styles.heroImage}
@@ -187,7 +187,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
           {activeMovie.logo_path ? (
             <div className={styles.logoContainer}>
               <Image 
-                src={getTMDBImageUrl(activeMovie.logo_path, 'w500')} 
+                src={getTMDBImageUrl(activeMovie.logo_path, 'w500')!} 
                 alt={activeMovie.title} 
                 fill
                 className={styles.movieLogo}
@@ -303,7 +303,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
               <div className={styles.imageContainer}>
                 {movie.poster_path ? (
                   <Image 
-                    src={getTMDBImageUrl(movie.poster_path, 'w500')} 
+                    src={getTMDBImageUrl(movie.poster_path, 'w500')!} 
                     alt={movie.title}
                     fill
                     sizes="(max-width: 768px) 140px, 200px"

@@ -23,7 +23,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
         <div className={styles.imageContainer}>
           {movie.poster_path ? (
             <Image 
-              src={imageUrl} 
+              src={imageUrl!} 
               alt={`Locandina di ${movie.title}`} 
               fill
               className={styles.image}

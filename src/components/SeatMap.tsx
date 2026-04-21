@@ -1,8 +1,6 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { RotateCcw, X, Loader2 } from 'lucide-react';
-import { getSeatingPlan, getAvailability } from '@/services/pretix';
+import { useState, useEffect, useMemo } from 'react';
+import { RotateCcw, X, Loader2, Info } from 'lucide-react';
+import { getSubEventSeats } from '@/services/pretix';
 import styles from './SeatMap.module.css';
 
 interface SeatMapProps {
@@ -14,12 +12,11 @@ interface SeatMapProps {
 
 interface Seat {
   id: string;
-  row: number;
-  col: number;
+  name: string;
+  row: string;
+  seat: string;
   isOccupied: boolean;
-  isVip?: boolean;
-  rowName?: string;
-  seatName?: string;
+  isVip: boolean;
 }
 
 export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClose }: SeatMapProps) {
@@ -31,58 +28,42 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClo
     async function loadData() {
       if (!subeventId) return;
 
-      console.log(`[SeatMap] 🚀 Loading sub-event ${subeventId}`);
+      console.log(`[SeatMap] 🚀 Loading sub-event ${subeventId} (Simplified Mode)`);
       setLoading(true);
       try {
-        const [planData, availabilityData] = await Promise.all([
-          getSeatingPlan(subeventId),
-          getAvailability(subeventId)
-        ]);
-        
-        void availabilityData;
+        // 1. Fetch Seats directly from Seats API
+        const statusData = await getSubEventSeats(subeventId);
 
-        if (planData && Array.isArray(planData) && planData.length > 0) {
-          const VIP_PRODUCT_ID = 344653;
-
-          const transformedSeats: Seat[] = planData
-            .filter((s: any) => s && (s.seat_guid || s.id))
-            .map((s: any) => {
-              const isVip =
-                s.product === VIP_PRODUCT_ID ||
-                (typeof s.zone_name === 'string' && (
-                  s.zone_name.toLowerCase().includes('vip') ||
-                  s.zone_name.toLowerCase().includes('poltrona')
-                ));
-
-              let rowIdx = 0, colIdx = 0;
-              if (s.row_name) rowIdx = parseInt(s.row_name) || (s.row_name.charCodeAt(0) - 64);
-              if (s.seat_number) colIdx = parseInt(s.seat_number) || (s.seat_number.charCodeAt(0) - 64);
-
-              return {
-                id: s.seat_guid || s.id.toString(),
-                row: rowIdx,
-                col: colIdx,
-                isOccupied: s.available === false || !!s.blocked || s.orderposition !== null || s.cartposition !== null,
-                isVip,
-                rowName: s.row_name || String.fromCharCode(64 + Math.max(1, rowIdx)),
-                seatName: s.seat_number || colIdx.toString(),
-              };
-            });
-
-          // Sort numerically by seat number (1, 2, 3...)
-          const sortedSeats = [...transformedSeats].sort((a, b) => {
-            const numA = parseInt(a.seatName || '0', 10);
-            const numB = parseInt(b.seatName || '0', 10);
-            return numA - numB;
-          });
-
-          setSeats(sortedSeats);
-        } else {
-          setSeats([]);
+        if (!statusData || !Array.isArray(statusData)) {
+          throw new Error('Dati posti non disponibili');
         }
+
+        // 2. Process into a simple list
+        const extractedSeats: Seat[] = statusData.map((s: any) => {
+          const isVip = 
+            (typeof s.seat_guid === 'string' && s.seat_guid.toUpperCase().includes('VIP')) ||
+            (typeof s.category === 'string' && (s.category.toUpperCase().includes('VIP') || s.category.toUpperCase().includes('POLTRONA')));
+          
+          return {
+            id: s.seat_guid || s.id.toString(),
+            name: s.name || `Posto ${s.seat_number}`,
+            row: s.row_name || '',
+            seat: s.seat_number || '',
+            isOccupied: s.available === false || !!s.blocked || s.orderposition !== null || s.cartposition !== null,
+            isVip
+          };
+        });
+
+        // Ordina i posti per fila e numero per una visualizzazione coerente
+        extractedSeats.sort((a, b) => {
+          if (a.row !== b.row) return a.row.localeCompare(b.row, undefined, { numeric: true });
+          return a.seat.localeCompare(b.seat, undefined, { numeric: true });
+        });
+
+        setSeats(extractedSeats);
       } catch (error) {
         console.error('[SeatMap] ❌ LOAD ERROR:', error);
-        setSeats([]); 
+        setSeats([]);
       } finally {
         setLoading(false);
       }
@@ -93,7 +74,7 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClo
   if (loading) return (
     <div className={styles.loadingContainer}>
       <Loader2 className={styles.spinner} size={48} />
-      <span>Sincronizzazione planimetria...</span>
+      <span>Sincronizzazione posti in tempo reale...</span>
     </div>
   );
 
@@ -108,32 +89,38 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClo
 
       <div className={styles.container}>
         {seats.length > 0 ? (
-          <div className={styles.seatsRow}>
+          <div className={styles.simplifiedRow}>
             {seats.map(seat => {
               const isSelected = selectedSeats.has(seat.id);
+              const label = seat.row ? `Fila ${seat.row} - Posto ${seat.seat}` : seat.name;
+
               return (
                 <button
                   key={seat.id}
                   disabled={seat.isOccupied}
                   type="button"
-                  onClick={() => onSeatToggle(seat.id, `Fila ${seat.rowName} - Posto ${seat.seatName}`)}
+                  onClick={() => onSeatToggle(seat.id, label)}
                   className={[
                     styles.seat,
                     seat.isOccupied ? styles.occupied : isSelected ? styles.selected : styles.available,
-                    seat.isVip ? styles.vip : ''
+                    seat.isVip ? styles.vip : '',
+                    styles.simplifiedSeat
                   ].join(' ')}
+                  title={label + (seat.isOccupied ? ' (Occupato)' : '')}
                 >
-                  <span className={styles.seatLabel}>{seat.seatName}</span>
+                  <span className={styles.seatLabel}>
+                    {seat.seat || seat.name}
+                  </span>
+                  {seat.row && <span className={styles.rowSubLabel}>{seat.row}</span>}
                 </button>
               );
             })}
           </div>
         ) : (
           <div className={styles.noSeats}>
-            <RotateCcw size={48} className={styles.noSeatsIcon} />
-            <p className={styles.errorTitle}>ERRORE DATI: NESSUN POSTO</p>
+            <Info size={48} className={styles.noSeatsIcon} />
+            <p className={styles.errorTitle}>NESSUN POSTO DISPONIBILE</p>
             <span>Pretix non ha restituito posti per questo evento ({subeventId}).</span>
-            <span className={styles.errorHint}>Verificare che l&apos;evento su Pretix abbia una planimetria e posti numerati.</span>
           </div>
         )}
       </div>
@@ -142,7 +129,7 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClo
         {onClose && (
           <button onClick={onClose} className={styles.closeBtn} title="Chiudi">
             <X size={20} />
-            <span>Chiudi Selezionatore</span>
+            <span>Chiudi Mappa</span>
           </button>
         )}
       </div>
@@ -151,6 +138,7 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClo
         <div className={styles.legendItem}><div className={[styles.dot, styles.dotAvailable].join(' ')} /><span>Libero</span></div>
         <div className={styles.legendItem}><div className={[styles.dot, styles.dotSelected].join(' ')} /><span>Selezionato</span></div>
         <div className={styles.legendItem}><div className={[styles.dot, styles.dotOccupied].join(' ')} /><span>Occupato</span></div>
+        <div className={styles.legendItem}><div className={[styles.dot, styles.dotVip].join(' ')} /><span>⭐ VIP</span></div>
       </div>
     </div>
   );

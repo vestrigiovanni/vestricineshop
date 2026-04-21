@@ -3,9 +3,10 @@ import { Inter } from 'next/font/google';
 import ClientFooter from '../components/ClientFooter';
 import './globals.css';
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
+  preload: false,
 });
 
 export const metadata: Metadata = {

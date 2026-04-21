@@ -1,0 +1,37 @@
+{
+  "5392": {
+    "id": 5392,
+    "name": "SALA FOSSATI",
+    "internalName": "SALA FOSSATI",
+    "isHidden": true,
+    "isFavorite": false
+  },
+  "6439": {
+    "id": 6439,
+    "name": "24 SALA AGOSTINO FOSSATI",
+    "internalName": "24 SALA AGOSTINO FOSSATI",
+    "isHidden": false,
+    "isFavorite": false
+  },
+  "7354": {
+    "id": 7354,
+    "name": "SALA CA' GRANDA",
+    "internalName": "SALA CA' GRANDA",
+    "isHidden": true,
+    "isFavorite": false
+  },
+  "9624": {
+    "id": 9624,
+    "name": "SALA CA' GRANDA",
+    "internalName": "SALA CA' GRANDA",
+    "isHidden": true,
+    "isFavorite": false
+  },
+  "9659": {
+    "id": 9659,
+    "name": "NICCOLINI2",
+    "internalName": "NICCOLINI2",
+    "isHidden": true,
+    "isFavorite": false
+  }
+}

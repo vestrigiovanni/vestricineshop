@@ -1,13 +1,11 @@
 'use server';
 
-import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
+import { ITEM_INTERO_ID, ITEM_VIP_ID, ALLOWED_ROOM_IDS } from '@/constants/pretix';
 
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { calculatePretixDateTime } from '@/utils/dateUtils';
 import fs from 'fs';
 import path from 'path';
-
-const REGISTRY_PATH = path.join(process.cwd(), 'src/constants/rooms_registry.json');
 
 const TIMEZONE = 'Europe/Rome';
 
@@ -78,6 +76,10 @@ function getCachedData(endpoint: string) {
 
 function setCachedData(endpoint: string, data: any) {
   pretixCache.set(endpoint, { data, timestamp: Date.now() });
+}
+
+export async function clearPretixCache() {
+  pretixCache.clear();
 }
 
 /**
@@ -206,7 +208,7 @@ export async function updateEvent(eventSlug: string, patchData: any) {
 /**
  * Helper to parse Pretix error responses into a human-readable string.
  */
-function parsePretixError(errorText: string): string {
+function parsePretixError(errorText: string, endpoint?: string): string {
   try {
     const errorData = JSON.parse(errorText);
 
@@ -239,13 +241,13 @@ function parsePretixError(errorText: string): string {
         const firstKey = keys[0];
         const firstVal = errorData[firstKey];
         if (Array.isArray(firstVal) && typeof firstVal[0] === 'string') {
-          return firstVal[0];
+          return `${firstKey}: ${firstVal[0]}`;
         }
-        if (typeof firstVal === 'string') return firstVal;
+        if (typeof firstVal === 'string') return `${firstKey}: ${firstVal}`;
       }
     }
 
-    return `Errore Pretix: ${errorText}`;
+    return `Errore Pretix (${endpoint}): ${errorText}`;
   } catch {
     return `Errore nella comunicazione con Pretix (${errorText})`;
   }
@@ -303,7 +305,7 @@ async function fetchPretix(endpoint: string, options: RequestInit = {}) {
 
           if (status === 400) {
             console.error(`Pretix API error [400 Bad Request] at ${endpoint}. Error details:`, errorText);
-            throw new Error(parsePretixError(errorText));
+            throw new Error(parsePretixError(errorText, endpoint));
           } else if (status === 403) {
             console.error(`Pretix API error [403 Forbidden] at ${endpoint}. This usually means the event has tickets sold and is locked.`);
             throw new Error(`Pretix API Error 403: L'evento è in uso (biglietti emessi) e non può essere modificato.`);
@@ -360,101 +362,74 @@ export async function getMainEvent() {
 
 /**
  * Fetches the seating plan layout and current status.
- * MIRROR SYSTEM: Returns data from local registry to optimize performance.
+ * Returns either seats for a sub-event or all available seating plans.
  */
-export async function getSeatingPlan(subeventId?: number, options: { includeHidden?: boolean; onlyFromMirror?: boolean } = {}) {
+export async function getSeatingPlan(subeventId?: number) {
   try {
     if (subeventId) {
       return await getSubEventSeats(subeventId);
     }
-
-    const registry = await readRegistry();
-    
-    // If registry is empty and not onlyFromMirror, trigger a sync
-    // Note: The new structure might start empty {}
-    if (Object.keys(registry).length === 0 && !options.onlyFromMirror) {
-      console.log('[Mirror] Registry empty, triggering initial sync...');
-      await syncSeatingPlansWithMirror();
-      return await getSeatingPlan(undefined, options);
-    }
-
-    // Convert registry to array of plans
-    // In the new structure, keys are IDs.
-    const plans: any[] = [];
-    Object.entries(registry).forEach(([id, data]: [string, any]) => {
-      if (id === 'DEFAULT') return;
-      plans.push({
-        id: parseInt(id),
-        name: data.name || 'Sala',
-        isHidden: data.isHidden ?? registry.DEFAULT?.isHidden ?? false
-      });
-    });
-
-    // Filter hidden rooms unless requested
-    if (!options.includeHidden) {
-      return plans.filter((p: any) => !p.isHidden);
-    }
-
-    return plans;
+    return await listSeatingPlans();
   } catch (error) {
-    console.error('Failed to get Seating Plan from Mirror', error);
+    console.error('Failed to get Seating Plan', error);
+    return [];
+  }
+}
+
+
+
+/**
+ * Fetches all seating plans from Pretix.
+ */
+export async function listSeatingPlans() {
+  try {
+    const data = await fetchPretix(`/organizers/${PRETIX_ORGANIZER}/seatingplans/`);
+    const results = data.results || [];
+    
+    // Filtro di sicurezza: escludi solo le sale "spazzatura" con nomi specifici.
+    // NON filtriamo più per ALLOWED_ROOM_IDS — il registro in /tmp gestisce la visibilità.
+    // Questo permette a una sala appena creata di apparire subito dopo sync.
+    return results
+      .filter((p: any) => {
+        const name = (p.name?.it || p.name || '').toUpperCase();
+        return !name.includes('SALA 0') && !name.includes('TEST');
+      })
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name?.it || p.name || 'Sala',
+        isHidden: false
+      }));
+  } catch (error) {
+    console.error('Error listing seating plans:', error);
     return [];
   }
 }
 
 /**
  * Returns a mapping of seating plan ID to its name for quick lookups.
- * Uses registry data.
+ * Fetches directly from Pretix.
  */
 export async function getSeatingPlansMap() {
-  const registry = await readRegistry();
-  const map: Record<number, string> = {};
-  
-  Object.entries(registry).forEach(([id, data]: [string, any]) => {
-    if (id === 'DEFAULT') return;
-    map[parseInt(id)] = data.alias || data.name || 'Sala';
-  });
-  
-  return map;
+  try {
+    const plans = await listSeatingPlans();
+    const map: Record<number, string> = {};
+    plans.forEach((p: any) => {
+      map[p.id] = p.name;
+    });
+    return map;
+  } catch (error) {
+    console.error('Error fetching seating plans map:', error);
+    return {};
+  }
 }
 
 
 /**
- * Fetches a single seating plan detail.
- * MIRROR SYSTEM: Prioritizes local cached layout.
+ * Fetches a single seating plan detail directly from Pretix.
  */
 export async function getSeatingPlanDetail(planId: number) {
   try {
-    const registry = await readRegistry();
-    const id = planId.toString();
-    
-    if (registry[id] && registry[id].layout && Object.keys(registry[id].layout).length > 0) {
-      return registry[id];
-    }
-
-    // If not in registry or layout missing, fetch from Pretix
-    console.log(`[Mirror] Layout missing for ${planId}, fetching from Pretix...`);
     const data = await fetchPretix(`/organizers/${PRETIX_ORGANIZER}/seatingplans/${planId}/`);
-    
-    if (data && data.id) {
-      // Update registry with layout
-      if (registry[id]) {
-        registry[id].layout = data.layout || {};
-        registry[id].lastSync = new Date().toISOString();
-      } else {
-        registry[id] = {
-          id: data.id,
-          internalName: data.name?.it || data.name,
-          alias: '',
-          isHidden: false,
-          isFavorite: false,
-          lastSync: new Date().toISOString(),
-          layout: data.layout || {}
-        };
-      }
-      await writeRegistry(registry);
-    }
-    
     return data;
   } catch (error) {
     console.error(`Error fetching seating plan ${planId}:`, error);
@@ -479,119 +454,9 @@ export async function createSeatingPlan(postData: any) {
 
 /**
  * -------------------------------------------------------------------
- * MIRROR SYSTEM HELPERS
+ * PRETIX SYSTEM FETCHERS
  * -------------------------------------------------------------------
  */
-
-async function readRegistry() {
-  try {
-    if (!fs.existsSync(REGISTRY_PATH)) {
-      return {};
-    }
-    const data = fs.readFileSync(REGISTRY_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading rooms registry:', error);
-    return {};
-  }
-}
-
-async function writeRegistry(registry: any) {
-  try {
-    const dir = path.dirname(REGISTRY_PATH);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2));
-  } catch (error) {
-    console.error('Error writing rooms registry:', error);
-  }
-}
-
-/**
- * Synchronizes Pretix seating plans with the local mirror (registry).
- * - Detects new rooms.
- * - Updates existing room names.
- * - Detects orphaned rooms (deleted from Pretix) and hides them.
- * - Caches layouts to prevent 429 errors.
- */
-export async function syncSeatingPlansWithMirror(forceLayoutUpdate: boolean = false) {
-  try {
-    console.log('[Mirror] Starting sync with Pretix...');
-    const pretixPlans = await getSeatingPlan();
-    const registry = await readRegistry();
-    const pretixIds = new Set(pretixPlans.map((p: any) => p.id));
-
-    // 1. Update/Add plans from Pretix
-    for (const plan of pretixPlans) {
-      const id = plan.id.toString();
-      const existing = registry[id];
-
-      if (!existing) {
-        // New room found - default to shown unless global DEFAULT says otherwise
-        console.log(`[Mirror] New room detected: ${plan.name} (${id})`);
-        registry[id] = {
-          name: plan.name,
-          isHidden: registry.DEFAULT?.isHidden ?? false
-        };
-      }
-      // Note: We intentionally DO NOT update 'name' or 'isHidden' for existing rooms
-      // to allow manual overrides in rooms_registry.json to persist.
-    }
-
-    // 2. Orphan Detection: rooms in registry but NOT in Pretix
-    Object.keys(registry).forEach(id => {
-      if (!pretixIds.has(parseInt(id))) {
-        if (!registry[id].isOrphaned) {
-          console.warn(`[Mirror] Orphaned room detected: ${registry[id].internalName} (${id}). Archiving...`);
-          registry[id].isOrphaned = true;
-          registry[id].isHidden = true; // Auto-hide orphans
-        }
-      } else {
-        registry[id].isOrphaned = false;
-      }
-    });
-
-    await writeRegistry(registry);
-    console.log('[Mirror] Sync completed successfully.');
-    return { success: true, count: pretixPlans.length };
-  } catch (error) {
-    console.error('[Mirror] Sync failed:', error);
-    return { success: false, error };
-  }
-}
-
-/**
- * Updates metadata for a specific room in the mirror registry.
- */
-export async function updateRoomMetadata(planId: number, metadata: { isHidden?: boolean, isFavorite?: boolean, internalName?: string, alias?: string }) {
-  try {
-    const registry = await readRegistry();
-    const id = planId.toString();
-    
-    if (!registry[id]) {
-      console.warn(`[Mirror] Cannot update metadata: room ${planId} not found in registry.`);
-      return { success: false, error: 'Room not found' };
-    }
-
-    if (metadata.isFavorite) {
-      // Ensure only one favorite
-      Object.keys(registry).forEach(key => {
-        registry[key].isFavorite = false;
-      });
-    }
-
-    registry[id] = {
-      ...registry[id],
-      ...metadata,
-      lastSync: new Date().toISOString()
-    };
-
-    await writeRegistry(registry);
-    return { success: true, registry };
-  } catch (error) {
-    console.error('[Mirror] Metadata update failed:', error);
-    return { success: false, error };
-  }
-}
 
 /**
  * Updates an existing seating plan.
@@ -767,65 +632,37 @@ export async function getItemAvailability(subeventId: number, itemId: number) {
 
 /**
  * Checks if a sub-event is sold out based on the 'Biglietto Intero' availability.
- * Note: This helper is now mostly used as a fallback. Direct quota mapping in 
- * display actions is preferred for performance.
+ * Fail-Safe: Always returns false (Available) on error.
  */
 export async function isSubEventSoldOut(subeventId: number) {
   try {
-    // We use Promise.allSettled to ensure that one failing call doesn't block the whole check
-    const [seRes, quotasRes, seatsRes] = await Promise.allSettled([
-      getSubEvent(subeventId),
-      listQuotas(subeventId),
-      getSubEventSeats(subeventId)
-    ]);
+    const se = await getSubEvent(subeventId);
 
-    const se = seRes.status === 'fulfilled' ? seRes.value : null;
-    const quotas = quotasRes.status === 'fulfilled' ? quotasRes.value : [];
-    const seats = seatsRes.status === 'fulfilled' ? seatsRes.value : [];
-
-    // 1. Check if subevent itself is unavailable or presale stopped
+    // 1. Fallback se l'evento in sè non è vendibile
     if (se) {
       if (se.best_availability_state === 'sold_out' || (se.active && se.presale_is_running === false)) {
         return true;
       }
     }
 
-    // 2. Check quotas availability (PRIMARY TRUTH)
-    const relevantQuotas = (quotas || []).filter((q: any) => 
-      Array.isArray(q.items) && (q.items.includes(ITEM_INTERO_ID) || q.items.includes(ITEM_VIP_ID))
-    );
-
-    if (relevantQuotas.length > 0) {
-      const totalAvailable = relevantQuotas.reduce((sum: number, q: any) => {
-        return sum + (q.available_number !== null ? Math.max(0, q.available_number) : 0);
-      }, 0);
-
-      const allUnavailable = relevantQuotas.every((q: any) => q.available === false);
-
-      // We ONLY mark as sold out if we HAVE quota data and it explicitly says 0
-      if (allUnavailable || totalAvailable <= 0) {
-        return true;
-      }
+    // 2. Controllo reale su API Seats (WySiWyG)
+    const seats = await getSubEventSeats(subeventId);
+    if (!seats || seats.length === 0) {
+       // Se non ci sono posti configurati, diamo per vendibile per fail-safe
+       return false;
     }
 
-    // 3. Check physical availability (SECONDARY TRUTH / FALLBACK)
-    // ONLY check seats if we have a non-empty array. If empty, assume API failure and IGNORE.
-    if (Array.isArray(seats) && seats.length > 0) {
-      const availableSeatsCount = seats.filter((s: any) => 
-        s.available !== false && !s.blocked && s.orderposition === null && s.cartposition === null
-      ).length;
+    // Un posto è vendibile se non è bloccato e non c'è nessun ordine/cart.
+    const freeSeatsCount = seats.reduce((count: number, s: any) => {
+      const isOccupied = s.available === false || !!s.blocked || s.orderposition !== null || s.cartposition !== null;
+      return count + (isOccupied ? 0 : 1);
+    }, 0);
 
-      if (availableSeatsCount <= 0) {
-        // If we have seat data and it's definitely 0, then it's sold out
-        return true;
-      }
-    }
-
-    // Safety fallback: if we reach here and have no evidence of sold out, it's AVAILABLE.
-    return false;
+    // ESECUZIONE RICHIESTA: Sold out solo se i posti sono effettivamente 0
+    return freeSeatsCount === 0;
   } catch (error) {
     console.error(`Error in isSubEventSoldOut for ${subeventId}:`, error);
-    return false; // Default to available on catastrophic catch
+    return false; // FAIL-SAFE: available
   }
 }
 
@@ -924,16 +761,6 @@ export async function listSubEvents(futureOnly = false, includeHiddenRooms = fal
       }
     }
 
-    // MIRROR SYSTEM FILTERING
-    if (!includeHiddenRooms) {
-      const registry = await readRegistry();
-      return allResults.filter(se => {
-        if (!se.seating_plan) return true;
-        const planId = se.seating_plan.toString();
-        return !registry[planId]?.isHidden;
-      });
-    }
-
     return allResults;
   } catch (error) {
     console.error('Error listing sub-events:', error);
@@ -973,6 +800,7 @@ export async function createSubEvent(movieData: {
   year?: string;
   rating?: string;
   logoPath?: string;
+  backdropPath?: string;
 }) {
   try {
     const runtimeMinutes = movieData.runtime || 120;
@@ -1000,49 +828,41 @@ export async function createSubEvent(movieData: {
       </div>
     `.trim();
 
-    // Fetch main event to get required metadata
-    const mainEvent = await getMainEvent();
-    const mainMetaData = mainEvent?.meta_data || {};
-
-    // Map TMDB details to metadata
-    // For VESTRICINEMA, we may have 'poster', 'regia', 'durata', 'lingua'
-    const subMetaData: Record<string, string> = { ...mainMetaData };
-
-    // Always map these keys even if not present in mainMetaData, 
-    // as they might be mandatory at organizer level
-    if (movieData.posterPath) subMetaData['poster'] = movieData.posterPath;
-    if (movieData.director) subMetaData['regia'] = movieData.director;
-    if (movieData.runtime) subMetaData['durata'] = `${movieData.runtime} min`;
-    if (movieData.language) subMetaData['lingua'] = movieData.language;
-    if (movieData.subtitles) subMetaData['sottotitoli'] = movieData.subtitles;
+    // Store all rich metadata in the 'comment' field as JSON.
+    // This is read back by CheckoutButton.tsx and cassaActions.ts when rendering the souvenir ticket.
+    const commentPayload = JSON.stringify({
+      tmdbId: movieData.tmdbId,
+      posterPath: movieData.posterPath || '',
+      backdropPath: movieData.backdropPath || '',
+      logoPath: movieData.logoPath || '',
+      runtime: movieData.runtime || 120,
+      director: movieData.director || '',
+      cast: movieData.cast || '',
+      tagline: movieData.tagline || '',
+      genres: movieData.genres || '',
+      year: movieData.year || '',
+      rating: movieData.rating || '',
+    });
 
     const payload: any = {
       name: { it: movieData.title },
       active: true,
       is_public: true,
       date_from: dateFrom,
-      date_to: dateTo,
-      frontpage_text: { it: descriptionHtml },
-      seating_plan: movieData.seatingPlanId,
-      seat_category_mapping: movieData.seatCategoryMapping,
-      meta_data: subMetaData,
-      // Keep extra metadata in comment for future UI usage
-      comment: JSON.stringify({
-        tmdbId: movieData.tmdbId,
-        overview: movieData.overview,
-        posterPath: movieData.posterPath,
-        runtime: movieData.runtime,
-        director: movieData.director,
-        language: movieData.language,
-        subtitles: movieData.subtitles,
-        cast: movieData.cast,
-        tagline: movieData.tagline || '',
-        genres: movieData.genres || '',
-        year: movieData.year || '',
-        rating: movieData.rating || '',
-        logoPath: movieData.logoPath || ''
-      })
+      date_to: dateTo, // Must be a valid ISO string — null causes 500 on Pretix Cloud
+      frontpage_text: { it: movieData.title + ' - VESTRI CINEMA' },
+      comment: commentPayload,
+      seating_plan: Number(movieData.seatingPlanId),
+      meta_data: {}
     };
+
+    // Only include seat_category_mapping if it has entries — an empty or undefined mapping
+    // causes Pretix to return 500 on newly created rooms that haven't been indexed yet.
+    if (movieData.seatCategoryMapping && Object.keys(movieData.seatCategoryMapping).length > 0) {
+      payload.seat_category_mapping = movieData.seatCategoryMapping;
+    }
+
+    console.log('[createSubEvent] Payload finale:', JSON.stringify(payload, null, 2));
 
     const data = await fetchPretix('/subevents/', {
       method: 'POST',

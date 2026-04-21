@@ -1,7 +1,6 @@
 'use server';
 
 import fs from 'fs';
-import path from 'path';
 import { searchMovies, getMovieDetails, getDirector, getCast, getMovieLogo } from '@/services/tmdb';
 import {
   createSubEvent,
@@ -19,15 +18,15 @@ import {
   getQuotaAvailability,
   updateSeatingPlan,
   createSeatingPlan,
-  syncSeatingPlansWithMirror,
-  updateRoomMetadata
+  clearPretixCache,
+  listSeatingPlans
 } from '@/services/pretix';
-import { calculatePretixDateTime } from '@/utils/dateUtils';
 import { ITEM_INTERO_ID, ITEM_VIP_ID, SEATING_PLANS_CACHE_FILE } from '@/constants/pretix';
 import { revalidatePath } from 'next/cache';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
+import { calculatePretixDateTime } from '@/utils/dateUtils';
 
-// Legacy cache file logic removed in favor of Mirror System (rooms_registry.json)
+// Admin logic for Pretix management
 
 const TIMEZONE = 'Europe/Rome';
 const pad = (n: number) => n.toString().padStart(2, '0');
@@ -57,7 +56,7 @@ async function getBlockedIntervals(seatingPlanId: number) {
   console.log(`\n--- DEBUG: CALCOLO OCCUPAZIONE REALE PER SALA ${seatingPlanId} ---`);
 
   const intervals = await Promise.all(events
-    .filter((e: any) => Number(e.seating_plan) === seatingPlanId)
+    .filter((e: any) => e.active === true && Number(e.seating_plan) === seatingPlanId)
     .map(async (e: any) => {
       const s = new Date(e.date_from).getTime();
       let runtimeMin = 120; // Default fallback
@@ -115,6 +114,12 @@ async function getBlockedIntervals(seatingPlanId: number) {
 
   console.log(`--- FINE DEBUG ---\n`);
   return intervals;
+}
+
+export async function adminClearCache() {
+  clearPretixCache();
+  revalidatePath('/');
+  revalidatePath('/admin');
 }
 
 /**
@@ -187,156 +192,153 @@ export async function adminListEvents() {
   return await listSubEvents(true);
 }
 
-export async function adminGetSeatingPlans(options: { includeHidden?: boolean } = { includeHidden: true }) {
-  return await getSeatingPlan(undefined, options);
+/**
+ * MIRROR SYSTEM: GET ALL SEATING PLANS (Enriched with Registry Metadata)
+ */
+export async function adminGetSeatingPlans(options = { includeHidden: false }) {
+  try {
+    // 1. Leggiamo il registro locale
+    let registry: Record<string, any> = {};
+    if (fs.existsSync(SEATING_PLANS_CACHE_FILE)) {
+      registry = JSON.parse(fs.readFileSync(SEATING_PLANS_CACHE_FILE, 'utf-8'));
+    }
+
+    // 2. Chiamiamo il servizio Pretix (che fa già il filtro nucleare base per Sala 0)
+    const plans = await listSeatingPlans();
+
+    // 3. Arricchiamo con i dati del registro
+    const enriched = plans.map((p: any) => {
+      const meta = registry[p.id] || {};
+      return {
+        ...p,
+        internalName: meta.internalName || p.name,
+        isHidden: meta.isHidden ?? false,
+        isFavorite: meta.isFavorite ?? false
+      };
+    });
+
+    // 4. Se non vogliamo i nascosti, filtriamo
+    const filtered = options.includeHidden ? enriched : enriched.filter((p: any) => !p.isHidden);
+
+    // 5. Ordiniamo: Preferiti in alto, poi per nome alias
+    return filtered.sort((a: any, b: any) => {
+      if (a.isFavorite && !b.isFavorite) return -1;
+      if (!a.isFavorite && b.isFavorite) return 1;
+      return a.internalName.localeCompare(b.internalName);
+    });
+  } catch (error) {
+    console.error('Error in adminGetSeatingPlans:', error);
+    return [];
+  }
 }
 
 /**
- * Manually triggers a Mirror Sync from Pretix API.
+ * MIRROR SYSTEM: SYNC PRETIX DATA TO REGISTRY
  */
-export async function adminSyncMirror(forceLayoutUpdate: boolean = false) {
-  const result = await syncSeatingPlansWithMirror(forceLayoutUpdate);
-  revalidatePath('/');
-  return result;
+export async function adminSyncMirror() {
+  try {
+    const plans = await listSeatingPlans();
+    
+    let registry: Record<string, any> = {};
+    if (fs.existsSync(SEATING_PLANS_CACHE_FILE)) {
+      registry = JSON.parse(fs.readFileSync(SEATING_PLANS_CACHE_FILE, 'utf-8'));
+    }
+
+    const newRegistry: Record<string, any> = {};
+    plans.forEach((p: any) => {
+      const existing = registry[p.id] || {};
+      newRegistry[p.id] = {
+        id: p.id,
+        name: p.name,
+        internalName: existing.internalName || p.name,
+        isHidden: existing.isHidden ?? false,
+        isFavorite: existing.isFavorite ?? false
+      };
+    });
+
+    // /tmp è sempre disponibile (sia in locale che su Vercel Serverless) — no mkdir necessario.
+    fs.writeFileSync(SEATING_PLANS_CACHE_FILE, JSON.stringify(newRegistry, null, 2));
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error) {
+    console.error('Error in adminSyncMirror:', error);
+    throw error;
+  }
 }
+
+export async function adminToggleHideSeatingPlan(planId: number) {
+  let registry: Record<string, any> = {};
+  if (fs.existsSync(SEATING_PLANS_CACHE_FILE)) {
+    registry = JSON.parse(fs.readFileSync(SEATING_PLANS_CACHE_FILE, 'utf-8'));
+  }
+
+  // Auto-crea l'entry se non esiste ancora nel registro (es. sala appena creata)
+  if (!registry[planId]) {
+    registry[planId] = { id: planId, isHidden: false, isFavorite: false, internalName: '' };
+  }
+
+  registry[planId].isHidden = !registry[planId].isHidden;
+  fs.writeFileSync(SEATING_PLANS_CACHE_FILE, JSON.stringify(registry, null, 2));
+  revalidatePath('/admin');
+  return { success: true };
+}
+
+export async function adminBulkHideSeatingPlans() {
+  let registry: Record<string, any> = {};
+  if (fs.existsSync(SEATING_PLANS_CACHE_FILE)) {
+    registry = JSON.parse(fs.readFileSync(SEATING_PLANS_CACHE_FILE, 'utf-8'));
+  }
+
+  Object.keys(registry).forEach(id => {
+    registry[id].isHidden = true;
+  });
+
+  fs.writeFileSync(SEATING_PLANS_CACHE_FILE, JSON.stringify(registry, null, 2));
+  revalidatePath('/admin');
+  return { success: true };
+}
+
+export async function adminToggleFavoriteSeatingPlan(planId: number) {
+  let registry: Record<string, any> = {};
+  if (fs.existsSync(SEATING_PLANS_CACHE_FILE)) {
+    registry = JSON.parse(fs.readFileSync(SEATING_PLANS_CACHE_FILE, 'utf-8'));
+  }
+
+  // Auto-crea l'entry se non esiste ancora nel registro
+  if (!registry[planId]) {
+    registry[planId] = { id: planId, isHidden: false, isFavorite: false, internalName: '' };
+  }
+
+  registry[planId].isFavorite = !registry[planId].isFavorite;
+  fs.writeFileSync(SEATING_PLANS_CACHE_FILE, JSON.stringify(registry, null, 2));
+  revalidatePath('/admin');
+  return { success: true };
+}
+
+export async function adminUpdateRoomMetadata(planId: number, metadata: { internalName: string }) {
+  let registry: Record<string, any> = {};
+  if (fs.existsSync(SEATING_PLANS_CACHE_FILE)) {
+    registry = JSON.parse(fs.readFileSync(SEATING_PLANS_CACHE_FILE, 'utf-8'));
+  }
+
+  // Auto-crea l'entry se non esiste ancora nel registro
+  if (!registry[planId]) {
+    registry[planId] = { id: planId, isHidden: false, isFavorite: false, internalName: '' };
+  }
+
+  registry[planId].internalName = metadata.internalName;
+  fs.writeFileSync(SEATING_PLANS_CACHE_FILE, JSON.stringify(registry, null, 2));
+  revalidatePath('/admin');
+  return { success: true };
+}
+
+
 
 export async function adminGetSeatingPlanDetail(planId: number) {
   return await getSeatingPlanDetail(planId);
 }
 
-function injectDynamicLayoutSize(layout: any) {
-  if (!layout) return;
 
-  let maxX = 0;
-  let maxY = 0;
-
-  layout.zones?.forEach((zone: any) => {
-    zone.rows?.forEach((row: any) => {
-      row.seats?.forEach((seat: any) => {
-        let seatX = (zone.position?.x || 0) + (row.position?.x || 0) + (seat.position?.x || 0);
-        let seatY = (zone.position?.y || 0) + (row.position?.y || 0) + (seat.position?.y || 0);
-        if (seatX > maxX) maxX = seatX;
-        if (seatY > maxY) maxY = seatY;
-      });
-    });
-  });
-
-  layout.size = {
-    width: Math.max(800, maxX + 200),
-    height: Math.max(600, maxY + 200)
-  };
-}
-
-export async function adminUpdateSeatingPlan(planId: number, patchData: any) {
-  try {
-    if (patchData?.layout) {
-      injectDynamicLayoutSize(patchData.layout);
-    }
-    await updateSeatingPlan(planId, patchData);
-    revalidatePath('/');
-    revalidatePath('/cassa');
-    // Mirror sync handled by service
-    return { success: true };
-  } catch (error: any) {
-    if (error.message && error.message.includes('403')) {
-      console.log('403 received, triggering Clone & Swap for plan:', planId);
-      // Clone & Swap
-      const newData = { ...patchData };
-      delete newData.id;
-
-      const newPlan = await createSeatingPlan(newData);
-      const swapRes = await adminSwapFutureSeatingPlans(planId, newPlan.id);
-
-      revalidatePath('/');
-      revalidatePath('/cassa');
-      return { success: true, swappedCount: swapRes.swappedCount, cloned: true };
-    }
-    console.error('Error in adminUpdateSeatingPlan:', error);
-    // Vogliamo lanciare di proposito per la UI se c'è un blocco di biglietti venduti
-    throw error;
-  }
-}
-
-export async function adminCreateSeatingPlan(postData: any) {
-  try {
-    if (postData?.layout) {
-      injectDynamicLayoutSize(postData.layout);
-    }
-    const result = await createSeatingPlan(postData);
-    revalidatePath('/');
-    revalidatePath('/cassa');
-    // Mirror sync handled by service
-    return result;
-  } catch (error: any) {
-    console.error('Error in adminCreateSeatingPlan:', error);
-    throw new Error(error.message || 'Errore durante la creazione della sala');
-  }
-}
-
-/**
- * Returns a compatibility layer of seating meta for the legacy UI.
- * Now derived from the Mirror Registry.
- */
-export async function adminGetSeatingMeta() {
-  const plans = await getSeatingPlan(undefined, { includeHidden: true, onlyFromMirror: true });
-  const meta = {
-    hiddenIds: [] as number[],
-    archivedIds: [] as number[],
-    favoriteId: null as number | null
-  };
-
-  plans.forEach((p: any) => {
-    if (p.isHidden) meta.hiddenIds.push(p.id);
-    if (p.isFavorite) meta.favoriteId = p.id;
-  });
-
-  return meta;
-}
-
-export async function adminToggleHideSeatingPlan(planId: number) {
-  const plans = await getSeatingPlan(undefined, { includeHidden: true, onlyFromMirror: true });
-  const plan = plans.find((p: any) => p.id === planId);
-  const result = await updateRoomMetadata(planId, { isHidden: !plan?.isHidden });
-  revalidatePath('/');
-  return await adminGetSeatingMeta();
-}
-
-export async function adminToggleArchiveSeatingPlan(planId: number) {
-  // Archive is now unified with Hidden in the Mirror System for simplicity.
-  // We just toggle isHidden.
-  return await adminToggleHideSeatingPlan(planId);
-}
-
-export async function adminToggleFavoriteSeatingPlan(planId: number) {
-  const plans = await getSeatingPlan(undefined, { includeHidden: true, onlyFromMirror: true });
-  const plan = plans.find((p: any) => p.id === planId);
-  const result = await updateRoomMetadata(planId, { isFavorite: !plan?.isFavorite });
-  revalidatePath('/');
-  return await adminGetSeatingMeta();
-}
-
-/**
- * Updates metadata for a room in the mirror (alias, isHidden, isFavorite, etc).
- */
-export async function adminUpdateRoomMetadata(planId: number, metadata: { alias?: string; internalName?: string; isHidden?: boolean; isFavorite?: boolean }) {
-  const result = await updateRoomMetadata(planId, metadata);
-  revalidatePath('/');
-  return result;
-}
-
-
-/**
- * HELPER: Syncs all seating plans from Pretix to the local seating_plans.json file.
- */
-export async function syncSeatingPlansToFile() {
-  try {
-    const plans = await getSeatingPlan();
-    fs.writeFileSync(SEATING_PLANS_CACHE_FILE, JSON.stringify(plans, null, 2));
-    console.log(`[syncSeatingPlansToFile] ✅ Cached ${plans.length} plans to ${SEATING_PLANS_CACHE_FILE}`);
-  } catch (error) {
-    console.error('[syncSeatingPlansToFile] ❌ Error syncing seating plans:', error);
-  }
-}
 
 /**
  * HELPER: Calculates capacities for standard and VIP seats directly from a seating plan layout.
@@ -364,60 +366,9 @@ function calculateCapacitiesFromLayout(layout: any) {
   return { intero, vip };
 }
 
-export async function adminSwapFutureSeatingPlans(oldPlanId: number, newPlanId: number) {
-  try {
-    // 1. Prendi tutti gli eventi futuri
-    const futureEvents = await listSubEvents(true);
 
-    // 2. Filtra quelli che usano la vecchia sala
-    const targetEvents = futureEvents.filter((ev: any) => ev.seating_plan === oldPlanId);
 
-    let swappedCount = 0;
 
-    // 3. Verifica per ognuno che non ci siano vendite reali prima di swappare
-    for (const ev of targetEvents) {
-      try {
-        const quotas = await listQuotas(ev.id);
-        const hasSales = quotas.some((q: any) =>
-          q.size !== null && q.available_number !== null && q.available_number < q.size
-        );
-
-        if (!hasSales) {
-          await updateSubEvent(ev.id, { seating_plan: newPlanId });
-          swappedCount++;
-        } else {
-          console.warn(`[Swap] Evento ${ev.id} ha già vendite. Salto.`);
-        }
-      } catch (err) {
-        console.warn(`[Swap] Errore durante il controllo/update dell'evento ${ev.id}:`, err);
-      }
-    }
-
-    // 4. Mirror System: Automatically hide the old plan as it's now obsolete
-    await updateRoomMetadata(oldPlanId, { isHidden: true });
-
-    revalidatePath('/');
-    revalidatePath('/cassa');
-    return { success: true, swappedCount };
-  } catch (error: any) {
-    console.error('Error swapping future seating plans:', error);
-    throw new Error('Errore durante lo swap della sala negli eventi futuri');
-  }
-}
-
-// 2. Mapping of Room Capacities (DEPRECATED: Use calculateCapacitiesFromLayout instead)
-// This remains only as a potential fallback for very old plans without layout data.
-const ROOM_CAPACITIES_FALLBACK: Record<number, { intero: number; vip?: number }> = {
-  4081: { intero: 8 },         // SALA 1
-  5391: { intero: 6, vip: 1 },  // SALA NICCOLINI
-  5392: { intero: 3, vip: 1 },  // SALA FOSSATI
-  5393: { intero: 9, vip: 1 },  // SALA ARIPALMARIA
-  6550: { intero: 3, vip: 1 },  // SALA MARTINO
-  6439: { intero: 3, vip: 1 },  // 24 SALA AGOSTINO FOSSATI
-  6983: { intero: 10 },        // SALA CRAVEDI
-  7354: { intero: 2, vip: 1 },  // SALA CA' GRANDA
-  7016: { intero: 2 },         // SALA ANORA
-};
 
 export async function adminScheduleMovie(
   movieData: { id: string; title: string; overview: string; posterPath: string; language: string; subtitles: string },
@@ -448,16 +399,41 @@ export async function adminScheduleMovie(
   const planDetail = await getSeatingPlanDetail(seatingPlanId);
   if (!planDetail) throw new Error(`Could not fetch seating plan detail for ID ${seatingPlanId}`);
 
-  const categories = planDetail.layout?.categories || [];
-  const categoryNames = categories.map((c: any) => c.name);
+  // 3. Build Seat Category Mapping ONLY from categories that have actual seats in the layout.
+  // CRITICAL: Pretix returns 500 if seat_category_mapping references a category (e.g. "VIP")
+  // for which no seat exists in the seating plan (common for newly created rooms with all-INTERO layouts).
+  //
+  // Step A: collect categories from actual seat objects (zones/rows/seats format)
+  const categoriesWithSeats = new Set<string>();
+  planDetail.layout?.zones?.forEach((zone: any) => {
+    zone.rows?.forEach((row: any) => {
+      row.seats?.forEach((seat: any) => {
+        if (seat.category) categoriesWithSeats.add(seat.category);
+      });
+    });
+  });
 
-  // 3. Build Seat Category Mapping
+  // Step B: if Step A found nothing (Pretix graphical layout uses a different format),
+  // fall back to the declared layout categories but cross-check with actual capacity counts
+  // to avoid including VIP when there are no VIP seats.
+  if (categoriesWithSeats.size === 0) {
+    const { intero: capIntero, vip: capVip } = calculateCapacitiesFromLayout(planDetail.layout);
+    const layoutCategories: any[] = planDetail.layout?.categories || [];
+    layoutCategories.forEach((c: any) => {
+      const isVipCategory = (c.name || '').toUpperCase().includes('VIP') || (c.name || '').toUpperCase().includes('POLTRONA');
+      if (isVipCategory && capVip > 0) categoriesWithSeats.add(c.name);
+      if (!isVipCategory && capIntero > 0) categoriesWithSeats.add(c.name);
+    });
+  }
+
+  // DEBUG: log sample seat GUIDs to detect collision issues
+  const sampleGuids = planDetail.layout?.zones?.[0]?.rows?.[0]?.seats?.slice(0, 3).map((s: any) => s.seat_guid) || [];
+  console.log(`[adminScheduleMovie] 🔑 GUID posti sala ${seatingPlanId} (campione):`, sampleGuids);
+  console.log(`[adminScheduleMovie] 📊 Categorie CON POSTI nel layout:`, [...categoriesWithSeats]);
+
   const seatCategoryMapping: Record<string, number> = {};
 
-  // Ensure "INTERO" mapping exists explicitly
-  seatCategoryMapping["INTERO"] = ITEM_INTERO_ID;
-
-  categoryNames.forEach((name: string) => {
+  categoriesWithSeats.forEach((name: string) => {
     if (name.toUpperCase().includes('VIP') || name.toUpperCase().includes('POLTRONA')) {
       seatCategoryMapping[name] = ITEM_VIP_ID;
     } else {
@@ -465,20 +441,20 @@ export async function adminScheduleMovie(
     }
   });
 
+  // Final fallback: if still empty, default to INTERO only
+  if (Object.keys(seatCategoryMapping).length === 0) {
+    seatCategoryMapping['INTERO'] = ITEM_INTERO_ID;
+  }
+
+  console.log(`[adminScheduleMovie] 🗺️ Mapping categorie generato:`, seatCategoryMapping);
+
   // 4. Calculate Capacities DYNAMICALLY from the layout
   const { intero: calculatedIntero, vip: calculatedVip } = calculateCapacitiesFromLayout(planDetail.layout);
 
   let interoSize = calculatedIntero;
   let vipSize = calculatedVip;
 
-  // Use fallback ONLY if layout calculation returned 0 for both (e.g. malformed JSON)
-  if (interoSize === 0 && vipSize === 0) {
-    const roomConfig = ROOM_CAPACITIES_FALLBACK[seatingPlanId];
-    if (roomConfig) {
-      interoSize = roomConfig.intero;
-      vipSize = roomConfig.vip || 0;
-    }
-  }
+
 
   // Final safety check
   if (interoSize === 0 && vipSize === 0) {
@@ -547,7 +523,8 @@ export async function adminScheduleMovie(
     year: details.release_date ? details.release_date.split('-')[0] : '',
     rating: details.release_dates?.results?.find((r: any) => r.iso_3166_1 === 'IT')?.release_dates?.[0]?.certification ||
       details.release_dates?.results?.find((r: any) => r.iso_3166_1 === 'US')?.release_dates?.[0]?.certification || '',
-    logoPath: getMovieLogo(details) || ''
+    logoPath: getMovieLogo(details) || '',
+    backdropPath: details.backdrop_path || '',
   });
 
   const subeventId = subEvent.id;
@@ -961,3 +938,114 @@ export async function adminBulkScheduleMovie(
     details: errors
   };
 }
+
+/**
+ * MIRROR SYSTEM: CREATE NEW SEATING PLAN WITH CONFIGURABLE LAYOUT
+ *
+ * CRITICAL: The layout JSON must match Pretix's internal format EXACTLY.
+ * Missing fields (uuid on seats/rows/zones, row_number_position, areas, zone_id)
+ * cause a Python KeyError in Pretix's sub-event processing → HTTP 500.
+ *
+ * Reference format obtained from a working Pretix-created plan.
+ *
+ * @param name     Nome della sala (es. "SALA 1")
+ * @param numRows  Numero di file (default 5)
+ * @param numCols  Numero di posti per fila (default 10)
+ */
+export async function adminCreateSeatingPlan(name: string, numRows: number = 5, numCols: number = 10) {
+  try {
+    const normalizedName = name.toUpperCase().trim();
+    const ROWS = Math.max(1, Math.min(numRows, 50));
+    const COLS = Math.max(1, Math.min(numCols, 50));
+
+    // Spacing matching real Pretix plans
+    const SEAT_SPACING_X = 76;
+    const SEAT_SPACING_Y = 80;
+    const ZONE_OFFSET_Y = 250; // space above rows for screen decoration
+
+    const newUuid = () => crypto.randomUUID();
+
+    // Build rows with ALL required Pretix fields
+    const rows: any[] = [];
+    for (let r = 1; r <= ROWS; r++) {
+      const seats: any[] = [];
+      for (let c = 1; c <= COLS; c++) {
+        seats.push({
+          seat_number: c.toString(),
+          // seat_guid: UUID format required for Pretix compatibility
+          seat_guid: newUuid(),
+          // uuid: separate internal identifier required by Pretix's sub-event processing
+          uuid: newUuid(),
+          position: { x: (c - 1) * SEAT_SPACING_X, y: 0 },
+          category: 'INTERO',
+        });
+      }
+      rows.push({
+        position: { x: 100, y: ZONE_OFFSET_Y + (r - 1) * SEAT_SPACING_Y },
+        row_number: r.toString(),
+        // row_number_position is required by Pretix
+        row_number_position: 'both',
+        seats,
+        // uuid on row is required by Pretix's internal processing
+        uuid: newUuid(),
+      });
+    }
+
+    const totalWidth = Math.max(900, 200 + COLS * SEAT_SPACING_X);
+    const totalHeight = Math.max(900, ZONE_OFFSET_Y + ROWS * SEAT_SPACING_Y + 200);
+
+    const layout = {
+      name: normalizedName,
+      categories: [
+        // Only INTERO — do NOT include VIP when no VIP seats exist (causes 500 on sub-event creation)
+        { name: 'INTERO', color: '#4F46E5' },
+      ],
+      zones: [
+        {
+          name: normalizedName,
+          position: { x: 0, y: 0 },
+          rows,
+          // areas must be present (can be empty array, but the field must exist)
+          areas: [
+            {
+              shape: 'rectangle',
+              color: '#cccccc',
+              border_color: '#000000',
+              rotation: 0,
+              uuid: newUuid(),
+              position: { x: totalWidth * 0.2, y: 80 },
+              text: {
+                position: { x: totalWidth * 0.1, y: 20 },
+                color: '#333333',
+                text: 'SCHERMO / SCREEN',
+                size: 30,
+              },
+              rectangle: { width: totalWidth * 0.6, height: 60 },
+            },
+          ],
+          // uuid on zone is required
+          uuid: newUuid(),
+          // zone_id is required by Pretix
+          zone_id: normalizedName,
+        },
+      ],
+      size: { width: totalWidth, height: totalHeight },
+    };
+
+    console.log('[adminCreateSeatingPlan] Creazione sala:', normalizedName, `(${ROWS} file × ${COLS} posti)`);
+    console.log('[adminCreateSeatingPlan] Sample seat_guid:', layout.zones[0].rows[0]?.seats[0]?.seat_guid);
+
+    const newPlan = await createSeatingPlan({ name: normalizedName, layout });
+    const planId = newPlan?.id;
+    if (!planId) throw new Error('Pretix non ha restituito un ID per la nuova sala');
+
+    console.log('[adminCreateSeatingPlan] ✅ Sala creata, ID:', planId);
+
+    await adminSyncMirror();
+    return { success: true, plan: newPlan };
+  } catch (error: any) {
+    console.error('[adminCreateSeatingPlan] ❌ Errore:', error?.message || error);
+    throw new Error(error?.message || 'Errore sconosciuto durante la creazione della sala');
+  }
+}
+

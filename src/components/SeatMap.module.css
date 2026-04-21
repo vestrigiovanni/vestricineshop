@@ -55,14 +55,15 @@
   scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
-.seatsRow {
+.simplifiedRow {
   display: flex;
   flex-direction: row;
   justify-content: center;
   align-items: center;
   gap: 12px;
-  flex-wrap: nowrap;
-  min-width: min-content;
+  flex-wrap: wrap;
+  max-width: 1000px;
+  padding: 2rem;
 }
 
 /* ── Seat Component ── */
@@ -72,6 +73,7 @@
   height: 50px;
   border-radius: 12px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -81,6 +83,14 @@
   position: relative;
   padding: 0;
   color: rgba(255, 255, 255, 0.4);
+}
+
+.rowSubLabel {
+  font-size: 0.5rem;
+  opacity: 0.5;
+  text-transform: uppercase;
+  font-weight: 800;
+  margin-top: -2px;
 }
 
 .seat:disabled {
@@ -178,6 +188,7 @@
 .dotAvailable { border: 1px solid rgba(255, 255, 255, 0.3); }
 .dotSelected { background: #fff; box-shadow: 0 0 10px white; }
 .dotOccupied { background: rgba(255, 255, 255, 0.15); }
+.dotVip { border: 1px solid #ffd700; background: rgba(255, 215, 0, 0.2); }
 
 /* ── Loading ── */
 

@@ -150,8 +150,8 @@ async function mapSubEventsToCassaScreenings(subEvents: any[]): Promise<CassaScr
       }
 
       const seatingPlanId = Number(se.seating_plan);
-      // Mirror System: Prioritize alias from registry
-      const roomName = roomsMap[seatingPlanId] || se.seating_plan_name || 'Sala';
+      // Risoluzione dinamica della sala da Pretix
+      const roomName = se.seating_plan_name || roomsMap[seatingPlanId] || 'Sala';
 
       const movieTitle =
         typeof se.name === 'string' ? se.name : se.name?.it || 'Film';

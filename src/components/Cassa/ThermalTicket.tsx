@@ -4,17 +4,27 @@ import React, { forwardRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import styles from './ThermalTicket.module.css';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ThermalTicket — Layout ottimizzato per carta termica 57mm
+//
+// Ordine: Logo TMDB (o titolo grande) → QR Code (grande) → Info
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface ThermalTicketData {
   movieTitle: string;
-  screening: string;      // e.g. "Lun 6 Apr 2026 • 21:00"
+  screening: string;      // etichetta display (es. "Lun 6 Apr • 21:00")
   roomName: string;
-  rowLabel: string;       // e.g. "1"
-  seatLabel: string;      // e.g. "5"
-  seatName: string;       // full name e.g. "Row 1, Seat 5"
+  rowLabel: string;
+  seatLabel: string;
+  seatName: string;
   orderCode: string;
-  qrValue: string;        // URL or code for QR
-  price: string;          // display price (operatore può modificarla)
-  printDate: string;      // e.g. "06/04/2026 21:14"
+  qrValue: string;
+  price: string;
+  printDate: string;
+  // Campi aggiuntivi per il layout avanzato
+  logoPath?: string;      // path TMDB logo (es. "/abc123.png")
+  duration?: number;      // durata in minuti
+  dateFrom?: string;      // ISO date string (es. "2026-04-20T18:30:00")
 }
 
 interface ThermalTicketProps {
@@ -22,131 +32,163 @@ interface ThermalTicketProps {
   id?: string;
 }
 
-/**
- * ThermalTicket — 80mm thermal receipt layout.
- * Uses forwardRef so the parent can grab the DOM node for html2canvas capture.
- */
+function getTmdbLogoUrl(path: string): string {
+  return `https://image.tmdb.org/t/p/w500${path.startsWith('/') ? path : '/' + path}`;
+}
+
 const ThermalTicket = forwardRef<HTMLDivElement, ThermalTicketProps>(
   ({ data, id }, ref) => {
+
+    const [mounted, setMounted] = React.useState(false);
+    React.useEffect(() => {
+      setMounted(true);
+    }, []);
+
+    // Calcola orario inizio e fine
+    const startDate = data.dateFrom ? new Date(data.dateFrom) : null;
+    const endDate =
+      startDate && data.duration
+        ? new Date(startDate.getTime() + data.duration * 60_000)
+        : null;
+
+    const fmtTime = (d: Date) =>
+      d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    const fmtDate = (d: Date) =>
+      d.toLocaleDateString('it-IT', {
+        weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+      });
+
+    const timeLabel = startDate
+      ? `${fmtTime(startDate)}${endDate ? ` → ${fmtTime(endDate)}` : ''}`
+      : '';
+    const dateLabel = startDate ? fmtDate(startDate) : data.screening;
+
+    if (!mounted) {
+      return (
+        <div id={id} ref={ref} className={styles.thermalWrapper} style={{ visibility: 'hidden' }}>
+          {/* Skeleton or empty space during hydration to avoid mismatch */}
+        </div>
+      );
+    }
+
     return (
-      <div
-        id={id}
-        ref={ref}
-        className={styles.thermalWrapper}
-      >
-        {/* HEADER */}
-        <div className={styles.logoAndTitle}>
-          <div className={styles.logo}>VESTRI CINEMA</div>
-          <div className={styles.movieTitle}>{data.movieTitle.toUpperCase()}</div>
-        </div>
+      <div id={id} ref={ref} className={styles.thermalWrapper}>
 
-        <hr className={styles.doubleDivider} />
-
-        {/* DETTAGLI PROIEZIONE */}
-        <div className={styles.detailsBox}>
-          <div className={styles.detailItem}>
-            <span className={styles.detailLabel}>DATA E ORA</span>
-            <span className={styles.detailValue}>{data.screening}</span>
-          </div>
-          <div className={styles.detailItem}>
-            <span className={styles.detailLabel}>SALA</span>
-            <span className={styles.detailValue}>{data.roomName.toUpperCase()}</span>
-          </div>
-        </div>
-
-        <hr className={styles.divider} />
-
-        {/* FILA E POSTO — EXTRA LARGE (40pt equiv in CSS) */}
-        <div className={styles.seatSectionHuge}>
-          <div className={styles.seatRowLabel}>FILA</div>
-          <div className={styles.seatRowValue}>{data.rowLabel}</div>
-          <div className={styles.seatPostoLabel}>POSTO</div>
-          <div className={styles.seatPostoValue}>{data.seatLabel}</div>
-        </div>
-
-        <hr className={styles.divider} />
-
-        {/* QR CODE - HIGH CONTRAST */}
-        <div className={styles.qrSection}>
-          <div className={styles.qrContainer}>
-            <QRCodeSVG
-              value={data.qrValue}
-              size={120}
-              bgColor="#ffffff"
-              fgColor="#000000"
-              level="H"
-              includeMargin={false}
+        {/* ══ 1. LOGO TMDB o TITOLO GRANDE ═══════════════════ */}
+        <div className={styles.logoSection}>
+          {data.logoPath ? (
+            <img
+              src={getTmdbLogoUrl(data.logoPath)}
+              alt={data.movieTitle}
+              className={styles.movieLogo}
+              crossOrigin="anonymous"
             />
-          </div>
+          ) : (
+            <div className={styles.movieTitleBig}>
+              {data.movieTitle.toUpperCase()}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.hr} />
+
+        {/* ══ 2. QR CODE (GRANDE) ════════════════════════════ */}
+        <div className={styles.qrSection}>
+          <QRCodeSVG
+            value={data.qrValue || data.orderCode}
+            size={200}
+            bgColor="#ffffff"
+            fgColor="#000000"
+            level="H"
+            includeMargin={false}
+          />
           <div className={styles.orderCode}>{data.orderCode}</div>
         </div>
 
-        <hr className={styles.divider} />
+        <div className={styles.hr} />
 
-        {/* FOOTER - PREZZO E LEGAL */}
-        <div className={styles.footerSection}>
+        {/* ══ 3. INFO ════════════════════════════════════════ */}
+        <div className={styles.infoSection}>
+
+          {/* Titolo se il logo è mostrato sopra */}
+          {data.logoPath && (
+            <div className={styles.infoTitle}>
+              {data.movieTitle.toUpperCase()}
+            </div>
+          )}
+
+          {/* Data */}
+          <div className={styles.infoDate}>{dateLabel}</div>
+
+          {/* Orario inizio → fine */}
+          {timeLabel && (
+            <div className={styles.infoTime}>{timeLabel}</div>
+          )}
+
+          <div className={styles.infoHr} />
+
+          {/* Sala */}
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>SALA</span>
+            <span className={styles.infoValue}>{data.roomName.toUpperCase()}</span>
+          </div>
+
+          {/* Fila e Posto */}
+          <div className={styles.infoRowDouble}>
+            <div className={styles.infoCell}>
+              <span className={styles.infoLabel}>FILA</span>
+              <span className={styles.infoBig}>{data.rowLabel}</span>
+            </div>
+            <div className={styles.infoDividerV} />
+            <div className={styles.infoCell}>
+              <span className={styles.infoLabel}>POSTO</span>
+              <span className={styles.infoBig}>{data.seatLabel}</span>
+            </div>
+          </div>
+
+          <div className={styles.infoHr} />
+
+          {/* Prezzo */}
           <div className={styles.priceRow}>
-            <span>PREZZO €</span>
-            <span className={styles.priceValue}>{parseFloat(data.price || '0').toFixed(2)}</span>
-          </div>
-          
-          <div className={styles.courtesyText}>
-            SCONTRINO DI CORTESIA<br />
-            TITOLO DI ACCESSO VALIDO
-          </div>
-
-          <div className={styles.legalInfo}>
-            VESTRICINEMASHOP • cassa@vestricinema.it<br />
-            {data.printDate}
+            <span className={styles.priceValue}>
+              € {parseFloat(data.price || '0').toFixed(2)}
+            </span>
           </div>
         </div>
 
-        {/* Bottom padding for tear-off is handled in CSS */}
+        {/* ══ FOOTER ═════════════════════════════════════════ */}
+        <div className={styles.footer}>
+          <span>VESTRICINEMA.IT</span>
+          <span className={styles.footerDate}>{data.printDate}</span>
+        </div>
+
       </div>
     );
   }
 );
 
 ThermalTicket.displayName = 'ThermalTicket';
-
 export default ThermalTicket;
 
-// ─────────────────────────────────────────────────────────────────
-// Helper: extract Row / Seat from Pretix seat name
-// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: estrae Fila / Posto dal nome posto Pretix
+// ─────────────────────────────────────────────────────────────────────────────
 export function parseSeatName(seatName: string): { row: string; seat: string } {
-  // 1. Try classic "Fila 1, Posto 5"
   const rowMatch = seatName.match(/(?:Row|Fila)\s*(\w+)/i);
   const seatMatch = seatName.match(/(?:Seat|Posto)\s*(\w+)/i);
-  
   if (rowMatch && seatMatch) {
-    return {
-      row: rowMatch?.[1] || '-',
-      seat: seatMatch?.[1] || seatName,
-    };
+    return { row: rowMatch[1] || '-', seat: seatMatch[1] || seatName };
   }
-
-  // 2. Try hyphenated format "Section-Row-Seat" (e.g. "Zona Parterre-1-4")
-  // We assume the last part is Seat and the second to last is Row
   const parts = seatName.split('-');
   if (parts.length >= 3) {
+    return { row: parts[parts.length - 2].trim(), seat: parts[parts.length - 1].trim() };
+  }
+  if (seatName.includes(',')) {
+    const cp = seatName.split(',').map(s => s.trim());
     return {
-      row: parts[parts.length - 2].trim(),
-      seat: parts[parts.length - 1].trim(),
+      row: cp[0].replace(/[^0-9]/g, '') || cp[0],
+      seat: cp[1].replace(/[^0-9]/g, '') || cp[1],
     };
   }
-
-  // 3. Simple comma split "Row 1, Seat 5"
-  if (seatName.includes(',')) {
-    const commaParts = seatName.split(',').map(s => s.trim());
-    const r = commaParts[0].replace(/[^0-9]/g, '') || commaParts[0];
-    const s = commaParts[1].replace(/[^0-9]/g, '') || commaParts[1];
-    return { row: r, seat: s };
-  }
-
-  // Fallback: entire string as seat
-  return {
-    row: '-',
-    seat: seatName,
-  };
+  return { row: '-', seat: seatName };
 }

@@ -11,7 +11,7 @@ const TIMEZONE = 'Europe/Rome';
 
 export default function DisplayEsterno() {
   const [movies, setMovies] = useState<DisplayMovieData[]>([]);
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState<Date | null>(null);
   const [preroll, setPreroll] = useState(600); // Default 10 minutes in seconds
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -34,6 +34,7 @@ export default function DisplayEsterno() {
   useEffect(() => {
     // Initial fetch
     fetchData();
+    setNow(new Date());
 
     // Get preroll from URL params
     const params = new URLSearchParams(window.location.search);
@@ -103,6 +104,7 @@ export default function DisplayEsterno() {
 
   // 3. Logic to determine current, next, and following movie
   const { currentMovie, nextMovie, nextNextMovie } = useMemo(() => {
+    if (!now) return { currentMovie: null, nextMovie: null, nextNextMovie: null };
     const currentTime = now.getTime();
     
     // An event is "current" if it's currently playing OR in preroll phase
@@ -142,6 +144,7 @@ export default function DisplayEsterno() {
   }, [selectedMovieId, movies]);
 
   const getTimerData = () => {
+    if (!now) return { label: 'Inizializzazione...', value: '--:--', type: 'idle' };
     // Determine the hero movie for the timer
     const heroMovie = selectedMovie || (isSwapped ? nextMovie : (currentMovie || nextMovie));
     if (!heroMovie) return { label: 'In attesa di proiezioni', value: '--:--', type: 'idle' };
@@ -272,7 +275,7 @@ export default function DisplayEsterno() {
         {mainStageMovie?.backdropPath && (
           <img 
             key={mainStageMovie.id}
-            src={getTMDBImageUrl(mainStageMovie.backdropPath, 'original')} 
+            src={getTMDBImageUrl(mainStageMovie.backdropPath, 'original')!} 
             alt="Backdrop" 
             className={`${styles.backdropImage} ${transitioning ? styles.fadeOut : styles.fadeIn}`}
           />
@@ -293,7 +296,7 @@ export default function DisplayEsterno() {
           <div className={styles.titleWrapper}>
             {mainStageMovie.logoPath ? (
               <img 
-                src={getTMDBImageUrl(mainStageMovie.logoPath, 'w500')} 
+                src={getTMDBImageUrl(mainStageMovie.logoPath, 'w500')!} 
                 alt={mainStageMovie.title} 
                 className={styles.logo}
               />
@@ -361,6 +364,7 @@ export default function DisplayEsterno() {
             <h3 className={styles.nextTitle}>{sideBoxMovie.title}</h3>
             <span className={styles.nextCountdown}>
               {isSwapped ? (() => {
+                if (!now) return '-- min';
                 const itNow = toZonedTime(now, TIMEZONE);
                 const itEnd = toZonedTime(new Date(sideBoxMovie.date_to), TIMEZONE);
                 const diff = Math.max(0, itEnd.getTime() - itNow.getTime());

@@ -35,7 +35,7 @@ export default async function MovieDetail({
         {movie.backdrop_path && (
           <>
             <Image
-              src={backdropUrl}
+              src={backdropUrl!}
               alt=""
               fill
               className={styles.backdropImage}
@@ -60,7 +60,7 @@ export default async function MovieDetail({
           <div className={styles.posterWrapper}>
             {movie.poster_path ? (
               <Image
-                src={posterUrl}
+                src={posterUrl!}
                 alt={`Locandina di ${movie.title}`}
                 fill
                 className={styles.posterImage}

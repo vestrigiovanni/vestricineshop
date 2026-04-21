@@ -1,0 +1,240 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(8px);
+}
+
+.modalContent {
+  background-color: #111;
+  border: 1px solid #333;
+  border-radius: 1.5rem;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.modalHeader {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #222;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #161616;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  letter-spacing: -0.5px;
+}
+
+.btnClose {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.btnClose:hover {
+  background-color: #222;
+  color: #fff;
+}
+
+.modalBody {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.roomList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.roomRow {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.2s;
+}
+
+.roomRow:hover {
+  border-color: #444;
+}
+
+.roomInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.roomNameRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.originalName {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  letter-spacing: 0.5px;
+}
+
+.aliasInput {
+  background: none;
+  border: 1px solid transparent;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.4rem;
+  width: 100%;
+  max-width: 300px;
+  transition: all 0.2s;
+  margin-left: -0.5rem;
+}
+
+.aliasInput:focus {
+  background-color: #222;
+  border-color: #444;
+  outline: none;
+}
+
+.roomActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.actionBtn {
+  background-color: #222;
+  border: 1px solid #333;
+  color: #888;
+  padding: 0.6rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionBtn:hover {
+  background-color: #333;
+  color: #fff;
+}
+
+.bulkHideBtn {
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  color: #ef4444;
+  border-color: #ef444430;
+  background-color: #ef444410;
+}
+
+.bulkHideBtn:hover {
+  background-color: #ef444420;
+  border-color: #ef444450;
+  color: #ef4444;
+}
+
+.actionBtnActive {
+  background-color: #ef444420;
+  border-color: #ef444450;
+  color: #ef4444;
+}
+
+.actionBtnFav {
+  background-color: #f59e0b20;
+  border-color: #f59e0b50;
+  color: #f59e0b;
+}
+
+/* Create Section */
+.createSection {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #222;
+}
+
+.createSection h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.1rem;
+  color: #999;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.createForm {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.createInput {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.createInput:focus {
+  outline: none;
+  border-color: #555;
+}
+
+.createBtn {
+  background-color: #fff;
+  color: #000;
+  border: none;
+  padding: 0 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: transform 0.2s;
+}
+
+.createBtn:hover {
+  transform: scale(1.02);
+}
+
+.createBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

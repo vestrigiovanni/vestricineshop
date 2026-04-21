@@ -45,7 +45,7 @@ export default function AdminSearch() {
           <div key={movie.id} className={styles.movieCard}>
             <div className={styles.posterWrapper}>
               {movie.poster_path ? (
-                <img src={getTMDBImageUrl(movie.poster_path)} alt={movie.title} />
+                <img src={getTMDBImageUrl(movie.poster_path)!} alt={movie.title} />
               ) : (
                 <div className={styles.noPoster}>Nessuna immagine</div>
               )}

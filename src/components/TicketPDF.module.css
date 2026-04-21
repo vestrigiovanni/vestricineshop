@@ -9,7 +9,9 @@
   justify-content: center;
   align-items: flex-start;
   background: transparent;
-  padding: 10px;
+  /* Width matches the scaled ticket size to prevent overflow */
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 /* ── Ticket Container ────────────────────────────────────── */
@@ -24,13 +26,14 @@
   border-radius: 4px;
   box-shadow: 0 40px 80px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255,255,255,0.06);
   flex-shrink: 0;
+  isolation: isolate; /* Ensure stacking context for backdrop z-index */
 }
 
 /* ── Layer 1: Backdrop ───────────────────────────────────── */
 .backdropLayer {
   position: absolute;
   inset: 0;
-  z-index: -1; /* Stable background behind everything */
+  z-index: 1; /* Inside isolated context: sits above the black background */
   overflow: hidden; 
 }
 
