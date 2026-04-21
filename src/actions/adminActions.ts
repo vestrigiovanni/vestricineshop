@@ -284,18 +284,37 @@ export async function adminToggleHideSeatingPlan(planId: number) {
 }
 
 export async function adminBulkHideSeatingPlans() {
-  let registry: Record<string, any> = {};
-  if (fs.existsSync(SEATING_PLANS_CACHE_FILE)) {
-    registry = JSON.parse(fs.readFileSync(SEATING_PLANS_CACHE_FILE, 'utf-8'));
+  try {
+    // 1. Recuperiamo TUTTE le sale attuali da Pretix
+    const plans = await listSeatingPlans();
+    
+    // 2. Leggiamo il registro attuale
+    let registry: Record<string, any> = {};
+    if (fs.existsSync(SEATING_PLANS_CACHE_FILE)) {
+      registry = JSON.parse(fs.readFileSync(SEATING_PLANS_CACHE_FILE, 'utf-8'));
+    }
+
+    // 3. Forziamo isHidden: true per ogni sala trovata su Pretix
+    plans.forEach((p: any) => {
+      const existing = registry[p.id] || {};
+      registry[p.id] = {
+        id: p.id,
+        name: p.name,
+        internalName: existing.internalName || p.name,
+        isHidden: true,
+        isFavorite: existing.isFavorite ?? false
+      };
+    });
+
+    // 4. Salvataggio atomico
+    fs.writeFileSync(SEATING_PLANS_CACHE_FILE, JSON.stringify(registry, null, 2));
+    
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error) {
+    console.error('Error in adminBulkHideSeatingPlans:', error);
+    throw error;
   }
-
-  Object.keys(registry).forEach(id => {
-    registry[id].isHidden = true;
-  });
-
-  fs.writeFileSync(SEATING_PLANS_CACHE_FILE, JSON.stringify(registry, null, 2));
-  revalidatePath('/admin');
-  return { success: true };
 }
 
 export async function adminToggleFavoriteSeatingPlan(planId: number) {
