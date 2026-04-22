@@ -9,7 +9,7 @@
 export function isVM18(rating?: string): boolean {
   if (!rating) return false;
   const r = rating.toString().toUpperCase().replace(/\s+/g, '');
-  return r === '18' || r === '18+' || r === 'VM18' || r === 'VM' || r === 'VM-18';
+  return r === '18' || r === '18+' || r === 'VM18' || r === 'VM-18' || r === 'R' || r === 'NC-17';
 }
 
 /**
@@ -19,18 +19,25 @@ export function isVM18(rating?: string): boolean {
 export function isVM14(rating?: string): boolean {
   if (!rating) return false;
   const r = rating.toString().toUpperCase().replace(/\s+/g, '');
-  return r === '14' || r === '14+' || r === 'VM14' || r === 'VM-14';
+  return r === '14' || r === '14+' || r === 'VM14' || r === 'VM-14' || r === 'PG-13';
 }
 
 /**
  * Normalizes a rating string for display purposes.
+ * New rules:
+ * - VM14, 14+, 14 -> 14+
+ * - VM18, 18+, 18 -> 18+
+ * - 6, 6+ -> 6+
+ * - T, PT, '' -> T
  */
 export function normalizeRating(rating?: string): string {
   if (!rating) return 'T';
-  if (isVM18(rating)) return '18+';
-  if (isVM14(rating)) return '14+';
   const r = rating.toString().toUpperCase().replace(/\s+/g, '');
+  
+  if (r === '14' || r === 'VM14' || r === '14+' || r === 'PG-13') return '14+';
+  if (r === '18' || r === 'VM18' || r === '18+' || r === 'R' || r === 'NC-17') return '18+';
   if (r === '6' || r === '6+') return '6+';
-  if (r === 'T' || r === 'PT') return 'T';
+  if (r === 'T' || r === 'PT' || r === '') return 'T';
+  
   return rating; // Keep original if unknown but not empty
 }

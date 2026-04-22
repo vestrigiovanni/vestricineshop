@@ -436,7 +436,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2000;
 }
 
 .modalContent {
@@ -2002,4 +2002,67 @@
   font-size: 0.7rem;
   color: #94a3b8;
   margin-top: 0.5rem;
+}
+
+/* DISPLAY MODAL CONFIG */
+.displayModalConfig {
+  max-width: 450px !important;
+}
+
+.prerollInputs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  background: #f8fafc;
+  padding: 2.5rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.prerollField {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.prerollInput {
+  width: 90px;
+  height: 90px;
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 800;
+  border: 2px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #fff;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.prerollInput:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+  transform: scale(1.05);
+}
+
+.btnLaunchDisplay {
+  width: 100%;
+  padding: 1rem !important;
+  font-size: 1rem !important;
+  background: #0f172a !important;
+  color: #fff !important;
+  margin-top: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+}
+
+.btnLaunchDisplay:hover {
+  background: #1e293b !important;
+  transform: translateY(-2px);
+}
+
+.modalOverlay {
+  z-index: 2000;
 }

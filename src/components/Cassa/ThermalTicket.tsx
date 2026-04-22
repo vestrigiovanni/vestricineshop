@@ -3,6 +3,7 @@
 import React, { forwardRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import styles from './ThermalTicket.module.css';
+import { isVM18, isVM14 } from '@/utils/ratingUtils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ThermalTicket — Layout ottimizzato per carta termica 57mm
@@ -164,9 +165,9 @@ const ThermalTicket = forwardRef<HTMLDivElement, ThermalTicketProps>(
         </div>
 
         {/* ══ LEGAL WARNING (IF RATED) ════════════════════════ */}
-        {data.rating && (data.rating === '14+' || data.rating === '18+') && (
+        {(isVM14(data.rating) || isVM18(data.rating)) && (
           <div className={styles.legalWarning}>
-            ⚠️ ATTENZIONE: Ingresso vietato ai minori di {data.rating.replace('+', '')} anni
+            ⚠️ ATTENZIONE: Ingresso vietato ai minori di {isVM18(data.rating) ? '18' : '14'} anni
             <br />
             Ingresso previa esibizione documento d&apos;identità
           </div>

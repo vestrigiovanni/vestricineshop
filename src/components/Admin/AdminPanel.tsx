@@ -824,7 +824,203 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
       </div>
 
-      {/* MODAL FOR SCHEDULING */}
+
+
+
+
+
+
+      {/* RIGHT COLUMN: CURRENT PROGRAMMING */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.title}>Programmazione Attuale (Pretix)</h2>
+          <div className="flex flex-col gap-2 items-end">
+            <button
+              onClick={handleOpenCleaningModal}
+              className={styles.btnExternalLink}
+              style={{ backgroundColor: '#dc2626', color: 'white', borderColor: '#b91c1c' }}
+            >
+              <Trash2 size={14} />
+              PULIZIA PROIEZIONI
+            </button>
+            <a
+              href="https://pretix.eu/vestri/npkez/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.btnExternalLink}
+            >
+              <ExternalLink size={14} />
+              VAI A PRETIX
+            </a>
+            <a
+              href="https://pretix.eu/control/event/vestri/npkez/webcheckin/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.btnExternalLink}
+            >
+              <QrCode size={14} />
+              WEB CHECK-IN
+            </a>
+          </div>
+        </div>
+
+        <div className={styles.eventList}>
+          {groupedEvents.length === 0 ? (
+            <div className="py-12 flex flex-col items-center justify-center text-zinc-500 gap-4">
+              <Info size={40} strokeWidth={1} />
+              <p className="italic">Nessuna proiezione programmata.</p>
+            </div>
+          ) : (
+            groupedEvents.map((group) => {
+              const isExpanded = expandedMovies.has(group.title);
+              const nextSubevent = group.items[0];
+              const totalCount = group.items.length;
+              const hasConflicts = group.items.some(e => overlappingIds.has(e.id));
+
+              return (
+                <div key={group.title} className={styles.movieGroup}>
+                  <div
+                    className={`${styles.movieRow} ${isExpanded ? styles.movieRowExpanded : ''}`}
+                    onClick={() => toggleMovieExpand(group.title)}
+                  >
+                    <div className={styles.movieRowMain}>
+                      {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                      <div className={styles.movieRowDesc}>
+                        <h3 className={styles.movieRowTitle}>
+                          {group.title}
+                          {totalCount > 1 && <span className={styles.badgeCount}>{totalCount} Repliche</span>}
+                          {hasConflicts && <span className={styles.badgeConflictSmall}><TriangleAlert size={10} /> Conflitto</span>}
+                        </h3>
+                        <p className={styles.movieRowUpcoming}>
+                          Prossima: {new Date(nextSubevent.date_from).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} • {new Date(nextSubevent.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={styles.movieRowActions}>
+                      <button
+                        className={styles.btnDeleteGroup}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteGroup(group.title, group.items.map(i => i.id));
+                        }}
+                        title="Elimina film e tutte le repliche"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className={styles.subeventList}>
+                      {group.items.map((event: any) => {
+                        const isOverlapping = overlappingIds.has(event.id);
+                        return (
+                          <div key={event.id} className={`${styles.eventRow}${isOverlapping ? ' ' + styles.eventRowOverlap : ''}`}>
+                            <div className={styles.eventDetails}>
+                              <div className={styles.eventMeta}>
+                                <span className={styles.metaBadge}>
+                                  <Calendar size={12} />
+                                  {new Date(event.date_from).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
+                                </span>
+                                <span className={styles.metaBadge}>
+                                  <Clock size={12} />
+                                  {new Date(event.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                {isOverlapping && (
+                                  <span className={styles.overlapLabel}>
+                                    <TriangleAlert size={10} /> Conflitto
+                                  </span>
+                                )}
+                              </div>
+
+                              {isOverlapping && (
+                                <div className={styles.suggestionPanel}>
+                                  <div className={styles.suggestionHeader}>
+                                    <Clock size={12} />
+                                    <span>Risolvi Sovrapposizione:</span>
+                                  </div>
+                                  <div className={styles.suggestionSlots}>
+                                    {getSuggestedSlots(event).length === 0 ? (
+                                      <span className={styles.suggestionEmpty}>Nessun orario libero trovato</span>
+                                    ) : (
+                                      getSuggestedSlots(event).map((slot, idx) => (
+                                        <button
+                                          key={idx}
+                                          className={styles.suggestionSlot}
+                                          onClick={() => handleApplySuggestion(event.id, slot)}
+                                          disabled={applyingSuggestion[event.id]}
+                                        >
+                                          {applyingSuggestion[event.id] ? <Loader2 size={10} className="animate-spin" /> : <Clock size={10} />}
+                                          <span>{slot.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </button>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {quotasState[event.id] && (
+                                <div className={styles.quotaGrid}>
+                                  {quotasState[event.id].map((q: any) => (
+                                    <span key={q.id} className={styles.quotaBadge}>
+                                      <Ticket size={10} />
+                                      {q.name.it}: <strong>{availabilityState[q.id]?.available_number ?? '...'}</strong> / {q.size ?? '∞'}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className={styles.actions}>
+                              <button
+                                className={styles.btnActionIcon}
+                                onClick={() => handleCheckAvailability(event.id)}
+                                disabled={loadingQuotas[event.id]}
+                                title="Disponibilità"
+                              >
+                                {loadingQuotas[event.id] ? <Loader2 className="animate-spin" size={14} /> : <Ticket size={14} />}
+                              </button>
+                              <button
+                                className={styles.btnActionIcon}
+                                onClick={() => handleReplica(event)}
+                                title="Copia"
+                              >
+                                <Calendar size={14} />
+                              </button>
+                              <button
+                                className={styles.btnActionIcon}
+                                onClick={() => handleUpdateDate(event.id, event.date_from)}
+                                title="Sposta"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                className={`${styles.btnActionIcon} ${styles.btnActionDanger}`}
+                                onClick={() => handleDelete(event.id)}
+                                title="Elimina"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+
+
+
+
+      {/* MODAL SECTION: Moved outside grid flow to prevent layout breakage and ensure visibility */}
+      
+      {/* 1. SCHEDULING MODAL */}
       {showModal && selectedMovie && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
@@ -1149,10 +1345,10 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         </div>
       )}
 
-      {/* MODAL FOR EXTERNAL DISPLAY CONFIGURATION */}
+      {/* 2. EXTERNAL DISPLAY CONFIGURATION MODAL */}
       {showDisplayModal && (
         <div className={styles.modalOverlay}>
-          <div className={`${styles.modalContent} max-w-[450px]`}>
+          <div className={`${styles.modalContent} ${styles.displayModalConfig}`}>
             <div className={styles.modalHeader}>
               <h2>
                 <Monitor size={22} color="#0f172a" />
@@ -1213,190 +1409,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         </div>
       )}
 
-      {/* RIGHT COLUMN: CURRENT PROGRAMMING */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.title}>Programmazione Attuale (Pretix)</h2>
-          <div className="flex flex-col gap-2 items-end">
-            <button
-              onClick={handleOpenCleaningModal}
-              className={styles.btnExternalLink}
-              style={{ backgroundColor: '#dc2626', color: 'white', borderColor: '#b91c1c' }}
-            >
-              <Trash2 size={14} />
-              PULIZIA PROIEZIONI
-            </button>
-            <a
-              href="https://pretix.eu/vestri/npkez/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.btnExternalLink}
-            >
-              <ExternalLink size={14} />
-              VAI A PRETIX
-            </a>
-            <a
-              href="https://pretix.eu/control/event/vestri/npkez/webcheckin/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.btnExternalLink}
-            >
-              <QrCode size={14} />
-              WEB CHECK-IN
-            </a>
-          </div>
-        </div>
-
-        <div className={styles.eventList}>
-          {groupedEvents.length === 0 ? (
-            <div className="py-12 flex flex-col items-center justify-center text-zinc-500 gap-4">
-              <Info size={40} strokeWidth={1} />
-              <p className="italic">Nessuna proiezione programmata.</p>
-            </div>
-          ) : (
-            groupedEvents.map((group) => {
-              const isExpanded = expandedMovies.has(group.title);
-              const nextSubevent = group.items[0];
-              const totalCount = group.items.length;
-              const hasConflicts = group.items.some(e => overlappingIds.has(e.id));
-
-              return (
-                <div key={group.title} className={styles.movieGroup}>
-                  <div
-                    className={`${styles.movieRow} ${isExpanded ? styles.movieRowExpanded : ''}`}
-                    onClick={() => toggleMovieExpand(group.title)}
-                  >
-                    <div className={styles.movieRowMain}>
-                      {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                      <div className={styles.movieRowDesc}>
-                        <h3 className={styles.movieRowTitle}>
-                          {group.title}
-                          {totalCount > 1 && <span className={styles.badgeCount}>{totalCount} Repliche</span>}
-                          {hasConflicts && <span className={styles.badgeConflictSmall}><TriangleAlert size={10} /> Conflitto</span>}
-                        </h3>
-                        <p className={styles.movieRowUpcoming}>
-                          Prossima: {new Date(nextSubevent.date_from).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} • {new Date(nextSubevent.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={styles.movieRowActions}>
-                      <button
-                        className={styles.btnDeleteGroup}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteGroup(group.title, group.items.map(i => i.id));
-                        }}
-                        title="Elimina film e tutte le repliche"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {isExpanded && (
-                    <div className={styles.subeventList}>
-                      {group.items.map((event: any) => {
-                        const isOverlapping = overlappingIds.has(event.id);
-                        return (
-                          <div key={event.id} className={`${styles.eventRow}${isOverlapping ? ' ' + styles.eventRowOverlap : ''}`}>
-                            <div className={styles.eventDetails}>
-                              <div className={styles.eventMeta}>
-                                <span className={styles.metaBadge}>
-                                  <Calendar size={12} />
-                                  {new Date(event.date_from).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
-                                </span>
-                                <span className={styles.metaBadge}>
-                                  <Clock size={12} />
-                                  {new Date(event.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                                {isOverlapping && (
-                                  <span className={styles.overlapLabel}>
-                                    <TriangleAlert size={10} /> Conflitto
-                                  </span>
-                                )}
-                              </div>
-
-                              {isOverlapping && (
-                                <div className={styles.suggestionPanel}>
-                                  <div className={styles.suggestionHeader}>
-                                    <Clock size={12} />
-                                    <span>Risolvi Sovrapposizione:</span>
-                                  </div>
-                                  <div className={styles.suggestionSlots}>
-                                    {getSuggestedSlots(event).length === 0 ? (
-                                      <span className={styles.suggestionEmpty}>Nessun orario libero trovato</span>
-                                    ) : (
-                                      getSuggestedSlots(event).map((slot, idx) => (
-                                        <button
-                                          key={idx}
-                                          className={styles.suggestionSlot}
-                                          onClick={() => handleApplySuggestion(event.id, slot)}
-                                          disabled={applyingSuggestion[event.id]}
-                                        >
-                                          {applyingSuggestion[event.id] ? <Loader2 size={10} className="animate-spin" /> : <Clock size={10} />}
-                                          <span>{slot.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</span>
-                                        </button>
-                                      ))
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {quotasState[event.id] && (
-                                <div className={styles.quotaGrid}>
-                                  {quotasState[event.id].map((q: any) => (
-                                    <span key={q.id} className={styles.quotaBadge}>
-                                      <Ticket size={10} />
-                                      {q.name.it}: <strong>{availabilityState[q.id]?.available_number ?? '...'}</strong> / {q.size ?? '∞'}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className={styles.actions}>
-                              <button
-                                className={styles.btnActionIcon}
-                                onClick={() => handleCheckAvailability(event.id)}
-                                disabled={loadingQuotas[event.id]}
-                                title="Disponibilità"
-                              >
-                                {loadingQuotas[event.id] ? <Loader2 className="animate-spin" size={14} /> : <Ticket size={14} />}
-                              </button>
-                              <button
-                                className={styles.btnActionIcon}
-                                onClick={() => handleReplica(event)}
-                                title="Copia"
-                              >
-                                <Calendar size={14} />
-                              </button>
-                              <button
-                                className={styles.btnActionIcon}
-                                onClick={() => handleUpdateDate(event.id, event.date_from)}
-                                title="Sposta"
-                              >
-                                <Edit3 size={14} />
-                              </button>
-                              <button
-                                className={`${styles.btnActionIcon} ${styles.btnActionDanger}`}
-                                onClick={() => handleDelete(event.id)}
-                                title="Elimina"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </section>
-      {/* CLEANING MODAL */}
+      {/* 3. CLEANING MODAL */}
       {showCleaningModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent} style={{ maxWidth: '600px' }}>
@@ -1493,13 +1506,14 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         </div>
       )}
 
-
+      {/* 4. ROOM MANAGEMENT MODAL */}
       {showRoomModal && (
         <RoomManagementModal 
           onClose={() => setShowRoomModal(false)}
           onUpdate={() => initPlans()}
         />
       )}
+
 
     </div>
   );

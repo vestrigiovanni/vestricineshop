@@ -13,12 +13,10 @@ export default function AgeVerificationModal({ onConfirm }: AgeVerificationModal
   const router = useRouter();
 
   const handleConfirm = () => {
-    sessionStorage.setItem('age-verified', 'true');
     onConfirm();
   };
 
   const handleReject = () => {
-    sessionStorage.clear();
     window.location.href = '/';
   };
 

@@ -521,6 +521,8 @@ export async function adminScheduleMovie(
 
 
 
+  const movieRating = getItalianRating(details);
+
   // 6. Create the Sub-Event in Pretix with Mapping
   const subEvent = await createSubEvent({
     title: movieData.title,
@@ -540,7 +542,7 @@ export async function adminScheduleMovie(
     tagline: details.tagline || '',
     genres: details.genres?.map(g => g.name).join(', ') || '',
     year: details.release_date ? details.release_date.split('-')[0] : '',
-    rating: getItalianRating(details),
+    rating: movieRating,
     logoPath: getMovieLogo(details) || '',
     backdropPath: details.backdrop_path || '',
   });
@@ -577,9 +579,19 @@ export async function adminScheduleMovie(
 
   revalidatePath('/');
 
+  // Alert logic: if IT was missing or all countries missing, we let the client know
+  // Note: the check here is simple. If it's 'T' and we had a console warning in tmdb.ts, 
+  // it's a fallback. For simplicity, we flag if IT was missing.
+  const isItMissing = !details.release_dates?.results?.some(r => r.iso_3166_1 === 'IT' && r.release_dates.length > 0);
+
   console.log(`[adminScheduleMovie] ✅ END – Subevent creato ID=${subeventId}, runtime=${runtimeMinutes}m`);
 
-  return { success: true, subeventId: subeventId, runtimeMinutes };
+  return { 
+    success: true, 
+    subeventId: subeventId, 
+    runtimeMinutes,
+    ratingWarning: isItMissing ? `Attenzione: Classificazione IT mancante. Usato fallback internazionale o 'T'.` : null
+  };
 }
 
 export async function adminDeleteEvent(subEventId: number) {

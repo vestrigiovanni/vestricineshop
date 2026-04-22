@@ -21,6 +21,7 @@ interface SubEvent {
   meta_data?: Record<string, string>;
   comment?: string;
   isSoldOut?: boolean;
+  calculatedRating?: string;
 }
 
 interface WeeklyCinemaCalendarProps {
@@ -187,14 +188,19 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
                               {time}
                             </span>
                             {(() => {
-                              try {
-                                if (se.comment) {
-                                  const meta = JSON.parse(se.comment);
-                                  if (meta.rating) return <RatingBadge id={meta.rating} size="xs" className={styles.calendarBadge} />;
-                                }
-                              } catch (e) {}
-                              return null;
-                            })()}
+                               // 1. Priorità al rating calcolato live (coerente con Homepage)
+                               if (se.calculatedRating) {
+                                 return <RatingBadge id={se.calculatedRating} size="xs" className={styles.calendarBadge} />;
+                               }
+                               // 2. Fallback al commento Pretix (vecchi eventi)
+                               try {
+                                 if (se.comment) {
+                                   const meta = JSON.parse(se.comment);
+                                   if (meta.rating) return <RatingBadge id={meta.rating} size="xs" className={styles.calendarBadge} />;
+                                 }
+                               } catch (e) {}
+                               return null;
+                             })()}
                             <div className={styles.tagWrapper}>
                               {tags.map((tag: TagInfo, idx: number) => (
                                 <span key={idx} className={`${styles.tag} ${styles[`tag${tag.type.charAt(0).toUpperCase() + tag.type.slice(1)}` as keyof typeof styles]} ${tag.code === 'ITA' ? styles.tagIta : ''}`}>

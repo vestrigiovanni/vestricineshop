@@ -77,37 +77,19 @@ export default async function Home() {
   const CUTOFF_MINUTES = 2;
 
   for (const se of subEvents) {
-    // ── Pre-Filter ───────────────────────────────────────────
-    if (!se.active || se.isHidden) continue;
-
-    // EXTREMELY IMPORTANT: Only include sub-events that have an ASSIGNED seating plan.
-    // If seating_plan is null, the sub-event is "General Admission" (Posto Libero)
-    // and the interactive SeatMap will fail/be empty.
-    if (se.seating_plan === null) {
-      console.log(`[Home] ⚠️ Skipping sub-event ${se.id} ("${se.name?.it}") - NO SEATING PLAN ASSIGNED`);
-      continue;
-    }
-
-    // Filter out screenings starting in < 2 minutes (or already started)
-    const startTime = new Date(se.date_from);
-    if (startTime.getTime() - now.getTime() < CUTOFF_MINUTES * 60 * 1000) {
-      continue;
-    }
-
+    // ── TMDB ID Resolution ───────────────────────────────────
     let tmdbId = null;
     if (se.comment) {
       try {
         const commentData = JSON.parse(se.comment);
         tmdbId = commentData.tmdbId;
       } catch (e) {
-        // Fallback in case it's a normal string
         const tmdbIdMatch = se.comment.match(/TMDB_ID:(\d+)/);
         tmdbId = tmdbIdMatch ? tmdbIdMatch[1] : null;
       }
     }
 
     if (!tmdbId && se.name?.it) {
-      // Auto-resolve TMDB ID if comment is missing
       const cleanTitle = se.name.it
         .replace(/\(.*?\)/g, "")
         .replace(/\[.*?\]/g, "")
@@ -118,25 +100,40 @@ export default async function Home() {
       const results = await searchMovies(cleanTitle);
       if (results && results.length > 0) {
         tmdbId = results[0].id.toString();
-        // Fire & Forget: logging info per debug
-        console.log(`[Home] 🌟 Auto-resolved TMDB ID ${tmdbId} for "${se.name.it}"`);
       }
     }
 
-    if (!tmdbId) {
-      console.log(`[Home] ⚠️ Skipping sub-event ${se.id} ("${se.name?.it}") - NO TMDB ID`);
+    // ── Apply Calculated Rating to ALL subevents (for Calendar) ──
+    if (tmdbId) {
+      if (!groupedRecord[tmdbId]) {
+        const tmdbMovie = await getMovieDetails(tmdbId);
+        if (tmdbMovie) {
+          groupedRecord[tmdbId] = { tmdbMovie, subevents: [] };
+        }
+      }
+      
+      if (groupedRecord[tmdbId]) {
+        const calculatedRating = getItalianRating(groupedRecord[tmdbId].tmdbMovie);
+        se.calculatedRating = calculatedRating;
+      }
+    }
+
+    // ── Showcase Filtering ────────────────────────────────────
+    if (!se.active || se.isHidden) continue;
+
+    // EXTREMELY IMPORTANT: Only include sub-events that have an ASSIGNED seating plan.
+    if (se.seating_plan === null) {
+      console.log(`[Home] ⚠️ Skipping showcase entry for sub-event ${se.id} ("${se.name?.it}") - NO SEATING PLAN`);
       continue;
     }
 
-    if (!groupedRecord[tmdbId]) {
-      const tmdbMovie = await getMovieDetails(tmdbId);
-      if (tmdbMovie) {
-        groupedRecord[tmdbId] = {
-          tmdbMovie,
-          subevents: []
-        };
-      }
+    // Filter out screenings starting in < 2 minutes (or already started)
+    const startTime = new Date(se.date_from);
+    if (startTime.getTime() - now.getTime() < CUTOFF_MINUTES * 60 * 1000) {
+      continue;
     }
+
+    if (!tmdbId) continue;
 
     if (groupedRecord[tmdbId]) {
       const lingua = se.meta_data?.lingua || '';
@@ -150,9 +147,13 @@ export default async function Home() {
         language: lingua,
         subtitles: sottotitoli,
         format: format,
+        rating: se.calculatedRating
       });
     }
   }
+
+  // Use the now-enriched subEvents array for the calendar
+  const enrichedSubEvents = subEvents;
 
   // Format the grouped movies array
   const movies: GroupedMovie[] = Object.values(groupedRecord).map(entry => {
@@ -192,7 +193,7 @@ export default async function Home() {
   return (
     <main className={styles.main}>
       <MovieShowcase movies={movies} />
-      <WeeklyCinemaCalendar subEvents={subEvents} />
+      <WeeklyCinemaCalendar subEvents={enrichedSubEvents} />
     </main>
   );
 }

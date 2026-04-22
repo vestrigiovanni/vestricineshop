@@ -7,7 +7,7 @@ import CheckoutTimer from './CheckoutTimer';
 import CheckoutButton from './CheckoutButton';
 import RatingBadge from './RatingBadge';
 import AgeVerificationModal from './AgeVerificationModal';
-import { isVM18 } from '@/utils/ratingUtils';
+import { isVM18, isVM14 } from '@/utils/ratingUtils';
 import { listSubEvents, getItemAvailability, getSubEvent, listQuotas, getSubEventSeats } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import { getLanguageFull, getSubtitleFull } from '@/utils/languageUtils';
@@ -66,6 +66,10 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   const [isSoldOut, setIsSoldOut] = useState(false);
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [isAgeVerified, setIsAgeVerified] = useState(false);
+
+  useEffect(() => {
+    sessionStorage.removeItem('age-verified');
+  }, []);
 
   const fetchSchedules = useCallback(async () => {
     setLoading(true);
@@ -158,9 +162,8 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
         if (selectedSubEvent.comment) {
           const meta = JSON.parse(selectedSubEvent.comment);
           const needsVerification = isVM18(meta.rating);
-          const alreadyVerified = sessionStorage.getItem('age-verified') === 'true';
-          
-          if (needsVerification && !alreadyVerified) {
+          if (needsVerification) {
+            setIsAgeVerified(false); // Reset to be sure
             setShowAgeVerification(true);
           } else {
             setIsAgeVerified(true);
@@ -195,11 +198,10 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
       if (se.comment) {
         const meta = JSON.parse(se.comment);
         const needsVerification = isVM18(meta.rating);
-        const alreadyVerified = sessionStorage.getItem('age-verified') === 'true';
-
-        if (needsVerification && !alreadyVerified) {
+        if (needsVerification) {
+          setIsAgeVerified(false); // Force re-verification for the new screening
           setShowAgeVerification(true);
-          setSelectedSubeventId(se.id); // Hold it
+          setSelectedSubeventId(se.id);
           return;
         }
       }
@@ -210,7 +212,6 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   };
 
   const handleAgeVerified = () => {
-    sessionStorage.setItem('age-verified', 'true');
     setShowAgeVerification(false);
     setIsAgeVerified(true);
   };
@@ -426,8 +427,9 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
                 try {
                   if (selectedSubEvent?.comment) {
                     const meta = JSON.parse(selectedSubEvent.comment);
-                    if (meta.rating === '14+' || meta.rating === 'VM14' || meta.rating === '18+' || meta.rating === 'VM18') {
-                      const age = meta.rating.includes('18') ? '18' : '14';
+                    const r = meta.rating;
+                    if (isVM14(r) || isVM18(r)) {
+                      const age = isVM18(r) ? '18' : '14';
                       return (
                         <div className={styles.legalInfo}>
                           <AlertTriangle size={14} />

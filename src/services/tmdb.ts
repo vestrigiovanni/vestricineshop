@@ -256,30 +256,99 @@ export function getTMDBImageUrl(path: string | null | undefined, size: string = 
 }
 
 /**
- * Extracts and normalizes the Italian rating (certification) from release dates.
+ * Helper to map international ratings to the Italian standard (T, 6+, 14+, 18+).
+ * Mapping based on strict provided cross-country tables.
  */
-export function getItalianRating(details: MovieDetails): string {
-  const releaseDates = details.release_dates?.results;
-  if (!releaseDates) return 'T';
+function mapForeignToItalianRating(country: string, cert: string): string {
+  const c = cert.toUpperCase().replace(/\s+/g, '');
+  if (!c) return '';
 
-  const italianRelease = releaseDates.find(r => r.iso_3166_1 === 'IT');
-  if (!italianRelease || !italianRelease.release_dates.length) {
-    // Fallback to US if IT is missing
-    const usRelease = releaseDates.find(r => r.iso_3166_1 === 'US');
-    if (!usRelease || !usRelease.release_dates.length) return 'T';
-    
-    const cert = usRelease.release_dates[0].certification.toUpperCase();
-    if (cert === 'R' || cert === 'NC-17') return '18+';
-    if (cert === 'PG-13') return '14+';
+  if (country === 'US') {
+    if (c === 'G') return 'T';
+    if (c === 'PG') return '6+';
+    if (c === 'PG-13') return '14+';
+    if (c === 'R' || c === 'NC-17') return '18+';
+  }
+  
+  if (country === 'GB') {
+    if (c === 'U') return 'T';
+    if (c === 'PG') return '6+';
+    if (c === '12' || c === '12A' || c === '15') return '14+';
+    if (c === '18') return '18+';
+  }
+  
+  if (country === 'DE') {
+    if (c === '0') return 'T';
+    if (c === '6') return '6+';
+    if (c === '12') return '14+';
+    if (c === '16' || c === '18') return '18+';
+  }
+  
+  if (country === 'FR') {
+    if (c === 'U') return 'T';
+    if (c === '10') return '6+'; // common FR rating
+    if (c === '12') return '14+';
+    if (c === '16' || c === '18') return '18+';
+  }
+
+  // Fallback generico per formati numerici "puri"
+  const num = parseInt(c.replace(/\D/g, ''));
+  if (!isNaN(num)) {
+    if (num >= 18) return '18+';
+    if (num >= 14) return '14+';
+    if (num >= 6) return '6+';
     return 'T';
   }
 
-  const cert = italianRelease.release_dates[0].certification.toUpperCase();
+  return '';
+}
+
+/**
+ * Universal Censorship Translator (Smart Fallback).
+ * 1. Checks IT (Theatrical priority).
+ * 2. Falls back through priority list: US -> GB -> DE -> FR.
+ * 3. Maps foreign codes to Italian levels (T, 6+, 14+, 18+).
+ * 4. Logs fallback usage for diagnostics.
+ */
+export function getItalianRating(details: MovieDetails): string {
+  const results = details.release_dates?.results;
+  if (!results) return 'T';
+
+  // 1. Priorità di Ricerca (Fallback Sequence)
+  const priorityCountries = ['IT', 'US', 'GB', 'DE', 'FR'];
   
-  if (cert === 'T' || cert === 'PT') return 'T';
-  if (cert === '6' || cert === '6+') return '6+';
-  if (cert === '14' || cert === 'VM14' || cert === '14+') return '14+';
-  if (cert === '18' || cert === 'VM18' || cert === '18+') return '18+';
-  
-  return cert || 'T';
+  for (const countryCode of priorityCountries) {
+    const countryData = results.find(r => r.iso_3166_1 === countryCode);
+    if (!countryData || countryData.release_dates.length === 0) continue;
+
+    // Filtriamo solo le release che hanno una certificazione non vuota
+    const validReleases = countryData.release_dates.filter(rd => rd.certification && rd.certification.trim() !== '');
+    if (validReleases.length === 0) continue;
+
+    // Cerchiamo preferibilmente la release cinematografica (type: 3)
+    const theatrical = validReleases.find(rd => rd.type === 3);
+    const rawCert = (theatrical ? theatrical.certification : validReleases[0].certification).trim().toUpperCase();
+
+    if (countryCode === 'IT') {
+      // Normalizzazione standard IT
+      const cert = rawCert.replace(/\s+/g, '');
+      if (cert === 'T' || cert === 'PT' || !cert) return 'T';
+      if (cert === '6' || cert === '6+') return '6+';
+      if (cert === '14' || cert === 'VM14' || cert === '14+') return '14+';
+      if (cert === '18' || cert === 'VM18' || cert === '18+') return '18+';
+      return cert;
+    } else {
+      // Fallback: Mappiamo la certificazione trovata
+      const mapped = mapForeignToItalianRating(countryCode, rawCert);
+      
+      if (mapped) {
+        console.log(`[Rating Fallback] Film: ${details.title} | Usato rating ${countryCode}: ${rawCert} -> Mappato come ${mapped}`);
+        return mapped;
+      }
+    }
+  }
+
+  // 5. Ultima Istanza
+  console.warn(`[TMDb Critical] Nessun rating trovato per "${details.title}" (ID: ${details.id}) nei paesi di fallback. Impostato 'T'.`);
+  return 'T';
 }
