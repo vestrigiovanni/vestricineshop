@@ -12,7 +12,11 @@ const TIMEZONE = 'Europe/Rome';
 const PRETIX_API_URL = 'https://pretix.eu/api/v1';
 const PRETIX_ORGANIZER = 'vestri';
 const PRETIX_EVENT = 'npkez';
-const PRETIX_TOKEN = process.env.PRETIX_TOKEN; // "Token uqvj3n2vyn1yc0xzqqcqw44f93ug86s8x8l5uj61jb2wd3aywsfdfmyq9apshgjb"
+const PRETIX_TOKEN = process.env.PRETIX_TOKEN;
+
+if (!PRETIX_TOKEN && process.env.NODE_ENV === 'production') {
+  console.error('[PRETIX] ERRORE CRITICO: PRETIX_TOKEN non configurato su Vercel!');
+}
 const pad = (n: number) => n.toString().padStart(2, '0');
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

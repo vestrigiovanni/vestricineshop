@@ -89,29 +89,14 @@ async function mapSubEventsToCassaScreenings(subEvents: any[]): Promise<CassaScr
             interoQuota.available_number <= 0)
         : se.best_availability_state === 'sold_out';
 
-      // ── FIX VIP BADGE ────────────────────────────────────────────────────────
-      // Il badge "VIP disponibile" deve apparire SOLO SE:
-      // Il seat fisico marcato come VIP ha lo stato "available: true".
+      // ── OPTIMIZATION: Evitiamo getSubEventSeats qui (troppo pesante per la griglia iniziale)
+      // Usiamo le quote come indicatore primario. Se c'è una quota VIP con posti > 0, 
+      // mostriamo il badge. L'effettiva disponibilità fisica verrà verificata al click.
       let isVipAvailable = false;
-      try {
-        const seats = await getSubEventSeats(se.id);
-        const hasAvailableVipSeat = seats.some((s: any) => {
-          const isVipSeat =
-            s.product === ITEM_VIP_ID ||
-            s.item === ITEM_VIP_ID ||
-            (typeof s.seat_guid === 'string' && s.seat_guid.toUpperCase().includes('VIP')) ||
-            (typeof s.category === 'string' && (s.category.toUpperCase().includes('VIP') || s.category.toUpperCase().includes('POLTRONA')));
-          
-          const isFree = s.available === true || s.is_available === true || (!s.blocked && !s.orderposition && s.available !== false && s.is_available !== false);
-          return isVipSeat && isFree;
-        });
-        isVipAvailable = hasAvailableVipSeat;
-      } catch {
-        // In caso di errore API, fallback logico
-        if (vipQuota && vipQuota.available_number !== null && vipQuota.available_number > 0) {
-          isVipAvailable = true;
-        }
+      if (vipQuota && (vipQuota.available_number === null || vipQuota.available_number > 0)) {
+        isVipAvailable = true;
       }
+
 
       const availableSeats =
         interoQuota?.available_number !== undefined
