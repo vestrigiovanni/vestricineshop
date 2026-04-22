@@ -1393,17 +1393,16 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  const totalSeconds = (prerollMin * 60) + prerollSec;
-                  window.open(`/display-esterno?preroll=${totalSeconds}`, '_blank');
-                  setShowDisplayModal(false);
-                }}
+              <a
+                href={`/display-esterno?preroll=${(prerollMin * 60) + prerollSec}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowDisplayModal(false)}
                 className={`${styles.modalBtnSubmit} ${styles.btnLaunchDisplay}`}
               >
                 <Monitor size={20} />
                 Lancia Display
-              </button>
+              </a>
             </div>
           </div>
         </div>
