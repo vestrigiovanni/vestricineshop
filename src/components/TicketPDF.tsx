@@ -407,7 +407,11 @@ export async function generateTicketPDF(elementIds: string[], fileName: string =
     }
 
     window.scrollTo(previousScrollX, previousScrollY);
-    pdf.save(`${fileName}.pdf`);
+    
+    // Create a blob and open it in a new tab instead of saving directly
+    const pdfBlob = pdf.output('blob');
+    const url = URL.createObjectURL(pdfBlob);
+    window.open(url, '_blank');
 
   } catch (err) {
     console.error('Error generating PDF:', err);

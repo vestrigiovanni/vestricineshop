@@ -2,7 +2,7 @@
 
 import { listSubEvents, listQuotas, getSeatingPlansMap } from '@/services/pretix';
 import { ITEM_INTERO_ID } from '@/constants/pretix';
-import { getMovieDetails } from '@/services/tmdb';
+import { getMovieDetails, getItalianRating } from '@/services/tmdb';
 
 export interface DisplayMovieData {
   id: number;
@@ -21,6 +21,7 @@ export interface DisplayMovieData {
   logoPath?: string;
   isSoldOut?: boolean;
   roomName?: string;
+  rating?: string;
 }
 
 export async function getDisplayData() {
@@ -62,9 +63,10 @@ export async function getDisplayData() {
       // 4. Fetch additional TMDB assets
       let backdropPath = metadata.backdropPath || '';
       let logoPath = '';
+      let tmdbDetails = null;
       
       if (metadata.tmdbId) {
-        const tmdbDetails = await getMovieDetails(metadata.tmdbId);
+        tmdbDetails = await getMovieDetails(metadata.tmdbId);
         if (tmdbDetails) {
           backdropPath = tmdbDetails.backdrop_path || backdropPath;
           if (tmdbDetails.images?.logos && tmdbDetails.images.logos.length > 0) {
@@ -94,7 +96,8 @@ export async function getDisplayData() {
         language: metadata.language || 'Italiano',
         subtitles: metadata.subtitles || 'Italiano',
         isSoldOut,
-        roomName
+        roomName,
+        rating: tmdbDetails ? getItalianRating(tmdbDetails) : (metadata.rating || 'T')
       } as DisplayMovieData;
     });
 

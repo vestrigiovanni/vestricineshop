@@ -344,7 +344,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
               ) : (
                   <>
                       <Download size={24} />
-                      SCARICA IL TUO BIGLIETTO ORA
+                      APRI IL TUO BIGLIETTO ORA
                   </>
               )}
             </button>
@@ -355,7 +355,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
               </div>
             )}
             
-            {!isAnonymous && <p className={styles.downloadHint}>Il PDF verrà scaricato direttamente sul tuo dispositivo.</p>}
+            {!isAnonymous && <p className={styles.downloadHint}>Il PDF si aprirà in una nuova scheda.</p>}
           </div>
         </div> {/* end splitLayout */}
       </div>
@@ -391,7 +391,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
         onClick={handleAnonymousCheckout}
         disabled={loading}
       >
-        Continua senza email (Scarica il biglietto subito)
+        Continua senza email (Apri il biglietto subito)
       </button>
 
       {error && <p className={styles.error}>{error}</p>}

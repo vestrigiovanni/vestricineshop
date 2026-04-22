@@ -5,6 +5,7 @@ import { getDisplayData, DisplayMovieData } from '@/actions/displayActions';
 import styles from './DisplayEsterno.module.css';
 import { getTMDBImageUrl } from '@/services/tmdb';
 import { Maximize, Minimize } from 'lucide-react';
+import RatingBadge from '@/components/RatingBadge';
 import { toZonedTime } from 'date-fns-tz';
 
 const TIMEZONE = 'Europe/Rome';
@@ -307,11 +308,13 @@ export default function DisplayEsterno() {
             <div className={styles.movieDetails}>
               <span className={styles.director}>Regia di {mainStageMovie.director}</span>
               <span className={styles.cast}>{mainStageMovie.cast}</span>
-              {mainStageMovie.roomName && (
-                <span className={styles.roomName}>{mainStageMovie.roomName}</span>
-              )}
             </div>
           </div>
+          <RatingBadge 
+            rating={mainStageMovie.rating} 
+            size="lg" 
+            className={styles.ratingBadge} 
+          />
         </div>
       ) : timer.type !== 'final-countdown' && (
         <div className={styles.content}>
