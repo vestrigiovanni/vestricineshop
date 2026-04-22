@@ -30,9 +30,15 @@ export default function CassaError({
         <div style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '0.5rem' }}>
           Errore nel caricamento della Cassa
         </div>
-        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)', maxWidth: 400 }}>
-          {error.message || 'Si è verificato un errore imprevisto. Riprova o controlla la connessione a Pretix.'}
+        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)', maxWidth: 400, whiteSpace: 'pre-wrap' }}>
+          {error.message || 'Si è verificato un errore imprevisto.'}
+          {error.digest && (
+            <div style={{ marginTop: '0.5rem', opacity: 0.5, fontSize: '0.7rem' }}>
+              ID Errore: {error.digest}
+            </div>
+          )}
         </div>
+
       </div>
       <button
         onClick={reset}

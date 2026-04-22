@@ -17,6 +17,13 @@ const PRETIX_TOKEN = process.env.PRETIX_TOKEN;
 if (!PRETIX_TOKEN && process.env.NODE_ENV === 'production') {
   console.error('[PRETIX] ERRORE CRITICO: PRETIX_TOKEN non configurato su Vercel!');
 }
+
+// Fallback to avoid crashes in non-production, but throw if called in production
+if (process.env.NODE_ENV === 'production' && !PRETIX_TOKEN) {
+  // We don't throw at the module level to avoid breaking the build,
+  // but we will throw inside the fetcher.
+}
+
 const pad = (n: number) => n.toString().padStart(2, '0');
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -261,7 +268,11 @@ function parsePretixError(errorText: string, endpoint?: string): string {
  * Helper to fetch data from Pretix API
  */
 async function fetchPretix(endpoint: string, options: RequestInit = {}) {
+  if (!PRETIX_TOKEN) {
+    throw new Error('Configurazione Mancante: PRETIX_TOKEN non trovato nell\'ambiente (Vercel Secrets).');
+  }
   const maxRetries = 3;
+
   
   // Only cache GET requests without body
   const isCacheable = (!options.method || options.method === 'GET') && !options.body;

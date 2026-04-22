@@ -758,13 +758,16 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           <span>GESTISCI SALE</span>
         </button>
 
-        <button
-          onClick={() => window.open('/admin/cassa', '_blank', 'width=1200,height=800,noopener,noreferrer')}
+        <a
+          href="/admin/cassa"
+          target="_blank"
+          rel="noopener noreferrer"
           className={styles.btnCassaLauncher}
         >
           <ShoppingBag size={18} />
           APRI CASSA
-        </button>
+        </a>
+
         <button
           onClick={() => setShowDisplayModal(true)}
           className={styles.btnDisplayLauncher}
