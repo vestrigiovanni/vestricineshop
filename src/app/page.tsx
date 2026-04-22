@@ -1,4 +1,4 @@
-import { getMovieDetails, getCast, getTrailerKey, searchMovies } from '@/services/tmdb';
+import { getMovieDetails, getCast, getTrailerKey, searchMovies, getItalianRating } from '@/services/tmdb';
 import { listSubEvents, listQuotas, getSeatingPlansMap, limitConcurrency } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
@@ -184,6 +184,7 @@ export default async function Home() {
       isSoldOut: isSoldOut,
       cast: getCast(entry.tmdbMovie, 5),
       trailerKey: getTrailerKey(entry.tmdbMovie),
+      rating: getItalianRating(entry.tmdbMovie),
     };
   });
 

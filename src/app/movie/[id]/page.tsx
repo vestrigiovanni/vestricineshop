@@ -1,8 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getMovieDetails, getTMDBImageUrl } from '@/services/tmdb';
+import { getMovieDetails, getTMDBImageUrl, getItalianRating } from '@/services/tmdb';
 import BookingFlow from '@/components/BookingFlow';
+import RatingBadge from '@/components/RatingBadge';
 import { Calendar, Clock, MapPin } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -80,6 +81,7 @@ export default async function MovieDetail({
               <div className={styles.tagGroup}>
                 <span className={styles.tag}><Calendar size={18} /> {movie.release_date?.split('-')[0]}</span>
                 {movie.runtime > 0 && <span className={styles.tag}><Clock size={18} /> {movie.runtime} min</span>}
+                <RatingBadge rating={getItalianRating(movie)} size="md" />
                 <span className={styles.tag}><MapPin size={18} /> Cinema Vestri</span>
               </div>
               <div className={styles.genres}>

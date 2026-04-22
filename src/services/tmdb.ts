@@ -9,6 +9,7 @@ export interface MovieItem {
   backdrop_path: string | null;
   release_date: string;
   original_language?: string;
+  rating?: string;
 }
 
 const LANGUAGE_MAP: Record<string, string> = {
@@ -95,7 +96,30 @@ export async function searchMovies(query: string = ''): Promise<MovieItem[]> {
     }
 
     const data = await response.json();
-    return data.results || [];
+    const results: MovieItem[] = data.results || [];
+
+    // Enrich the first 10 results with ratings (VM14, VM18, etc)
+    // We do this by calling getMovieDetails which includes release_dates.
+    // This makes the search slightly slower but provides critical age info as requested.
+    const enrichedResults = await Promise.all(
+      results.slice(0, 10).map(async (movie) => {
+        try {
+          const details = await getMovieDetails(String(movie.id));
+          if (details) {
+            return {
+              ...movie,
+              rating: getItalianRating(details)
+            };
+          }
+          return movie;
+        } catch {
+          return movie;
+        }
+      })
+    );
+
+    // Combine enriched results with the rest
+    return [...enrichedResults, ...results.slice(10)];
   } catch (error) {
     console.error('Error fetching movies from TMDB:', error);
     return [];
@@ -229,4 +253,33 @@ export function getMovieLogo(details: MovieDetails): string | null {
 export function getTMDBImageUrl(path: string | null | undefined, size: string = 'w500'): string | undefined {
   if (!path) return undefined;
   return `https://image.tmdb.org/t/p/${size}${path}`;
+}
+
+/**
+ * Extracts and normalizes the Italian rating (certification) from release dates.
+ */
+export function getItalianRating(details: MovieDetails): string {
+  const releaseDates = details.release_dates?.results;
+  if (!releaseDates) return 'T';
+
+  const italianRelease = releaseDates.find(r => r.iso_3166_1 === 'IT');
+  if (!italianRelease || !italianRelease.release_dates.length) {
+    // Fallback to US if IT is missing
+    const usRelease = releaseDates.find(r => r.iso_3166_1 === 'US');
+    if (!usRelease || !usRelease.release_dates.length) return 'T';
+    
+    const cert = usRelease.release_dates[0].certification.toUpperCase();
+    if (cert === 'R' || cert === 'NC-17') return '18+';
+    if (cert === 'PG-13') return '14+';
+    return 'T';
+  }
+
+  const cert = italianRelease.release_dates[0].certification.toUpperCase();
+  
+  if (cert === 'T' || cert === 'PT') return 'T';
+  if (cert === '6' || cert === '6+') return '6+';
+  if (cert === '14' || cert === 'VM14' || cert === '14+') return '14+';
+  if (cert === '18' || cert === 'VM18' || cert === '18+') return '18+';
+  
+  return cert || 'T';
 }

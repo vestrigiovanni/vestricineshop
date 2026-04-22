@@ -24,6 +24,8 @@ import jsPDF from 'jspdf';
 import styles from './CassaInterface.module.css';
 import ThermalTicket, { parseSeatName, ThermalTicketData } from './ThermalTicket';
 import TicketPDF from '../TicketPDF';
+import RatingBadge from '../RatingBadge';
+import { isVM18, isVM14 } from '@/utils/ratingUtils';
 import {
   cassaGetSeats,
   cassaExecuteSale,
@@ -106,6 +108,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
   const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
   const [globalResults, setGlobalResults] = useState<CassaScreening[]>([]);
   const [activeShortcut, setActiveShortcut] = useState<string | null>(null);
+  const [ratingAlert, setRatingAlert] = useState<string | null>(null);
 
   const normalize = (s: string) => 
     s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -210,6 +213,15 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     try {
       const fetchedSeats = await cassaGetSeats(screening.subeventId);
       setSeats(fetchedSeats);
+      
+      // Controllo Rating Censura (VM18 / VM14)
+      if (isVM18(screening.rating)) {
+        setRatingAlert('🔞 ATTENZIONE: Film Vietato ai Minori di 18 Anni. CONTROLLARE DOCUMENTO D\'IDENTITÀ.');
+      } else if (isVM14(screening.rating)) {
+        setRatingAlert('⚠️ ATTENZIONE: Film Vietato ai Minori di 14 Anni.');
+      } else {
+        setRatingAlert(null);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -327,6 +339,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
       logoPath: screening?.logoPath,
       duration: screening?.runtime,
       dateFrom: screening?.dateFrom,
+      rating: record.rating || screening?.rating,
     };
   }, []);
 
@@ -737,8 +750,11 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
                           ) : (
                             <div className={styles.availBadge}>{s.availableSeats} posti liberi</div>
                           )}
-                          <div className={styles.btnFindAltIcon} onClick={(e) => { e.stopPropagation(); handleFindAlternatives(s); }} title="Prossimi Spettacoli">
-                            <Clock size={14} />
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            {s.rating && <RatingBadge id={s.rating} size="sm" />}
+                            <div className={styles.btnFindAltIcon} onClick={(e) => { e.stopPropagation(); handleFindAlternatives(s); }} title="Prossimi Spettacoli">
+                              <Clock size={14} />
+                            </div>
                           </div>
                         </div>
                         <div className={`${styles.screeningTime} ${s.isSoldOut ? styles.screeningTimeSoldOut : ''}`}>{formatTime(s.dateFrom)}</div>
@@ -772,8 +788,11 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
                           ) : (
                             <div className={styles.availBadge}>{s.availableSeats} posti liberi</div>
                           )}
-                          <div className={styles.btnFindAltIcon} onClick={(e) => { e.stopPropagation(); handleFindAlternatives(s); }} title="Prossimi Spettacoli">
-                            <Clock size={14} />
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            {s.rating && <RatingBadge id={s.rating} size="sm" />}
+                            <div className={styles.btnFindAltIcon} onClick={(e) => { e.stopPropagation(); handleFindAlternatives(s); }} title="Prossimi Spettacoli">
+                              <Clock size={14} />
+                            </div>
                           </div>
                         </div>
                         <div className={`${styles.screeningTime} ${s.isSoldOut ? styles.screeningTimeSoldOut : ''}`}>{formatTime(s.dateFrom)}</div>
@@ -802,7 +821,10 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
                     <span className={styles.kbdHint}>ESC</span>
                   </button>
                   <div>
-                    <div className={styles.selectedInfoTitle}>{selectedScreening.movieTitle}</div>
+                    <div className={styles.selectedInfoTitle}>
+                      {selectedScreening.movieTitle}
+                      {selectedScreening.rating && <RatingBadge id={selectedScreening.rating} size="sm" className={styles.modalBadge} />}
+                    </div>
                     <div className={styles.selectedInfoMeta}>{formatScreeningLabel(selectedScreening.dateFrom)} • {selectedScreening.roomName}</div>
                   </div>
                 </div>
@@ -927,6 +949,12 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
                   <div className={styles.successDetailRow}><span>Totale</span><span style={{ color: '#86efac' }}>€ {(parseFloat(prezzoFisico) * result.records.length).toFixed(2)}</span></div>
                 </div>
               </div>
+            </div>
+          )}
+          {ratingAlert && (
+            <div className={styles.ratingAlertBar} onClick={() => setRatingAlert(null)}>
+              {ratingAlert}
+              <button className={styles.closeAlert}><X size={16} /></button>
             </div>
           )}
         </div>

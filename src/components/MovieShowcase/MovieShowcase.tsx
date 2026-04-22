@@ -9,6 +9,7 @@ import { getMovieTags, TagInfo } from '@/utils/languageUtils';
 import { useAutoScroll } from '@/context/AutoScrollContext';
 import { Video } from 'lucide-react';
 import useSWR from 'swr';
+import RatingBadge from '../RatingBadge';
 
 const AUTO_SCROLL_INTERVAL = 5000;
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -27,6 +28,7 @@ export interface GroupedMovie {
   isSoldOut?: boolean;
   cast?: string[];
   trailerKey?: string | null;
+  rating?: string;
   subevents: {
     id: number;
     date: string;
@@ -206,6 +208,12 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
                 <span>{activeMovie.runtime} min</span>
               </>
             )}
+            {activeMovie.rating && (
+              <>
+                <span>•</span>
+                <RatingBadge rating={activeMovie.rating} size="sm" />
+              </>
+            )}
             {activeMovie.director && (
               <>
                 <span>•</span>
@@ -318,6 +326,11 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
                 {movie.isSoldOut && (
                   <div className={styles.soldOutBanner}>
                     <span>SOLD OUT</span>
+                  </div>
+                )}
+                {movie.rating && (
+                  <div className={styles.ratingBadgeOverlay}>
+                    <RatingBadge rating={movie.rating} size="sm" />
                   </div>
                 )}
               </div>

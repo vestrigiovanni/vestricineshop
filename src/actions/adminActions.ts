@@ -1,7 +1,7 @@
 'use server';
 
 import fs from 'fs';
-import { searchMovies, getMovieDetails, getDirector, getCast, getMovieLogo } from '@/services/tmdb';
+import { searchMovies, getMovieDetails, getDirector, getCast, getMovieLogo, getItalianRating } from '@/services/tmdb';
 import {
   createSubEvent,
   deleteSubEvent,
@@ -540,8 +540,7 @@ export async function adminScheduleMovie(
     tagline: details.tagline || '',
     genres: details.genres?.map(g => g.name).join(', ') || '',
     year: details.release_date ? details.release_date.split('-')[0] : '',
-    rating: details.release_dates?.results?.find((r: any) => r.iso_3166_1 === 'IT')?.release_dates?.[0]?.certification ||
-      details.release_dates?.results?.find((r: any) => r.iso_3166_1 === 'US')?.release_dates?.[0]?.certification || '',
+    rating: getItalianRating(details),
     logoPath: getMovieLogo(details) || '',
     backdropPath: details.backdrop_path || '',
   });

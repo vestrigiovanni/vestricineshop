@@ -132,6 +132,44 @@
   z-index: 110;
 }
 
+/* ── PREMIUM RATING STAMP (Top-Left) ── */
+.premiumRatingStamp {
+  position: absolute;
+  top: 35px;
+  left: 60px;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.souvenirBadge {
+  /* Smaller, round, and more elegant design */
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1.5px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  line-height: 1;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.3s ease;
+  filter: saturate(1.2);
+  opacity: 0.9;
+}
+
+.souvenirBadge:hover {
+  transform: scale(1.1);
+  opacity: 1;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
 /* ── TOP SECTION: Director · Logo · Tagline ──────────────── */
 .topSection {
   display: flex;

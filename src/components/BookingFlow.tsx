@@ -5,6 +5,9 @@ import Link from 'next/link';
 import SeatMap from './SeatMap';
 import CheckoutTimer from './CheckoutTimer';
 import CheckoutButton from './CheckoutButton';
+import RatingBadge from './RatingBadge';
+import AgeVerificationModal from './AgeVerificationModal';
+import { isVM18 } from '@/utils/ratingUtils';
 import { listSubEvents, getItemAvailability, getSubEvent, listQuotas, getSubEventSeats } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import { getLanguageFull, getSubtitleFull } from '@/utils/languageUtils';
@@ -61,6 +64,8 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   const [selectedSubEvent, setSelectedSubEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSoldOut, setIsSoldOut] = useState(false);
+  const [showAgeVerification, setShowAgeVerification] = useState(false);
+  const [isAgeVerified, setIsAgeVerified] = useState(false);
 
   const fetchSchedules = useCallback(async () => {
     setLoading(true);
@@ -146,6 +151,25 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
     }
   }, [subeventId]);
 
+  // Handle prop-based subeventId age verification
+  useEffect(() => {
+    if (subeventId && selectedSubEvent && !isAgeVerified) {
+      try {
+        if (selectedSubEvent.comment) {
+          const meta = JSON.parse(selectedSubEvent.comment);
+          const needsVerification = isVM18(meta.rating);
+          const alreadyVerified = sessionStorage.getItem('age-verified') === 'true';
+          
+          if (needsVerification && !alreadyVerified) {
+            setShowAgeVerification(true);
+          } else {
+            setIsAgeVerified(true);
+          }
+        }
+      } catch (e) {}
+    }
+  }, [subeventId, selectedSubEvent, isAgeVerified]);
+
   useEffect(() => {
     fetchSchedules();
   }, [fetchSchedules]);
@@ -162,6 +186,33 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
     if (next.has(seatId)) next.delete(seatId);
     else next.set(seatId, label);
     setSelectedSeats(next);
+  };
+
+  const handleSubeventSelect = (se: any) => {
+    if (se.isSoldOut) return;
+
+    try {
+      if (se.comment) {
+        const meta = JSON.parse(se.comment);
+        const needsVerification = isVM18(meta.rating);
+        const alreadyVerified = sessionStorage.getItem('age-verified') === 'true';
+
+        if (needsVerification && !alreadyVerified) {
+          setShowAgeVerification(true);
+          setSelectedSubeventId(se.id); // Hold it
+          return;
+        }
+      }
+    } catch (e) {}
+
+    setSelectedSubeventId(se.id);
+    setIsAgeVerified(true);
+  };
+
+  const handleAgeVerified = () => {
+    sessionStorage.setItem('age-verified', 'true');
+    setShowAgeVerification(false);
+    setIsAgeVerified(true);
   };
 
   const startCheckout = () => {
@@ -235,7 +286,21 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
           <div className={styles.seatsList}>{seatLabels.join(' · ')}</div>
         </div>
 
-        <CheckoutButton subeventId={selectedSubeventId!} selectedSeats={seatIds} onSuccess={fetchSchedules} />
+        {/* Pass rating extracted from metadata if available */}
+        <CheckoutButton 
+          subeventId={selectedSubeventId!} 
+          selectedSeats={seatIds} 
+          onSuccess={fetchSchedules}
+          movieRating={(() => {
+            try {
+              if (selectedSubEvent?.comment) {
+                const meta = JSON.parse(selectedSubEvent.comment);
+                return meta.rating;
+              }
+            } catch (e) {}
+            return undefined;
+          })()}
+        />
       </div>
     );
   }
@@ -251,6 +316,27 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
 
   return (
     <div className={styles.container}>
+      {/* 18+ Age Verification Modal - rendered at the root to ensure it covers everything */}
+      {showAgeVerification && (
+        <AgeVerificationModal onConfirm={handleAgeVerified} />
+      )}
+
+      {/* Top-Right prominent rating badge for better readability */}
+      {(() => {
+          try {
+            if (selectedSubEvent?.comment) {
+              const meta = JSON.parse(selectedSubEvent.comment);
+              if (meta.rating) {
+                return (
+                  <div className={styles.topRightRating}>
+                    <RatingBadge id={meta.rating} size="md" />
+                  </div>
+                );
+              }
+            }
+          } catch (e) {}
+          return null;
+      })()}
       <div className={styles.header}>
         <div className={styles.titleBlock}>
           <div className={styles.titleRow}>
@@ -297,7 +383,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
                 <button
                   key={se.id}
                   className={`${styles.subeventBtn} ${se.isSoldOut ? styles.subeventBtnSoldOut : ''}`}
-                  onClick={() => !se.isSoldOut && setSelectedSubeventId(se.id)}
+                  onClick={() => handleSubeventSelect(se)}
                   disabled={se.isSoldOut}
                 >
                   <div className={styles.subeventInfo}>
@@ -328,13 +414,31 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
       ) : (
         <>
           <div className={styles.seatMapWrapper}>
-            <SeatMap
-              selectedSeats={new Set(selectedSeats.keys())}
-              onSeatToggle={handleSeatToggle}
-              subeventId={selectedSubeventId}
-              onClose={onClose}
-            />
-          </div>
+              <SeatMap
+                selectedSeats={new Set(selectedSeats.keys())}
+                onSeatToggle={handleSeatToggle}
+                subeventId={selectedSubeventId}
+                onClose={onClose}
+              />
+            </div>
+
+            {(() => {
+                try {
+                  if (selectedSubEvent?.comment) {
+                    const meta = JSON.parse(selectedSubEvent.comment);
+                    if (meta.rating === '14+' || meta.rating === 'VM14' || meta.rating === '18+' || meta.rating === 'VM18') {
+                      const age = meta.rating.includes('18') ? '18' : '14';
+                      return (
+                        <div className={styles.legalInfo}>
+                          <AlertTriangle size={14} />
+                          <span>L&apos;accesso a questa proiezione è limitato ai maggiori di {age} anni.</span>
+                        </div>
+                      );
+                    }
+                  }
+                } catch (e) {}
+                return null;
+            })()}
 
           <div className={styles.footer}>
             <div className={styles.summaryInfo}>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Search, Loader2, Plus, Calendar } from 'lucide-react';
 import { searchMovies, MovieItem, getTMDBImageUrl } from '@/services/tmdb';
+import RatingBadge from './RatingBadge';
 import styles from './AdminSearch.module.css';
 
 export default function AdminSearch() {
@@ -51,7 +52,10 @@ export default function AdminSearch() {
               )}
             </div>
             <div className={styles.movieInfo}>
-              <h3>{movie.title}</h3>
+              <div className={styles.titleRow}>
+                <h3>{movie.title}</h3>
+                {movie.rating && <RatingBadge id={movie.rating} size="sm" />}
+              </div>
               <p className={styles.date}>{movie.release_date}</p>
               <button className={styles.addButton}>
                 <Plus size={16} />

@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Ticket } from 'lucide-react';
 import styles from './WeeklyCinemaCalendar.module.css';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
+import RatingBadge from '../RatingBadge';
 import { getMovieTags, TagInfo } from '@/utils/languageUtils';
 import { useAutoScroll } from '@/context/AutoScrollContext';
 import useSWR from 'swr';
@@ -185,6 +186,15 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
                             <span className={`${styles.slotTime} ${isSoldOut ? styles.strikethroughTime : ''}`}>
                               {time}
                             </span>
+                            {(() => {
+                              try {
+                                if (se.comment) {
+                                  const meta = JSON.parse(se.comment);
+                                  if (meta.rating) return <RatingBadge id={meta.rating} size="xs" className={styles.calendarBadge} />;
+                                }
+                              } catch (e) {}
+                              return null;
+                            })()}
                             <div className={styles.tagWrapper}>
                               {tags.map((tag: TagInfo, idx: number) => (
                                 <span key={idx} className={`${styles.tag} ${styles[`tag${tag.type.charAt(0).toUpperCase() + tag.type.slice(1)}` as keyof typeof styles]} ${tag.code === 'ITA' ? styles.tagIta : ''}`}>

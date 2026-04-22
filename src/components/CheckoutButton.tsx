@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Download, CheckCircle2 } from 'lucide-react';
 import { finalizeBooking, getSubEvent } from '@/services/pretix';
+import { isVM18 } from '@/utils/ratingUtils';
 import TicketPDF, { generateTicketPDF } from './TicketPDF';
 import styles from './CheckoutButton.module.css';
 
@@ -34,9 +35,10 @@ interface CheckoutButtonProps {
   subeventId?: number;
   selectedSeats: string[];
   onSuccess?: () => void;
+  movieRating?: string;
 }
 
-export default function CheckoutButton({ subeventId, selectedSeats, onSuccess }: CheckoutButtonProps) {
+export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, movieRating }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +73,8 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess }:
       setError("Inserisci la tua email per ricevere il biglietto.");
       return;
     }
+
+    // Age verification is now handled by BookingFlow.tsx before seat selection.
 
     // 0. Reset state & Clear session to prevent stale data restoration
     if (subeventId) sessionStorage.removeItem(`order_${subeventId}`);
@@ -250,6 +254,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess }:
     setIsAnonymous(true);
     handleCheckout('guest_ANONIMO@vestricinema.it');
   };
+
   if (success) {
     return (
       <div className={styles.successContainer}>

@@ -25,6 +25,7 @@ export interface ThermalTicketData {
   logoPath?: string;      // path TMDB logo (es. "/abc123.png")
   duration?: number;      // durata in minuti
   dateFrom?: string;      // ISO date string (es. "2026-04-20T18:30:00")
+  rating?: string;        // classificazione (es. "14+", "18+")
 }
 
 interface ThermalTicketProps {
@@ -161,6 +162,15 @@ const ThermalTicket = forwardRef<HTMLDivElement, ThermalTicketProps>(
           <span>VESTRICINEMA.IT</span>
           <span className={styles.footerDate}>{data.printDate}</span>
         </div>
+
+        {/* ══ LEGAL WARNING (IF RATED) ════════════════════════ */}
+        {data.rating && (data.rating === '14+' || data.rating === '18+') && (
+          <div className={styles.legalWarning}>
+            ⚠️ ATTENZIONE: Ingresso vietato ai minori di {data.rating.replace('+', '')} anni
+            <br />
+            Ingresso previa esibizione documento d&apos;identità
+          </div>
+        )}
 
       </div>
     );

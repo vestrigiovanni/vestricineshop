@@ -1587,3 +1587,52 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Rating Alert Bar ── */
+.ratingAlertBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #ffcc00 !important;
+  color: #000 !important;
+  padding: 1.5rem 2rem;
+  font-weight: 900;
+  font-size: 1.4rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  z-index: 10000;
+  box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.5);
+  animation: slideUpAlert 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  border-top: 4px solid rgba(0, 0, 0, 0.1);
+}
+
+.ratingAlertBar:has(span:contains("18")) {
+  background: #e50914 !important;
+  color: #fff !important;
+}
+
+.closeAlert {
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 50%;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: inherit;
+}
+
+.closeAlert:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+@keyframes slideUpAlert {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

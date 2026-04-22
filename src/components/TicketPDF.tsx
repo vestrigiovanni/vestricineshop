@@ -7,6 +7,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import styles from './TicketPDF.module.css';
 import { getTMDBImageUrl } from '@/services/tmdb';
+import RatingBadge from './RatingBadge';
 
 interface TicketData {
   movieTitle: string;
@@ -207,6 +208,13 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
           crossOrigin="anonymous"
         />
       </div>
+
+      {/* ── Layer 2.5: Premium Rating Stamp (Top-Left) ── */}
+      {data.rating && (
+        <div className={styles.premiumRatingStamp}>
+          <RatingBadge id={data.rating} size="lg" className={styles.souvenirBadge} />
+        </div>
+      )}
 
       {/* ── Layer 3: Content (Absolute Overlays with Safe Margins) ── */}
       <div className={styles.contentWrapper}>
