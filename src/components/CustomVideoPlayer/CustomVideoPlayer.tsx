@@ -21,7 +21,7 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
   const containerRef = useRef<HTMLDivElement>(null);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
-  
+
   const [mounted, setMounted] = useState(false);
   const [showCurtain, setShowCurtain] = useState(false);
   const [showControls, setShowControls] = useState(true);
@@ -59,12 +59,12 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
 
     const initPlayer = () => {
       if (!playerWrapperRef.current) return;
-      
+
       if (playerRef.current) {
-        try { playerRef.current.destroy(); } catch (e) {}
+        try { playerRef.current.destroy(); } catch (e) { }
         playerRef.current = null;
       }
-      
+
       playerWrapperRef.current.innerHTML = '';
       const anchor = document.createElement('div');
       playerWrapperRef.current.appendChild(anchor);
@@ -109,7 +109,7 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
     return () => {
       clearTimeout(timer);
       if (playerRef.current) {
-        try { playerRef.current.destroy(); } catch (e) {}
+        try { playerRef.current.destroy(); } catch (e) { }
         playerRef.current = null;
       }
     };
@@ -130,7 +130,7 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === 'f') {
         if (!document.fullscreenElement) {
-          containerRef.current?.requestFullscreen().catch(() => {});
+          containerRef.current?.requestFullscreen().catch(() => { });
         } else {
           document.exitFullscreen();
         }
@@ -162,7 +162,7 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
   }, [isPlaying, mounted]);
 
   const handleClose = () => {
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
     setCurrentVideoIndex(0);
     setAllVideosFailed(false);
     onClose();
@@ -172,14 +172,14 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
   if (!mounted) return <div className={`${styles.playerContainer} ${styles.hidden}`} />;
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className={`${styles.playerContainer} ${isPlaying ? styles.visible : styles.hidden} ${!showControls ? styles.hideCursor : ''}`}
     >
       <div className={styles.videoWrapper}>
         {allVideosFailed && backdropUrl && (
-          <div 
-            className={styles.kenBurnsBackdrop} 
+          <div
+            className={styles.kenBurnsBackdrop}
             style={{ backgroundImage: `url(${backdropUrl})` }}
           />
         )}
@@ -192,12 +192,12 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
           </>
         )}
       </div>
-      
+
       {isPlaying && (
         <div className={`${styles.controlsContainer} ${showControls ? styles.controlsVisible : styles.controlsHidden}`}>
-          <button 
-            onClick={handleClose} 
-            className={styles.closeButton} 
+          <button
+            onClick={handleClose}
+            className={styles.closeButton}
             aria-label="Esci dal Trailer"
           >
             <X size={24} strokeWidth={1.5} />

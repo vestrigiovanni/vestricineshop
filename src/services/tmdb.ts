@@ -297,8 +297,26 @@ export async function getMovieTrailers(id: string, originalLanguage: string = 'e
     const allKeysSet = new Set<string>();
     const collectedVideos: any[] = [];
 
+    // Determina la lingua primaria e secondaria basata sui requisiti
+    let primaryLang = 'en-US';
+    let secondaryLang: string | null = null;
+
+    if (originalLanguage === 'it') {
+      primaryLang = 'it-IT';
+      secondaryLang = 'en-US';
+    } else if (originalLanguage === 'en') {
+      primaryLang = 'en-US';
+      secondaryLang = null;
+    } else {
+      // Per film stranieri (non IT/EN), l'utente preferisce trailer in Inglese
+      primaryLang = 'en-US';
+      secondaryLang = null;
+    }
+
+    const langsToFetch = secondaryLang ? [primaryLang, secondaryLang] : [primaryLang];
+
     // Fetch videos for each target language
-    for (const lang of languagesToCheck) {
+    for (const lang of langsToFetch) {
       const url = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}&language=${lang}`;
       const response = await fetch(url, { next: { revalidate: 86400 } });
       if (!response.ok) continue;
@@ -306,16 +324,19 @@ export async function getMovieTrailers(id: string, originalLanguage: string = 'e
       const data = await response.json();
       const results = data.results;
       if (results && Array.isArray(results)) {
-        collectedVideos.push(...results);
+        // Tagghiamo i video con la lingua di provenienza per il punteggio
+        collectedVideos.push(...results.map((v: any) => ({ ...v, fetchLang: lang })));
       }
     }
 
-    // Fallback: search without language restriction
+    // Fallback: search without language restriction (last resort)
     const fallbackUrl = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}`;
     const fbResponse = await fetch(fallbackUrl, { next: { revalidate: 86400 } });
     if (fbResponse.ok) {
       const fbData = await fbResponse.json();
-      if (fbData.results) collectedVideos.push(...fbData.results);
+      if (fbData.results) {
+        collectedVideos.push(...fbData.results.map((v: any) => ({ ...v, fetchLang: 'any' })));
+      }
     }
 
     // Filter and Sort: Site "YouTube" only
@@ -324,11 +345,19 @@ export async function getMovieTrailers(id: string, originalLanguage: string = 'e
     // Scoring system for prioritization
     const scoredVideos = validVideos.map(v => {
       let score = 0;
+      
+      // Bonus Lingua (Priorità Assoluta)
+      if (v.fetchLang === primaryLang) score += 1000;
+      else if (v.fetchLang === secondaryLang) score += 500;
+      
+      // Bonus Tipo
       if (v.type === 'Trailer') score += 100;
       if (v.type === 'Teaser') score += 50;
       if (v.type === 'Clip') score += 10;
+      
+      // Bonus Ufficiale
       if (v.official === true) score += 200;
-      // Bonus for priority language (already handled by iteration order but helpful for combined list)
+      
       return { key: v.key, score };
     });
 

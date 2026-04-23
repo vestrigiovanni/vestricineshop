@@ -68,15 +68,15 @@
 
 .heroOverlayBottom {
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 15%; /* Ridotto ulteriormente a filo scritta */
   background: linear-gradient(
     0deg,
     rgba(15, 17, 21, 1) 0%,
-    rgba(15, 17, 21, 0.9) 25%,
-    rgba(15, 17, 21, 0) 60%
+    rgba(15, 17, 21, 0.8) 50%,
+    transparent 100%
   );
   pointer-events: none;
   z-index: 70;
