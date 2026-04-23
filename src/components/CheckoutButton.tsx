@@ -47,6 +47,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [orderCode, setOrderCode] = useState('');
   const [subeventData, setSubeventData] = useState<SubeventMetadata | null>(null);
+  const [showBanner, setShowBanner] = useState(false);
 
   // Persistence: Restore state on mount
   useEffect(() => {
@@ -230,13 +231,60 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
     }
   };
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = async (shouldDownload: boolean = false) => {
+    let pdfWindow: Window | null = null;
+    
+    if (!shouldDownload) {
+      // Open a blank tab IMMEDIATELY to bypass popup blockers
+      pdfWindow = window.open('', '_blank');
+      if (pdfWindow) {
+        pdfWindow.document.write(`
+          <html>
+            <head>
+              <title>Generazione Biglietto...</title>
+              <style>
+                body { 
+                  display: flex; 
+                  flex-direction: column;
+                  align-items: center; 
+                  justify-content: center; 
+                  height: 100vh; 
+                  margin: 0; 
+                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                  background-color: #1a1a1a;
+                  color: #ffffff;
+                }
+                .spinner {
+                  border: 4px solid rgba(255, 255, 255, 0.1);
+                  border-left-color: #ffffff;
+                  border-radius: 50%;
+                  width: 40px;
+                  height: 40px;
+                  animation: spin 1s linear infinite;
+                  margin-bottom: 20px;
+                }
+                @keyframes spin {
+                  to { transform: rotate(360deg); }
+                }
+              </style>
+            </head>
+            <body>
+              <div class="spinner"></div>
+              <p>Generazione del tuo biglietto in corso...</p>
+              <p style="font-size: 0.8em; opacity: 0.7;">Attendere prego, verrai reindirizzato tra pochi istanti.</p>
+            </body>
+          </html>
+        `);
+      }
+    }
+
     setLoading(true);
     try {
       const ticketIds = tickets.map(t => `full-ticket-${t.secret}`);
-      await generateTicketPDF(ticketIds, `biglietti_${orderCode}`);
+      await generateTicketPDF(ticketIds, `biglietti_${orderCode}`, pdfWindow, shouldDownload);
     } catch (err) {
       console.error('Failed to generate PDF', err);
+      if (pdfWindow) pdfWindow.close();
       setError("Errore durante la generazione del PDF.");
     } finally {
       setLoading(false);
@@ -336,7 +384,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
           <div className={styles.actionArea}>
             <button 
               className={`btn-primary ${styles.giantDownloadBtn}`} 
-              onClick={handleDownloadPDF}
+              onClick={() => setShowBanner(true)}
               disabled={loading}
             >
               {loading ? (
@@ -348,6 +396,15 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
                   </>
               )}
             </button>
+
+            <button 
+              className={styles.secondaryDownloadBtn} 
+              onClick={() => handleDownloadPDF(true)}
+              disabled={loading}
+            >
+              <Download size={18} />
+              SCARICA IL TUO BIGLIETTO (PDF)
+            </button>
             
             {isAnonymous && (
               <div className={styles.anonymousDisclaimer}>
@@ -358,6 +415,30 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
             {!isAnonymous && <p className={styles.downloadHint}>Il PDF si aprirà in una nuova scheda.</p>}
           </div>
         </div> {/* end splitLayout */}
+
+        {/* Warning Banner / Modal */}
+        {showBanner && (
+          <div className={styles.bannerOverlay}>
+            <div className={styles.bannerContainer}>
+              <div className={styles.bannerIcon}>⚠️</div>
+              <div className={styles.bannerContent}>
+                <h4 className={styles.bannerTitle}>ATTENZIONE</h4>
+                <p className={styles.bannerText}>
+                  Non riceverai una copia via email. Assicurati di scaricare o fare uno screenshot del biglietto ora.
+                </p>
+                <button 
+                  className={styles.bannerConfirmBtn}
+                  onClick={() => {
+                    setShowBanner(false);
+                    handleDownloadPDF(false);
+                  }}
+                >
+                  HO CAPITO, APRI BIGLIETTO
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

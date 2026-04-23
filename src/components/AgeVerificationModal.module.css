@@ -14,43 +14,37 @@
 }
 
 .modal {
-  background: #1a1a1a;
+  background: #0f0f13; /* Deep black / dark gray */
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  padding: 3rem;
-  max-width: 500px;
+  border-radius: 8px; /* Elegant sharp corners */
+  padding: 3rem 2.5rem;
+  max-width: 450px; /* Smaller, medium banner */
   width: 90%;
   text-align: center;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.iconWrapper {
-  width: 80px;
-  height: 80px;
-  background: rgba(229, 9, 20, 0.1);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1.5rem;
-  color: #e50914;
-}
 
 .title {
-  font-size: 2rem;
-  font-weight: 900;
-  color: #fff;
-  margin-bottom: 1rem;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: #ffffff;
+  margin-bottom: 1.5rem;
   text-transform: uppercase;
-  letter-spacing: -0.5px;
+  letter-spacing: 4px;
 }
 
+
 .message {
-  font-size: 1.1rem;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1rem;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 2.5rem;
+  font-weight: 300;
+  letter-spacing: 0.5px;
 }
 
 .actions {
@@ -60,40 +54,45 @@
 }
 
 .confirmBtn {
-  background: #e50914;
-  color: #fff;
+  background: #ffffff;
+  color: #000000;
   border: none;
-  padding: 1.25rem;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 800;
+  padding: 1rem;
+  border-radius: 4px;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 2px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   text-transform: uppercase;
 }
 
 .confirmBtn:hover {
-  background: #f40a16;
+  background: #e6e6e6;
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(229, 9, 20, 0.3);
 }
 
 .rejectBtn {
   background: transparent;
   color: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1rem;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.5rem;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.8rem;
+  font-weight: 300;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s ease;
+  width: fit-content;
+  margin: 0 auto;
 }
 
 .rejectBtn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-bottom-color: #ffffff;
 }
 
 @keyframes fadeIn {

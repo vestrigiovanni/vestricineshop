@@ -19,22 +19,25 @@
   width: 840px;
   height: 592px;
   position: relative;
-  overflow: hidden; /* Strict boundary enforcement */
+  overflow: hidden;
+  /* Strict boundary enforcement */
   background-color: #000;
   font-family: 'Inter', 'Helvetica Neue', -apple-system, sans-serif;
   color: #fff;
   border-radius: 4px;
-  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255,255,255,0.06);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
-  isolation: isolate; /* Ensure stacking context for backdrop z-index */
+  isolation: isolate;
+  /* Ensure stacking context for backdrop z-index */
 }
 
 /* ── Layer 1: Backdrop ───────────────────────────────────── */
 .backdropLayer {
   position: absolute;
   inset: 0;
-  z-index: 1; /* Inside isolated context: sits above the black background */
-  overflow: hidden; 
+  z-index: 1;
+  /* Inside isolated context: sits above the black background */
+  overflow: hidden;
 }
 
 .backdropImage {
@@ -52,24 +55,21 @@
 .gradientBottom {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.95) 0%,
-    rgba(0, 0, 0, 0.7) 35%,
-    rgba(0, 0, 0, 0) 65%
-  );
-  z-index: 2; /* Moved above the backdropImage but below contentWrapper */
+  background: linear-gradient(to top,
+      rgba(0, 0, 0, 0.95) 0%,
+      rgba(0, 0, 0, 0.7) 35%,
+      rgba(0, 0, 0, 0) 65%);
+  z-index: 2;
+  /* Moved above the backdropImage but below contentWrapper */
 }
 
 .gradientTop {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.8) 0%,
-    rgba(0, 0, 0, 0.5) 20%,
-    rgba(0, 0, 0, 0) 45%
-  );
+  background: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0.8) 0%,
+      rgba(0, 0, 0, 0.5) 20%,
+      rgba(0, 0, 0, 0) 45%);
   z-index: 2;
 }
 
@@ -82,7 +82,7 @@
   flex-direction: column;
   justify-content: space-between;
   /* Top padding reduced slightly; Bottom padding increased for total safe zone */
-  padding: 30px 60px 45px 60px; 
+  padding: 30px 60px 45px 60px;
 }
 
 /* ── VERTICAL SIDEBAR: Order Code (Left Margin) ── */
@@ -105,8 +105,10 @@
 /* ── TRUE ZERO-MARGIN BRAND LOGO (Top-Left) ── */
 .personalLogo {
   position: absolute;
-  top: -5px; /* Forced against edge */
-  left: -5px; /* Forced against edge */
+  top: -5px;
+  /* Forced against edge */
+  left: -5px;
+  /* Forced against edge */
   width: 336px;
   z-index: 110;
 }
@@ -116,7 +118,7 @@
   height: auto;
   object-fit: contain;
   /* White + Clear Cinematic Drop Shadow */
-  filter: brightness(0) invert(1) drop-shadow(0 0 15px rgba(0,0,0,0.9));
+  filter: brightness(0) invert(1) drop-shadow(0 0 15px rgba(0, 0, 0, 0.9));
 }
 
 /* ── QR CODE (Top-Right) ── */
@@ -127,7 +129,7 @@
   background: #FFF;
   padding: 10px;
   border-radius: 4px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
   line-height: 0;
   z-index: 110;
 }
@@ -177,7 +179,8 @@
   align-items: center;
   text-align: center;
   gap: 12px;
-  margin-top: 40px; /* RECOVERED Vertical Space */
+  margin-top: 40px;
+  /* RECOVERED Vertical Space */
 }
 
 /* "A FILM BY [NAME]" — pure white, spaced caps */
@@ -236,7 +239,8 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  margin: 5px 0 10px 0; /* RECOVERED Vertical Space */
+  margin: 5px 0 10px 0;
+  /* RECOVERED Vertical Space */
 }
 
 .salaName {
@@ -309,7 +313,8 @@
   gap: 12px;
   margin-top: auto;
   width: 100%;
-  margin-bottom: 25px; /* TOTAL SAFE ZONE Pullup */
+  margin-bottom: 25px;
+  /* TOTAL SAFE ZONE Pullup */
 }
 
 /* Symmetric 3-column layout to force absolute center for the middle block */
@@ -326,7 +331,8 @@
   text-shadow: 0 4px 15px rgba(0, 0, 0, 1);
 }
 
-.showInfoLeft, .showInfoRight {
+.showInfoLeft,
+.showInfoRight {
   flex: 1;
   display: flex;
   align-items: center;
@@ -357,11 +363,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.75rem; /* Larger footer warning */
+  font-size: 0.75rem;
+  /* Larger footer warning */
   font-weight: 900;
   letter-spacing: 3px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.9); /* Higher Contrast */
+  color: rgba(255, 255, 255, 0.9);
+  /* Higher Contrast */
   text-shadow: 0 2px 4px rgba(0, 0, 0, 1);
   margin-top: 8px;
 }
@@ -388,4 +396,3 @@
   right: -15px;
   border-radius: 30px 0 0 30px;
 }
-

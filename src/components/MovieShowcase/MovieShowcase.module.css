@@ -17,6 +17,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  z-index: 1;
 }
 
 @keyframes fadeIn {
@@ -46,9 +47,10 @@
   object-fit: cover;
   object-position: center 20%;
   transition: opacity 0.5s ease-in-out;
+  z-index: 0;
 }
 
-.heroOverlay {
+.heroOverlayText {
   position: absolute;
   top: 0;
   left: 0;
@@ -59,12 +61,25 @@
     rgba(15, 17, 21, 1) 0%,
     rgba(15, 17, 21, 0.8) 30%,
     rgba(15, 17, 21, 0) 100%
-  ),
-  linear-gradient(
+  );
+  pointer-events: none;
+  z-index: 60;
+}
+
+.heroOverlayBottom {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
     0deg,
     rgba(15, 17, 21, 1) 0%,
-    rgba(15, 17, 21, 0) 30%
+    rgba(15, 17, 21, 0.9) 25%,
+    rgba(15, 17, 21, 0) 60%
   );
+  pointer-events: none;
+  z-index: 70;
 }
 
 .heroContent {
@@ -76,13 +91,14 @@
 }
 
 .title {
+  font-family: 'Cinzel', serif; /* Fallback diretto a Cinzel */
   font-size: clamp(3rem, 5vw, 6rem);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.1;
   margin: 0 0 1rem;
-  color: #ffffff;
+  color: #FFFFF0;
   text-transform: uppercase;
-  letter-spacing: -1px;
+  letter-spacing: 0.1em;
 }
 
 .logoContainer {
@@ -142,6 +158,15 @@
   line-clamp: unset;
   -webkit-line-clamp: unset;
   display: block;
+}
+
+.uiHidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateY(25px) !important;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
+              visibility 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .castList {
@@ -338,7 +363,7 @@
 }
 
 @media (max-width: 768px) {
-  .heroOverlay {
+  .heroOverlayText {
     background: linear-gradient(
       0deg,
       rgba(15, 17, 21, 1) 0%,
@@ -427,8 +452,10 @@
 }
 
 .trailerBtn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   color: #fff;
   padding: 0.4rem;
   border-radius: 50%;
@@ -437,8 +464,9 @@
   align-items: center;
   justify-content: center;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .trailerBtn:hover {
@@ -448,85 +476,8 @@
   box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
 }
 
-.trailerOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.95);
-  z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(15px);
-  animation: fadeIn 0.4s ease;
-  padding: 2rem;
-}
-
-.trailerModal {
-  position: relative;
-  width: 100%;
-  max-width: 1200px;
-  aspect-ratio: 16 / 9;
-  background: #000;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.closeTrailer {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  padding: 0.6rem;
-  border-radius: 50%;
-  cursor: pointer;
-  z-index: 12;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.closeTrailer:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: #fff;
-  transform: rotate(90deg) scale(1.1);
-}
-
-.videoWrapper {
-  width: 100%;
-  height: 100%;
-  background: #000;
-}
-
-.videoWrapper iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
 
 @media (max-width: 768px) {
-  .trailerOverlay {
-    padding: 1rem;
-  }
-  
-  .trailerModal {
-    border-radius: 12px;
-  }
-  
-  .closeTrailer {
-    top: 1rem;
-    right: 1rem;
-    padding: 0.5rem;
-  }
-
   .directorBlock {
     gap: 0.5rem;
   }

@@ -192,41 +192,159 @@ export function getCast(details: any, limit: number = 5): string[] {
     .map((person: any) => person.name);
 }
 
+// Simple in-memory cache for trailer keys to avoid redundant TMDb calls
+const trailerCache = new Map<string, string | null>();
+const trailersCache = new Map<string, string[]>();
+
 /**
- * Extracts the best trailer key (YouTube) following strict user rules:
- * a) Matches original_language exactly.
- * b) Fallback to 'en'.
- * c) Fallback to first available trailer.
+ * Extracts the best trailer key (YouTube) following surgical linguistic rules:
+ * 1. IT: it-IT > en-US > first available
+ * 2. EN: en-US/en-GB > first available
+ * 3. UR/PA/SD: Forced EN (en-US)
+ * 4. Others: Original > EN > first available
+ * Filters: Site "YouTube", Type "Trailer", Priority "official: true"
  */
-export function getTrailerKey(details: any): string | null {
-  const videos = details?.videos?.results;
-  if (!videos || !Array.isArray(videos)) return null;
+export async function getMovieTrailer(id: string, originalLanguage: string = 'en'): Promise<string | null> {
+  const cacheKey = `${id}_${originalLanguage}`;
+  if (trailerCache.has(cacheKey)) {
+    return trailerCache.get(cacheKey)!;
+  }
 
-  const originalLang = details.original_language;
+  try {
+    // Determine which languages to check based on original_language
+    let languagesToCheck = ['en-US'];
+    
+    if (originalLanguage === 'it') {
+      languagesToCheck = ['it-IT', 'en-US'];
+    } else if (['ur', 'pa', 'sd'].includes(originalLanguage)) {
+      languagesToCheck = ['en-US']; // Forced English for Pakistani languages
+    } else if (originalLanguage !== 'en') {
+      languagesToCheck = [originalLanguage, 'en-US'];
+    }
 
-  // a) Cerca il trailer dove iso_639_1 è identico alla original_language del film
-  const originalTrailer = videos.find((v: any) => 
-    v.site === 'YouTube' && 
-    v.type === 'Trailer' && 
-    v.iso_639_1 === originalLang
-  );
-  if (originalTrailer) return originalTrailer.key;
+    let bestTrailer: any = null;
 
-  // b) Se non trovato, cerca il trailer con iso_639_1: "en"
-  const englishTrailer = videos.find((v: any) => 
-    v.site === 'YouTube' && 
-    v.type === 'Trailer' && 
-    v.iso_639_1 === 'en'
-  );
-  if (englishTrailer) return englishTrailer.key;
+    // Fetch videos for each target language until we find a good one
+    for (const lang of languagesToCheck) {
+      const url = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}&language=${lang}`;
+      const response = await fetch(url, { next: { revalidate: 86400 } }); // Cache for 24h
+      
+      if (!response.ok) continue;
+      
+      const data = await response.json();
+      const videos = data.results;
+      
+      if (!videos || !Array.isArray(videos)) continue;
 
-  // c) Se no, prendi il primo trailer disponibile nell'elenco (Trailer su YouTube)
-  const anyTrailer = videos.find((v: any) => 
-    v.site === 'YouTube' && 
-    v.type === 'Trailer'
-  );
-  
-  return anyTrailer ? anyTrailer.key : null;
+      // Filter for YouTube Trailers
+      const trailers = videos.filter((v: any) => 
+        v.site === 'YouTube' && 
+        v.type === 'Trailer'
+      );
+
+      if (trailers.length === 0) continue;
+
+      // Priority to official trailers
+      const officialTrailer = trailers.find((v: any) => v.official === true);
+      bestTrailer = officialTrailer || trailers[0];
+
+      if (bestTrailer) break;
+    }
+
+    // Fallback: search without language restriction if still nothing found
+    if (!bestTrailer) {
+      const fallbackUrl = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}`;
+      const response = await fetch(fallbackUrl, { next: { revalidate: 86400 } });
+      if (response.ok) {
+        const data = await response.json();
+        const anyTrailer = data.results?.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer');
+        if (anyTrailer) bestTrailer = anyTrailer;
+      }
+    }
+
+    const trailerKey = bestTrailer?.key || null;
+    trailerCache.set(cacheKey, trailerKey);
+    return trailerKey;
+  } catch (error) {
+    console.error(`[TMDB ERROR] Error fetching trailer for ${id}:`, error);
+    return null;
+  }
+}
+
+/**
+ * NEW: Extracts multiple trailer keys (YouTube) for fallback resilience.
+ * Returns up to 5 keys, prioritized by:
+ * 1. Language priority (IT/EN/Original)
+ * 2. Type priority (Trailer > Teaser > Clip)
+ * 3. Official status
+ */
+export async function getMovieTrailers(id: string, originalLanguage: string = 'en'): Promise<string[]> {
+  const cacheKey = `${id}_${originalLanguage}_multi`;
+  if (trailersCache.has(cacheKey)) {
+    return trailersCache.get(cacheKey)!;
+  }
+
+  try {
+    let languagesToCheck = ['en-US'];
+    if (originalLanguage === 'it') {
+      languagesToCheck = ['it-IT', 'en-US'];
+    } else if (['ur', 'pa', 'sd'].includes(originalLanguage)) {
+      languagesToCheck = ['en-US'];
+    } else if (originalLanguage !== 'en') {
+      languagesToCheck = [originalLanguage, 'en-US'];
+    }
+
+    const allKeysSet = new Set<string>();
+    const collectedVideos: any[] = [];
+
+    // Fetch videos for each target language
+    for (const lang of languagesToCheck) {
+      const url = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}&language=${lang}`;
+      const response = await fetch(url, { next: { revalidate: 86400 } });
+      if (!response.ok) continue;
+      
+      const data = await response.json();
+      const results = data.results;
+      if (results && Array.isArray(results)) {
+        collectedVideos.push(...results);
+      }
+    }
+
+    // Fallback: search without language restriction
+    const fallbackUrl = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}`;
+    const fbResponse = await fetch(fallbackUrl, { next: { revalidate: 86400 } });
+    if (fbResponse.ok) {
+      const fbData = await fbResponse.json();
+      if (fbData.results) collectedVideos.push(...fbData.results);
+    }
+
+    // Filter and Sort: Site "YouTube" only
+    const validVideos = collectedVideos.filter(v => v.site === 'YouTube' && v.key);
+
+    // Scoring system for prioritization
+    const scoredVideos = validVideos.map(v => {
+      let score = 0;
+      if (v.type === 'Trailer') score += 100;
+      if (v.type === 'Teaser') score += 50;
+      if (v.type === 'Clip') score += 10;
+      if (v.official === true) score += 200;
+      // Bonus for priority language (already handled by iteration order but helpful for combined list)
+      return { key: v.key, score };
+    });
+
+    // Sort by score descending and remove duplicates
+    const finalKeys = Array.from(new Set(
+      scoredVideos
+        .sort((a, b) => b.score - a.score)
+        .map(v => v.key)
+    )).slice(0, 5); // Take top 5
+
+    trailersCache.set(cacheKey, finalKeys);
+    return finalKeys;
+  } catch (error) {
+    console.error(`[TMDB ERROR] Error fetching multiple trailers for ${id}:`, error);
+    return [];
+  }
 }
 
 /**

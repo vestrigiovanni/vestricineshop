@@ -23,24 +23,19 @@ export default function AgeVerificationModal({ onConfirm }: AgeVerificationModal
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
-        <div className={styles.iconWrapper}>
-          <AlertCircle size={48} />
-        </div>
-        
         <h2 className={styles.title}>Verifica Età</h2>
         
         <p className={styles.message}>
-          ⚠️ ATTENZIONE: Stai acquistando un biglietto per un film vietato ai minori di 18 anni.
-          <br /><br />
-          Per procedere, devi confermare di avere almeno 18 anni compiuti.
+          Questo film è vietato ai minori di 18 anni. <br />
+          Si prega di confermare la maggiore età per procedere all'acquisto.
         </p>
         
         <div className={styles.actions}>
           <button className={styles.confirmBtn} onClick={handleConfirm}>
-            Sono maggiorenne
+            CONFERMO
           </button>
           <button className={styles.rejectBtn} onClick={handleReject}>
-            Non sono maggiorenne
+            ANNULLA
           </button>
         </div>
       </div>

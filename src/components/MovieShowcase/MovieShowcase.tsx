@@ -10,6 +10,8 @@ import { useAutoScroll } from '@/context/AutoScrollContext';
 import { Video } from 'lucide-react';
 import useSWR from 'swr';
 import RatingBadge from '../RatingBadge';
+import { useTrailer } from '@/context/TrailerContext';
+import CustomVideoPlayer from '../CustomVideoPlayer/CustomVideoPlayer';
 
 const AUTO_SCROLL_INTERVAL = 5000;
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -28,6 +30,7 @@ export interface GroupedMovie {
   isSoldOut?: boolean;
   cast?: string[];
   trailerKey?: string | null;
+  trailerKeys?: string[];
   rating?: string;
   subevents: {
     id: number;
@@ -68,39 +71,48 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
     });
   }, [initialMovies, availabilityData]);
 
-  // --- Smart Sorting Logic ---
-  const sortedMovies = useMemo(() => {
-    const getNextShowDate = (movie: GroupedMovie) => {
-      // For available movies, we only care about the next AVAILABLE show
-      // For sold out movies, we take the earliest show (even if sold out)
-      const shows = movie.isSoldOut 
-        ? movie.subevents 
-        : movie.subevents.filter(se => !se.isSoldOut);
-      
-      if (shows.length === 0) return Infinity;
-      
-      const dates = shows.map(s => new Date(s.date).getTime());
-      return Math.min(...dates);
-    };
+  const getMovieSortDate = (movie: GroupedMovie) => {
+    const shows = movie.isSoldOut 
+      ? movie.subevents 
+      : movie.subevents.filter(se => !se.isSoldOut);
+    
+    if (shows.length === 0) return Infinity;
+    const dates = shows.map(s => new Date(s.date).getTime());
+    return Math.min(...dates);
+  };
 
-    return [...liveMovies].sort((a, b) => {
-      // 1. Available Group (Group A) vs Sold Out Group (Group B)
+  // --- Stable Sorting for Hydration ---
+  // This ensures the initial render on the client matches the server-side render,
+  // preventing hydration mismatches when availabilityData is available in client-side cache.
+  const baseSortedMovies = useMemo(() => {
+    return [...initialMovies].sort((a, b) => {
       if (!a.isSoldOut && b.isSoldOut) return -1;
       if (a.isSoldOut && !b.isSoldOut) return 1;
-      
-      // 2. Chronological order within each group
-      return getNextShowDate(a) - getNextShowDate(b);
+      return getMovieSortDate(a) - getMovieSortDate(b);
+    });
+  }, [initialMovies]);
+
+  const [activeMovieId, setActiveMovieId] = useState<number>(baseSortedMovies[0]?.id || 0);
+
+  // --- Dynamic Sorting Logic (Live) ---
+  // This sort includes availability data and is used for rendering the actual list and gallery.
+  const sortedMovies = useMemo(() => {
+    return [...liveMovies].sort((a, b) => {
+      if (!a.isSoldOut && b.isSoldOut) return -1;
+      if (a.isSoldOut && !b.isSoldOut) return 1;
+      return getMovieSortDate(a) - getMovieSortDate(b);
     });
   }, [liveMovies]);
 
-  const [activeMovieId, setActiveMovieId] = useState<number>(sortedMovies[0]?.id || 0);
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [checkoutSubeventId, setCheckoutSubeventId] = useState<number | null>(null);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
+  const [isImmersiveMode, setIsImmersiveMode] = useState(false);
   const [timerKey, setTimerKey] = useState(0);
-  const [trailerOpen, setTrailerOpen] = useState(false);
-  const [activeTrailerKey, setActiveTrailerKey] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  
+  const { openTrailer } = useTrailer();
 
   useEffect(() => {
     setIsMounted(true);
@@ -127,7 +139,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
   }, [availableMovies]);
 
   useEffect(() => {
-    if (availableMovies.length <= 1 || !isAutoScrollEnabled) return;
+    if (availableMovies.length <= 1 || !isAutoScrollEnabled || isImmersiveMode) return;
 
     const interval = setInterval(() => {
       goToNextMovie();
@@ -137,18 +149,20 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
   }, [goToNextMovie, availableMovies.length, timerKey, isAutoScrollEnabled]);
 
   useEffect(() => {
-    if (drawerOpen || isOverviewExpanded || trailerOpen) {
+    if (drawerOpen || isOverviewExpanded) {
       disableAutoScroll();
     }
-  }, [drawerOpen, isOverviewExpanded, trailerOpen, disableAutoScroll]);
+  }, [drawerOpen, isOverviewExpanded, disableAutoScroll]);
 
   useEffect(() => {
     setIsOverviewExpanded(false);
+    setIsImmersiveMode(false);
   }, [activeMovieId]);
 
   const handleMovieSelect = (movieId: number) => {
     setActiveMovieId(movieId);
     setTimerKey(prev => prev + 1); // Reset timer on manual selection
+    disableAutoScroll();
   };
 
   if (liveMovies.length === 0) {
@@ -170,7 +184,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
   };
 
   return (
-    <div className={styles.showcase}>
+    <div className={styles.showcase} onClick={disableAutoScroll}>
       {/* Hero Section */}
       <div className={styles.hero}>
         <div className={styles.heroBackdrop}>
@@ -178,14 +192,22 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
             src={getTMDBImageUrl(activeMovie.backdrop_path, 'original') || getTMDBImageUrl(activeMovie.poster_path, 'original') || ''} 
             alt={activeMovie.title} 
             fill 
-            className={styles.heroImage}
+            className={`${styles.heroImage} ${isImmersiveMode ? styles.uiHidden : ''}`}
             sizes="100vw"
             priority
           />
-          <div className={styles.heroOverlay} />
+          <CustomVideoPlayer 
+            videoId={activeMovie.trailerKey || null} 
+            videoIds={activeMovie.trailerKeys || []}
+            backdropUrl={getTMDBImageUrl(activeMovie.backdrop_path, 'original')}
+            isPlaying={isImmersiveMode} 
+            onClose={() => setIsImmersiveMode(false)} 
+          />
+          <div className={`${styles.heroOverlayText} ${isImmersiveMode ? styles.uiHidden : ''}`} />
+          <div className={styles.heroOverlayBottom} />
         </div>
         
-        <div className={`${styles.heroContent} ${styles.animateIn}`} key={activeMovieId}>
+        <div className={`${styles.heroContent} ${styles.animateIn} ${isImmersiveMode ? styles.uiHidden : ''}`} key={activeMovieId}>
           {activeMovie.logo_path ? (
             <div className={styles.logoContainer}>
               <Image 
@@ -217,18 +239,15 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
             {activeMovie.director && (
               <>
                 <span>•</span>
-                <span className={isMounted ? styles.directorBlock : ''}>
+                <span className={styles.directorBlock}>
                   Regia: {activeMovie.director}
                   {isMounted && activeMovie.trailerKey && (
                     <button 
                       className={styles.trailerBtn} 
-                      onClick={() => {
-                        setActiveTrailerKey(activeMovie.trailerKey || null);
-                        setTrailerOpen(true);
-                      }}
+                      onClick={() => setIsImmersiveMode(true)}
                       title="Guarda il trailer"
                     >
-                      <Video size={18} />
+                      <Video size={18} color="#ffffff" strokeWidth={2.5} />
                     </button>
                   )}
                 </span>
@@ -347,27 +366,6 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
         movieTitle={activeMovie.title}
       />
 
-      {/* Trailer Popup */}
-      {trailerOpen && activeTrailerKey && (
-        <div className={styles.trailerOverlay} onClick={() => setTrailerOpen(false)}>
-          <div className={styles.trailerModal} onClick={e => e.stopPropagation()}>
-            <button className={styles.closeTrailer} onClick={() => setTrailerOpen(false)}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 6 6 18M6 6l12 12"/>
-              </svg>
-            </button>
-            <div className={styles.videoWrapper}>
-              <iframe
-                src={`https://www.youtube.com/embed/${activeTrailerKey}?autoplay=1&cc_load_policy=1&cc_lang_pref=it&hl=it&rel=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-                title="Movie Trailer"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

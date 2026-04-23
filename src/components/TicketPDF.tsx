@@ -99,7 +99,7 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
           setCleanBackdrop(selected.file_path);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [data.tmdbId, backdropIndex, data.orderCode]);
 
   const [tmdbTagline, setTmdbTagline] = useState<string | null>(null);
@@ -107,7 +107,7 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
   // Fetch logo and tagline if not provided
   useEffect(() => {
     if (!data.tmdbId) return;
-    
+
     // We fetch movie details to get the original language and then handle tagline logic
     fetch(`https://api.themoviedb.org/3/movie/${data.tmdbId}?append_to_response=images&include_image_language=it,en,null&api_key=00ea09c7fb5bf89b064f6001a2de3122`)
       .then(res => res.json())
@@ -122,7 +122,7 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
         // 2. Tagline Logic (MANDATORY)
         // Detect original language
         const originalLang = json.original_language;
-        
+
         if (originalLang === 'it') {
           // Italian movie: Strictly fetch Italian tagline
           fetch(`https://api.themoviedb.org/3/movie/${data.tmdbId}?language=it-IT&api_key=00ea09c7fb5bf89b064f6001a2de3122`)
@@ -130,7 +130,7 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
             .then(itJson => {
               if (itJson.tagline) setTmdbTagline(itJson.tagline);
             })
-            .catch(() => {});
+            .catch(() => { });
         } else {
           // International movie: Try Italian, then fallback to English (the default result usually)
           fetch(`https://api.themoviedb.org/3/movie/${data.tmdbId}?language=it-IT&api_key=00ea09c7fb5bf89b064f6001a2de3122`)
@@ -148,7 +148,7 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
             });
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [data.tmdbId]);
 
   useEffect(() => {
@@ -189,7 +189,7 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
     >
       {/* ── Layer 1: Backdrop Image (USING DIV BACKGROUND FOR STABLE COVER SCALING) ── */}
       <div className={styles.backdropLayer}>
-        <img 
+        <img
           src={backdropSrc}
           alt=""
           className={styles.backdropImage}
@@ -201,10 +201,10 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
 
       {/* ── Layer 2: Brand Logo (Direct Child for Zero-Margin) ── */}
       <div className={styles.personalLogo}>
-        <img 
-          src="/assets/logo_cliente.png" 
-          alt="VESTRICINEMA" 
-          className={styles.personalLogoImg} 
+        <img
+          src="/assets/logo_cliente.png"
+          alt="VESTRICINEMA"
+          className={styles.personalLogoImg}
           crossOrigin="anonymous"
         />
       </div>
@@ -263,7 +263,7 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
 
         <div className={styles.seatBlock}>
           <div className={styles.salaName}>{data.roomName.toUpperCase()}</div>
-          
+
           <div className={styles.seatRow}>
             {rowLabel && (
               <div className={styles.seatItem}>
@@ -298,7 +298,7 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
             <div className={styles.showInfoLeft}>
               <span>{formatDate(startDate)}</span>
             </div>
-            
+
             <div className={styles.showInfoCenter}>
               <span className={styles.dot}>|</span>
               <span>{formatTime(startDate)}</span>
@@ -313,8 +313,8 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
           </div>
 
           <div className={styles.onTimeWarning}>
-             <Info size={12} />
-             <span>IL FILM COMINCERÀ IN ORARIO</span>
+            <Info size={12} />
+            <span>IL FILM COMINCERÀ IN ORARIO</span>
           </div>
         </div>
       </div>
@@ -361,8 +361,11 @@ async function waitForImages(element: HTMLElement) {
   await new Promise(resolve => setTimeout(resolve, 1000));
 }
 
-export async function generateTicketPDF(elementIds: string[], fileName: string = 'Biglietti') {
-  if (!elementIds.length) return;
+export async function generateTicketPDF(elementIds: string[], fileName: string = 'Biglietti', pdfWindow?: Window | null, shouldDownload: boolean = false) {
+  if (!elementIds.length) {
+    if (pdfWindow) pdfWindow.close();
+    return;
+  }
 
   try {
     const pdf = new jsPDF({
@@ -407,14 +410,22 @@ export async function generateTicketPDF(elementIds: string[], fileName: string =
     }
 
     window.scrollTo(previousScrollX, previousScrollY);
-    
-    // Create a blob and open it in a new tab instead of saving directly
+
+    // Create a blob and open it in the provided window or a new one
     const pdfBlob = pdf.output('blob');
     const url = URL.createObjectURL(pdfBlob);
-    window.open(url, '_blank');
+
+    if (shouldDownload) {
+      pdf.save(`${fileName}.pdf`);
+    } else if (pdfWindow) {
+      pdfWindow.location.href = url;
+    } else {
+      window.open(url, '_blank');
+    }
 
   } catch (err) {
     console.error('Error generating PDF:', err);
+    if (pdfWindow) pdfWindow.close();
   }
 }
 
