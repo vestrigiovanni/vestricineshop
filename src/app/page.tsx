@@ -1,4 +1,4 @@
-import { getMovieDetails, getCast, getMovieTrailer, searchMovies, getItalianRating } from '@/services/tmdb';
+import { getMovieDetails, getCast, getMovieTrailer, getMovieTrailers, searchMovies, getItalianRating } from '@/services/tmdb';
 import { listSubEvents, listQuotas, getSeatingPlansMap, limitConcurrency } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';

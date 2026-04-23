@@ -952,7 +952,11 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
             </div>
           )}
           {ratingAlert && (
-            <div className={styles.ratingAlertBar} onClick={() => setRatingAlert(null)}>
+            <div 
+              className={styles.ratingAlertBar} 
+              onClick={() => setRatingAlert(null)}
+              data-vm18={ratingAlert.includes('18')}
+            >
               {ratingAlert}
               <button className={styles.closeAlert}><X size={16} /></button>
             </div>

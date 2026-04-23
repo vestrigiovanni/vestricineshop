@@ -24,6 +24,14 @@
   pointer-events: none !important;
 }
 
+.hideCursor {
+  cursor: none !important;
+}
+
+.hideCursor * {
+  cursor: none !important;
+}
+
 .videoWrapper {
   position: absolute;
   top: 0;
@@ -42,27 +50,20 @@
   height: 100%;
 }
 
-/* 
-  LOGICA ULTRA-WIDE ZOOM:
-  Forziamo il video a riempire ogni millimetro orizzontale.
-  Lo scale(1.4) elimina le bande nere laterali dei film in 4:3
-  e nasconde i loghi/titoli di YouTube negli angoli.
-*/
 .iframeWrapper iframe,
 .iframeWrapper div {
   position: absolute;
   top: 50%;
   left: 50%;
   width: 100vw;
-  height: 56.25vw; /* 16:9 Aspect Ratio */
+  height: 56.25vw;
   min-height: 100%;
-  min-width: 177.77vh; /* 16:9 Aspect Ratio */
-  transform: translate(-50%, -50%) scale(1.4); /* Zoom potenziato per eliminare i bordi neri */
+  min-width: 177.77vh;
+  transform: translate(-50%, -50%) scale(1.4);
   border: none;
   object-fit: cover;
 }
 
-/* Ottimizzazione per schermi molto larghi */
 @media (min-aspect-ratio: 21/9) {
   .iframeWrapper iframe,
   .iframeWrapper div {
@@ -70,7 +71,6 @@
   }
 }
 
-/* Ottimizzazione Mobile: riduciamo lo zoom per non perdere troppa scena */
 @media (max-width: 768px) {
   .iframeWrapper iframe,
   .iframeWrapper div {
@@ -125,39 +125,76 @@
   opacity: 0.7;
 }
 
-.closeButton {
+/* CONTROLS SYSTEM */
+.controlsContainer {
   position: absolute;
-  top: 30px;
-  right: 30px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 10px;
-  border-radius: 50%;
-  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-  z-index: 120;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.closeButton:hover {
-  background: rgba(0, 0, 0, 0.8);
-  transform: scale(1.15) rotate(90deg);
-  border-color: #fff;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  pointer-events: none;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
 }
 
 .controlsVisible {
   opacity: 1;
   visibility: visible;
-  transform: scale(1);
 }
 
 .controlsHidden {
   opacity: 0;
   visibility: hidden;
-  transform: scale(0.8);
+  cursor: none !important;
+}
+
+.closeButton, .navButtonLeft, .navButtonRight {
+  position: absolute;
+  pointer-events: auto;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  cursor: pointer;
+}
+
+.closeButton {
+  top: 30px;
+  right: 30px;
+  padding: 10px;
+  border-radius: 50%;
+}
+
+.navButtonLeft, .navButtonRight {
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 15px;
+  border-radius: 50%;
+}
+
+.navButtonLeft { left: 40px; }
+.navButtonRight { right: 40px; }
+
+.closeButton:hover, .navButtonLeft:hover, .navButtonRight:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #fff;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.closeButton:hover {
+  transform: scale(1.1) rotate(90deg);
+}
+
+@media (max-width: 768px) {
+  .navButtonLeft, .navButtonRight {
+    padding: 10px;
+  }
+  .navButtonLeft { left: 15px; }
+  .navButtonRight { right: 15px; }
+  .closeButton { top: 20px; right: 20px; }
 }

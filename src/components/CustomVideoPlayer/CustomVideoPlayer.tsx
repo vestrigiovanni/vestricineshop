@@ -60,9 +60,6 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
     const initPlayer = () => {
       if (!playerWrapperRef.current) return;
       
-      console.log(`[Trailer Fallback] Tentativo ${currentVideoIndex + 1}/${videoPlaylist.length} - ID: ${currentId}`);
-
-      // Pulizia totale del contenitore per ogni tentativo
       if (playerRef.current) {
         try { playerRef.current.destroy(); } catch (e) {}
         playerRef.current = null;
@@ -88,16 +85,14 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
         },
         events: {
           onReady: (event: any) => {
-            console.log(`[Trailer Fallback] Successo! Video riproducibile: ${currentId}`);
             event.target.playVideo();
             setTimeout(() => {
               event.target.unMute();
               event.target.setVolume(80);
               setShowCurtain(false);
-            }, 1500);
+            }, 1800);
           },
           onStateChange: (event: any) => {
-            // Forza il riavvio quando il video finisce (0 = YT.PlayerState.ENDED)
             if (event.data === 0) {
               event.target.playVideo();
             }
@@ -110,7 +105,7 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
       });
     };
 
-    const timer = setTimeout(initPlayer, 400); // Leggero ritardo extra per stabilità DOM
+    const timer = setTimeout(initPlayer, 400);
     return () => {
       clearTimeout(timer);
       if (playerRef.current) {
@@ -122,7 +117,6 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
 
   const handleVideoError = () => {
     if (currentVideoIndex < videoPlaylist.length - 1) {
-      console.log(`[Trailer Fallback] Passo al video successivo...`);
       setCurrentVideoIndex(prev => prev + 1);
     } else {
       console.info(`[Cinema Mode] Trailers non disponibili per questo titolo. Attivazione Backdrop Cinematografico.`);
@@ -152,14 +146,15 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
     const resetTimer = () => {
       setShowControls(true);
       clearTimeout(timeoutId);
-      if (document.fullscreenElement) {
-        timeoutId = setTimeout(() => setShowControls(false), 2000);
-      }
+      // Sempre attivo l'auto-hide dopo 2 secondi di inattività mouse
+      timeoutId = setTimeout(() => setShowControls(false), 2000);
     };
     window.addEventListener('mousemove', resetTimer);
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement) setShowControls(true);
     });
+    // Inizializza il timer all'avvio
+    resetTimer();
     return () => {
       window.removeEventListener('mousemove', resetTimer);
       clearTimeout(timeoutId);
@@ -179,7 +174,7 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
   return (
     <div 
       ref={containerRef}
-      className={`${styles.playerContainer} ${isPlaying ? styles.visible : styles.hidden}`}
+      className={`${styles.playerContainer} ${isPlaying ? styles.visible : styles.hidden} ${!showControls ? styles.hideCursor : ''}`}
     >
       <div className={styles.videoWrapper}>
         {allVideosFailed && backdropUrl && (
@@ -199,12 +194,15 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
       </div>
       
       {isPlaying && (
-        <button 
-          onClick={handleClose} 
-          className={`${styles.closeButton} ${showControls ? styles.controlsVisible : styles.controlsHidden}`}
-        >
-          <X size={24} strokeWidth={1.5} />
-        </button>
+        <div className={`${styles.controlsContainer} ${showControls ? styles.controlsVisible : styles.controlsHidden}`}>
+          <button 
+            onClick={handleClose} 
+            className={styles.closeButton} 
+            aria-label="Esci dal Trailer"
+          >
+            <X size={24} strokeWidth={1.5} />
+          </button>
+        </div>
       )}
     </div>
   );

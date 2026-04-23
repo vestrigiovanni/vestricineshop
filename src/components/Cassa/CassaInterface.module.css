@@ -1610,7 +1610,7 @@
   border-top: 4px solid rgba(0, 0, 0, 0.1);
 }
 
-.ratingAlertBar:has(span:contains("18")) {
+.ratingAlertBar[data-vm18="true"] {
   background: #e50914 !important;
   color: #fff !important;
 }
