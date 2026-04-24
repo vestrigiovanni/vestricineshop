@@ -35,7 +35,7 @@ const RatingBadge: React.FC<RatingBadgeProps> = ({
 
   return (
     <div 
-      className={`${styles.badge} ${getBadgeClass()} ${styles[size]} ${className}`}
+      className={[styles.badge, getBadgeClass(), styles[size], className].filter(Boolean).join(' ')}
       title={`Classificazione: ${currentRating()}`}
     >
       {currentRating()}

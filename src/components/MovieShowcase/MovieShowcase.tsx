@@ -81,18 +81,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
     return Math.min(...dates);
   };
 
-  // --- Stable Sorting for Hydration ---
-  // This ensures the initial render on the client matches the server-side render,
-  // preventing hydration mismatches when availabilityData is available in client-side cache.
-  const baseSortedMovies = useMemo(() => {
-    return [...initialMovies].sort((a, b) => {
-      if (!a.isSoldOut && b.isSoldOut) return -1;
-      if (a.isSoldOut && !b.isSoldOut) return 1;
-      return getMovieSortDate(a) - getMovieSortDate(b);
-    });
-  }, [initialMovies]);
-
-  const [activeMovieId, setActiveMovieId] = useState<number>(baseSortedMovies[0]?.id || 0);
+  const [activeMovieId, setActiveMovieId] = useState<number>(initialMovies[0]?.id || 0);
 
   // --- Dynamic Sorting Logic (Live) ---
   // This sort includes availability data and is used for rendering the actual list and gallery.
@@ -192,7 +181,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
             src={getTMDBImageUrl(activeMovie.backdrop_path, 'original') || getTMDBImageUrl(activeMovie.poster_path, 'original') || ''} 
             alt={activeMovie.title} 
             fill 
-            className={`${styles.heroImage} ${isImmersiveMode ? styles.uiHidden : ''}`}
+            className={isImmersiveMode ? `${styles.heroImage} ${styles.uiHidden}` : styles.heroImage}
             sizes="100vw"
             priority
           />
@@ -203,11 +192,14 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
             isPlaying={isImmersiveMode} 
             onClose={() => setIsImmersiveMode(false)} 
           />
-          <div className={`${styles.heroOverlayText} ${isImmersiveMode ? styles.uiHidden : ''}`} />
+          <div className={isImmersiveMode ? `${styles.heroOverlayText} ${styles.uiHidden}` : styles.heroOverlayText} />
           <div className={styles.heroOverlayBottom} />
         </div>
         
-        <div className={`${styles.heroContent} ${styles.animateIn} ${isImmersiveMode ? styles.uiHidden : ''}`} key={activeMovieId}>
+        <div 
+          className={isImmersiveMode ? `${styles.heroContent} ${styles.animateIn} ${styles.uiHidden}` : `${styles.heroContent} ${styles.animateIn}`} 
+          key={activeMovieId}
+        >
           {activeMovie.logo_path ? (
             <div className={styles.logoContainer}>
               <Image 
@@ -223,7 +215,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
             <h1 className={styles.title}>{activeMovie.title}</h1>
           )}
           <div className={styles.meta}>
-            <span>{new Date(activeMovie.release_date).getFullYear() || 'N/D'}</span>
+            <span>{isMounted ? (new Date(activeMovie.release_date).getFullYear() || 'N/D') : ''}</span>
             {activeMovie.runtime && (
               <>
                 <span>•</span>
@@ -256,7 +248,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
           </div>
           
           <div className={styles.overviewContainer}>
-            <p className={`${styles.overview} ${isOverviewExpanded ? styles.expanded : ''}`}>
+            <p className={isOverviewExpanded ? `${styles.overview} ${styles.expanded}` : styles.overview}>
               {activeMovie.overview}
             </p>
             {isOverviewExpanded && activeMovie.cast && activeMovie.cast.length > 0 && (
@@ -272,7 +264,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
               >
                 <span className={styles.readMoreText}>{isOverviewExpanded ? 'Meno' : 'Più'}</span>
                 <svg 
-                  className={`${styles.chevron} ${isOverviewExpanded ? styles.chevronUp : ''}`} 
+                  className={isOverviewExpanded ? `${styles.chevron} ${styles.chevronUp}` : styles.chevron} 
                   width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                 >
                   <polyline points="6 9 12 15 18 9"></polyline>
@@ -286,28 +278,38 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
             <div className={styles.showtimesGrid}>
               {activeMovie.subevents.map((se) => {
                 const dateObj = new Date(se.date);
-                const isToday = dateObj.toDateString() === new Date().toDateString();
-                const dayStr = isToday ? 'Oggi' : dateObj.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
+                const isToday = isMounted && dateObj.toDateString() === new Date().toDateString();
+                const dayStr = isToday ? 'Oggi' : (isMounted ? dateObj.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }) : '');
                 
                 const tags = getMovieTags(se.language || '', se.subtitles || '', se.format || (activeMovie.title.toUpperCase().includes('3D') ? '3D' : ''));
 
                 return (
                   <button 
                     key={se.id} 
-                    className={`${styles.showtimeButton} ${se.isSoldOut ? styles.showtimeSoldOut : ''}`}
+                    className={se.isSoldOut ? `${styles.showtimeButton} ${styles.showtimeSoldOut}` : styles.showtimeButton}
                     onClick={() => handleShowtimeClick(se.id, se.isSoldOut || false)}
                     disabled={se.isSoldOut}
                   >
                     <div className={styles.showtimeLabels}>
                       {tags.map((tag: TagInfo, idx: number) => (
-                        <span key={idx} className={`${styles.tag} ${styles[`tag${tag.type.charAt(0).toUpperCase() + tag.type.slice(1)}` as keyof typeof styles]} ${tag.code === 'ITA' ? styles.tagIta : ''}`}>
+                        <span 
+                          key={idx} 
+                          className={[
+                            styles.tag, 
+                            styles[`tag${tag.type.charAt(0).toUpperCase() + tag.type.slice(1)}` as keyof typeof styles],
+                            tag.code === 'ITA' ? styles.tagIta : ''
+                          ].filter(Boolean).join(' ')}
+                          suppressHydrationWarning
+                        >
                           {tag.code}
                         </span>
                       ))}
                     </div>
-                    <span className={styles.showtimeDate}>{dayStr}</span>
+                    <span className={styles.showtimeDate}>
+                      {isMounted ? dayStr : dateObj.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    </span>
                     <span className={styles.showtimeTime}>
-                      {se.isSoldOut ? `ESAURITO` : dateObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                      {se.isSoldOut ? `ESAURITO` : (isMounted ? dateObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '')}
                     </span>
                   </button>
                 );
@@ -324,7 +326,11 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
           {sortedMovies.map((movie) => (
             <div 
               key={movie.id} 
-              className={`${styles.cardWrapper} ${movie.id === activeMovie.id ? styles.active : ''} ${movie.isSoldOut ? styles.soldOutCard : ''}`}
+              className={[
+                styles.cardWrapper, 
+                movie.id === activeMovie.id ? styles.active : '', 
+                movie.isSoldOut ? styles.soldOutCard : ''
+              ].filter(Boolean).join(' ')}
               onClick={() => handleMovieSelect(movie.id)}
             >
               <div className={styles.imageContainer}>

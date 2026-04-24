@@ -39,6 +39,7 @@ export function getLanguageName(code?: string): string {
 
 export interface MovieDetails extends MovieItem {
   runtime: number;
+  imdb_id: string | null;
   tagline?: string;
   genres: { id: number; name: string }[];
   release_dates?: {
@@ -108,7 +109,7 @@ export async function searchMovies(query: string = ''): Promise<MovieItem[]> {
           if (details) {
             return {
               ...movie,
-              rating: getItalianRating(details)
+              rating: await getEnhancedRating(details)
             };
           }
           return movie;
@@ -205,64 +206,14 @@ const trailersCache = new Map<string, string[]>();
  * Filters: Site "YouTube", Type "Trailer", Priority "official: true"
  */
 export async function getMovieTrailer(id: string, originalLanguage: string = 'en'): Promise<string | null> {
-  const cacheKey = `${id}_${originalLanguage}`;
+  const cacheKey = `${id}_${originalLanguage}_strict`; // Updated cache key to force refresh
   if (trailerCache.has(cacheKey)) {
     return trailerCache.get(cacheKey)!;
   }
 
   try {
-    // Determine which languages to check based on original_language
-    let languagesToCheck = ['en-US'];
-    
-    if (originalLanguage === 'it') {
-      languagesToCheck = ['it-IT', 'en-US'];
-    } else if (['ur', 'pa', 'sd'].includes(originalLanguage)) {
-      languagesToCheck = ['en-US']; // Forced English for Pakistani languages
-    } else if (originalLanguage !== 'en') {
-      languagesToCheck = [originalLanguage, 'en-US'];
-    }
-
-    let bestTrailer: any = null;
-
-    // Fetch videos for each target language until we find a good one
-    for (const lang of languagesToCheck) {
-      const url = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}&language=${lang}`;
-      const response = await fetch(url, { next: { revalidate: 86400 } }); // Cache for 24h
-      
-      if (!response.ok) continue;
-      
-      const data = await response.json();
-      const videos = data.results;
-      
-      if (!videos || !Array.isArray(videos)) continue;
-
-      // Filter for YouTube Trailers
-      const trailers = videos.filter((v: any) => 
-        v.site === 'YouTube' && 
-        v.type === 'Trailer'
-      );
-
-      if (trailers.length === 0) continue;
-
-      // Priority to official trailers
-      const officialTrailer = trailers.find((v: any) => v.official === true);
-      bestTrailer = officialTrailer || trailers[0];
-
-      if (bestTrailer) break;
-    }
-
-    // Fallback: search without language restriction if still nothing found
-    if (!bestTrailer) {
-      const fallbackUrl = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}`;
-      const response = await fetch(fallbackUrl, { next: { revalidate: 86400 } });
-      if (response.ok) {
-        const data = await response.json();
-        const anyTrailer = data.results?.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer');
-        if (anyTrailer) bestTrailer = anyTrailer;
-      }
-    }
-
-    const trailerKey = bestTrailer?.key || null;
+    const trailerKeys = await getMovieTrailers(id, originalLanguage);
+    const trailerKey = trailerKeys.length > 0 ? trailerKeys[0] : null;
     trailerCache.set(cacheKey, trailerKey);
     return trailerKey;
   } catch (error) {
@@ -279,38 +230,28 @@ export async function getMovieTrailer(id: string, originalLanguage: string = 'en
  * 3. Official status
  */
 export async function getMovieTrailers(id: string, originalLanguage: string = 'en'): Promise<string[]> {
-  const cacheKey = `${id}_${originalLanguage}_multi`;
+  const cacheKey = `${id}_${originalLanguage}_multi_strict_v2`; // Updated cache key to force refresh
   if (trailersCache.has(cacheKey)) {
     return trailersCache.get(cacheKey)!;
   }
 
   try {
-    let languagesToCheck = ['en-US'];
-    if (originalLanguage === 'it') {
-      languagesToCheck = ['it-IT', 'en-US'];
-    } else if (['ur', 'pa', 'sd'].includes(originalLanguage)) {
-      languagesToCheck = ['en-US'];
-    } else if (originalLanguage !== 'en') {
-      languagesToCheck = [originalLanguage, 'en-US'];
-    }
+    const allVideos: any[] = [];
 
-    const allKeysSet = new Set<string>();
-    const collectedVideos: any[] = [];
-
-    // Determina la lingua primaria e secondaria basata sui requisiti
+    // Determina la lingua primaria e secondaria
     let primaryLang = 'en-US';
     let secondaryLang: string | null = null;
 
     if (originalLanguage === 'it') {
       primaryLang = 'it-IT';
       secondaryLang = 'en-US';
-    } else if (originalLanguage === 'en') {
+    } else if (['ur', 'pa', 'sd'].includes(originalLanguage)) {
       primaryLang = 'en-US';
       secondaryLang = null;
-    } else {
-      // Per film stranieri (non IT/EN), l'utente preferisce trailer in Inglese
-      primaryLang = 'en-US';
-      secondaryLang = null;
+    } else if (originalLanguage !== 'en') {
+      // Per altri film, l'utente preferisce trailer in lingua originale se possibile, altrimenti EN
+      primaryLang = originalLanguage;
+      secondaryLang = 'en-US';
     }
 
     const langsToFetch = secondaryLang ? [primaryLang, secondaryLang] : [primaryLang];
@@ -318,55 +259,76 @@ export async function getMovieTrailers(id: string, originalLanguage: string = 'e
     // Fetch videos for each target language
     for (const lang of langsToFetch) {
       const url = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}&language=${lang}`;
-      const response = await fetch(url, { next: { revalidate: 86400 } });
+      const response = await fetch(url, { next: { revalidate: 3600 } }); // Reduced revalidate for immediate update
       if (!response.ok) continue;
       
       const data = await response.json();
-      const results = data.results;
-      if (results && Array.isArray(results)) {
-        // Tagghiamo i video con la lingua di provenienza per il punteggio
-        collectedVideos.push(...results.map((v: any) => ({ ...v, fetchLang: lang })));
+      if (data.results && Array.isArray(data.results)) {
+        allVideos.push(...data.results.map((v: any) => ({ ...v, fetchLang: lang })));
       }
     }
 
-    // Fallback: search without language restriction (last resort)
+    // Fallback: search without language restriction
     const fallbackUrl = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}`;
-    const fbResponse = await fetch(fallbackUrl, { next: { revalidate: 86400 } });
+    const fbResponse = await fetch(fallbackUrl, { next: { revalidate: 3600 } });
     if (fbResponse.ok) {
       const fbData = await fbResponse.json();
       if (fbData.results) {
-        collectedVideos.push(...fbData.results.map((v: any) => ({ ...v, fetchLang: 'any' })));
+        allVideos.push(...fbData.results.map((v: any) => ({ ...v, fetchLang: 'any' })));
       }
     }
 
-    // Filter and Sort: Site "YouTube" only
-    const validVideos = collectedVideos.filter(v => v.site === 'YouTube' && v.key);
+    // 1. FILTRO RIGOROSO: Solo YouTube, Chiave presente, ed ESCLUSIONE CATEGORICA di Featurette, Clip, etc.
+    const forbiddenTypes = ['Featurette', 'Behind the Scenes', 'Bloopers', 'Clip', 'Other'];
+    const candidates = allVideos.filter(v => 
+      v.site === 'YouTube' && 
+      v.key && 
+      !forbiddenTypes.includes(v.type) &&
+      (v.type === 'Trailer' || v.type === 'Teaser')
+    );
 
-    // Scoring system for prioritization
-    const scoredVideos = validVideos.map(v => {
+    // Se non abbiamo Trailer o Teaser, restituiamo vuoto (null) come richiesto
+    if (candidates.length === 0) {
+      trailersCache.set(cacheKey, []);
+      return [];
+    }
+
+    // 2. SCORING SYSTEM (Strict Trailer Priority)
+    const scoredVideos = candidates.map(v => {
       let score = 0;
       
-      // Bonus Lingua (Priorità Assoluta)
-      if (v.fetchLang === primaryLang) score += 1000;
-      else if (v.fetchLang === secondaryLang) score += 500;
+      // PRIORITÀ 1: Tipo (Trailer >> Teaser)
+      if (v.type === 'Trailer') score += 5000;
+      else if (v.type === 'Teaser') score += 1000;
       
-      // Bonus Tipo
-      if (v.type === 'Trailer') score += 100;
-      if (v.type === 'Teaser') score += 50;
-      if (v.type === 'Clip') score += 10;
+      // PRIORITÀ 2: Official
+      if (v.official === true) score += 2000;
       
-      // Bonus Ufficiale
-      if (v.official === true) score += 200;
+      // PRIORITÀ 3: Lingua
+      if (v.fetchLang === primaryLang) score += 500;
+      else if (v.fetchLang === secondaryLang) score += 250;
+      else if (v.fetchLang === 'any') score += 100;
       
-      return { key: v.key, score };
+      // Bonus per qualità (se presente nel nome, es. "Official Trailer", "4K")
+      const name = v.name.toLowerCase();
+      if (name.includes('official')) score += 100;
+      if (name.includes('trailer') && !name.includes('teaser')) score += 50;
+
+      return { key: v.key, score, type: v.type };
     });
 
-    // Sort by score descending and remove duplicates
+    // 3. SEPARAZIONE E ORDINE: Prima tutti i Trailer, poi i Teaser (se nessun Trailer esiste)
+    const trailers = scoredVideos.filter(v => v.type === 'Trailer').sort((a, b) => b.score - a.score);
+    const teasers = scoredVideos.filter(v => v.type === 'Teaser').sort((a, b) => b.score - a.score);
+
+    // Se abbiamo dei Trailer, prendiamo solo quelli (scartando i Teaser)
+    // Se non abbiamo Trailer, prendiamo i Teaser come fallback.
+    const sortedVideos = trailers.length > 0 ? trailers : teasers;
+
+    // Remove duplicates and take top 5
     const finalKeys = Array.from(new Set(
-      scoredVideos
-        .sort((a, b) => b.score - a.score)
-        .map(v => v.key)
-    )).slice(0, 5); // Take top 5
+      sortedVideos.map(v => v.key)
+    )).slice(0, 5);
 
     trailersCache.set(cacheKey, finalKeys);
     return finalKeys;
@@ -498,4 +460,107 @@ export function getItalianRating(details: MovieDetails): string {
   // 5. Ultima Istanza
   console.warn(`[TMDb Critical] Nessun rating trovato per "${details.title}" (ID: ${details.id}) nei paesi di fallback. Impostato 'T'.`);
   return 'T';
+}
+
+/**
+ * Mappa i rating US (OMDb) secondo le regole italiane fornite.
+ */
+function translateUSRating(omdbRated: string): string {
+  const r = omdbRated.toUpperCase().trim();
+  
+  if (["G", "APPROVED", "PASSED"].includes(r)) return 'T';
+  if (["PG", "TV-PG"].includes(r)) return '6+';
+  if (["PG-13", "TV-14"].includes(r)) return '14+';
+  if (["R", "NC-17", "TV-MA", "X"].includes(r)) return '18+';
+  
+  return 'T'; // Default for N/A or Unrated
+}
+
+/**
+ * Funzione di utilità per confrontare la restrizione dei rating.
+ * Restituisce true se 'newRating' è più restrittivo di 'currentRating'.
+ */
+function isMoreRestrictive(current: string, next: string): boolean {
+  const levels: Record<string, number> = { 'T': 0, '6+': 1, '14+': 2, '18+': 3 };
+  const currentLevel = levels[current] || 0;
+  const nextLevel = levels[next] || 0;
+  return nextLevel > currentLevel;
+}
+
+/**
+ * Recupera il rating da OMDb usando l'IMDb ID.
+ */
+export async function getOMDbRating(imdbId: string): Promise<string | null> {
+  const OMDB_API_KEY = '962dd713';
+  try {
+    const url = `http://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`;
+    const response = await fetch(url, { next: { revalidate: 86400 } });
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    return data.Rated || null;
+  } catch (error) {
+    console.error(`[OMDb ERROR] Impossibile recuperare rating per ${imdbId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Override manuali per titoli specifici (Correzioni legali/ufficiali IT)
+ */
+const MANUAL_RATING_OVERRIDES: Record<string, string> = {
+  "As bestas - La terra della discordia": "14+",
+  "As bestas": "14+",
+  "Ennio": "T",
+  "Perfect Days": "T"
+};
+
+/**
+ * ENHANCED RATING: Implementa la logica di precedenza TMDb/OMDb.
+ * Applica la regola della "Massima Restrizione" con override manuali e filtri per documentari.
+ */
+export async function getEnhancedRating(details: MovieDetails): Promise<string> {
+  const title = details.title;
+  const imdbId = details.imdb_id;
+
+  // 1. Check Override Manuali (Priorità Assoluta)
+  if (MANUAL_RATING_OVERRIDES[title]) {
+    console.log(`[Rating Override] Film: ${title} -> Forza Rating: ${MANUAL_RATING_OVERRIDES[title]}`);
+    return MANUAL_RATING_OVERRIDES[title];
+  }
+
+  // 2. Ottieni rating base da TMDb
+  let currentRating = getItalianRating(details);
+
+  // 3. Logica Speciale Documentari: Se è un documentario, tendiamo al 'T' 
+  // a meno che non ci sia una restrizione 18+ esplicita.
+  const isDocumentary = details.genres?.some(g => g.id === 99 || g.name.toLowerCase().includes('documentario') || g.name.toLowerCase().includes('documentary'));
+  
+  if (isDocumentary && currentRating !== '18+') {
+    // Se è un documentario e non è 18+, forziamo a T per evitare falsi positivi (es. Ennio)
+    // a meno che OMDb non gridi al lupo con un '18+' esplicito dopo.
+    currentRating = 'T';
+  }
+
+  // 4. Sincronizzazione con OMDb (Fonte di Verità Internazionale)
+  if (imdbId) {
+    const omdbRated = await getOMDbRating(imdbId);
+    
+    if (omdbRated && omdbRated !== 'N/A') {
+      const mappedRating = translateUSRating(omdbRated);
+      
+      // Regola della Massima Restrizione
+      // Se è un documentario, applichiamo OMDb solo se è 18+ (Sicurezza Nucleare)
+      if (isDocumentary && mappedRating !== '18+') {
+        // Ignoriamo rating intermedi di OMDb per documentari (spesso TV-14 US -> 14+ IT errati)
+      } else if (isMoreRestrictive(currentRating, mappedRating)) {
+        console.log(`[OMDb Sync] Film: ${title} | Rating US: ${omdbRated} -> Convertito in IT: ${mappedRating} (Sostituito TMDb '${currentRating}')`);
+        currentRating = mappedRating;
+      } else {
+        // Manteniamo TMDb se più restrittivo o uguale
+      }
+    }
+  }
+
+  return currentRating;
 }

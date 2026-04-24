@@ -2,7 +2,7 @@
 
 import { listSubEvents, listQuotas, getSeatingPlansMap } from '@/services/pretix';
 import { ITEM_INTERO_ID } from '@/constants/pretix';
-import { getMovieDetails, getItalianRating } from '@/services/tmdb';
+import { getMovieDetails, getItalianRating, getEnhancedRating } from '@/services/tmdb';
 
 export interface DisplayMovieData {
   id: number;
@@ -97,7 +97,7 @@ export async function getDisplayData() {
         subtitles: metadata.subtitles || 'Italiano',
         isSoldOut,
         roomName,
-        rating: tmdbDetails ? getItalianRating(tmdbDetails) : (metadata.rating || 'T')
+        rating: tmdbDetails ? await getEnhancedRating(tmdbDetails) : (metadata.rating || 'T')
       } as DisplayMovieData;
     });
 

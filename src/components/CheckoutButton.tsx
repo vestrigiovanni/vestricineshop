@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Download, CheckCircle2 } from 'lucide-react';
+import { Download, CheckCircle2, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { finalizeBooking, getSubEvent } from '@/services/pretix';
 import { isVM18 } from '@/utils/ratingUtils';
 import TicketPDF, { generateTicketPDF } from './TicketPDF';
@@ -47,7 +47,18 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [orderCode, setOrderCode] = useState('');
   const [subeventData, setSubeventData] = useState<SubeventMetadata | null>(null);
-  const [showBanner, setShowBanner] = useState(false);
+
+  // Preview Modal State
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
+
+  const handleNextPreview = () => {
+    setCurrentPreviewIndex((prev) => (prev + 1) % tickets.length);
+  };
+
+  const handlePrevPreview = () => {
+    setCurrentPreviewIndex((prev) => (prev - 1 + tickets.length) % tickets.length);
+  };
 
   // Persistence: Restore state on mount
   useEffect(() => {
@@ -348,43 +359,11 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
           ))}
         </div>
 
-        {/* Biglietto Souvenir Preview + Action Area — side by side on wide screens */}
-        <div className={styles.splitLayout}>
-          <div className={styles.ticketPreviewList}>
-            {subeventData && tickets.map((ticket, idx) => (
-              <TicketPDF 
-                key={ticket.id}
-                preview={true}
-                compact={true}
-                backdropIndex={idx}
-                data={{
-                  movieTitle: subeventData.movieTitle,
-                  posterPath: subeventData.posterPath,
-                  date: subeventData.date,
-                  duration: subeventData.duration,
-                  director: subeventData.director,
-                  cast: subeventData.cast,
-                  roomName: subeventData.roomName,
-                  seatName: ticket.seat_name || 'Posto Unico',
-                  orderCode: orderCode,
-                  qrSecret: ticket.secret,
-                  purchaseDate: new Date().toLocaleDateString('it-IT'),
-                  backdropPath: subeventData.backdropPath,
-                  logoPath: subeventData.logoPath,
-                  tagline: subeventData.tagline,
-                  genres: subeventData.genres,
-                  year: subeventData.year,
-                  rating: subeventData.rating,
-                  tmdbId: subeventData.tmdbId,
-                }}
-              />
-            ))}
-          </div>
-
+        <div className={styles.actionAreaCenter}>
           <div className={styles.actionArea}>
             <button 
               className={`btn-primary ${styles.giantDownloadBtn}`} 
-              onClick={() => setShowBanner(true)}
+              onClick={() => handleDownloadPDF(true)}
               disabled={loading}
             >
               {loading ? (
@@ -392,50 +371,97 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
               ) : (
                   <>
                       <Download size={24} />
-                      APRI IL TUO BIGLIETTO ORA
+                      SCARICA IL TUO BIGLIETTO (PDF)
                   </>
               )}
             </button>
-
-            <button 
-              className={styles.secondaryDownloadBtn} 
-              onClick={() => handleDownloadPDF(true)}
-              disabled={loading}
-            >
-              <Download size={18} />
-              SCARICA IL TUO BIGLIETTO (PDF)
-            </button>
+            
+            {tickets.length > 0 && subeventData && (
+              <button 
+                className={styles.previewBtn}
+                onClick={() => {
+                  setCurrentPreviewIndex(0);
+                  setIsPreviewOpen(true);
+                }}
+              >
+                <Eye size={20} />
+                Visualizza anteprima biglietto
+              </button>
+            )}
             
             {isAnonymous && (
               <div className={styles.anonymousDisclaimer}>
                 <p>⚠️ <strong>Nota bene:</strong> Non riceverai una copia via email. Assicurati di scaricare o fare uno screenshot del biglietto ora.</p>
               </div>
             )}
-            
-            {!isAnonymous && <p className={styles.downloadHint}>Il PDF si aprirà in una nuova scheda.</p>}
           </div>
-        </div> {/* end splitLayout */}
+        </div>
 
-        {/* Warning Banner / Modal */}
-        {showBanner && (
-          <div className={styles.bannerOverlay}>
-            <div className={styles.bannerContainer}>
-              <div className={styles.bannerIcon}>⚠️</div>
-              <div className={styles.bannerContent}>
-                <h4 className={styles.bannerTitle}>ATTENZIONE</h4>
-                <p className={styles.bannerText}>
-                  Non riceverai una copia via email. Assicurati di scaricare o fare uno screenshot del biglietto ora.
-                </p>
-                <button 
-                  className={styles.bannerConfirmBtn}
-                  onClick={() => {
-                    setShowBanner(false);
-                    handleDownloadPDF(false);
-                  }}
-                >
-                  HO CAPITO, APRI BIGLIETTO
-                </button>
+        {isPreviewOpen && tickets.length > 0 && subeventData && (
+          <div className={styles.modalOverlay} onClick={() => setIsPreviewOpen(false)}>
+            <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+              <button className={styles.closeModalBtn} onClick={() => setIsPreviewOpen(false)}>
+                <X size={20} />
+              </button>
+              
+              <div className={styles.ticketCarousel}>
+                {tickets.length > 1 && (
+                  <button 
+                    className={styles.carouselBtn} 
+                    onClick={handlePrevPreview}
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                )}
+                
+                <div className={styles.ticketContainerWrapper}>
+                  <TicketPDF 
+                    preview={true}
+                    id={`preview-ticket-${tickets[currentPreviewIndex].secret}`}
+                    backdropIndex={currentPreviewIndex}
+                    data={{
+                      movieTitle: subeventData.movieTitle,
+                      posterPath: subeventData.posterPath,
+                      date: subeventData.date,
+                      duration: subeventData.duration,
+                      director: subeventData.director,
+                      cast: subeventData.cast,
+                      roomName: subeventData.roomName,
+                      seatName: tickets[currentPreviewIndex].seat_name || 'Posto Unico',
+                      orderCode: orderCode,
+                      qrSecret: tickets[currentPreviewIndex].secret,
+                      purchaseDate: new Date().toLocaleDateString('it-IT'),
+                      backdropPath: subeventData.backdropPath,
+                      logoPath: subeventData.logoPath,
+                      tagline: subeventData.tagline,
+                      genres: subeventData.genres,
+                      year: subeventData.year,
+                      rating: subeventData.rating,
+                      tmdbId: subeventData.tmdbId,
+                    }}
+                  />
+                </div>
+                
+                {tickets.length > 1 && (
+                  <button 
+                    className={styles.carouselBtn} 
+                    onClick={handleNextPreview}
+                  >
+                    <ChevronRight size={24} />
+                  </button>
+                )}
               </div>
+              
+              {tickets.length > 1 && (
+                <div className={styles.carouselIndicators}>
+                  {tickets.map((_, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`${styles.indicator} ${idx === currentPreviewIndex ? styles.indicatorActive : ''}`} 
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -472,7 +498,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
         onClick={handleAnonymousCheckout}
         disabled={loading}
       >
-        Continua senza email (Apri il biglietto subito)
+        Continua senza email
       </button>
 
       {error && <p className={styles.error}>{error}</p>}

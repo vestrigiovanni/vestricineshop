@@ -1,4 +1,4 @@
-import { getMovieDetails, getCast, getMovieTrailer, getMovieTrailers, searchMovies, getItalianRating } from '@/services/tmdb';
+import { getMovieDetails, getCast, getMovieTrailer, getMovieTrailers, searchMovies, getItalianRating, getEnhancedRating } from '@/services/tmdb';
 import { listSubEvents, listQuotas, getSeatingPlansMap, limitConcurrency } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
@@ -113,7 +113,7 @@ export default async function Home() {
       }
       
       if (groupedRecord[tmdbId]) {
-        const calculatedRating = getItalianRating(groupedRecord[tmdbId].tmdbMovie);
+        const calculatedRating = await getEnhancedRating(groupedRecord[tmdbId].tmdbMovie);
         se.calculatedRating = calculatedRating;
       }
     }
@@ -209,7 +209,7 @@ export default async function Home() {
       cast: getCast(entry.tmdbMovie, 5),
       trailerKey: trailerKey,
       trailerKeys: trailerKeys,
-      rating: getItalianRating(entry.tmdbMovie),
+      rating: await getEnhancedRating(entry.tmdbMovie),
     };
   }));
   

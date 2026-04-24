@@ -1,7 +1,7 @@
 'use server';
 
 import fs from 'fs';
-import { searchMovies, getMovieDetails, getDirector, getCast, getMovieLogo, getItalianRating } from '@/services/tmdb';
+import { searchMovies, getMovieDetails, getDirector, getCast, getMovieLogo, getItalianRating, getEnhancedRating } from '@/services/tmdb';
 import {
   createSubEvent,
   deleteSubEvent,
@@ -521,7 +521,7 @@ export async function adminScheduleMovie(
 
 
 
-  const movieRating = getItalianRating(details);
+  const movieRating = await getEnhancedRating(details);
 
   // 6. Create the Sub-Event in Pretix with Mapping
   const subEvent = await createSubEvent({

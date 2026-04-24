@@ -725,7 +725,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
               </div>
               <div className={styles.screeningGrid}>
                 {fetchingScreenings ? (
-                  <div className={styles.emptyState}><Loader2 size={40} className={styles.loadingSpinner} /><span>Caricamento...</span></div>
+                  <div className={styles.emptyState}><Loader2 size={40} className={styles.loadingSpinner} /><span>Caricamento orari...</span></div>
                 ) : filteredLocal.length === 0 && globalResults.length === 0 ? (
                   <div className={styles.noResults}>
                     <Search size={48} opacity={0.2} />
@@ -837,7 +837,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
               </div>
 
               <p className={styles.sectionTitle}>Mappa dei posti</p>
-              {loadingSeats ? (<div className={styles.seatLoader}><Loader2 size={24} className={styles.loadingSpinner} /> Caricamento...</div>) : (
+              {loadingSeats ? (<div className={styles.seatLoader}><Loader2 size={24} className={styles.loadingSpinner} /> Caricamento orari e posti...</div>) : (
                 <>
                   <div className={styles.seatLegend}>
                     <div className={styles.legendItem}><div className={styles.legendDot} style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.4)' }} /> Disponibile</div>
@@ -998,7 +998,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
               <button className={styles.btnClosePanel} onClick={() => setShowAltModal(false)}><X size={18} /></button>
             </div>
             <div className={styles.altList}>
-              {isSearchingAlt ? (<div className={styles.seatLoader}><Loader2 size={24} className={styles.loadingSpinner} /> Ricerca...</div>) : 
+              {isSearchingAlt ? (<div className={styles.seatLoader}><Loader2 size={24} className={styles.loadingSpinner} /> Caricamento orari...</div>) : 
               altScreenings.length === 0 ? (<div className={styles.emptyState}>Nessuna alternativa trovata.</div>) : (
                 altScreenings.map(alt => (
                   <div key={alt.subeventId} className={styles.altItem} onClick={() => handleSelectAlternative(alt)}>
