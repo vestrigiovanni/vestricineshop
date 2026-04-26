@@ -390,7 +390,7 @@ function calculateCapacitiesFromLayout(layout: any) {
 
 
 export async function adminScheduleMovie(
-  movieData: { id: string; title: string; overview: string; posterPath: string; language: string; subtitles: string },
+  movieData: { id: string; title: string; overview: string; posterPath: string; language: string; subtitles: string; versionLanguage: string },
   dateStr: string,
   timeStr: string,
   seatingPlanId: number,
@@ -536,6 +536,7 @@ export async function adminScheduleMovie(
     cast: Array.isArray(cast) ? cast.join(', ') : (cast || ""),
     language: movieData.language,
     subtitles: movieData.subtitles,
+    versionLanguage: movieData.versionLanguage,
     seatingPlanId: seatingPlanId,
     seatCategoryMapping: seatCategoryMapping,
     // Store additional rich metadata in comment for the Souvenir Ticket
@@ -936,7 +937,7 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
  * BULK SCHEDULING: Create multiple screenings at once.
  */
 export async function adminBulkScheduleMovie(
-  movieData: { id: string; title: string; overview: string; posterPath: string; language: string; subtitles: string },
+  movieData: { id: string; title: string; overview: string; posterPath: string; language: string; subtitles: string; versionLanguage: string },
   selectedDates: string[],
   seatingPlanId: number,
   buffer: number = 0
@@ -1079,3 +1080,77 @@ export async function adminCreateSeatingPlan(name: string, numRows: number = 5, 
   }
 }
 
+
+/**
+ * OVERRIDE SYSTEM: GET ALL MOVIE OVERRIDES
+ */
+export async function adminGetOverrides() {
+  const { getOverrides } = await import('@/services/db.service');
+  return getOverrides();
+}
+
+/**
+ * OVERRIDE SYSTEM: SAVE A MOVIE OVERRIDE
+ */
+export async function adminSaveOverride(tmdbId: string, override: any) {
+  const { saveOverride } = await import('@/services/db.service');
+  saveOverride(tmdbId, override);
+  revalidatePath('/');
+  revalidatePath('/admin/movies-control');
+  return { success: true };
+}
+
+/**
+ * OVERRIDE SYSTEM: DELETE A MOVIE OVERRIDE
+ */
+export async function adminDeleteOverride(tmdbId: string) {
+  const { getOverrides } = await import('@/services/db.service');
+  const fs = await import('fs');
+  const path = await import('path');
+  const DB_PATH = path.join(process.cwd(), 'data', 'overrides.json');
+  
+  const overrides = getOverrides();
+  delete overrides[tmdbId];
+  fs.writeFileSync(DB_PATH, JSON.stringify(overrides, null, 2), 'utf8');
+  
+  revalidatePath('/admin/movies-control');
+  return { success: true };
+}
+
+/**
+ * OVERRIDE SYSTEM: GET ALL UNIQUE PROGRAMMED MOVIES
+ */
+export async function adminGetProgrammedMovies() {
+  const { listSubEvents } = await import('@/services/pretix');
+  const { getMovieDetails } = await import('@/services/tmdb');
+  
+  const subEvents = await listSubEvents(true); // Get future events
+  const uniqueMovies: Record<string, { tmdbId: string; title: string; lastDate: string }> = {};
+
+  for (const se of subEvents) {
+    let tmdbId = '';
+    try {
+      if (se.comment) {
+        const metadata = JSON.parse(se.comment);
+        tmdbId = metadata.tmdbId;
+      }
+    } catch (e) {}
+
+    if (tmdbId) {
+      if (!uniqueMovies[tmdbId] || new Date(se.date_from) > new Date(uniqueMovies[tmdbId].lastDate)) {
+        uniqueMovies[tmdbId] = {
+          tmdbId,
+          title: se.name?.it || se.name,
+          lastDate: se.date_from
+        };
+      }
+    }
+  }
+
+  // Convert to array and sort by date (ascending - soonest first)
+  const sorted = Object.values(uniqueMovies).sort((a, b) => 
+    new Date(a.lastDate).getTime() - new Date(b.lastDate).getTime()
+  );
+
+  return sorted;
+}

@@ -73,24 +73,47 @@ function apiQueueRelease() {
   }
 }
 
-// In-memory cache for GET requests
-const pretixCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 30 * 1000; // 30 seconds
+// File-based cache for GET requests
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 function getCachedData(endpoint: string) {
-  const cached = pretixCache.get(endpoint);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data;
-  }
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const cachePath = path.join(process.cwd(), 'data', 'pretix_cache.json');
+    if (!fs.existsSync(cachePath)) return null;
+    const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+    const cached = cache[endpoint];
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.data;
+    }
+  } catch (e) {}
   return null;
 }
 
 function setCachedData(endpoint: string, data: any) {
-  pretixCache.set(endpoint, { data, timestamp: Date.now() });
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const cachePath = path.join(process.cwd(), 'data', 'pretix_cache.json');
+    let cache: any = {};
+    if (fs.existsSync(cachePath)) {
+      cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+    }
+    cache[endpoint] = { data, timestamp: Date.now() };
+    fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2), 'utf8');
+  } catch (e) {}
 }
 
 export async function clearPretixCache() {
-  pretixCache.clear();
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const cachePath = path.join(process.cwd(), 'data', 'pretix_cache.json');
+    if (fs.existsSync(cachePath)) {
+      fs.unlinkSync(cachePath);
+    }
+  } catch (e) {}
 }
 
 /**
@@ -806,6 +829,7 @@ export async function createSubEvent(movieData: {
   director: string;
   language: string;
   subtitles: string;
+  versionLanguage?: string;
   cast: string;
   seatingPlanId: number;
   seatCategoryMapping?: Record<string, number>;
@@ -857,6 +881,8 @@ export async function createSubEvent(movieData: {
       genres: movieData.genres || '',
       year: movieData.year || '',
       rating: movieData.rating || '',
+      versionLanguage: movieData.versionLanguage || '',
+      subtitles: movieData.subtitles || '',
     });
 
     const payload: any = {
@@ -868,7 +894,10 @@ export async function createSubEvent(movieData: {
       frontpage_text: { it: movieData.title + ' - VESTRI CINEMA' },
       comment: commentPayload,
       seating_plan: Number(movieData.seatingPlanId),
-      meta_data: {}
+      meta_data: {
+        lingua: movieData.versionLanguage || '',
+        sottotitoli: movieData.subtitles || ''
+      }
     };
 
     // Only include seat_category_mapping if it has entries — an empty or undefined mapping

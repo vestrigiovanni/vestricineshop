@@ -43,36 +43,28 @@
 
 .languageDetail {
   display: flex;
-  flex-direction: row;
   align-items: center;
-  justify-content: flex-start; /* Defaulting to left to match title, but let's check user request */
-  gap: 1rem;
-  margin: 0.5rem 0;
-  flex-wrap: wrap;
-}
-
-.langItem {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #fff;
+  gap: 0.6rem;
+  margin: 0.4rem 0;
+  font-family: var(--font-cinzel), serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+  color: #FFFFF0;
 }
 
 .langIcon {
-  color: #FFE066; /* Giallo ocra tenue */
-  flex-shrink: 0;
+  color: #FFFFF0;
+  opacity: 0.6;
 }
 
-.langHighlight {
-  color: #FFE066;
+.langText {
   font-weight: 700;
 }
 
-.langSeparator {
-  color: rgba(255, 255, 255, 0.2);
-  font-size: 1rem;
+.langDivider {
+  opacity: 0.3;
+  margin: 0 0.25rem;
 }
 
 .desc {

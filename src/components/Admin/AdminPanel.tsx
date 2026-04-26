@@ -21,7 +21,8 @@ import {
   adminDeleteQuota, 
   adminGetQuotaAvailability, 
   adminGetEmptyProjections,
-  adminClearCache
+  adminClearCache,
+  adminGetOverrides
 } from '@/actions/adminActions';
 import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb';
 import Image from 'next/image';
@@ -52,7 +53,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     date: '',
     roomId: '', // Inizialmente vuoto
     language: '',
-    subtitles: 'Italiano'
+    subtitles: 'Italiano',
+    versionLanguage: 'Versione Italiana'
   });
 
   const initPlans = async () => {
@@ -217,14 +219,18 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     // Get the first available room
     const defaultRoom = defaultSalaId || (availableSeatingPlans.length > 0 ? availableSeatingPlans[0].id.toString() : '');
 
+    const movieOverrides = await adminGetOverrides();
+    const movieOverride = movieOverrides[movie.id.toString()];
+
     setFormState({
-      title: movie.title,
-      overview: movie.overview,
-      posterPath: movie.poster_path || '',
+      title: movieOverride?.customTitle || movie.title,
+      overview: movieOverride?.customOverview || movie.overview,
+      posterPath: movieOverride?.customPosterPath || movie.poster_path || '',
       date: getDefaultProjectionDate(),
       roomId: defaultRoom,
       language: getLanguageName(movie.original_language),
-      subtitles: isItalian ? 'Nessuno' : 'Italiano'
+      subtitles: movieOverride?.subtitles || (isItalian ? 'Nessuno' : 'Italiano'),
+      versionLanguage: movieOverride?.versionLanguage || (isItalian ? 'Versione Italiana' : 'Lingua Originale')
     });
     setConflict(null);
     setConflictEndTime(null);
@@ -252,7 +258,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
 
   const handleReplica = async (event: any) => {
-    let metadata = { tmdbId: '', overview: '', posterPath: '', language: '', subtitles: '' };
+    let metadata = { tmdbId: '', overview: '', posterPath: '', language: '', subtitles: '', versionLanguage: '' };
     try {
       if (event.comment) {
         metadata = JSON.parse(event.comment);
@@ -284,7 +290,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       date: getDefaultProjectionDate(),
       roomId: event.seating_plan?.toString() || (availableSeatingPlans.length > 0 ? availableSeatingPlans[0].id.toString() : ''),
       language: replicaLang,
-      subtitles: replicaSubtitles
+      subtitles: metadata.subtitles || replicaSubtitles,
+      versionLanguage: metadata.versionLanguage || (replicaLang === 'Italiano' ? 'Versione Italiana' : 'Lingua Originale')
     });
     setShowModal(true);
 
@@ -394,7 +401,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           overview: formState.overview,
           posterPath: formState.posterPath,
           language: formState.language,
-          subtitles: formState.subtitles
+          subtitles: formState.subtitles,
+          versionLanguage: formState.versionLanguage
         }, selectedSlots, parseInt(formState.roomId), cleaningBuffer);
         const errorDetails = res.details && res.details.length > 0 
           ? `\n\nDettagli errori:\n${res.details.join('\n')}` 
@@ -411,7 +419,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           overview: formState.overview,
           posterPath: formState.posterPath,
           language: formState.language,
-          subtitles: formState.subtitles
+          subtitles: formState.subtitles,
+          versionLanguage: formState.versionLanguage
         }, rawDate, rawTime, parseInt(formState.roomId), !!conflict, cleaningBuffer);
         console.log('[handleSchedule] ✅ Risposta server:', result);
         alert(conflict ? 'Spettacolo programmato con successo (Override)!' : 'Spettacolo programmato con successo!');
@@ -775,6 +784,15 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           <Monitor size={18} />
           INFO ON SCREEN
         </button>
+
+        <a
+          href="/admin/movies-control"
+          className={styles.btnDisplayLauncher}
+          style={{ backgroundColor: '#e50914', color: 'white', border: 'none' }}
+        >
+          <Settings size={18} />
+          TORRE DI CONTROLLO
+        </a>
       </div>
 
       {/* LEFT COLUMN: SEARCH & SCHEDULE */}
@@ -782,6 +800,9 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.title}>Cerca Film (TMDB)</h2>
+            <a href="/admin/movies-control" className={styles.btnActionIcon} title="Gestisci Overrides">
+              <Settings size={18} />
+            </a>
           </div>
 
           <form onSubmit={handleSearch} className={styles.searchBar}>
@@ -1164,27 +1185,32 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                       </div>
 
                       <div className={styles.formGroup}>
-                        <label className={styles.modalLabel}>Lingua</label>
-                        <input
-                          type="text"
-                          value={formState.language}
-                          onChange={(e) => setFormState({ ...formState, language: e.target.value })}
-                          placeholder="es. Inglese"
-                          required
+                        <label className={styles.modalLabel}>Versione (Lingua)</label>
+                        <select
+                          value={formState.versionLanguage}
+                          onChange={(e) => setFormState({ ...formState, versionLanguage: e.target.value })}
                           className={styles.modalInput}
-                        />
+                        >
+                          <option value="Versione Italiana">Versione Italiana</option>
+                          <option value="Lingua Originale">Lingua Originale</option>
+                          <option value="English Version">English Version</option>
+                          <option value="Versione Originale">Versione Originale</option>
+                        </select>
                       </div>
 
                       <div className={styles.formGroup}>
                         <label className={styles.modalLabel}>Sottotitoli</label>
-                        <input
-                          type="text"
+                        <select
                           value={formState.subtitles}
                           onChange={(e) => setFormState({ ...formState, subtitles: e.target.value })}
-                          placeholder="es. Italiano"
-                          required
                           className={styles.modalInput}
-                        />
+                        >
+                          <option value="Nessuno">Nessuno</option>
+                          <option value="Italiano">Sottotitoli in Italiano</option>
+                          <option value="Sub ITA">Sub ITA</option>
+                          <option value="English">Sub English</option>
+                          <option value="Sub ENG">Sub ENG</option>
+                        </select>
                       </div>
 
                       <div className={styles.formGroup}>

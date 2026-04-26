@@ -118,12 +118,52 @@
 
 .meta {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 1.5rem;
   align-items: center;
-  margin-bottom: 1.5rem;
-  font-size: 1rem;
-  color: #a0a0a0;
+  margin-bottom: 2rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+  font-size: 0.9rem;
+  color: #FFFFFF;
+  letter-spacing: 0.02em;
   font-weight: 500;
+}
+
+.metaGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap; /* Impedisce al testo di andare a capo a metà gruppo */
+}
+
+.metaSeparator {
+  opacity: 0.4;
+  font-weight: 300;
+  color: #ffffff;
+}
+
+.metaLabel {
+  font-weight: 600;
+  opacity: 0.5;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  margin-right: 0.1rem;
+}
+
+.versionBadge {
+  font-weight: 700;
+  color: #FFFFF0;
+  border: 1px solid rgba(255, 255, 240, 0.3);
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+  font-size: 0.7rem;
+}
+
+.directorMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .badge {
@@ -502,4 +542,23 @@
 
 .cardWrapper:hover .ratingBadgeOverlay {
   transform: scale(1.1);
+}
+
+.langBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(15, 17, 21, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 240, 0.2);
+  color: #FFFFF0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  z-index: 40;
+  pointer-events: none;
+  font-family: var(--font-cinzel), serif;
 }

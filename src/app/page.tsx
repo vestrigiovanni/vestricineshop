@@ -1,5 +1,6 @@
 import { getMovieDetails, getCast, getMovieTrailer, getMovieTrailers, searchMovies, getItalianRating, getEnhancedRating } from '@/services/tmdb';
 import { listSubEvents, listQuotas, getSeatingPlansMap, limitConcurrency } from '@/services/pretix';
+import { adminGetOverrides } from '@/actions/adminActions';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '@/components/WeeklyCinemaCalendar/WeeklyCinemaCalendar';
@@ -10,9 +11,10 @@ export const revalidate = 0;
 
 export default async function Home() {
   // Step 1: Get all future sub-events and seating plans
-  const [rawSubEvents, roomsMap] = await Promise.all([
+  const [rawSubEvents, roomsMap, overrides] = await Promise.all([
     listSubEvents(true),
     getSeatingPlansMap(),
+    adminGetOverrides(),
   ]);
 
   // Step 2: For each sub-event, fetch its specific quotas in parallel with concurrency limit.
@@ -106,6 +108,7 @@ export default async function Home() {
 
     // ── Apply Calculated Rating to ALL subevents (for Calendar) ──
     if (tmdbId) {
+      const override = overrides[tmdbId];
       if (!groupedRecord[tmdbId]) {
         const tmdbMovie = await getMovieDetails(tmdbId);
         if (tmdbMovie) {
@@ -114,8 +117,15 @@ export default async function Home() {
       }
       
       if (groupedRecord[tmdbId]) {
-        const calculatedRating = await getEnhancedRating(groupedRecord[tmdbId].tmdbMovie);
+        const calculatedRating = override?.customRating || await getEnhancedRating(groupedRecord[tmdbId].tmdbMovie);
         se.calculatedRating = calculatedRating;
+      }
+      
+      if (override?.manualSoldOut) {
+        se.isSoldOut = true;
+      }
+      if (override?.customRoomName) {
+        se.roomName = override.customRoomName;
       }
     }
 
@@ -198,23 +208,28 @@ export default async function Home() {
     const finalRating = await getEnhancedRating(entry.tmdbMovie);
     console.log(`[PAGE DEBUG] Movie: ${entry.tmdbMovie.title}, Final Rating: ${finalRating}`);
 
-    return {
-      id: entry.tmdbMovie.id,
-      title: entry.tmdbMovie.title,
-      overview: entry.tmdbMovie.overview,
-      poster_path: entry.tmdbMovie.poster_path,
-      backdrop_path: backdrop_path,
-      logo_path: logo_path,
-      release_date: entry.tmdbMovie.release_date,
-      director: director,
-      runtime: entry.tmdbMovie.runtime,
-      subevents: entry.subevents,
-      isSoldOut: isSoldOut,
-      cast: getCast(entry.tmdbMovie, 5),
-      trailerKey: trailerKey,
-      trailerKeys: trailerKeys,
-      rating: finalRating,
-    };
+      const movieOverride = overrides[entry.tmdbMovie.id.toString()];
+      const firstSubeventWithInfo = entry.subevents.find(se => se.language || se.subtitles);
+
+      return {
+        id: entry.tmdbMovie.id,
+        title: movieOverride?.customTitle || entry.tmdbMovie.title,
+        overview: movieOverride?.customOverview || entry.tmdbMovie.overview,
+        poster_path: movieOverride?.customPosterPath || entry.tmdbMovie.poster_path,
+        backdrop_path: backdrop_path,
+        logo_path: logo_path,
+        release_date: entry.tmdbMovie.release_date,
+        director: movieOverride?.customDirector?.join(', ') || director,
+        runtime: entry.tmdbMovie.runtime,
+        subevents: entry.subevents,
+        isSoldOut: isSoldOut,
+        cast: movieOverride?.customCast || getCast(entry.tmdbMovie, 5),
+        trailerKey: trailerKey,
+        trailerKeys: trailerKeys,
+        rating: movieOverride?.customRating || finalRating,
+        versionLanguage: movieOverride?.versionLanguage || firstSubeventWithInfo?.language || '',
+        subtitles: movieOverride?.subtitles || firstSubeventWithInfo?.subtitles || '',
+      };
   }));
   
   // --- Server-side Sorting ---

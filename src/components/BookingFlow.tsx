@@ -19,37 +19,29 @@ interface BookingFlowProps {
   onClose?: () => void;
 }
 
-function LanguageDetailView({ lingua, sottotitoli }: { lingua?: string; sottotitoli?: string }) {
-  if (!lingua) return null;
+function LanguageDetailView({ lingua, sottotitoli, comment }: { lingua?: string; sottotitoli?: string; comment?: string }) {
+  let displayLingua = lingua;
+  let displaySottotitoli = sottotitoli;
 
-  const langInfo = getLanguageFull(lingua);
-  const subFull = getSubtitleFull(sottotitoli || '');
+  // Fallback to comment JSON if meta_data is empty
+  if (!displayLingua && comment) {
+    try {
+      const meta = JSON.parse(comment);
+      displayLingua = meta.versionLanguage;
+      displaySottotitoli = meta.subtitles;
+    } catch (e) {}
+  }
 
-  // If Italian and no subtitles, show a simplified version
-  const isItalian = langInfo.name.toLowerCase() === 'italiano' && !subFull;
+  if (!displayLingua) return null;
 
   return (
     <div className={styles.languageDetail}>
-      {isItalian ? (
-        <div className={styles.langItem}>
-          <Globe size={18} className={styles.langIcon} />
-          <span>Lingua: <span className={styles.langHighlight}>{langInfo.name}</span> {langInfo.flag}</span>
-        </div>
-      ) : (
+      <Globe size={14} className={styles.langIcon} />
+      <span className={styles.langText}>{displayLingua.toUpperCase()}</span>
+      {displaySottotitoli && displaySottotitoli !== 'Nessuno' && (
         <>
-          <div className={styles.langItem}>
-            <Globe size={18} className={styles.langIcon} />
-            <span>Lingua Originale <span className={styles.langHighlight}>{langInfo.name}</span> {langInfo.flag}</span>
-          </div>
-          {subFull && (
-            <>
-              <span className={styles.langSeparator}>—</span>
-              <div className={styles.langItem}>
-                <MessageSquare size={18} className={styles.langIcon} />
-                <span>Sottotitoli in <span className={styles.langHighlight}>{subFull}</span></span>
-              </div>
-            </>
-          )}
+          <span className={styles.langDivider}>|</span>
+          <span className={styles.langText}>{displaySottotitoli.toUpperCase()}</span>
         </>
       )}
     </div>
@@ -359,6 +351,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
             <LanguageDetailView 
               lingua={selectedSubEvent.meta_data?.lingua} 
               sottotitoli={selectedSubEvent.meta_data?.sottotitoli} 
+              comment={selectedSubEvent.comment}
             />
           )}
           <p className={styles.desc}>

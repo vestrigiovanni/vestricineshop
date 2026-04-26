@@ -32,6 +32,8 @@ export interface GroupedMovie {
   trailerKey?: string | null;
   trailerKeys?: string[];
   rating?: string;
+  versionLanguage?: string;
+  subtitles?: string;
   subevents: {
     id: number;
     date: string;
@@ -217,22 +219,37 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
           <div className={styles.meta}>
             <span>{isMounted ? (new Date(activeMovie.release_date).getFullYear() || 'N/D') : ''}</span>
             {activeMovie.runtime && (
-              <>
-                <span>•</span>
-                <span>{activeMovie.runtime} min</span>
-              </>
+              <div className={styles.metaGroup}>
+                <span className={styles.metaSeparator}>|</span>
+                <span className={styles.metaLabel}>DURATA:</span>
+                <span>{activeMovie.runtime} MIN</span>
+              </div>
             )}
             {activeMovie.rating && (
-              <>
-                <span>•</span>
+              <div className={styles.metaGroup}>
+                <span className={styles.metaSeparator}>|</span>
+                <span className={styles.metaLabel}>RATING:</span>
                 <RatingBadge rating={activeMovie.rating} size="sm" />
-              </>
+              </div>
+            )}
+            {activeMovie.versionLanguage && (
+              <div className={styles.metaGroup}>
+                <span className={styles.metaSeparator}>|</span>
+                <span className={styles.versionBadge}>{activeMovie.versionLanguage.toUpperCase()}</span>
+              </div>
+            )}
+            {activeMovie.subtitles && activeMovie.subtitles !== 'Nessuno' && (
+              <div className={styles.metaGroup}>
+                <span className={styles.metaSeparator}>|</span>
+                <span className={styles.versionBadge}>{activeMovie.subtitles.toUpperCase()}</span>
+              </div>
             )}
             {activeMovie.director && (
-              <>
-                <span>•</span>
-                <span className={styles.directorBlock}>
-                  Regia: {activeMovie.director}
+              <div className={styles.directorMeta}>
+                <span className={styles.metaSeparator}>|</span>
+                <div className={styles.metaGroup}>
+                  <span className={styles.metaLabel}>REGIA:</span>
+                  {activeMovie.director.toUpperCase()}
                   {isMounted && activeMovie.trailerKey && (
                     <button 
                       className={styles.trailerBtn} 
@@ -242,8 +259,8 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
                       <Video size={18} color="#ffffff" strokeWidth={2.5} />
                     </button>
                   )}
-                </span>
-              </>
+                </div>
+              </div>
             )}
           </div>
           
@@ -352,6 +369,12 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
                   <div className={styles.soldOutBanner}>
                     <span>SOLD OUT</span>
                   </div>
+                )}
+                {movie.versionLanguage === 'Lingua Originale' && (
+                  <div className={styles.langBadge}>V.O.</div>
+                )}
+                {movie.subtitles && movie.subtitles !== 'Nessuno' && movie.subtitles.includes('ITA') && (
+                  <div className={styles.langBadge}>SUB IT</div>
                 )}
                 {movie.rating && (
                   <div className={styles.ratingBadgeOverlay}>

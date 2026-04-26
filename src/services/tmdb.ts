@@ -64,6 +64,11 @@ export interface MovieDetails extends MovieItem {
  */
 export async function searchMovies(query: string = ''): Promise<MovieItem[]> {
   try {
+    const { getCachedTMDB, setCachedTMDB } = await import('./db.service');
+    const cacheKey = `search_${query || 'now_playing'}`;
+    const cached = getCachedTMDB(cacheKey);
+    if (cached) return cached;
+
     const endpoint = query 
       ? `/search/movie?query=${encodeURIComponent(query)}&language=it-IT&page=1`
       : `/movie/now_playing?language=it-IT&page=1`; // Use now_playing for cinema feel instead of popular
@@ -99,6 +104,7 @@ export async function searchMovies(query: string = ''): Promise<MovieItem[]> {
 
     const data = await response.json();
     const results: MovieItem[] = data.results || [];
+    setCachedTMDB(cacheKey, results);
 
     // Enrich the first 10 results with ratings (VM14, VM18, etc)
     // We do this by calling getMovieDetails which includes release_dates.
@@ -110,6 +116,7 @@ export async function searchMovies(query: string = ''): Promise<MovieItem[]> {
           if (details) {
             return {
               ...movie,
+              overview: details.overview || movie.overview, // Use details.overview (might be English fallback)
               rating: await getEnhancedRating(details)
             };
           }
@@ -133,6 +140,11 @@ export async function searchMovies(query: string = ''): Promise<MovieItem[]> {
  */
 export async function getMovieDetails(id: string): Promise<MovieDetails | null> {
   try {
+    const { getCachedTMDB, setCachedTMDB } = await import('./db.service');
+    const cacheKey = `movie_details_${id}`;
+    const cached = getCachedTMDB(cacheKey);
+    if (cached) return cached;
+
     console.log(`[TMDB DEBUG] Recupero dettagli per ID: ${id}`);
     const url = `${TMDB_BASE_URL}/movie/${id}?language=it-IT&append_to_response=credits,images,release_dates&include_image_language=it,en,null&api_key=${TMDB_API_KEY}&t=${Date.now()}`;
     
@@ -143,6 +155,30 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
     
     if (!response.ok) return null;
     const details = await response.json();
+
+    // FALLBACK: Se la trama in italiano manca, proviamo a recuperare quella in inglese
+    if (!details.overview || details.overview.trim() === '') {
+      console.log(`[TMDB DEBUG] Trama italiana mancante per ID ${id}, recupero versione inglese...`);
+      const enUrl = `${TMDB_BASE_URL}/movie/${id}?language=en-US&api_key=${TMDB_API_KEY}`;
+      try {
+        const enResponse = await fetch(enUrl, {
+          headers: { 'accept': 'application/json' },
+          cache: 'no-store'
+        });
+        if (enResponse.ok) {
+          const enData = await enResponse.json();
+          if (enData.overview) {
+            details.overview = enData.overview;
+            console.log(`[TMDB DEBUG] Trama inglese recuperata per ID ${id}`);
+          }
+          if (!details.tagline && enData.tagline) {
+            details.tagline = enData.tagline;
+          }
+        }
+      } catch (e) {
+        console.error(`[TMDB ERROR] Fallback inglese fallito per ${id}:`, e);
+      }
+    }
 
     // Recupero video separato senza filtro lingua per ottenere TUTTE le versioni (identifica l'originale con precisione)
     const videoUrl = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}`;
@@ -158,6 +194,7 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
       console.error(`[TMDB ERROR] Impossibile recuperare i video per ${id}:`, e);
     }
 
+    setCachedTMDB(cacheKey, details);
     return details;
   } catch (error) {
     console.error(`Error fetching details for movie ${id}:`, error);
