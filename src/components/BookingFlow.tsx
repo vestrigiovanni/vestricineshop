@@ -7,7 +7,7 @@ import CheckoutTimer from './CheckoutTimer';
 import CheckoutButton from './CheckoutButton';
 import RatingBadge from './RatingBadge';
 import AgeVerificationModal from './AgeVerificationModal';
-import { isVM18, isVM14 } from '@/utils/ratingUtils';
+import { isVM18, isVM14, normalizeRating } from '@/utils/ratingUtils';
 import { listSubEvents, getItemAvailability, getSubEvent, listQuotas, getSubEventSeats } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import { getLanguageFull, getSubtitleFull } from '@/utils/languageUtils';
@@ -432,7 +432,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
                 try {
                   if (selectedSubEvent?.comment) {
                     const meta = JSON.parse(selectedSubEvent.comment);
-                    const r = meta.rating;
+                    const r = String(meta.rating || '');
                     const norm = normalizeRating(r);
                     if (norm === '18+' || norm === '14+' || norm === '10+') {
                       const age = norm === '18+' ? '18' : (norm === '14+' ? '14' : '10');
