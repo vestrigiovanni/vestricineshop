@@ -6,6 +6,7 @@ import WeeklyCinemaCalendar from '@/components/WeeklyCinemaCalendar/WeeklyCinema
 import styles from './page.module.css';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function Home() {
   // Step 1: Get all future sub-events and seating plans
@@ -194,6 +195,9 @@ export default async function Home() {
       backdrop_path = finalPool[backdropIndex].file_path;
     }
 
+    const finalRating = await getEnhancedRating(entry.tmdbMovie);
+    console.log(`[PAGE DEBUG] Movie: ${entry.tmdbMovie.title}, Final Rating: ${finalRating}`);
+
     return {
       id: entry.tmdbMovie.id,
       title: entry.tmdbMovie.title,
@@ -209,7 +213,7 @@ export default async function Home() {
       cast: getCast(entry.tmdbMovie, 5),
       trailerKey: trailerKey,
       trailerKeys: trailerKeys,
-      rating: await getEnhancedRating(entry.tmdbMovie),
+      rating: finalRating,
     };
   }));
   

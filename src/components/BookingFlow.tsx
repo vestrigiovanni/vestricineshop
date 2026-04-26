@@ -198,17 +198,22 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
       if (se.comment) {
         const meta = JSON.parse(se.comment);
         const needsVerification = isVM18(meta.rating);
+        
         if (needsVerification) {
-          setIsAgeVerified(false); // Force re-verification for the new screening
+          // If it's a 18+ movie, we must verify (or re-verify if needed)
+          setIsAgeVerified(false); 
           setShowAgeVerification(true);
-          setSelectedSubeventId(se.id);
-          return;
+        } else {
+          // If NOT 18+, we automatically clear the verification and show no gate
+          setIsAgeVerified(true);
+          setShowAgeVerification(false);
+          // Optional: clear any session storage to be clean
+          sessionStorage.removeItem('age-verified');
         }
       }
     } catch (e) {}
 
     setSelectedSubeventId(se.id);
-    setIsAgeVerified(true);
   };
 
   const handleAgeVerified = () => {
@@ -428,12 +433,19 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
                   if (selectedSubEvent?.comment) {
                     const meta = JSON.parse(selectedSubEvent.comment);
                     const r = meta.rating;
-                    if (isVM14(r) || isVM18(r)) {
-                      const age = isVM18(r) ? '18' : '14';
+                    const norm = normalizeRating(r);
+                    if (norm === '18+' || norm === '14+' || norm === '10+') {
+                      const age = norm === '18+' ? '18' : (norm === '14+' ? '14' : '10');
+                      const isRestriction = norm === '18+' || norm === '14+';
+                      
                       return (
-                        <div className={styles.legalInfo}>
-                          <AlertTriangle size={14} />
-                          <span>L&apos;accesso a questa proiezione è limitato ai maggiori di {age} anni.</span>
+                        <div className={isRestriction ? styles.legalInfo : `${styles.legalInfo} ${styles.infoOnly}`}>
+                          {isRestriction ? <AlertTriangle size={14} /> : <Info size={14} />}
+                          <span>
+                            {isRestriction 
+                              ? `L'accesso a questa proiezione è limitato ai maggiori di ${age} anni.`
+                              : `La visione di questo film è consigliata dai ${age} anni in su.`}
+                          </span>
                         </div>
                       );
                     }

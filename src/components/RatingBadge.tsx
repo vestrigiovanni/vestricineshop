@@ -24,6 +24,7 @@ const RatingBadge: React.FC<RatingBadgeProps> = ({
     const r = effectiveRating;
     if (r === 'T' || r === 'PT') return styles.green;
     if (r === '6' || r === '6+') return styles.yellow;
+    if (r === '10' || r === '10+') return styles.azure;
     if (isVM18(r)) return styles.red;
     if (isVM14(r)) return styles.orange;
     return styles.green;
