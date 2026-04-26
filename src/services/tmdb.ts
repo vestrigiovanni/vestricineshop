@@ -1,4 +1,5 @@
 import { normalizeRating } from '@/utils/ratingUtils';
+import { getMovieMetadata, saveMovieMetadata } from './db.service';
 const TMDB_API_KEY = '00ea09c7fb5bf89b064f6001a2de3122';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
@@ -11,6 +12,10 @@ export interface MovieItem {
   release_date: string;
   original_language?: string;
   rating?: string;
+  trailerKey?: string;
+  multiLangVideos?: { it: any[]; en: any[]; original: any[] };
+  director?: string;
+  cast?: string[];
 }
 
 const LANGUAGE_MAP: Record<string, string> = {
@@ -55,6 +60,10 @@ export interface MovieDetails extends MovieItem {
   };
   images?: {
     logos: { file_path: string; iso_639_1: string | null }[];
+    backdrops?: { file_path: string; iso_639_1: string | null; width: number; vote_average: number; vote_count: number }[];
+  };
+  videos?: {
+    results: any[];
   };
 }
 
@@ -62,10 +71,10 @@ export interface MovieDetails extends MovieItem {
  * Searches for movies on TMDB based on a text query.
  * If query is empty, it returns popular movies.
  */
-export async function searchMovies(query: string = ''): Promise<MovieItem[]> {
+export async function searchMovies(query: string = '', enrich: boolean = true): Promise<MovieItem[]> {
   try {
     const { getCachedTMDB, setCachedTMDB } = await import('./db.service');
-    const cacheKey = `search_${query || 'now_playing'}`;
+    const cacheKey = `search_${query || 'now_playing'}_${enrich ? 'en' : 'std'}`;
     const cached = getCachedTMDB(cacheKey);
     if (cached) return cached;
 
@@ -83,10 +92,8 @@ export async function searchMovies(query: string = ''): Promise<MovieItem[]> {
       cache: 'no-store'
     });
 
+    let data;
     if (!response.ok) {
-      // The API key is passed as query param if not using Bearer
-      // Wait, the prompt specified a raw string API KEY, not a Bearer Token.
-      // Let's use the query param approach since it's a raw key: ?api_key=...
       const retryUrl = url.includes('?') 
         ? `${url}&api_key=${TMDB_API_KEY}` 
         : `${url}?api_key=${TMDB_API_KEY}`;
@@ -97,27 +104,28 @@ export async function searchMovies(query: string = ''): Promise<MovieItem[]> {
       });
       
       if (!responseRetry.ok) throw new Error('Failed to fetch from TMDB');
-      
-      const data = await responseRetry.json();
-      return data.results || [];
+      data = await responseRetry.json();
+    } else {
+      data = await response.json();
     }
 
-    const data = await response.json();
     const results: MovieItem[] = data.results || [];
-    setCachedTMDB(cacheKey, results);
+    
+    if (!enrich) {
+      setCachedTMDB(cacheKey, results);
+      return results;
+    }
 
-    // Enrich the first 10 results with ratings (VM14, VM18, etc)
-    // We do this by calling getMovieDetails which includes release_dates.
-    // This makes the search slightly slower but provides critical age info as requested.
+    // Enrich the first 5 results with ratings and basic info (reduced from 10 to 5)
     const enrichedResults = await Promise.all(
-      results.slice(0, 10).map(async (movie) => {
+      results.slice(0, 5).map(async (movie) => {
         try {
-          const details = await getMovieDetails(String(movie.id));
-          if (details) {
+          const enriched = await getEnrichedMovieMetadata(String(movie.id));
+          if (enriched) {
             return {
               ...movie,
-              overview: details.overview || movie.overview, // Use details.overview (might be English fallback)
-              rating: await getEnhancedRating(details)
+              overview: enriched.overview || movie.overview,
+              rating: enriched.rating
             };
           }
           return movie;
@@ -127,8 +135,9 @@ export async function searchMovies(query: string = ''): Promise<MovieItem[]> {
       })
     );
 
-    // Combine enriched results with the rest
-    return [...enrichedResults, ...results.slice(10)];
+    const finalResults = [...enrichedResults, ...results.slice(5)];
+    setCachedTMDB(cacheKey, finalResults);
+    return finalResults;
   } catch (error) {
     console.error('Error fetching movies from TMDB:', error);
     return [];
@@ -236,142 +245,54 @@ const trailerCache = new Map<string, string | null>();
 const trailersCache = new Map<string, string[]>();
 
 /**
- * Extracts the best trailer key (YouTube) following surgical linguistic rules:
- * 1. IT: it-IT > en-US > first available
- * 2. EN: en-US/en-GB > first available
- * 3. UR/PA/SD: Forced EN (en-US)
- * 4. Others: Original > EN > first available
- * Filters: Site "YouTube", Type "Trailer", Priority "official: true"
+ * Smart Fetch: Extracts the best trailer key (YouTube) following strict priority:
+ * 1. IT Official Trailer
+ * 2. IT Trailer
+ * 3. EN Official Trailer
+ * 4. Teaser (IT then EN)
  */
-export async function getMovieTrailer(id: string, originalLanguage: string = 'en'): Promise<string | null> {
-  const cacheKey = `${id}_${originalLanguage}_strict`; // Updated cache key to force refresh
-  if (trailerCache.has(cacheKey)) {
-    return trailerCache.get(cacheKey)!;
-  }
+export async function getMovieTrailer(id: string): Promise<string | null> {
+  const cacheKey = `${id}_smart_v3`;
+  if (trailerCache.has(cacheKey)) return trailerCache.get(cacheKey)!;
 
-  try {
-    const trailerKeys = await getMovieTrailers(id, originalLanguage);
-    const trailerKey = trailerKeys.length > 0 ? trailerKeys[0] : null;
-    trailerCache.set(cacheKey, trailerKey);
-    return trailerKey;
-  } catch (error) {
-    console.error(`[TMDB ERROR] Error fetching trailer for ${id}:`, error);
-    return null;
-  }
+  const trailers = await getMovieTrailers(id);
+  const result = trailers.length > 0 ? trailers[0] : null;
+  trailerCache.set(cacheKey, result);
+  return result;
 }
 
 /**
- * NEW: Extracts multiple trailer keys (YouTube) for fallback resilience.
- * Returns up to 5 keys, prioritized by:
- * 1. Language priority (IT/EN/Original)
- * 2. Type priority (Trailer > Teaser > Clip)
- * 3. Official status
+ * Smart Multi-Fetch: Returns up to 5 prioritized trailer keys.
  */
-export async function getMovieTrailers(id: string, originalLanguage: string = 'en'): Promise<string[]> {
-  const cacheKey = `${id}_${originalLanguage}_multi_strict_v2`; // Updated cache key to force refresh
-  if (trailersCache.has(cacheKey)) {
-    return trailersCache.get(cacheKey)!;
-  }
+export async function getMovieTrailers(id: string): Promise<string[]> {
+  const cacheKey = `${id}_smart_multi_v3`;
+  if (trailersCache.has(cacheKey)) return trailersCache.get(cacheKey)!;
 
   try {
-    const allVideos: any[] = [];
+    const multiLang = await getMultiLangVideos(id);
+    const allVideos = [...multiLang.it, ...multiLang.en];
 
-    // Determina la lingua primaria e secondaria
-    let primaryLang = 'en-US';
-    let secondaryLang: string | null = null;
-
-    if (originalLanguage === 'it') {
-      primaryLang = 'it-IT';
-      secondaryLang = 'en-US';
-    } else if (['ur', 'pa', 'sd'].includes(originalLanguage)) {
-      primaryLang = 'en-US';
-      secondaryLang = null;
-    } else if (originalLanguage !== 'en') {
-      // Per altri film, l'utente preferisce trailer in lingua originale se possibile, altrimenti EN
-      primaryLang = originalLanguage;
-      secondaryLang = 'en-US';
-    }
-
-    const langsToFetch = secondaryLang ? [primaryLang, secondaryLang] : [primaryLang];
-
-    // Fetch videos for each target language
-    for (const lang of langsToFetch) {
-      const url = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}&language=${lang}`;
-      const response = await fetch(url, { cache: 'no-store' }); // Reduced revalidate for immediate update
-      if (!response.ok) continue;
-      
-      const data = await response.json();
-      if (data.results && Array.isArray(data.results)) {
-        allVideos.push(...data.results.map((v: any) => ({ ...v, fetchLang: lang })));
-      }
-    }
-
-    // Fallback: search without language restriction
-    const fallbackUrl = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}`;
-    const fbResponse = await fetch(fallbackUrl, { cache: 'no-store' });
-    if (fbResponse.ok) {
-      const fbData = await fbResponse.json();
-      if (fbData.results) {
-        allVideos.push(...fbData.results.map((v: any) => ({ ...v, fetchLang: 'any' })));
-      }
-    }
-
-    // 1. FILTRO RIGOROSO: Solo YouTube, Chiave presente, ed ESCLUSIONE CATEGORICA di Featurette, Clip, etc.
-    const forbiddenTypes = ['Featurette', 'Behind the Scenes', 'Bloopers', 'Clip', 'Other'];
-    const candidates = allVideos.filter(v => 
-      v.site === 'YouTube' && 
-      v.key && 
-      !forbiddenTypes.includes(v.type) &&
-      (v.type === 'Trailer' || v.type === 'Teaser')
-    );
-
-    // Se non abbiamo Trailer o Teaser, restituiamo vuoto (null) come richiesto
-    if (candidates.length === 0) {
-      trailersCache.set(cacheKey, []);
-      return [];
-    }
-
-    // 2. SCORING SYSTEM (Strict Trailer Priority)
-    const scoredVideos = candidates.map(v => {
+    // Score and Sort by priority
+    const scored = allVideos.map(v => {
       let score = 0;
-      
-      // PRIORITÀ 1: Tipo (Trailer >> Teaser)
-      if (v.type === 'Trailer') score += 5000;
-      else if (v.type === 'Teaser') score += 1000;
-      
-      // PRIORITÀ 2: Official
-      if (v.official === true) score += 2000;
-      
-      // PRIORITÀ 3: Lingua
-      if (v.fetchLang === primaryLang) score += 500;
-      else if (v.fetchLang === secondaryLang) score += 250;
-      else if (v.fetchLang === 'any') score += 100;
-      
-      // Bonus per qualità (se presente nel nome, es. "Official Trailer", "4K")
-      const name = v.name.toLowerCase();
-      if (name.includes('official')) score += 100;
-      if (name.includes('trailer') && !name.includes('teaser')) score += 50;
+      // Priority 1: Type (Trailer > Teaser)
+      if (v.type === 'Trailer') score += 1000;
+      else if (v.type === 'Teaser') score += 500;
 
-      return { key: v.key, score, type: v.type };
-    });
+      // Priority 2: Official
+      if (v.official) score += 300;
 
-    // 3. SEPARAZIONE E ORDINE: Prima tutti i Trailer, poi i Teaser (se nessun Trailer esiste)
-    const trailers = scoredVideos.filter(v => v.type === 'Trailer').sort((a, b) => b.score - a.score);
-    const teasers = scoredVideos.filter(v => v.type === 'Teaser').sort((a, b) => b.score - a.score);
+      // Priority 3: Language (IT > EN)
+      if (v.iso_639_1 === 'it') score += 100;
 
-    // Se abbiamo dei Trailer, prendiamo solo quelli (scartando i Teaser)
-    // Se non abbiamo Trailer, prendiamo i Teaser come fallback.
-    const sortedVideos = trailers.length > 0 ? trailers : teasers;
+      return { ...v, score };
+    }).sort((a, b) => b.score - a.score);
 
-    // Remove duplicates and take top 5
-    const finalKeys = Array.from(new Set(
-      sortedVideos.map(v => v.key)
-    )).slice(0, 5);
-
-    trailersCache.set(cacheKey, finalKeys);
-    return finalKeys;
+    const result = Array.from(new Set(scored.map(v => v.key))).slice(0, 5);
+    trailersCache.set(cacheKey, result);
+    return result;
   } catch (error) {
-    console.error(`[TMDB ERROR] Error fetching multiple trailers for ${id}:`, error);
+    console.error(`[TMDB ERROR] Smart fetch failed for ${id}:`, error);
     return [];
   }
 }
@@ -400,6 +321,25 @@ export function getMovieLogo(details: MovieDetails): string | null {
 export function getTMDBImageUrl(path: string | null | undefined, size: string = 'w500'): string | undefined {
   if (!path) return undefined;
   return `https://image.tmdb.org/t/p/${size}${path}`;
+}
+
+/**
+ * Fetches all images (posters and backdrops) for a movie from TMDB.
+ */
+export async function getMovieImages(id: string): Promise<{ posters: any[], backdrops: any[] }> {
+  try {
+    const url = `${TMDB_BASE_URL}/movie/${id}/images?api_key=${TMDB_API_KEY}`;
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) return { posters: [], backdrops: [] };
+    const data = await response.json();
+    return {
+      posters: data.posters || [],
+      backdrops: data.backdrops || []
+    };
+  } catch (error) {
+    console.error(`Error fetching images for movie ${id}:`, error);
+    return { posters: [], backdrops: [] };
+  }
 }
 
 
@@ -597,7 +537,7 @@ export async function getOMDbRating(imdbId: string): Promise<string | null> {
   const OMDB_API_KEY = '962dd713';
   try {
     const url = `http://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`;
-    const response = await fetch(url, { cache: 'no-store' });
+    const response = await fetch(url, { next: { revalidate: 86400 } });
     if (!response.ok) return null;
     
     const data = await response.json();
@@ -681,4 +621,97 @@ export async function getEnhancedRating(details: MovieDetails): Promise<string> 
   console.log(`✅ Rating finale: ${currentRating}`);
   console.log(`==================================================\n`);
   return currentRating;
+}
+
+/**
+ * Unified function to get fully enriched movie metadata.
+ * Uses a persistent cache to avoid repeated heavy API calls.
+ */
+export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
+  // 1. Try to get from persistent cache
+  const cached = getMovieMetadata(tmdbId);
+  if (cached) {
+    // If cache is very old (e.g., > 30 days), we might want to refresh, 
+    // but for now let's keep it until manual removal to maximize speed.
+    return cached;
+  }
+
+  console.log(`[METADATA SYNC] 🚀 Syncing full metadata for TMDB ID: ${tmdbId}`);
+
+  // 2. Fetch basic details (this uses its own internal cache for the raw response)
+  const details = await getMovieDetails(tmdbId);
+  if (!details) return null;
+
+  // 3. Process all heavy metadata in parallel
+  const [rating, trailerKeys, multiLangVideos] = await Promise.all([
+    getEnhancedRating(details),
+    getMovieTrailers(tmdbId),
+    getMultiLangVideos(tmdbId)
+  ]);
+
+  const director = getDirector(details);
+  const cast = getCast(details, 5);
+  const logo_path = getMovieLogo(details);
+  const trailerKey = trailerKeys[0] || null;
+
+  // 4. Advanced Backdrop Logic (HD filtering, deterministic selection)
+  let backdrop_path = details.backdrop_path;
+  if (details.images?.backdrops && details.images.backdrops.length > 0) {
+    const allBackdrops = details.images.backdrops;
+    const noLangBackdrops = allBackdrops.filter((b: any) => !b.iso_639_1);
+    const highQualityPool = (noLangBackdrops.length > 0 ? noLangBackdrops : allBackdrops)
+      .filter((b: any) => b.width >= 1920)
+      .sort((a: any, b: any) => (b.vote_average || 0) - (a.vote_average || 0) || (b.vote_count || 0) - (a.vote_count || 0));
+
+    const finalPool = highQualityPool.length > 0 ? highQualityPool : (noLangBackdrops.length > 0 ? noLangBackdrops : allBackdrops);
+    const backdropIndex = Number(tmdbId) % finalPool.length;
+    backdrop_path = finalPool[backdropIndex].file_path;
+  }
+
+  // 5. Construct the final object
+  const enriched = {
+    id: details.id,
+    title: details.title,
+    overview: details.overview,
+    poster_path: details.poster_path,
+    backdrop_path: backdrop_path,
+    logo_path: logo_path,
+    release_date: details.release_date,
+    director: director,
+    runtime: details.runtime,
+    cast: cast,
+    trailerKey: trailerKey,
+    trailerKeys: trailerKeys,
+    rating: rating,
+    original_language: details.original_language,
+    genres: details.genres,
+    tagline: details.tagline,
+    multiLangVideos: multiLangVideos
+  };
+
+  // 6. Save to persistent cache
+  saveMovieMetadata(tmdbId, enriched);
+
+  return enriched;
+}
+
+export async function getMultiLangVideos(id: string) {
+  const languages = ['it-IT', 'en-US', 'null'];
+  const results: { it: any[]; en: any[]; original: any[] } = { it: [], en: [], original: [] };
+
+  await Promise.all(languages.map(async (lang) => {
+    const url = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}${lang !== 'null' ? `&language=${lang}` : ''}`;
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (response.ok) {
+        const data = await response.json();
+        const filtered = (data.results || []).filter((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
+        if (lang === 'it-IT') results.it = filtered;
+        else if (lang === 'en-US') results.en = filtered;
+        else results.original = filtered;
+      }
+    } catch (e) {}
+  }));
+
+  return results;
 }

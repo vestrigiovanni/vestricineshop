@@ -35,9 +35,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
             </div>
           )}
 
-          {movie.versionLanguage === 'Lingua Originale' && (
-            <div className={styles.langBadge}>V.O.</div>
-          )}
+
           {movie.subtitles && movie.subtitles !== 'Nessuno' && movie.subtitles.includes('ITA') && (
             <div className={styles.langBadge}>SUB IT</div>
           )}

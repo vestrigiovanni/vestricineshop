@@ -30,6 +30,11 @@
   to { transform: translateY(0); opacity: 1; filter: blur(0); }
 }
 
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 .animateIn {
   animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
@@ -119,14 +124,18 @@
 .meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: 1.2rem;
   align-items: center;
   margin-bottom: 2rem;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
-  font-size: 0.9rem;
-  color: #FFFFFF;
-  letter-spacing: 0.02em;
-  font-weight: 500;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Massive readability boost */
+}
+
+.metaValue {
+  color: #ffffff;
 }
 
 .metaGroup {
@@ -137,17 +146,25 @@
 }
 
 .metaSeparator {
-  opacity: 0.4;
-  font-weight: 300;
-  color: #ffffff;
+  opacity: 0.2;
+  font-weight: 200;
+  margin: 0 0.2rem;
 }
 
 .metaLabel {
-  font-weight: 600;
-  opacity: 0.5;
-  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0.6;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  margin-right: 0.1rem;
+  margin-right: 0.2rem;
+  color: #ffffff;
+}
+
+.metaSeparator {
+  opacity: 0.4;
+  font-weight: 300;
+  color: #ffffff;
+  font-size: 0.9rem;
 }
 
 .versionBadge {
@@ -157,6 +174,9 @@
   padding: 0.15rem 0.5rem;
   border-radius: 2px;
   font-size: 0.7rem;
+  /* Reset gradient for badge */
+  -webkit-text-fill-color: #FFFFF0;
+  background: none;
 }
 
 .directorMeta {
@@ -395,6 +415,15 @@
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0,0,0,0.5);
   transition: all 0.3s ease;
+  background: #1a1c20;
+  background-image: linear-gradient(
+    90deg, 
+    #1a1c20 0%, 
+    #2a2c30 50%, 
+    #1a1c20 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
 }
 
 .cardWrapper.active .imageContainer {

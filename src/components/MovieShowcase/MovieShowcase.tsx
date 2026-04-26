@@ -46,24 +46,45 @@ export interface GroupedMovie {
 
 interface MovieShowcaseProps {
   movies: GroupedMovie[];
+  initialAvailability?: Record<number, boolean>;
 }
 
-export default function MovieShowcase({ movies: initialMovies }: MovieShowcaseProps) {
+export default function MovieShowcase({ movies: initialMovies, initialAvailability }: MovieShowcaseProps) {
   const { data: availabilityData } = useSWR('/api/availability', fetcher, {
     refreshInterval: 30000,
-    revalidateOnFocus: true
+    revalidateOnFocus: true,
+    fallbackData: initialAvailability
   });
+
+  const [activeMovieId, setActiveMovieId] = useState<number>(initialMovies[0]?.id || 0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [checkoutSubeventId, setCheckoutSubeventId] = useState<number | null>(null);
+  const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
+  const [isImmersiveMode, setIsImmersiveMode] = useState(false);
+  const [timerKey, setTimerKey] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+  
+  const { openTrailer } = useTrailer();
+  const { isAutoScrollEnabled, disableAutoScroll } = useAutoScroll();
 
   const liveMovies = useMemo(() => {
     if (!availabilityData) return initialMovies;
     
     return initialMovies.map(movie => {
-      const updatedSubevents = movie.subevents.map(se => ({
-        ...se,
-        isSoldOut: availabilityData[se.id] ?? se.isSoldOut
-      }));
+      const updatedSubevents = movie.subevents.map(se => {
+        // Robust lookup: check number and string keys
+        const liveIsSoldOut = availabilityData[se.id] === true || availabilityData[se.id.toString()] === true;
+        
+        return {
+          ...se,
+          // Use logical OR: if it was already Sold Out in initial data (from DB), keep it.
+          // Otherwise, use the live data from the API.
+          isSoldOut: se.isSoldOut || liveIsSoldOut
+        };
+      });
       
-      const allSubeventsSoldOut = updatedSubevents.every(se => se.isSoldOut === true);
+      const allSubeventsSoldOut = updatedSubevents.length > 0 && updatedSubevents.every(se => se.isSoldOut === true);
       
       return {
         ...movie,
@@ -83,33 +104,27 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
     return Math.min(...dates);
   };
 
-  const [activeMovieId, setActiveMovieId] = useState<number>(initialMovies[0]?.id || 0);
 
   // --- Dynamic Sorting Logic (Live) ---
   // This sort includes availability data and is used for rendering the actual list and gallery.
   const sortedMovies = useMemo(() => {
+    // CRITICAL: During hydration, we MUST render EXACTLY what the server did.
+    // The server uses the order of initialMovies.
+    if (!isHydrated || !availabilityData) return initialMovies;
+
     return [...liveMovies].sort((a, b) => {
       if (!a.isSoldOut && b.isSoldOut) return -1;
       if (a.isSoldOut && !b.isSoldOut) return 1;
       return getMovieSortDate(a) - getMovieSortDate(b);
     });
-  }, [liveMovies]);
+  }, [liveMovies, availabilityData, isHydrated, initialMovies]);
 
-
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [checkoutSubeventId, setCheckoutSubeventId] = useState<number | null>(null);
-  const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
-  const [isImmersiveMode, setIsImmersiveMode] = useState(false);
-  const [timerKey, setTimerKey] = useState(0);
-  const [isMounted, setIsMounted] = useState(false);
-  
-  const { openTrailer } = useTrailer();
 
   useEffect(() => {
     setIsMounted(true);
+    setIsHydrated(true);
   }, []);
 
-  const { isAutoScrollEnabled, disableAutoScroll } = useAutoScroll();
 
   // Filter movies that are NOT sold out for auto-scroll logic, preserving sorted order
   const availableMovies = useMemo(() => sortedMovies.filter(m => !m.isSoldOut), [sortedMovies]);
@@ -186,6 +201,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
             className={isImmersiveMode ? `${styles.heroImage} ${styles.uiHidden}` : styles.heroImage}
             sizes="100vw"
             priority
+            suppressHydrationWarning
           />
           <CustomVideoPlayer 
             videoId={activeMovie.trailerKey || null} 
@@ -217,39 +233,35 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
             <h1 className={styles.title}>{activeMovie.title}</h1>
           )}
           <div className={styles.meta}>
-            <span>{isMounted ? (new Date(activeMovie.release_date).getFullYear() || 'N/D') : ''}</span>
+            <span className={styles.metaValue} suppressHydrationWarning>
+              {isMounted ? (new Date(activeMovie.release_date).getFullYear() || 'N/D') : ''}
+            </span>
             {activeMovie.runtime && (
               <div className={styles.metaGroup}>
-                <span className={styles.metaSeparator}>|</span>
+                <span className={styles.metaSeparator}>•</span>
                 <span className={styles.metaLabel}>DURATA:</span>
-                <span>{activeMovie.runtime} MIN</span>
+                <span className={styles.metaValue}>{activeMovie.runtime} MIN</span>
               </div>
             )}
             {activeMovie.rating && (
               <div className={styles.metaGroup}>
-                <span className={styles.metaSeparator}>|</span>
-                <span className={styles.metaLabel}>RATING:</span>
-                <RatingBadge rating={activeMovie.rating} size="sm" />
+                <span className={styles.metaSeparator}>•</span>
+                <RatingBadge rating={activeMovie.rating} size="md" />
               </div>
             )}
-            {activeMovie.versionLanguage && (
-              <div className={styles.metaGroup}>
-                <span className={styles.metaSeparator}>|</span>
-                <span className={styles.versionBadge}>{activeMovie.versionLanguage.toUpperCase()}</span>
-              </div>
-            )}
+
             {activeMovie.subtitles && activeMovie.subtitles !== 'Nessuno' && (
               <div className={styles.metaGroup}>
-                <span className={styles.metaSeparator}>|</span>
+                <span className={styles.metaSeparator}>•</span>
                 <span className={styles.versionBadge}>{activeMovie.subtitles.toUpperCase()}</span>
               </div>
             )}
             {activeMovie.director && (
               <div className={styles.directorMeta}>
-                <span className={styles.metaSeparator}>|</span>
+                <span className={styles.metaSeparator}>•</span>
                 <div className={styles.metaGroup}>
                   <span className={styles.metaLabel}>REGIA:</span>
-                  {activeMovie.director.toUpperCase()}
+                  <span className={styles.metaValue}>{activeMovie.director.toUpperCase()}</span>
                   {isMounted && activeMovie.trailerKey && (
                     <button 
                       className={styles.trailerBtn} 
@@ -340,7 +352,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
       <div className={styles.galleryList}>
         <h2 className={styles.galleryTitle}>In Programmazione</h2>
         <div className={styles.galleryScroll}>
-          {sortedMovies.map((movie) => (
+          {sortedMovies.map((movie, index) => (
             <div 
               key={movie.id} 
               className={[
@@ -353,12 +365,14 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
               <div className={styles.imageContainer}>
                 {movie.poster_path ? (
                   <Image 
-                    src={getTMDBImageUrl(movie.poster_path, 'w500')!} 
+                    src={getTMDBImageUrl(movie.poster_path, 'w342')!} 
                     alt={movie.title}
                     fill
                     sizes="(max-width: 768px) 140px, 200px"
                     style={{ objectFit: 'cover' }}
                     className={styles.cardImage}
+                    priority={isHydrated && index < 2}
+                    suppressHydrationWarning
                   />
                 ) : (
                   <div style={{ padding: '1rem', background: '#333', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
@@ -370,9 +384,7 @@ export default function MovieShowcase({ movies: initialMovies }: MovieShowcasePr
                     <span>SOLD OUT</span>
                   </div>
                 )}
-                {movie.versionLanguage === 'Lingua Originale' && (
-                  <div className={styles.langBadge}>V.O.</div>
-                )}
+
                 {movie.subtitles && movie.subtitles !== 'Nessuno' && movie.subtitles.includes('ITA') && (
                   <div className={styles.langBadge}>SUB IT</div>
                 )}

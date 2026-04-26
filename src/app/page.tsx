@@ -1,66 +1,29 @@
-import { getMovieDetails, getCast, getMovieTrailer, getMovieTrailers, searchMovies, getItalianRating, getEnhancedRating } from '@/services/tmdb';
-import { listSubEvents, listQuotas, getSeatingPlansMap, limitConcurrency } from '@/services/pretix';
+import { getEnrichedMovieMetadata, searchMovies } from '@/services/tmdb';
+import { listSubEvents, getSeatingPlansMap } from '@/services/pretix';
 import { adminGetOverrides } from '@/actions/adminActions';
-import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
+import { saveOverride } from '@/services/db.service';
+import { getAvailabilityMap } from '@/services/availability.service';
 import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '@/components/WeeklyCinemaCalendar/WeeklyCinemaCalendar';
+import { extractYouTubeId } from '@/utils/youtubeUtils';
+import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import styles from './page.module.css';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 60;
 
 export default async function Home() {
-  // Step 1: Get all future sub-events and seating plans
-  const [rawSubEvents, roomsMap, overrides] = await Promise.all([
+  // Step 1: Get all future sub-events, rooms, overrides AND availability
+  const [rawSubEvents, roomsMap, overrides, availabilityMap] = await Promise.all([
     listSubEvents(true),
     getSeatingPlansMap(),
     adminGetOverrides(),
+    getAvailabilityMap()
   ]);
 
-  // Step 2: For each sub-event, fetch its specific quotas in parallel with concurrency limit.
-  // This prevents 429 errors when many sub-events are present.
-  const quotaResults = await limitConcurrency(
-    rawSubEvents.map(se => () => listQuotas(se.id)),
-    5 // Slightly higher limit for homepage if only fetching one type of data
-  );
-
-  // Step 3: Build a Map of subeventId -> quotas for fast lookup
-  const quotasBySubevent = new Map<number, any[]>();
-  rawSubEvents.forEach((se, index) => {
-    quotasBySubevent.set(se.id, quotaResults[index]);
-  });
-  // Step 4: Calculate isSoldOut and map roomName for EVERY subevent
+  // Step 2: Calculate isSoldOut and map roomName for EVERY subevent
   const subEvents = rawSubEvents.map(se => {
-    const seQuotas = quotasBySubevent.get(se.id) || [];
-
-    let isSoldOut = false;
-    let totalAvailable = 0;
-
-    if (!seQuotas || seQuotas.length === 0) {
-      // FAIL-SAFE: Se non ci sono dati sulle quote o l'API fallisce, la variabile isSoldOut deve essere sempre FALSE.
-      isSoldOut = false;
-    } else {
-      const relevantQuotas = seQuotas.filter((q: any) =>
-        Array.isArray(q.items) && q.items.some((id: any) =>
-          String(id) === String(ITEM_INTERO_ID) || String(id) === String(ITEM_VIP_ID)
-        )
-      );
-
-      const hasUnlimited = relevantQuotas.some((q: any) => q.available_number === null);
-
-      if (relevantQuotas.length === 0 || hasUnlimited) {
-        // FAIL-SAFE: Se non troviamo quote specifiche o sono illimitate, consideriamo disponibile.
-        isSoldOut = false;
-      } else {
-        totalAvailable = relevantQuotas.reduce((acc: number, q: any) => acc + (Number(q.available_number) || 0), 0);
-        isSoldOut = totalAvailable === 0; // Solo se la somma totale è zero è davvero esaurito
-      }
-    }
-
-    // Manual presale override
-    if (se.active && se.presale_is_running === false) {
-      isSoldOut = true;
-    }
+    // Check if it's sold out in the map (or fallback to se.best_availability_state)
+    const isSoldOut = availabilityMap[se.id] ?? (se.best_availability_state === 'sold_out');
 
     // --- Dynamic Room Name ---
     const roomName = se.seating_plan ? (roomsMap[se.seating_plan] || 'Sala') : 'Sala';
@@ -73,14 +36,14 @@ export default async function Home() {
     };
   });
 
-  // Group subevents by TMDB ID
-  const groupedRecord: Record<string, { tmdbMovie: any, subevents: any[] }> = {};
+  // Step 5: Resolve TMDB IDs and fetch metadata in PARALLEL
+  // This is the key to speeding up the first load.
+  const tmdbIdMap = new Map<number, string | null>();
+  const titlesToSearch = new Set<string>();
+  const seToTitle = new Map<number, string>();
 
-  const now = new Date();
-  const CUTOFF_MINUTES = 2;
-
-  for (const se of subEvents) {
-    // ── TMDB ID Resolution ───────────────────────────────────
+  // A. Initial pass: resolve from comments or prepare for search
+  subEvents.forEach(se => {
     let tmdbId = null;
     if (se.comment) {
       try {
@@ -92,145 +55,134 @@ export default async function Home() {
       }
     }
 
-    if (!tmdbId && se.name?.it) {
+    if (tmdbId) {
+      tmdbIdMap.set(se.id, tmdbId.toString());
+    } else if (se.name?.it) {
       const cleanTitle = se.name.it
         .replace(/\(.*?\)/g, "")
         .replace(/\[.*?\]/g, "")
         .replace(/Proiezione\s+\d+/gi, "")
         .replace(/ - /g, " ")
         .trim();
-        
-      const results = await searchMovies(cleanTitle);
-      if (results && results.length > 0) {
-        tmdbId = results[0].id.toString();
+      seToTitle.set(se.id, cleanTitle);
+      titlesToSearch.add(cleanTitle);
+    }
+  });
+
+  // B. Search missing titles in parallel
+  const searchResultsMap = new Map<string, string | null>();
+  await Promise.all(Array.from(titlesToSearch).map(async title => {
+    const results = await searchMovies(title, false); // Optimized: no enrichment during initial search
+    if (results && results.length > 0) {
+      searchResultsMap.set(title, results[0].id.toString());
+    }
+  }));
+
+  // C. Map searched IDs back to sub-events
+  subEvents.forEach(se => {
+    if (!tmdbIdMap.has(se.id)) {
+      const title = seToTitle.get(se.id);
+      if (title && searchResultsMap.has(title)) {
+        tmdbIdMap.set(se.id, searchResultsMap.get(title)!);
       }
     }
+  });
 
-    // ── Apply Calculated Rating to ALL subevents (for Calendar) ──
-    if (tmdbId) {
-      const override = overrides[tmdbId];
-      if (!groupedRecord[tmdbId]) {
-        const tmdbMovie = await getMovieDetails(tmdbId);
-        if (tmdbMovie) {
-          groupedRecord[tmdbId] = { tmdbMovie, subevents: [] };
-        }
-      }
-      
-      if (groupedRecord[tmdbId]) {
-        const calculatedRating = override?.customRating || await getEnhancedRating(groupedRecord[tmdbId].tmdbMovie);
-        se.calculatedRating = calculatedRating;
-      }
-      
-      if (override?.manualSoldOut) {
-        se.isSoldOut = true;
-      }
-      if (override?.customRoomName) {
-        se.roomName = override.customRoomName;
-      }
-    }
+  // D. Fetch all metadata in parallel
+  const uniqueTmdbIds = new Set(Array.from(tmdbIdMap.values()).filter(Boolean) as string[]);
+  const metadataMap = new Map<string, any>();
+  await Promise.all(Array.from(uniqueTmdbIds).map(async id => {
+    const meta = await getEnrichedMovieMetadata(id);
+    if (meta) metadataMap.set(id, meta);
+  }));
 
-    // ── Showcase Filtering ────────────────────────────────────
-    if (!se.active || se.isHidden) continue;
+  // Step 6: Final grouping and enrichment
+  const groupedRecord: Record<string, { tmdbMovie: any, subevents: any[] }> = {};
+  const now = new Date();
+  const CUTOFF_MINUTES = 2;
 
-    // EXTREMELY IMPORTANT: Only include sub-events that have an ASSIGNED seating plan.
-    if (se.seating_plan === null) {
-      console.log(`[Home] ⚠️ Skipping showcase entry for sub-event ${se.id} ("${se.name?.it}") - NO SEATING PLAN`);
-      continue;
-    }
-
-    // Filter out screenings starting in < 2 minutes (or already started)
-    const startTime = new Date(se.date_from);
-    if (startTime.getTime() - now.getTime() < CUTOFF_MINUTES * 60 * 1000) {
-      continue;
-    }
-
+  for (const se of subEvents) {
+    const tmdbId = tmdbIdMap.get(se.id);
     if (!tmdbId) continue;
 
-    if (groupedRecord[tmdbId]) {
-      const lingua = se.meta_data?.lingua || '';
-      const sottotitoli = se.meta_data?.sottotitoli || '';
-      const format = se.meta_data?.format || '';
+    const movieMetadata = metadataMap.get(tmdbId);
+    if (!movieMetadata) continue;
 
-      groupedRecord[tmdbId].subevents.push({
-        id: se.id,
-        date: se.date_from,
-        isSoldOut: se.isSoldOut,
-        language: lingua,
-        subtitles: sottotitoli,
-        format: format,
-        rating: se.calculatedRating
-      });
+    // Apply metadata and overrides
+    const override = overrides[tmdbId];
+    if (!groupedRecord[tmdbId]) {
+      groupedRecord[tmdbId] = { tmdbMovie: movieMetadata, subevents: [] };
     }
+
+    // Apply calculated rating
+    se.calculatedRating = override?.customRating || movieMetadata.rating;
+
+    // Manual overrides for sold out/room
+    if (override?.manualSoldOut) se.isSoldOut = true;
+    if (override?.customRoomName) se.roomName = override.customRoomName;
+
+    // Filtering for showcase
+    if (!se.active || se.isHidden) continue;
+    if (se.seating_plan === null) continue;
+
+    const startTime = new Date(se.date_from);
+    if (startTime.getTime() - now.getTime() < CUTOFF_MINUTES * 60 * 1000) continue;
+
+    const lingua = se.meta_data?.lingua || '';
+    const sottotitoli = se.meta_data?.sottotitoli || '';
+    const format = se.meta_data?.format || '';
+
+    groupedRecord[tmdbId].subevents.push({
+      id: se.id,
+      date: se.date_from,
+      isSoldOut: se.isSoldOut,
+      language: lingua,
+      subtitles: sottotitoli,
+      format: format,
+      rating: se.calculatedRating
+    });
   }
 
   // Use the now-enriched subEvents array for the calendar
   const enrichedSubEvents = subEvents;
 
   // Format the grouped movies array
-  const movies: GroupedMovie[] = await Promise.all(Object.values(groupedRecord).map(async (entry) => {
-    const director = entry.tmdbMovie.credits?.crew?.find((c: any) => c.job === 'Director')?.name || 'Sconosciuto';
+  const movies: GroupedMovie[] = Object.values(groupedRecord).map((entry) => {
+    const movie = entry.tmdbMovie;
 
     // Movie-level sold out: ALL future screenings are sold out
     const isSoldOut = entry.subevents.length > 0 && entry.subevents.every(se => se.isSoldOut === true);
 
-    // Extract best logo (Italian first, then English, then first available)
-    let logo_path = null;
-    if (entry.tmdbMovie.images?.logos && entry.tmdbMovie.images.logos.length > 0) {
-      const logos = entry.tmdbMovie.images.logos;
-      const itLogo = logos.find((l: any) => l.iso_639_1 === 'it');
-      const enLogo = logos.find((l: any) => l.iso_639_1 === 'en');
-      logo_path = itLogo?.file_path || enLogo?.file_path || logos[0]?.file_path || null;
+    const movieOverride = overrides[movie.id.toString()];
+
+    return {
+      id: movie.id,
+      title: movieOverride?.customTitle || movie.title,
+      overview: movieOverride?.customOverview || movie.overview,
+      poster_path: movieOverride?.customPosterPath || movie.poster_path,
+      backdrop_path: movieOverride?.customBackdropPath || movie.backdrop_path,
+      logo_path: movie.logo_path,
+      release_date: movie.release_date,
+      director: movieOverride?.customDirector?.join(', ') || movie.director,
+      runtime: movie.runtime,
+      subevents: entry.subevents,
+      isSoldOut: isSoldOut,
+      cast: movieOverride?.customCast || movie.cast,
+      trailerKey: movieOverride?.customTrailerUrl ? (extractYouTubeId(movieOverride.customTrailerUrl) || movie.trailerKey) : movie.trailerKey,
+      trailerKeys: movie.trailerKeys,
+      rating: movieOverride?.customRating || movie.rating,
+      versionLanguage: movieOverride?.versionLanguage || 'Lingua Originale',
+      subtitles: movieOverride?.subtitles || 'Nessuno',
+    };
+  }).map(movie => {
+    // AUTO-PERSISTENCE: If the movie is detected as SOLD OUT and not yet in overrides, save it
+    const tmdbIdStr = movie.id.toString();
+    if (movie.isSoldOut && !overrides[tmdbIdStr]?.manualSoldOut) {
+      console.log(`[AUTO-SOLD-OUT] Persisting Sold Out status for: ${movie.title}`);
+      saveOverride(tmdbIdStr, { manualSoldOut: true });
     }
-
-    const trailerKeys = await getMovieTrailers(String(entry.tmdbMovie.id), entry.tmdbMovie.original_language);
-    const trailerKey = trailerKeys[0] || null;
-
-    // Extract a consistent, high-quality "no language" backdrop (still)
-    let backdrop_path = entry.tmdbMovie.backdrop_path;
-    if (entry.tmdbMovie.images?.backdrops && entry.tmdbMovie.images.backdrops.length > 0) {
-      const allBackdrops = entry.tmdbMovie.images.backdrops;
-      // 1. Filter for "no language" (language-agnostic)
-      const noLangBackdrops = allBackdrops.filter((b: any) => !b.iso_639_1);
-      
-      // 2. Filter for high quality (HD+) and sort by rating
-      const highQualityPool = (noLangBackdrops.length > 0 ? noLangBackdrops : allBackdrops)
-        .filter((b: any) => b.width >= 1920)
-        .sort((a: any, b: any) => (b.vote_average || 0) - (a.vote_average || 0) || (b.vote_count || 0) - (a.vote_count || 0));
-
-      // 3. Fallback to basic pool if no HD found
-      const finalPool = highQualityPool.length > 0 ? highQualityPool : (noLangBackdrops.length > 0 ? noLangBackdrops : allBackdrops);
-      
-      // 4. Deterministic selection based on ID (no change on refresh)
-      const backdropIndex = Number(entry.tmdbMovie.id) % finalPool.length;
-      backdrop_path = finalPool[backdropIndex].file_path;
-    }
-
-    const finalRating = await getEnhancedRating(entry.tmdbMovie);
-    console.log(`[PAGE DEBUG] Movie: ${entry.tmdbMovie.title}, Final Rating: ${finalRating}`);
-
-      const movieOverride = overrides[entry.tmdbMovie.id.toString()];
-      const firstSubeventWithInfo = entry.subevents.find(se => se.language || se.subtitles);
-
-      return {
-        id: entry.tmdbMovie.id,
-        title: movieOverride?.customTitle || entry.tmdbMovie.title,
-        overview: movieOverride?.customOverview || entry.tmdbMovie.overview,
-        poster_path: movieOverride?.customPosterPath || entry.tmdbMovie.poster_path,
-        backdrop_path: backdrop_path,
-        logo_path: logo_path,
-        release_date: entry.tmdbMovie.release_date,
-        director: movieOverride?.customDirector?.join(', ') || director,
-        runtime: entry.tmdbMovie.runtime,
-        subevents: entry.subevents,
-        isSoldOut: isSoldOut,
-        cast: movieOverride?.customCast || getCast(entry.tmdbMovie, 5),
-        trailerKey: trailerKey,
-        trailerKeys: trailerKeys,
-        rating: movieOverride?.customRating || finalRating,
-        versionLanguage: movieOverride?.versionLanguage || firstSubeventWithInfo?.language || '',
-        subtitles: movieOverride?.subtitles || firstSubeventWithInfo?.subtitles || '',
-      };
-  }));
+    return movie;
+  });
   
   // --- Server-side Sorting ---
   // Ensure the movies are sorted by availability and next showtime before being sent to the client.
@@ -258,7 +210,10 @@ export default async function Home() {
 
   return (
     <main className={styles.main}>
-      <MovieShowcase movies={movies} />
+      <MovieShowcase 
+        movies={movies} 
+        initialAvailability={availabilityMap}
+      />
       <WeeklyCinemaCalendar subEvents={enrichedSubEvents} />
     </main>
   );

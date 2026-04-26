@@ -44,10 +44,13 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
 
   const subEvents = useMemo(() => {
     if (!availabilityData) return initialSubEvents;
-    return initialSubEvents.map(se => ({
-      ...se,
-      isSoldOut: availabilityData[se.id] ?? se.isSoldOut
-    }));
+    return initialSubEvents.map(se => {
+      const liveIsSoldOut = availabilityData[se.id] === true || availabilityData[se.id.toString()] === true;
+      return {
+        ...se,
+        isSoldOut: se.isSoldOut || liveIsSoldOut
+      };
+    });
   }, [initialSubEvents, availabilityData]);
 
   // Navigation state: start of the currently viewed week (Monday)

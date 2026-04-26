@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { adminGetOverrides, adminSaveOverride, adminDeleteOverride, adminGetProgrammedMovies, adminGetMovieById } from '@/actions/adminActions';
+import { adminGetOverrides, adminSaveOverride, adminDeleteOverride, adminGetProgrammedMovies, adminGetMovieById, adminClearMovieMetadata, adminSyncSoldOutStatus, adminSearchMovies } from '@/actions/adminActions';
 import { searchMovies, MovieItem, getTMDBImageUrl } from '@/services/tmdb';
 import Image from 'next/image';
-import { Save, Trash2, Search, Edit3, X, Info, Globe, Languages } from 'lucide-react';
+import { Save, Trash2, Search, Edit3, X, Info, Globe, Languages, Image as ImageIcon, RefreshCw, Play } from 'lucide-react';
 import styles from './MoviesControl.module.css';
+import ImagePickerModal from './ImagePickerModal';
+import TrailerPickerModal from './TrailerPickerModal';
+import { extractYouTubeId } from '@/utils/youtubeUtils';
 
 export default function MoviesControlPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,7 +20,7 @@ export default function MoviesControlPage() {
   const [formState, setFormState] = useState({
     customTitle: '',
     customOverview: '',
-    versionLanguage: 'Versione Italiana',
+    versionLanguage: 'Lingua Originale',
     subtitles: 'Nessuno',
     customPosterPath: '',
     customBackdropPath: '',
@@ -25,8 +28,14 @@ export default function MoviesControlPage() {
     customCast: '',
     customRoomName: '',
     customRating: '',
-    manualSoldOut: false
+    manualSoldOut: false,
+    customTrailerUrl: ''
   });
+  const [pickerState, setPickerState] = useState<{ isOpen: boolean; type: 'poster' | 'backdrop' | 'trailer' }>({
+    isOpen: false,
+    type: 'poster'
+  });
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     loadOverrides();
@@ -44,7 +53,7 @@ export default function MoviesControlPage() {
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setLoading(true);
-    const results = await searchMovies(searchQuery);
+    const results = await adminSearchMovies(searchQuery);
     setSearchResults(results);
     setLoading(false);
   };
@@ -55,15 +64,16 @@ export default function MoviesControlPage() {
     setFormState({
       customTitle: override.customTitle || movie.title,
       customOverview: override.customOverview || movie.overview,
-      versionLanguage: override.versionLanguage || 'Versione Italiana',
+      versionLanguage: override.versionLanguage || 'Lingua Originale',
       subtitles: override.subtitles || 'Nessuno',
       customPosterPath: override.customPosterPath || movie.poster_path || '',
       customBackdropPath: override.customBackdropPath || movie.backdrop_path || '',
-      customDirector: override.customDirector?.join(', ') || '',
-      customCast: override.customCast?.join(', ') || '',
-      customRoomName: override.customRoomName || '',
+      customDirector: override.customDirector?.join(', ') || movie.director || '',
+      customCast: override.customCast?.join(', ') || movie.cast?.join(', ') || '',
+      customRoomName: override.customRoomName || 'SALA CA GRANDA',
       customRating: override.customRating || movie.rating || '',
-      manualSoldOut: override.manualSoldOut || false
+      manualSoldOut: override.manualSoldOut || false,
+      customTrailerUrl: override.customTrailerUrl || movie.trailerKey || ''
     });
   };
 
@@ -103,6 +113,51 @@ export default function MoviesControlPage() {
     setLoading(false);
   };
 
+  const openPicker = (type: 'poster' | 'backdrop') => {
+    if (!editingMovie) return;
+    setPickerState({ isOpen: true, type });
+  };
+
+  const handleRefreshMetadata = async () => {
+    if (!editingMovie) return;
+    if (!confirm('Vuoi ricaricare i metadati da TMDB? Questo cancellerà la cache locale per questo film.')) return;
+    setLoading(true);
+    await adminClearMovieMetadata(editingMovie.id.toString());
+    // After clearing, we fetch again to rebuild cache
+    const freshMovie = await adminGetMovieById(editingMovie.id.toString());
+    if (freshMovie) {
+      setEditingMovie(freshMovie);
+      // We don't overwrite the form state automatically to avoid losing unsaved manual overrides
+      // but the cache is now fresh for the next page load.
+    }
+    setLoading(false);
+    alert('Metadata resettati con successo. Al prossimo caricamento pagina verranno ricalcolati.');
+  };
+
+  const handleImageSelect = (path: string) => {
+    if (pickerState.type === 'poster') {
+      setFormState({ ...formState, customPosterPath: path });
+    } else if (pickerState.type === 'backdrop') {
+      setFormState({ ...formState, customBackdropPath: path });
+    } else if (pickerState.type === 'trailer') {
+      setFormState({ ...formState, customTrailerUrl: path });
+    }
+  };
+
+  const handleSyncSoldOut = async () => {
+    if (!confirm('Vuoi controllare tutte le quote su Pretix e aggiornare gli stati Sold Out nel database? Questa operazione potrebbe richiedere alcuni secondi.')) return;
+    setSyncing(true);
+    try {
+      await adminSyncSoldOutStatus();
+      await loadOverrides();
+      alert('Sincronizzazione completata con successo!');
+    } catch (e) {
+      alert('Errore durante la sincronizzazione');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -110,6 +165,15 @@ export default function MoviesControlPage() {
           <h1 className={styles.title}>Torre di Controllo: Movie Overrides</h1>
           <p className={styles.subtitle}>Gestisci i metadati, la lingua e le versioni dei film indipendentemente da TMDB.</p>
         </div>
+        <button 
+          onClick={handleSyncSoldOut} 
+          className={styles.btnSync} 
+          disabled={syncing}
+          title="Controlla disponibilità quote su Pretix"
+        >
+          <RefreshCw size={18} className={syncing ? styles.spin : ''} />
+          {syncing ? 'Sincronizzazione...' : 'Sincronizza Sold Out'}
+        </button>
       </header>
 
       <div className={styles.mainGrid}>
@@ -200,7 +264,12 @@ export default function MoviesControlPage() {
             <section className={styles.editorSection}>
               <div className={styles.editorHeader}>
                 <h2>Editor Override</h2>
-                <button onClick={() => setEditingMovie(null)} className={styles.btnClose}><X size={20} /></button>
+                <div className={styles.editorHeaderActions}>
+                  <button onClick={handleRefreshMetadata} className={styles.btnRefresh} title="Reset Cache TMDB">
+                    <RefreshCw size={18} className={loading ? styles.spin : ''} />
+                  </button>
+                  <button onClick={() => setEditingMovie(null)} className={styles.btnClose}><X size={20} /></button>
+                </div>
               </div>
 
               <div className={styles.editorBody}>
@@ -222,7 +291,6 @@ export default function MoviesControlPage() {
                       onChange={(e) => setFormState({...formState, versionLanguage: e.target.value})}
                       className={styles.input}
                     >
-                      <option value="Versione Italiana">Versione Italiana</option>
                       <option value="Lingua Originale">Lingua Originale</option>
                       <option value="English Version">English Version</option>
                       <option value="Versione Originale">Versione Originale</option>
@@ -296,22 +364,64 @@ export default function MoviesControlPage() {
 
                 <div className={styles.formGroup}>
                   <label>Poster URL (Opzionale)</label>
-                  <input 
-                    type="text" 
-                    value={formState.customPosterPath} 
-                    onChange={(e) => setFormState({...formState, customPosterPath: e.target.value})}
-                    className={styles.input}
-                  />
+                  <div className={styles.inputWithAction}>
+                    <div className={styles.imagePreviewGroup}>
+                      {formState.customPosterPath && (
+                        <div className={styles.miniPosterPreview}>
+                          <img 
+                            src={formState.customPosterPath.startsWith('/') ? getTMDBImageUrl(formState.customPosterPath, 'w185')! : formState.customPosterPath} 
+                            alt="Poster Preview" 
+                          />
+                        </div>
+                      )}
+                      <input 
+                        type="text" 
+                        value={formState.customPosterPath} 
+                        onChange={(e) => setFormState({...formState, customPosterPath: e.target.value})}
+                        className={styles.input}
+                        placeholder="/path-to-poster.jpg"
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      className={styles.btnAction} 
+                      onClick={() => setPickerState({ isOpen: true, type: 'poster' })}
+                      title="Scegli da TMDB"
+                    >
+                      <ImageIcon size={18} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className={styles.formGroup}>
                   <label>Backdrop URL (Opzionale)</label>
-                  <input 
-                    type="text" 
-                    value={formState.customBackdropPath} 
-                    onChange={(e) => setFormState({...formState, customBackdropPath: e.target.value})}
-                    className={styles.input}
-                  />
+                  <div className={styles.inputWithAction}>
+                    <div className={styles.imagePreviewGroup}>
+                      {formState.customBackdropPath && (
+                        <div className={styles.miniBackdropPreview}>
+                          <img 
+                            src={formState.customBackdropPath.startsWith('/') ? getTMDBImageUrl(formState.customBackdropPath, 'w300')! : formState.customBackdropPath} 
+                            alt="Backdrop Preview" 
+                          />
+                        </div>
+                      )}
+                      <input 
+                        type="text" 
+                        value={formState.customBackdropPath} 
+                        onChange={(e) => setFormState({...formState, customBackdropPath: e.target.value})}
+                        className={styles.input}
+                        placeholder="/path-to-backdrop.jpg"
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      className={styles.btnAction} 
+                      onClick={() => setPickerState({ isOpen: true, type: 'backdrop' })}
+                      title="Scegli da TMDB"
+                    >
+                      <ImageIcon size={18} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className={styles.formGroup} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '15px', padding: '10px', background: '#ffebee', borderRadius: '8px' }}>
@@ -323,6 +433,38 @@ export default function MoviesControlPage() {
                     style={{ width: '20px', height: '20px', accentColor: '#d32f2f' }}
                   />
                   <label htmlFor="manualSoldOut" style={{ color: '#d32f2f', fontWeight: 'bold', margin: 0, cursor: 'pointer' }}>Forza Sold Out (Kill-Switch)</label>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label><Play size={14} /> YouTube Trailer URL (Override)</label>
+                  <div className={styles.inputWithAction}>
+                    <div className={styles.trailerPreviewGroup}>
+                      {formState.customTrailerUrl && (
+                        <div className={styles.trailerMiniThumb}>
+                          <img 
+                            src={`https://img.youtube.com/vi/${extractYouTubeId(formState.customTrailerUrl)}/mqdefault.jpg`} 
+                            alt="Preview" 
+                          />
+                          <div className={styles.playOverlay}><Play size={12} fill="white" /></div>
+                        </div>
+                      )}
+                      <input 
+                        type="text" 
+                        value={formState.customTrailerUrl} 
+                        onChange={(e) => setFormState({...formState, customTrailerUrl: e.target.value})}
+                        className={styles.input}
+                        placeholder="https://www.youtube.com/watch?v=..."
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      className={styles.btnAction} 
+                      onClick={() => setPickerState({ isOpen: true, type: 'trailer' })}
+                      title="Scegli Trailer da TMDB"
+                    >
+                      <Play size={18} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className={styles.formGroup} style={{ marginTop: '15px' }}>
@@ -349,6 +491,24 @@ export default function MoviesControlPage() {
           )}
         </div>
       </div>
+
+      {pickerState.isOpen && editingMovie && pickerState.type !== 'trailer' && (
+        <ImagePickerModal 
+          movieId={editingMovie.id.toString()}
+          type={pickerState.type as any}
+          onSelect={handleImageSelect}
+          onClose={() => setPickerState({ ...pickerState, isOpen: false })}
+        />
+      )}
+
+      {pickerState.isOpen && editingMovie && pickerState.type === 'trailer' && (
+        <TrailerPickerModal 
+          multiLangVideos={editingMovie.multiLangVideos || { it: [], en: [] }}
+          onSelect={handleImageSelect}
+          onClose={() => setPickerState({ ...pickerState, isOpen: false })}
+          currentKey={extractYouTubeId(formState.customTrailerUrl) || undefined}
+        />
+      )}
     </div>
   );
 }

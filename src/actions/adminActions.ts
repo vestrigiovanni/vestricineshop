@@ -1,7 +1,7 @@
 'use server';
 
 import fs from 'fs';
-import { searchMovies, getMovieDetails, getDirector, getCast, getMovieLogo, getItalianRating, getEnhancedRating } from '@/services/tmdb';
+import { searchMovies, getMovieDetails, getDirector, getCast, getMovieLogo, getItalianRating, getEnhancedRating, getEnrichedMovieMetadata } from '@/services/tmdb';
 import {
   createSubEvent,
   deleteSubEvent,
@@ -19,12 +19,14 @@ import {
   updateSeatingPlan,
   createSeatingPlan,
   clearPretixCache,
-  listSeatingPlans
+  listSeatingPlans,
+  syncSoldOutStatus
 } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID, SEATING_PLANS_CACHE_FILE } from '@/constants/pretix';
 import { revalidatePath } from 'next/cache';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
 import { calculatePretixDateTime } from '@/utils/dateUtils';
+import { deleteMovieMetadata } from '@/services/db.service';
 
 // Admin logic for Pretix management
 
@@ -185,7 +187,7 @@ export async function adminSearchMovies(query: string) {
 }
 
 export async function adminGetMovieById(id: string) {
-  return await getMovieDetails(id);
+  return await getEnrichedMovieMetadata(id);
 }
 
 export async function adminListEvents() {
@@ -820,6 +822,13 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
   return { preSuggestion, postSuggestion, runtime };
 }
 
+export async function adminClearMovieMetadata(tmdbId: string) {
+  deleteMovieMetadata(tmdbId);
+  revalidatePath('/');
+  revalidatePath('/admin');
+  return { success: true };
+}
+
 /**
  * Get all future empty projections (0 tickets sold)
  */
@@ -1122,7 +1131,6 @@ export async function adminDeleteOverride(tmdbId: string) {
  */
 export async function adminGetProgrammedMovies() {
   const { listSubEvents } = await import('@/services/pretix');
-  const { getMovieDetails } = await import('@/services/tmdb');
   
   const subEvents = await listSubEvents(true); // Get future events
   const uniqueMovies: Record<string, { tmdbId: string; title: string; lastDate: string }> = {};
@@ -1153,4 +1161,17 @@ export async function adminGetProgrammedMovies() {
   );
 
   return sorted;
+}
+
+export async function adminSyncSoldOutStatus() {
+  const { syncSoldOutStatus } = await import('@/services/pretix');
+  try {
+    await syncSoldOutStatus();
+    revalidatePath('/');
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error) {
+    console.error('Error in adminSyncSoldOutStatus:', error);
+    throw error;
+  }
 }

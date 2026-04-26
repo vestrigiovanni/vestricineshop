@@ -1,6 +1,7 @@
 'use server';
 
 import { ITEM_INTERO_ID, ITEM_VIP_ID, ALLOWED_ROOM_IDS } from '@/constants/pretix';
+import { saveOverride, getOverrides } from './db.service';
 
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { calculatePretixDateTime } from '@/utils/dateUtils';
@@ -73,16 +74,61 @@ function apiQueueRelease() {
   }
 }
 
-// File-based cache for GET requests
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// File-based cache for GET requests with In-Memory Singleton to avoid redundant Disk I/O
+const CACHE_TTL = 60 * 1000; // 60 seconds
+const CACHE_PATH = path.join(process.cwd(), 'data', 'pretix_cache.json');
+let _inMemoryCache: any = null;
+
+function getCache() {
+  if (_inMemoryCache) return _inMemoryCache;
+  try {
+    if (!fs.existsSync(CACHE_PATH)) {
+      _inMemoryCache = {};
+      return _inMemoryCache;
+    }
+    
+    // Protection: If cache file is too large (> 10MB), clear it to restore performance
+    const stats = fs.statSync(CACHE_PATH);
+    if (stats.size > 10 * 1024 * 1024) {
+      console.warn(`[Pretix Cache] Cache file too large (${(stats.size / 1024 / 1024).toFixed(2)}MB). Resetting...`);
+      _inMemoryCache = {};
+      return _inMemoryCache;
+    }
+
+    const data = fs.readFileSync(CACHE_PATH, 'utf8');
+    _inMemoryCache = JSON.parse(data);
+    return _inMemoryCache;
+  } catch (e) {
+    _inMemoryCache = {};
+    return _inMemoryCache;
+  }
+}
+
+function saveCache() {
+  if (!_inMemoryCache) return;
+  try {
+    const dataDir = path.join(process.cwd(), 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+    
+    // Simple Pruning: Remove entries older than 2x TTL to keep file size manageable
+    const now = Date.now();
+    let changed = false;
+    for (const key in _inMemoryCache) {
+      if (now - _inMemoryCache[key].timestamp > CACHE_TTL * 3) {
+        delete _inMemoryCache[key];
+        changed = true;
+      }
+    }
+
+    fs.writeFileSync(CACHE_PATH, JSON.stringify(_inMemoryCache, null, 2), 'utf8');
+  } catch (e) {
+    console.error('[Pretix Cache] Save failed:', e);
+  }
+}
 
 function getCachedData(endpoint: string) {
   try {
-    const fs = require('fs');
-    const path = require('path');
-    const cachePath = path.join(process.cwd(), 'data', 'pretix_cache.json');
-    if (!fs.existsSync(cachePath)) return null;
-    const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+    const cache = getCache();
     const cached = cache[endpoint];
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return cached.data;
@@ -93,15 +139,9 @@ function getCachedData(endpoint: string) {
 
 function setCachedData(endpoint: string, data: any) {
   try {
-    const fs = require('fs');
-    const path = require('path');
-    const cachePath = path.join(process.cwd(), 'data', 'pretix_cache.json');
-    let cache: any = {};
-    if (fs.existsSync(cachePath)) {
-      cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-    }
+    const cache = getCache();
     cache[endpoint] = { data, timestamp: Date.now() };
-    fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2), 'utf8');
+    saveCache();
   } catch (e) {}
 }
 
@@ -744,6 +784,11 @@ export async function finalizeBooking(email: string, seats: string[], subeventId
       body: JSON.stringify(orderPayload)
     });
 
+    // --- NEW: Post-booking sync ---
+    // We don't await this to avoid delaying the user's confirmation page,
+    // but we start it immediately.
+    syncSoldOutStatus().catch(err => console.error('[SYNC] Background error:', err));
+
     return data;
   } catch (error) {
     console.error('Failed to finalize booking', error);
@@ -1056,4 +1101,83 @@ export async function getSubEventSeats(subeventId: number) {
  */
 export async function checkQuota() {
   return await listQuotas();
+}
+
+/**
+ * Post-booking availability sync logic.
+ */
+export async function syncSoldOutStatus() {
+  try {
+    console.log('[SYNC] Starting post-booking availability sync...');
+    
+    // 1. Get current availability
+    // We use the already defined listSubEvents and listQuotas functions
+    const rawSubEvents = await listSubEvents(true);
+    const allQuotas = await listQuotas();
+    const overrides = getOverrides();
+
+    const availabilityMap: Record<number, boolean> = {};
+    const quotasBySubevent = new Map<number, any[]>();
+    allQuotas.forEach((q: any) => {
+      if (q.subevent) {
+        if (!quotasBySubevent.has(q.subevent)) quotasBySubevent.set(q.subevent, []);
+        quotasBySubevent.get(q.subevent)!.push(q);
+      }
+    });
+
+    rawSubEvents.forEach(se => {
+      const seQuotas = quotasBySubevent.get(se.id) || [];
+
+      // Logic: Quotas (PRIMARY)
+      let quotaSoldOut = false;
+      const relevantQuotas = seQuotas.filter((q: any) => 
+        Array.isArray(q.items) && (q.items.includes(ITEM_INTERO_ID) || q.items.includes(ITEM_VIP_ID))
+      );
+
+      if (relevantQuotas.length > 0) {
+        const totalQuotaAvailable = relevantQuotas.reduce((sum: number, q: any) => {
+          return sum + (q.available_number !== null ? Math.max(0, q.available_number) : 0);
+        }, 0);
+        const allQuotasUnavailable = relevantQuotas.every((q: any) => q.available === false);
+        if (allQuotasUnavailable || totalQuotaAvailable <= 0) {
+          quotaSoldOut = true;
+        }
+      }
+
+      // Overall State
+      const stateSoldOut = se.best_availability_state === 'sold_out' || (se.active && se.presale_is_running === false);
+
+      availabilityMap[se.id] = !!(stateSoldOut || quotaSoldOut);
+    });
+
+    // 2. Group by movie
+    const movieStatus = new Map<string, { title: string, subevents: any[] }>();
+    rawSubEvents.forEach(se => {
+      let tmdbId = null;
+      if (se.comment) {
+        try {
+          const commentData = JSON.parse(se.comment);
+          tmdbId = commentData.tmdbId?.toString();
+        } catch {
+          const match = se.comment.match(/TMDB_ID:(\d+)/);
+          tmdbId = match ? match[1] : null;
+        }
+      }
+      if (tmdbId) {
+        if (!movieStatus.has(tmdbId)) movieStatus.set(tmdbId, { title: se.name?.it || 'Film', subevents: [] });
+        movieStatus.get(tmdbId)!.subevents.push({ id: se.id, isSoldOut: availabilityMap[se.id] ?? false });
+      }
+    });
+
+    // 3. Persist
+    movieStatus.forEach((status, tmdbId) => {
+      const isCompletelySoldOut = status.subevents.length > 0 && status.subevents.every(se => se.isSoldOut);
+      if (isCompletelySoldOut && !overrides[tmdbId]?.manualSoldOut) {
+        console.log(`[SYNC] Movie "${status.title}" (TMDB: ${tmdbId}) detected as SOLD OUT after booking. Saving...`);
+        saveOverride(tmdbId, { manualSoldOut: true });
+      }
+    });
+  } catch (err) {
+    console.error('[SYNC] Sync failed:', err);
+  }
 }

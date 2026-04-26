@@ -54,7 +54,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     roomId: '', // Inizialmente vuoto
     language: '',
     subtitles: 'Italiano',
-    versionLanguage: 'Versione Italiana'
+    versionLanguage: 'Lingua Originale'
   });
 
   const initPlans = async () => {
@@ -230,7 +230,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       roomId: defaultRoom,
       language: getLanguageName(movie.original_language),
       subtitles: movieOverride?.subtitles || (isItalian ? 'Nessuno' : 'Italiano'),
-      versionLanguage: movieOverride?.versionLanguage || (isItalian ? 'Versione Italiana' : 'Lingua Originale')
+      versionLanguage: movieOverride?.versionLanguage || 'Lingua Originale'
     });
     setConflict(null);
     setConflictEndTime(null);
@@ -291,7 +291,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       roomId: event.seating_plan?.toString() || (availableSeatingPlans.length > 0 ? availableSeatingPlans[0].id.toString() : ''),
       language: replicaLang,
       subtitles: metadata.subtitles || replicaSubtitles,
-      versionLanguage: metadata.versionLanguage || (replicaLang === 'Italiano' ? 'Versione Italiana' : 'Lingua Originale')
+      versionLanguage: metadata.versionLanguage || 'Lingua Originale'
     });
     setShowModal(true);
 
@@ -787,6 +787,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
         <a
           href="/admin/movies-control"
+          target="_blank"
+          rel="noopener noreferrer"
           className={styles.btnDisplayLauncher}
           style={{ backgroundColor: '#e50914', color: 'white', border: 'none' }}
         >
@@ -800,7 +802,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.title}>Cerca Film (TMDB)</h2>
-            <a href="/admin/movies-control" className={styles.btnActionIcon} title="Gestisci Overrides">
+            <a href="/admin/movies-control" target="_blank" rel="noopener noreferrer" className={styles.btnActionIcon} title="Gestisci Overrides">
               <Settings size={18} />
             </a>
           </div>
@@ -1191,7 +1193,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                           onChange={(e) => setFormState({ ...formState, versionLanguage: e.target.value })}
                           className={styles.modalInput}
                         >
-                          <option value="Versione Italiana">Versione Italiana</option>
+
                           <option value="Lingua Originale">Lingua Originale</option>
                           <option value="English Version">English Version</option>
                           <option value="Versione Originale">Versione Originale</option>
