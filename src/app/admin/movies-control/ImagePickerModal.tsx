@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getMovieImages, getTMDBImageUrl } from '@/services/tmdb';
 import Image from 'next/image';
 import { X, Loader2, Check } from 'lucide-react';
 import styles from './ImagePickerModal.module.css';
+
+const getTMDBImageUrl = (path: string, size: string = 'w500') =>
+  `https://image.tmdb.org/t/p/${size}${path}`;
 
 interface ImagePickerModalProps {
   movieId: string;
@@ -17,20 +19,25 @@ export default function ImagePickerModal({ movieId, type, onSelect, onClose }: I
   const [images, setImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadImages() {
       setLoading(true);
-      const data = await getMovieImages(movieId);
-      setImages(type === 'poster' ? data.posters : data.backdrops);
-      setLoading(false);
+      setError(null);
+      try {
+        const res = await fetch(`/api/tmdb/images/${movieId}`);
+        if (!res.ok) throw new Error('Errore nel caricamento immagini');
+        const data = await res.json();
+        setImages(type === 'poster' ? data.posters : data.backdrops);
+      } catch (e: any) {
+        setError(e.message || 'Errore sconosciuto');
+      } finally {
+        setLoading(false);
+      }
     }
     loadImages();
   }, [movieId, type]);
-
-  const handleSelect = (path: string) => {
-    setSelectedPath(path);
-  };
 
   const confirmSelection = () => {
     if (selectedPath) {
@@ -51,21 +58,23 @@ export default function ImagePickerModal({ movieId, type, onSelect, onClose }: I
           {loading ? (
             <div className={styles.loading}>
               <Loader2 className={styles.spinner} size={48} />
-              <p>Caricamento immagini...</p>
+              <p>Caricamento immagini da TMDB...</p>
             </div>
+          ) : error ? (
+            <div className={styles.empty}>⚠️ {error}</div>
           ) : images.length === 0 ? (
             <div className={styles.empty}>Nessuna immagine trovata su TMDB per questa categoria.</div>
           ) : (
             <div className={type === 'poster' ? styles.posterGrid : styles.backdropGrid}>
               {images.map((img) => (
-                <div 
-                  key={img.file_path} 
+                <div
+                  key={img.file_path}
                   className={`${styles.imageItem} ${selectedPath === img.file_path ? styles.selected : ''}`}
-                  onClick={() => handleSelect(img.file_path)}
+                  onClick={() => setSelectedPath(img.file_path)}
                 >
                   <div className={styles.imageWrapper}>
-                    <Image 
-                      src={getTMDBImageUrl(img.file_path, type === 'poster' ? 'w342' : 'w780')!} 
+                    <Image
+                      src={getTMDBImageUrl(img.file_path, type === 'poster' ? 'w342' : 'w780')}
                       alt="TMDB Image"
                       fill
                       sizes="(max-width: 768px) 100vw, 33vw"
@@ -77,7 +86,9 @@ export default function ImagePickerModal({ movieId, type, onSelect, onClose }: I
                       </div>
                     )}
                   </div>
-                  {img.iso_639_1 && <span className={styles.langBadge}>{img.iso_639_1.toUpperCase()}</span>}
+                  {img.iso_639_1 && (
+                    <span className={styles.langBadge}>{img.iso_639_1.toUpperCase()}</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -86,8 +97,8 @@ export default function ImagePickerModal({ movieId, type, onSelect, onClose }: I
 
         <div className={styles.footer}>
           <button onClick={onClose} className={styles.cancelBtn}>Annulla</button>
-          <button 
-            onClick={confirmSelection} 
+          <button
+            onClick={confirmSelection}
             className={styles.confirmBtn}
             disabled={!selectedPath}
           >

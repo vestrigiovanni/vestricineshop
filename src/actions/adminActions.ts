@@ -1100,11 +1100,37 @@ export async function adminGetOverrides() {
 
 /**
  * OVERRIDE SYSTEM: SAVE A MOVIE OVERRIDE
+ * Also invalidates the TMDB disk cache for this movie so the next
+ * page render re-fetches fresh metadata (poster/backdrop/trailer).
  */
 export async function adminSaveOverride(tmdbId: string, override: any) {
-  const { saveOverride } = await import('@/services/db.service');
+  const { saveOverride, deleteMovieMetadata } = await import('@/services/db.service');
   saveOverride(tmdbId, override);
-  revalidatePath('/');
+
+  // Bust the TMDB metadata disk cache so the next SSR pass picks up
+  // the new customPosterPath / customBackdropPath / customTrailerUrl.
+  deleteMovieMetadata(tmdbId);
+  
+  // Also clear the raw TMDB cache for this movie to be 100% sure
+  const fs = await import('fs');
+  const path = await import('path');
+  const CACHE_PATH = path.join(process.cwd(), 'data', 'tmdb_cache.json');
+  const cacheKeys = [`movie_details_${tmdbId}`, `movie_videos_${tmdbId}`, `movie_images_${tmdbId}`];
+  
+  if (fs.existsSync(CACHE_PATH)) {
+    try {
+      const cache = JSON.parse(fs.readFileSync(CACHE_PATH, 'utf8'));
+      let changed = false;
+      cacheKeys.forEach(key => {
+        if (cache[key]) { delete cache[key]; changed = true; }
+      });
+      if (changed) fs.writeFileSync(CACHE_PATH, JSON.stringify(cache, null, 2), 'utf8');
+    } catch (e) {}
+  }
+
+  // Revalidate all affected routes (layout + page)
+  revalidatePath('/', 'layout');
+  revalidatePath('/', 'page');
   revalidatePath('/admin/movies-control');
   return { success: true };
 }
@@ -1113,15 +1139,20 @@ export async function adminSaveOverride(tmdbId: string, override: any) {
  * OVERRIDE SYSTEM: DELETE A MOVIE OVERRIDE
  */
 export async function adminDeleteOverride(tmdbId: string) {
-  const { getOverrides } = await import('@/services/db.service');
+  const { getOverrides, deleteMovieMetadata } = await import('@/services/db.service');
   const fs = await import('fs');
   const path = await import('path');
   const DB_PATH = path.join(process.cwd(), 'data', 'overrides.json');
-  
+
   const overrides = getOverrides();
   delete overrides[tmdbId];
   fs.writeFileSync(DB_PATH, JSON.stringify(overrides, null, 2), 'utf8');
-  
+
+  // Also bust the TMDB disk cache
+  deleteMovieMetadata(tmdbId);
+
+  revalidatePath('/', 'layout');
+  revalidatePath('/', 'page');
   revalidatePath('/admin/movies-control');
   return { success: true };
 }
@@ -1161,6 +1192,27 @@ export async function adminGetProgrammedMovies() {
   );
 
   return sorted;
+}
+
+/**
+ * VISUAL CONTROL CENTER: FETCH ALL DATA HYDRATED (TMDB + OVERRIDES)
+ */
+export async function adminGetVisualControlData() {
+  const programmed = await adminGetProgrammedMovies();
+  const overrides = await adminGetOverrides();
+  
+  const hydrated = await Promise.all(programmed.map(async (movie) => {
+    const tmdbData = await getEnrichedMovieMetadata(movie.tmdbId);
+    const override = overrides[movie.tmdbId] || {};
+    
+    return {
+      ...movie,
+      tmdbData,
+      override
+    };
+  }));
+
+  return hydrated;
 }
 
 export async function adminSyncSoldOutStatus() {

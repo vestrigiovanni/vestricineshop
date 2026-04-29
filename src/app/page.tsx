@@ -6,12 +6,15 @@ import { getAvailabilityMap } from '@/services/availability.service';
 import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '@/components/WeeklyCinemaCalendar/WeeklyCinemaCalendar';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
-import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import styles from './page.module.css';
+import { unstable_noStore as noStore } from 'next/cache';
 
-export const revalidate = 60;
+// SSR puro: ogni richiesta legge sempre gli override aggiornati dal DB.
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
+  noStore(); // Forza no-cache a livello di segmento
+  
   // Step 1: Get all future sub-events, rooms, overrides AND availability
   const [rawSubEvents, roomsMap, overrides, availabilityMap] = await Promise.all([
     listSubEvents(true),
@@ -110,6 +113,12 @@ export default async function Home() {
 
     // Apply metadata and overrides
     const override = overrides[tmdbId];
+    
+    // [DEBUG] Verifichiamo se l'override viene trovato per questo film
+    if (override) {
+      console.log(`[SSR] Applicando override per ${movieMetadata.title} (ID: ${tmdbId})`);
+    }
+
     if (!groupedRecord[tmdbId]) {
       groupedRecord[tmdbId] = { tmdbMovie: movieMetadata, subevents: [] };
     }
@@ -168,7 +177,9 @@ export default async function Home() {
       subevents: entry.subevents,
       isSoldOut: isSoldOut,
       cast: movieOverride?.customCast || movie.cast,
-      trailerKey: movieOverride?.customTrailerUrl ? (extractYouTubeId(movieOverride.customTrailerUrl) || movie.trailerKey) : movie.trailerKey,
+      trailerKey: movieOverride?.customTrailerUrl 
+        ? (extractYouTubeId(movieOverride.customTrailerUrl) || movie.trailerKey) 
+        : movie.trailerKey,
       trailerKeys: movie.trailerKeys,
       rating: movieOverride?.customRating || movie.rating,
       versionLanguage: movieOverride?.versionLanguage || 'Lingua Originale',
@@ -208,9 +219,14 @@ export default async function Home() {
 
 
 
+  // Create a unique key for the showcase based on movie data
+  // This forces a full re-mount if metadata (posters, trailers) changes
+  const showcaseKey = movies.map(m => `${m.id}-${m.poster_path}-${m.trailerKey}`).join('|');
+
   return (
     <main className={styles.main}>
       <MovieShowcase 
+        key={showcaseKey}
         movies={movies} 
         initialAvailability={availabilityMap}
       />

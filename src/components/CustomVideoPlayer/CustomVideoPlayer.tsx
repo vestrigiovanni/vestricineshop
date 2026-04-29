@@ -30,9 +30,14 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
   const [apiReady, setApiReady] = useState(false);
 
   const videoPlaylist = React.useMemo(() => {
-    const list = videoIds.length > 0 ? [...videoIds] : (videoId ? [videoId] : []);
+    // Priorità assoluta al videoId (override manuale)
+    const list = [];
+    if (videoId) list.push(videoId);
+    if (videoIds.length > 0) list.push(...videoIds);
+    
+    // Rimuovi duplicati mantenendo l'ordine (l'override sarà sempre primo)
     const uniqueList = Array.from(new Set(list));
-    console.log(`[Trailer Fallback] Playlist caricata (${uniqueList.length} video):`, uniqueList);
+    console.log(`[Trailer System] Playlist prioritizzata (${uniqueList.length} video):`, uniqueList);
     return uniqueList;
   }, [videoId, videoIds]);
 

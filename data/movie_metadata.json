@@ -33,7 +33,123 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574850
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Fellini's 8 1/2 Original Italian Trailer",
+          "key": "PTmiA-uNSD8",
+          "site": "YouTube",
+          "size": 360,
+          "type": "Trailer",
+          "official": false,
+          "id": "652bb844358da701406ca44e",
+          "published_at": "2010-08-07T09:20:42.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "35mm Trailer [Subtitled]",
+          "key": "yruJBocWfn4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "67ed81a98fed3f0236aafe78",
+          "published_at": "2025-04-02T15:18:56.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Federico Fellini - 8 1/2 (New Trailer) - In UK cinemas 1 May 2015 | BFI Release",
+          "key": "RmIC9pQ80Fk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "552e4a129251413f9c00062d",
+          "published_at": "2015-04-13T10:57:57.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "8 and a Half Trailer HD",
+          "key": "QU6IWDPw20E",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "5c9dbb3e0e0a2638d4ecc92a",
+          "published_at": "2014-03-19T19:57:57.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "8 1/2 Trailer (1963) - The Criterion Collection",
+          "key": "4CjMvGBY_lI",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "533ec654c3a368544800032d",
+          "published_at": "2010-01-13T23:48:57.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "35mm Trailer [Subtitled]",
+          "key": "yruJBocWfn4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "67ed81a98fed3f0236aafe78",
+          "published_at": "2025-04-02T15:18:56.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Federico Fellini - 8 1/2 (New Trailer) - In UK cinemas 1 May 2015 | BFI Release",
+          "key": "RmIC9pQ80Fk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "552e4a129251413f9c00062d",
+          "published_at": "2015-04-13T10:57:57.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "8 and a Half Trailer HD",
+          "key": "QU6IWDPw20E",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "5c9dbb3e0e0a2638d4ecc92a",
+          "published_at": "2014-03-19T19:57:57.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "8 1/2 Trailer (1963) - The Criterion Collection",
+          "key": "4CjMvGBY_lI",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "533ec654c3a368544800032d",
+          "published_at": "2010-01-13T23:48:57.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160137
   },
   "655": {
     "id": 655,
@@ -56,7 +172,9 @@
     "trailerKeys": [
       "Nmvte2r7Z8c",
       "3j8ypqxfiT4",
-      "9e590FeeGCM"
+      "9e590FeeGCM",
+      "9V9k1wDOIUQ",
+      "ag9F81FtgqA"
     ],
     "rating": "14+",
     "original_language": "en",
@@ -67,7 +185,123 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227575076
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Paris, Texas - 1984 Trailer italiano",
+          "key": "9V9k1wDOIUQ",
+          "site": "YouTube",
+          "size": 360,
+          "type": "Trailer",
+          "official": false,
+          "id": "636a6fb6e0ec51007c483918",
+          "published_at": "2016-05-08T17:25:56.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official 4K Restoration Trailer",
+          "key": "Nmvte2r7Z8c",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "66b666c694df58ec58d7cb69",
+          "published_at": "2024-08-09T17:53:50.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Returning to Cinemas 29 July",
+          "key": "ag9F81FtgqA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "62d5aea104b596005413b551",
+          "published_at": "2022-07-18T11:39:18.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Rerelease Trailer",
+          "key": "3j8ypqxfiT4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "62c6c3b712c604004f133edb",
+          "published_at": "2022-07-06T10:00:59.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "9e590FeeGCM",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "533ec655c3a36854480004fb",
+          "published_at": "2010-01-13T19:19:06.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official 4K Restoration Trailer",
+          "key": "Nmvte2r7Z8c",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "66b666c694df58ec58d7cb69",
+          "published_at": "2024-08-09T17:53:50.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Returning to Cinemas 29 July",
+          "key": "ag9F81FtgqA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "62d5aea104b596005413b551",
+          "published_at": "2022-07-18T11:39:18.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Rerelease Trailer",
+          "key": "3j8ypqxfiT4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "62c6c3b712c604004f133edb",
+          "published_at": "2022-07-06T10:00:59.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "9e590FeeGCM",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "533ec655c3a36854480004fb",
+          "published_at": "2010-01-13T19:19:06.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160988
   },
   "1807": {
     "id": 1807,
@@ -86,8 +320,9 @@
       "Elias McConnell",
       "Jordan Taylor"
     ],
-    "trailerKey": "ut0SU7VNiko",
+    "trailerKey": "r6akMkUFYJo",
     "trailerKeys": [
+      "r6akMkUFYJo",
       "ut0SU7VNiko",
       "LLakpFFOsUI"
     ],
@@ -104,7 +339,75 @@
       }
     ],
     "tagline": "Due studenti, un liceo, un massacro.",
-    "_cachedAt": 1777227575040
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Elephant (film 2003) TRAILER ITALIANO",
+          "key": "r6akMkUFYJo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "63b92c77c0a308007fc06fb3",
+          "published_at": "2023-01-05T23:00:20.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "4K Remastered Trailer",
+          "key": "ut0SU7VNiko",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": false,
+          "id": "696b0ae4492275b2d48fc297",
+          "published_at": "2025-06-21T03:32:58.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "LLakpFFOsUI",
+          "site": "YouTube",
+          "size": 480,
+          "type": "Trailer",
+          "official": false,
+          "id": "6614bd763d7454014806e711",
+          "published_at": "2011-07-24T16:33:04.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "4K Remastered Trailer",
+          "key": "ut0SU7VNiko",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": false,
+          "id": "696b0ae4492275b2d48fc297",
+          "published_at": "2025-06-21T03:32:58.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "LLakpFFOsUI",
+          "site": "YouTube",
+          "size": 480,
+          "type": "Trailer",
+          "official": false,
+          "id": "6614bd763d7454014806e711",
+          "published_at": "2011-07-24T16:33:04.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160668
   },
   "1990": {
     "id": 1990,
@@ -123,8 +426,9 @@
       "Taylor Momsen",
       "Lauren McKinney"
     ],
-    "trailerKey": "8-pKxaN34K0",
+    "trailerKey": "hULua4rE-G4",
     "trailerKeys": [
+      "hULua4rE-G4",
       "8-pKxaN34K0"
     ],
     "rating": "T",
@@ -144,7 +448,51 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574974
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Trailer Ufficiale",
+          "key": "hULua4rE-G4",
+          "site": "YouTube",
+          "size": 360,
+          "type": "Trailer",
+          "official": true,
+          "id": "658c426566eba775644024f8",
+          "published_at": "2007-11-23T08:37:37.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "8-pKxaN34K0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "671072566f7707af40fa6f13",
+          "published_at": "2012-03-24T12:26:08.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "8-pKxaN34K0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "671072566f7707af40fa6f13",
+          "published_at": "2012-03-24T12:26:08.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472159810
   },
   "33560": {
     "id": 33560,
@@ -166,8 +514,8 @@
     "trailerKey": "Wp4wmK5U1XA",
     "trailerKeys": [
       "Wp4wmK5U1XA",
-      "2vBayHtjD_s",
-      "gJs_WHDP_5o"
+      "gJs_WHDP_5o",
+      "2vBayHtjD_s"
     ],
     "rating": "18+",
     "original_language": "en",
@@ -182,7 +530,86 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227575108
+    "multiLangVideos": {
+      "it": [],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "Wp4wmK5U1XA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "66a5c00c3e8f11c942870601",
+          "published_at": "2024-07-25T20:48:13.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Totally F***ed Up",
+          "key": "gJs_WHDP_5o",
+          "site": "YouTube",
+          "size": 360,
+          "type": "Trailer",
+          "official": true,
+          "id": "65070bd142d8a500e1580103",
+          "published_at": "2013-10-18T16:17:24.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "UK Trailer",
+          "key": "2vBayHtjD_s",
+          "site": "YouTube",
+          "size": 480,
+          "type": "Trailer",
+          "official": true,
+          "id": "63abd8137ef3811fde337e5d",
+          "published_at": "2011-06-29T12:17:30.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "Wp4wmK5U1XA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "66a5c00c3e8f11c942870601",
+          "published_at": "2024-07-25T20:48:13.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Totally F***ed Up",
+          "key": "gJs_WHDP_5o",
+          "site": "YouTube",
+          "size": 360,
+          "type": "Trailer",
+          "official": true,
+          "id": "65070bd142d8a500e1580103",
+          "published_at": "2013-10-18T16:17:24.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "UK Trailer",
+          "key": "2vBayHtjD_s",
+          "site": "YouTube",
+          "size": 480,
+          "type": "Trailer",
+          "official": true,
+          "id": "63abd8137ef3811fde337e5d",
+          "published_at": "2011-06-29T12:17:30.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160845
   },
   "34647": {
     "id": 34647,
@@ -201,9 +628,12 @@
       "Olly Alexander",
       "丹野雅仁"
     ],
-    "trailerKey": "HkPMjoUqYXU",
+    "trailerKey": "LkBBWLIncZM",
     "trailerKeys": [
-      "HkPMjoUqYXU"
+      "LkBBWLIncZM",
+      "HkPMjoUqYXU",
+      "GmirEDGDSKA",
+      "j8SKVcDc4po"
     ],
     "rating": "18+",
     "original_language": "en",
@@ -218,7 +648,99 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227575142
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Enter the Void: trailer italiano",
+          "key": "LkBBWLIncZM",
+          "site": "YouTube",
+          "size": 480,
+          "type": "Trailer",
+          "official": false,
+          "id": "533ec693c3a3685448004307",
+          "published_at": "2011-11-16T15:12:51.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Enter the Void (2009) Original Trailer [HD]",
+          "key": "HkPMjoUqYXU",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": false,
+          "id": "68e5b3d991f6107f3a794f29",
+          "published_at": "2025-01-13T10:23:04.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Enter The Void showing at Hackney Picturehouse this October",
+          "key": "GmirEDGDSKA",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Teaser",
+          "official": true,
+          "id": "67d959f71bb4b5c58bc6a9e1",
+          "published_at": "2014-10-08T13:49:10.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Enter the Void Trailer",
+          "key": "j8SKVcDc4po",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Teaser",
+          "official": true,
+          "id": "5c5c3513c3a3683cdb89c4fe",
+          "published_at": "2010-11-24T17:26:44.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Enter the Void (2009) Original Trailer [HD]",
+          "key": "HkPMjoUqYXU",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": false,
+          "id": "68e5b3d991f6107f3a794f29",
+          "published_at": "2025-01-13T10:23:04.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Enter The Void showing at Hackney Picturehouse this October",
+          "key": "GmirEDGDSKA",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Teaser",
+          "official": true,
+          "id": "67d959f71bb4b5c58bc6a9e1",
+          "published_at": "2014-10-08T13:49:10.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Enter the Void Trailer",
+          "key": "j8SKVcDc4po",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Teaser",
+          "official": true,
+          "id": "5c5c3513c3a3683cdb89c4fe",
+          "published_at": "2010-11-24T17:26:44.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160052
   },
   "265177": {
     "id": 265177,
@@ -237,11 +759,11 @@
       "Patrick Huard",
       "Alexandre Goyette"
     ],
-    "trailerKey": "GzwZB-gepl0",
+    "trailerKey": "PlZB2LLjzZY",
     "trailerKeys": [
-      "GzwZB-gepl0",
       "PlZB2LLjzZY",
-      "FJwtrRdL8UM"
+      "FJwtrRdL8UM",
+      "p9R4xDF-Q6A"
     ],
     "rating": "T",
     "original_language": "fr",
@@ -252,7 +774,75 @@
       }
     ],
     "tagline": "Ci amiamo ancora, giusto? È la cosa che facciamo meglio.",
-    "_cachedAt": 1777227574818
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Mommy - Trailer italiano ufficiale - Al cinema dal 04/12",
+          "key": "p9R4xDF-Q6A",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": false,
+          "id": "548034bd9251416e81001dfa",
+          "published_at": "2014-11-10T13:57:02.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "PlZB2LLjzZY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6454e508d8f44e0dae96cfb8",
+          "published_at": "2014-09-23T22:41:00.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Movie Trailer",
+          "key": "FJwtrRdL8UM",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "66c20a57f9add199ac07d7a1",
+          "published_at": "2014-09-18T16:14:19.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "PlZB2LLjzZY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6454e508d8f44e0dae96cfb8",
+          "published_at": "2014-09-23T22:41:00.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Movie Trailer",
+          "key": "FJwtrRdL8UM",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "66c20a57f9add199ac07d7a1",
+          "published_at": "2014-09-18T16:14:19.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160000
   },
   "292431": {
     "id": 292431,
@@ -331,7 +921,75 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574715
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "ENNIO - di Giuseppe Tornatore su Ennio Morricone | Trailer Ufficiale HD",
+          "key": "hC962MwzGBA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "620e37a86840cc006d0df668",
+          "published_at": "2022-02-04T15:32:20.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "q5WBbULw_0U",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6581ddec226c56083a9ea8f0",
+          "published_at": "2023-12-19T14:30:11.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "y_sMAYADwCA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "624edaa3d2b209009e02036e",
+          "published_at": "2022-03-16T12:02:45.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "q5WBbULw_0U",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6581ddec226c56083a9ea8f0",
+          "published_at": "2023-12-19T14:30:11.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "y_sMAYADwCA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "624edaa3d2b209009e02036e",
+          "published_at": "2022-03-16T12:02:45.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160240
   },
   "524635": {
     "id": 524635,
@@ -401,7 +1059,51 @@
       }
     ],
     "tagline": "Per il rispetto e per l'onore ne ho persi di compagni...",
-    "_cachedAt": 1777227574834
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "La Paranza dei Bambini (2019) - Trailer Ufficiale 90\"",
+          "key": "ip_oxagC0BY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "5c4b03809251410e0a5766e0",
+          "published_at": "2019-01-18T15:31:00.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "PIRANHAS - Official U.S. Trailer",
+          "key": "U7fkvIxrEoE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "5eea34fab046050036071f22",
+          "published_at": "2019-07-10T18:48:02.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "PIRANHAS - Official U.S. Trailer",
+          "key": "U7fkvIxrEoE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "5eea34fab046050036071f22",
+          "published_at": "2019-07-10T18:48:02.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472159372
   },
   "575452": {
     "id": 575452,
@@ -423,7 +1125,8 @@
     "trailerKey": "7nvYMRpKzak",
     "trailerKeys": [
       "7nvYMRpKzak",
-      "iQF1uhlQH5s"
+      "iQF1uhlQH5s",
+      "AcbIieh9l-M"
     ],
     "rating": "T",
     "original_language": "it",
@@ -442,7 +1145,63 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227575056
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Trailer ufficiale",
+          "key": "7nvYMRpKzak",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "5ede9601f36a32001f8c0027",
+          "published_at": "2019-05-10T08:13:59.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Teaser",
+          "key": "AcbIieh9l-M",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "5cb8d842925141066ef2b1c8",
+          "published_at": "2019-04-18T10:00:58.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "iQF1uhlQH5s",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "5d7c3f3ad5191f45813e1df1",
+          "published_at": "2019-09-05T16:00:12.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "iQF1uhlQH5s",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "5d7c3f3ad5191f45813e1df1",
+          "published_at": "2019-09-05T16:00:12.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160136
   },
   "701387": {
     "id": 701387,
@@ -503,10 +1262,13 @@
       "Bas Rutten",
       "Олександр Усик"
     ],
-    "trailerKey": "u4A8zfMClCM",
+    "trailerKey": "G1UhItofvRo",
     "trailerKeys": [
+      "G1UhItofvRo",
       "u4A8zfMClCM",
-      "21OUFEZGXIk"
+      "21OUFEZGXIk",
+      "fGUJmnt2FbE",
+      "pg9IfSt6se4"
     ],
     "rating": "10+",
     "original_language": "en",
@@ -525,7 +1287,147 @@
       }
     ],
     "tagline": "Il campione. L'uomo. La leggenda.",
-    "_cachedAt": 1777227574554
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "THE SMASHING MACHINE | Trailer italiano ufficiale HD",
+          "key": "G1UhItofvRo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "686ce12cba81d2d162ed5d80",
+          "published_at": "2025-07-08T08:31:43.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere October 3rd",
+          "key": "fGUJmnt2FbE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68deb50e379588cef9991bd4",
+          "published_at": "2025-09-25T08:29:35.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer #2",
+          "key": "u4A8zfMClCM",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "68c9cc7b69190c477ce51cd6",
+          "published_at": "2025-09-12T12:32:23.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere October 3",
+          "key": "pg9IfSt6se4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68ca7e9d1f746551936834d1",
+          "published_at": "2025-09-08T15:36:42.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere October 3",
+          "key": "vZxK7CSMOPw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68ca7e70c77941ef6713f59c",
+          "published_at": "2025-09-08T15:36:33.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "21OUFEZGXIk",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "68110de14603571ead0fddef",
+          "published_at": "2025-04-29T16:00:19.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere October 3rd",
+          "key": "fGUJmnt2FbE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68deb50e379588cef9991bd4",
+          "published_at": "2025-09-25T08:29:35.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer #2",
+          "key": "u4A8zfMClCM",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "68c9cc7b69190c477ce51cd6",
+          "published_at": "2025-09-12T12:32:23.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere October 3",
+          "key": "pg9IfSt6se4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68ca7e9d1f746551936834d1",
+          "published_at": "2025-09-08T15:36:42.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere October 3",
+          "key": "vZxK7CSMOPw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68ca7e70c77941ef6713f59c",
+          "published_at": "2025-09-08T15:36:33.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "21OUFEZGXIk",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "68110de14603571ead0fddef",
+          "published_at": "2025-04-29T16:00:19.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777473754865
   },
   "791177": {
     "id": 791177,
@@ -544,10 +1446,13 @@
       "Anna Cobb",
       "André Holland"
     ],
-    "trailerKey": "pjMt1MIk2EA",
+    "trailerKey": "zMrTn5lCyL0",
     "trailerKeys": [
+      "zMrTn5lCyL0",
+      "r4r4AT8huaU",
+      "0Nu7Z9AxGNg",
       "pjMt1MIk2EA",
-      "0Nu7Z9AxGNg"
+      "wsdE1ajljcw"
     ],
     "rating": "14+",
     "original_language": "en",
@@ -566,13 +1471,141 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574924
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "BONES AND ALL (2022) | TRAILER UFFICIALE ITALIANO",
+          "key": "zMrTn5lCyL0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "636f9f41d7fbda007bef83fe",
+          "published_at": "2022-11-11T12:10:46.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "BONES AND ALL (2022) - TRAILER UFFICIALE ITALIANO",
+          "key": "r4r4AT8huaU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "636f9f322495ab009b03be5e",
+          "published_at": "2022-10-11T10:28:08.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Theatrical Trailer",
+          "key": "0Nu7Z9AxGNg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "633dad1e481382007d4b89ba",
+          "published_at": "2022-10-05T16:00:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer Online Now",
+          "key": "wsdE1ajljcw",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Teaser",
+          "official": true,
+          "id": "66059d48aafebd0187183072",
+          "published_at": "2022-09-29T17:27:48.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "pjMt1MIk2EA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6335c13b982f740080418acb",
+          "published_at": "2022-09-29T16:00:06.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Teaser Trailer",
+          "key": "2iBSEqRhfUw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "63165f8ed40d4c00822f1990",
+          "published_at": "2022-09-05T08:54:11.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Theatrical Trailer",
+          "key": "0Nu7Z9AxGNg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "633dad1e481382007d4b89ba",
+          "published_at": "2022-10-05T16:00:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer Online Now",
+          "key": "wsdE1ajljcw",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Teaser",
+          "official": true,
+          "id": "66059d48aafebd0187183072",
+          "published_at": "2022-09-29T17:27:48.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "pjMt1MIk2EA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6335c13b982f740080418acb",
+          "published_at": "2022-09-29T16:00:06.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Teaser Trailer",
+          "key": "2iBSEqRhfUw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "63165f8ed40d4c00822f1990",
+          "published_at": "2022-09-05T08:54:11.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472159770
   },
   "792307": {
     "id": 792307,
     "title": "Povere creature!",
     "overview": "Bella Baxter viene riportata in vita dal brillante e poco ortodosso scienziato Dr. Godwin Baxter. Affamata della mondanità che le manca, Bella fugge con Duncan Wedderburn, un avvocato elegante e dissoluto, in una vorticosa avventura attraverso i continenti.",
-    "poster_path": "/fTPjIMo1CaXEdElemT4ykxyM8fC.jpg",
+    "poster_path": "/8rwQrD5PBr290AaePDC9kd61dnD.jpg",
     "backdrop_path": "/lcDmQl0FqQuHNNrr6vGPXUjreW9.jpg",
     "logo_path": "/aLI9epYgW3I4C36H8exfYWLCaXf.png",
     "release_date": "2023-12-07",
@@ -585,11 +1618,13 @@
       "Ramy Youssef",
       "Christopher Abbott"
     ],
-    "trailerKey": "RlbR5N6veqw",
+    "trailerKey": "aI8HQYIsV1A",
     "trailerKeys": [
-      "RlbR5N6veqw",
+      "aI8HQYIsV1A",
+      "tBKWXtdpbNQ",
       "-EfYJWRw2FM",
-      "muuLGNH3JRQ"
+      "muuLGNH3JRQ",
+      "RlbR5N6veqw"
     ],
     "rating": "18+",
     "original_language": "en",
@@ -608,7 +1643,243 @@
       }
     ],
     "tagline": "Lei non somiglia a niente che tu conosca.",
-    "_cachedAt": 1777227574955
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Trailer Ufficiale",
+          "key": "aI8HQYIsV1A",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "659d84551d78f2025c16c38e",
+          "published_at": "2024-01-09T14:33:25.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Trailer Ufficiale",
+          "key": "tBKWXtdpbNQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "64f2135b1f3319011d160807",
+          "published_at": "2023-08-30T13:43:16.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Teaser Trailer",
+          "key": "97uYT9rmlyQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "647f0f2bcaef2d00c29be512",
+          "published_at": "2023-06-06T10:00:32.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Big News",
+          "key": "fORsy_9Il_A",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "665dfae712431ce713e5476c",
+          "published_at": "2024-01-11T18:15:46.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Alive",
+          "key": "8i7wbz9oRPM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "665dfb4d7311e6666bbc9260",
+          "published_at": "2023-12-17T18:04:11.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Surprise",
+          "key": "o2Kul_5Gohw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "665dfcbbc4ed94eca226ab4d",
+          "published_at": "2023-12-03T23:32:33.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "I Am Bella Baxter",
+          "key": "ohCrYZp_rVE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "656ba0c96517d6015165217a",
+          "published_at": "2023-11-25T17:00:43.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "New Trailer",
+          "key": "-EfYJWRw2FM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "656395a8b234b900ff23c5ba",
+          "published_at": "2023-11-22T08:59:15.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Extended Look Trailer",
+          "key": "muuLGNH3JRQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "653128e430f79c011b3b6c7c",
+          "published_at": "2023-10-19T13:01:04.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "RlbR5N6veqw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6481d53cbf31f200e3fbcdc0",
+          "published_at": "2023-06-08T13:00:19.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser",
+          "key": "ZFu7ZH4y6J4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "645ce89f3fe16000fed11da5",
+          "published_at": "2023-05-11T12:59:25.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Big News",
+          "key": "fORsy_9Il_A",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "665dfae712431ce713e5476c",
+          "published_at": "2024-01-11T18:15:46.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Alive",
+          "key": "8i7wbz9oRPM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "665dfb4d7311e6666bbc9260",
+          "published_at": "2023-12-17T18:04:11.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Surprise",
+          "key": "o2Kul_5Gohw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "665dfcbbc4ed94eca226ab4d",
+          "published_at": "2023-12-03T23:32:33.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "I Am Bella Baxter",
+          "key": "ohCrYZp_rVE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "656ba0c96517d6015165217a",
+          "published_at": "2023-11-25T17:00:43.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "New Trailer",
+          "key": "-EfYJWRw2FM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "656395a8b234b900ff23c5ba",
+          "published_at": "2023-11-22T08:59:15.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Extended Look Trailer",
+          "key": "muuLGNH3JRQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "653128e430f79c011b3b6c7c",
+          "published_at": "2023-10-19T13:01:04.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "RlbR5N6veqw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6481d53cbf31f200e3fbcdc0",
+          "published_at": "2023-06-08T13:00:19.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser",
+          "key": "ZFu7ZH4y6J4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "645ce89f3fe16000fed11da5",
+          "published_at": "2023-05-11T12:59:25.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472158893
   },
   "848685": {
     "id": 848685,
@@ -627,13 +1898,13 @@
       "Diego Anido",
       "Marie Colomb"
     ],
-    "trailerKey": "6mWLTJNmkeA",
+    "trailerKey": "HySCFRg77Ag",
     "trailerKeys": [
-      "6mWLTJNmkeA",
+      "HySCFRg77Ag",
       "aoR5_TVASXU",
       "GmgdYXYQYac",
-      "WaDWOMMcTLw",
-      "U12WumVqDpY"
+      "U12WumVqDpY",
+      "8gnMGdt-Qw4"
     ],
     "rating": "14+",
     "original_language": "fr",
@@ -648,7 +1919,123 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574801
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "As Bestas di Rodrigo Sorogoyen - il thriller vincitore di 9 Premi Goya | Trailer ITA HD",
+          "key": "HySCFRg77Ag",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "64c57db6cadb6b00ac659ba9",
+          "published_at": "2023-04-12T10:37:11.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The Beasts | Official Trailer",
+          "key": "aoR5_TVASXU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "64c14b84fdc146011cd5fb91",
+          "published_at": "2023-06-06T20:31:16.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Now Showing [Subtitled]",
+          "key": "8gnMGdt-Qw4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "644b08c0726fb1052005bf07",
+          "published_at": "2023-03-24T08:00:06.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Trailer [Subtitled]",
+          "key": "GmgdYXYQYac",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "63ef8fbc0f0da500aac09872",
+          "published_at": "2023-02-15T12:30:13.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The Beasts Trailer",
+          "key": "U12WumVqDpY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "63971c5579b3d400a0bb963e",
+          "published_at": "2022-10-03T07:25:34.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The Beasts | Official Trailer",
+          "key": "aoR5_TVASXU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "64c14b84fdc146011cd5fb91",
+          "published_at": "2023-06-06T20:31:16.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Now Showing [Subtitled]",
+          "key": "8gnMGdt-Qw4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "644b08c0726fb1052005bf07",
+          "published_at": "2023-03-24T08:00:06.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Trailer [Subtitled]",
+          "key": "GmgdYXYQYac",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "63ef8fbc0f0da500aac09872",
+          "published_at": "2023-02-15T12:30:13.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The Beasts Trailer",
+          "key": "U12WumVqDpY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "63971c5579b3d400a0bb963e",
+          "published_at": "2022-10-03T07:25:34.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472159852
   },
   "848958": {
     "id": 848958,
@@ -667,10 +2054,10 @@
       "Micha Lescot",
       "Clara Bretheau"
     ],
-    "trailerKey": "fR5E5XkPvLk",
+    "trailerKey": "YZMxjL99tb8",
     "trailerKeys": [
-      "fR5E5XkPvLk",
-      "8pSENyOF_lQ"
+      "YZMxjL99tb8",
+      "fR5E5XkPvLk"
     ],
     "rating": "14+",
     "original_language": "fr",
@@ -685,7 +2072,51 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574872
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Forever Young di Valeria Bruni Tedeschi | Trailer Italiano HD",
+          "key": "YZMxjL99tb8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "63874f5b1b157d00c9fa3a5b",
+          "published_at": "2022-11-26T14:56:44.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Forever Young / Les Amandiers (2022) - Trailer (English Subs)",
+          "key": "fR5E5XkPvLk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "638cd33515376c3de44cd138",
+          "published_at": "2022-11-15T14:16:13.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Forever Young / Les Amandiers (2022) - Trailer (English Subs)",
+          "key": "fR5E5XkPvLk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "638cd33515376c3de44cd138",
+          "published_at": "2022-11-15T14:16:13.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472159620
   },
   "915935": {
     "id": 915935,
@@ -704,12 +2135,13 @@
       "Antoine Reinartz",
       "Samuel Theis"
     ],
-    "trailerKey": "4vomBbFSs8g",
+    "trailerKey": "r-f-QGh6grM",
     "trailerKeys": [
-      "4vomBbFSs8g",
+      "r-f-QGh6grM",
       "_MdTMA0PetA",
       "FUXawkH-ONM",
-      "fTrsp5BMloA"
+      "fTrsp5BMloA",
+      "vtNYnjWUFqE"
     ],
     "rating": "6+",
     "original_language": "fr",
@@ -728,7 +2160,123 @@
       }
     ],
     "tagline": "È stata lei?",
-    "_cachedAt": 1777227574889
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "ANATOMIA DI UNA CADUTA Trailer ufficiale - Dal 26 ottobre al cinema",
+          "key": "r-f-QGh6grM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6516eaf693bd6900acc6560a",
+          "published_at": "2023-09-29T13:35:58.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "UK Trailer #2",
+          "key": "vtNYnjWUFqE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "654f4fb829383543f296a993",
+          "published_at": "2023-11-10T16:38:13.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Trailer",
+          "key": "_MdTMA0PetA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "651567cbc50ad200ad7f0e8c",
+          "published_at": "2023-09-28T11:37:17.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "FUXawkH-ONM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "64de469baaec7103f7e2f2fb",
+          "published_at": "2023-08-17T16:00:09.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "fTrsp5BMloA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "64b2f77be0ca7f014429e120",
+          "published_at": "2023-07-13T05:51:45.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "UK Trailer #2",
+          "key": "vtNYnjWUFqE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "654f4fb829383543f296a993",
+          "published_at": "2023-11-10T16:38:13.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Trailer",
+          "key": "_MdTMA0PetA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "651567cbc50ad200ad7f0e8c",
+          "published_at": "2023-09-28T11:37:17.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "FUXawkH-ONM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "64de469baaec7103f7e2f2fb",
+          "published_at": "2023-08-17T16:00:09.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "fTrsp5BMloA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "64b2f77be0ca7f014429e120",
+          "published_at": "2023-07-13T05:51:45.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472158837
   },
   "937287": {
     "id": 937287,
@@ -747,11 +2295,13 @@
       "Darnell Appling",
       "Bryan Doo"
     ],
-    "trailerKey": "VobTTbg-te0",
+    "trailerKey": "1HK7qnSDPF4",
     "trailerKeys": [
+      "1HK7qnSDPF4",
+      "urW8aPwEBN0",
+      "-2N3hmRmwHQ",
       "VobTTbg-te0",
-      "MDnVk5jIJr0",
-      "-2N3hmRmwHQ"
+      "MDnVk5jIJr0"
     ],
     "rating": "6+",
     "original_language": "en",
@@ -766,7 +2316,183 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227575004
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "CHALLENGERS |  Trailer Ufficiale 2",
+          "key": "1HK7qnSDPF4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "65d61352e6d3cc017bc0a625",
+          "published_at": "2024-02-21T14:00:01.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "CHALLENGERS | Trailer Ufficiale",
+          "key": "urW8aPwEBN0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6491d74f559d2200e208127b",
+          "published_at": "2023-06-20T16:30:17.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Now Streaming - Prime Video",
+          "key": "rpUlYM1i2mg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67a558574d536cb93266ce3b",
+          "published_at": "2024-10-08T02:00:14.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Final Trailer",
+          "key": "-2N3hmRmwHQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "662693dd63e6fb017efd030a",
+          "published_at": "2024-04-22T16:00:01.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "New Trailer Online Now",
+          "key": "oAdnex9pczs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "668aa31ac21b34484a3fd50c",
+          "published_at": "2024-02-21T15:39:04.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer 2",
+          "key": "VobTTbg-te0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "65d7a319b33903017a46ba1f",
+          "published_at": "2024-02-21T14:00:04.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "MDnVk5jIJr0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6491d5b8c2ff3d00c59bd3ad",
+          "published_at": "2023-06-20T16:32:07.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer Online Now",
+          "key": "u3bmCpvsEOQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "649a3f292975ca01254af40d",
+          "published_at": "2023-06-20T16:30:36.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Now Streaming - Prime Video",
+          "key": "rpUlYM1i2mg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67a558574d536cb93266ce3b",
+          "published_at": "2024-10-08T02:00:14.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Final Trailer",
+          "key": "-2N3hmRmwHQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "662693dd63e6fb017efd030a",
+          "published_at": "2024-04-22T16:00:01.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "New Trailer Online Now",
+          "key": "oAdnex9pczs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "668aa31ac21b34484a3fd50c",
+          "published_at": "2024-02-21T15:39:04.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer 2",
+          "key": "VobTTbg-te0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "65d7a319b33903017a46ba1f",
+          "published_at": "2024-02-21T14:00:04.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "MDnVk5jIJr0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6491d5b8c2ff3d00c59bd3ad",
+          "published_at": "2023-06-20T16:32:07.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer Online Now",
+          "key": "u3bmCpvsEOQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "649a3f292975ca01254af40d",
+          "published_at": "2023-06-20T16:30:36.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160271
   },
   "976893": {
     "id": 976893,
@@ -785,12 +2511,13 @@
       "山田 葵",
       "麻生祐未"
     ],
-    "trailerKey": "Iv8YO5BXCAQ",
+    "trailerKey": "vj__7LO2cdc",
     "trailerKeys": [
+      "vj__7LO2cdc",
+      "gZvsWyoS_tU",
       "Iv8YO5BXCAQ",
       "QzZBbX5A1FA",
-      "HTgWYojq-z8",
-      "XkGyXn2TADM"
+      "HTgWYojq-z8"
     ],
     "rating": "T",
     "original_language": "ja",
@@ -801,7 +2528,111 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574765
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Perfect Days, il nuovo film di Wim Wenders - candidato Oscar 2024 per il Giappone | Trailer ITA HD",
+          "key": "vj__7LO2cdc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6597ee6d60c51d453c9788a6",
+          "published_at": "2023-12-23T15:16:34.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Perfect Days, il nuovo film di Wim Wenders - Premio Miglior Attore a Cannes 2023 | Trailer ITA HD",
+          "key": "gZvsWyoS_tU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "656f52893dc31300c4fb4716",
+          "published_at": "2023-12-05T11:55:21.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official International Trailer [Subtitled]",
+          "key": "Iv8YO5BXCAQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "65ae731909c24c010a826406",
+          "published_at": "2024-01-22T12:01:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer [Subtitled]",
+          "key": "QzZBbX5A1FA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "654cf437d4653700e1a6b8b3",
+          "published_at": "2023-11-09T15:00:08.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer [Subtitled]",
+          "key": "HTgWYojq-z8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6468d4aad18572014030e511",
+          "published_at": "2023-05-20T13:50:47.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official International Trailer [Subtitled]",
+          "key": "Iv8YO5BXCAQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "65ae731909c24c010a826406",
+          "published_at": "2024-01-22T12:01:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer [Subtitled]",
+          "key": "QzZBbX5A1FA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "654cf437d4653700e1a6b8b3",
+          "published_at": "2023-11-09T15:00:08.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer [Subtitled]",
+          "key": "HTgWYojq-z8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6468d4aad18572014030e511",
+          "published_at": "2023-05-20T13:50:47.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160918
   },
   "1020006": {
     "id": 1020006,
@@ -860,7 +2691,11 @@
     ],
     "trailerKey": "2jzXHW6Qe70",
     "trailerKeys": [
-      "2jzXHW6Qe70"
+      "2jzXHW6Qe70",
+      "_zYqs_H2CjQ",
+      "GgLbDsUqV60",
+      "FlIaiawMGWI",
+      "3Fi6BsKbm8w"
     ],
     "rating": "10+",
     "original_language": "en",
@@ -871,7 +2706,243 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574730
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "DIE MY LOVE | Trailer ufficiale | Dal 27 novembre al cinema | Jennifer Lawrence e Robert Pattinson",
+          "key": "_zYqs_H2CjQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "68e3dcb860d45edfa9617e9b",
+          "published_at": "2025-10-06T13:01:12.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Streaming as part of our “Truly, Madly Deeply” collection",
+          "key": "GgLbDsUqV60",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0ec3aacdd3539878dcdb",
+          "published_at": "2026-02-10T20:00:54.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "#JenniferLawrence delivers a Golden Globe–nominated performance in DIE MY LOVE",
+          "key": "FlIaiawMGWI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0f10e6b26fef48e9fb8a",
+          "published_at": "2025-12-23T12:00:17.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "\"Channeling peak Gena Rowlands\" - The List.",
+          "key": "3Fi6BsKbm8w",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0f02e7805f16d3416cc3",
+          "published_at": "2025-12-19T18:00:44.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "\"I'm just trying to be a good wife\".",
+          "key": "bjmaTc8g7fo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0f23fc3505b7ea416dd9",
+          "published_at": "2025-11-11T18:15:09.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Live. Love. Loathe.",
+          "key": "QInyD4vY820",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0ef1649504291ae9fb7c",
+          "published_at": "2025-10-16T15:16:19.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Everything. Is. Fine.",
+          "key": "aopLSeqnh98",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0edd65e574e65f416d09",
+          "published_at": "2025-10-15T16:48:10.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "2jzXHW6Qe70",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68e3be86ea688682eb25b5ed",
+          "published_at": "2025-10-06T13:00:27.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser Trailer",
+          "key": "8Y6yG4SgFew",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68baec97db06f191e69bf983",
+          "published_at": "2025-09-05T13:04:13.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser Trailer",
+          "key": "npLh2iND0WA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68baf1bdb1dbd0f4a68ce269",
+          "published_at": "2025-09-05T13:01:44.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Streaming as part of our “Truly, Madly Deeply” collection",
+          "key": "GgLbDsUqV60",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0ec3aacdd3539878dcdb",
+          "published_at": "2026-02-10T20:00:54.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "#JenniferLawrence delivers a Golden Globe–nominated performance in DIE MY LOVE",
+          "key": "FlIaiawMGWI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0f10e6b26fef48e9fb8a",
+          "published_at": "2025-12-23T12:00:17.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "\"Channeling peak Gena Rowlands\" - The List.",
+          "key": "3Fi6BsKbm8w",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0f02e7805f16d3416cc3",
+          "published_at": "2025-12-19T18:00:44.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "\"I'm just trying to be a good wife\".",
+          "key": "bjmaTc8g7fo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0f23fc3505b7ea416dd9",
+          "published_at": "2025-11-11T18:15:09.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Live. Love. Loathe.",
+          "key": "QInyD4vY820",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0ef1649504291ae9fb7c",
+          "published_at": "2025-10-16T15:16:19.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Everything. Is. Fine.",
+          "key": "aopLSeqnh98",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "698e0edd65e574e65f416d09",
+          "published_at": "2025-10-15T16:48:10.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "2jzXHW6Qe70",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68e3be86ea688682eb25b5ed",
+          "published_at": "2025-10-06T13:00:27.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser Trailer",
+          "key": "8Y6yG4SgFew",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68baec97db06f191e69bf983",
+          "published_at": "2025-09-05T13:04:13.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser Trailer",
+          "key": "npLh2iND0WA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68baf1bdb1dbd0f4a68ce269",
+          "published_at": "2025-09-05T13:01:44.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160345
   },
   "1059128": {
     "id": 1059128,
@@ -890,12 +2961,13 @@
       "Lesley Manville",
       "Henry Zaga"
     ],
-    "trailerKey": "-pVKnv4E-k4",
+    "trailerKey": "tDnEvoEip6M",
     "trailerKeys": [
+      "tDnEvoEip6M",
+      "eOdg3kuMx0I",
+      "tjFo9p-8XM8",
       "-pVKnv4E-k4",
-      "3ZtwsbxryMk",
-      "ltinrfX03S4",
-      "eknj5_0tF2s"
+      "3ZtwsbxryMk"
     ],
     "rating": "14+",
     "original_language": "en",
@@ -910,7 +2982,171 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574940
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "QUEER di Luca Guadagnino con Daniel Craig | Nuovo Trailer ITA HD",
+          "key": "tDnEvoEip6M",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "67fd1109ef5ae687cbd91370",
+          "published_at": "2025-04-14T13:19:10.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "QUEER di Luca Guadagnino con Daniel Craig | Trailer ITA HD",
+          "key": "eOdg3kuMx0I",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "67e6a8875e8e5c9bacba80e3",
+          "published_at": "2025-03-28T10:01:43.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "QUEER di Luca Guadagnino con Daniel Craig | Trailer ITA HD",
+          "key": "tjFo9p-8XM8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "67b481b1e5e1a7ed7ce12e81",
+          "published_at": "2025-02-18T11:50:23.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Queer - Official Trailer",
+          "key": "-pVKnv4E-k4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6815230498dd4c6a853ae2af",
+          "published_at": "2025-01-07T03:28:06.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Daniel Craig is...",
+          "key": "vKDj_kM9xfI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "675e9b69f74c3a1388ba06f2",
+          "published_at": "2024-12-11T14:30:34.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official International Trailer #2",
+          "key": "3ZtwsbxryMk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "675367bc72d1a8a59c29bcd1",
+          "published_at": "2024-12-06T12:05:53.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer 2",
+          "key": "ltinrfX03S4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "674484dfdae2e6a93825e855",
+          "published_at": "2024-11-25T14:00:56.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "eknj5_0tF2s",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6720dcc84be15469e70e6fac",
+          "published_at": "2024-10-29T13:00:48.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Queer - Official Trailer",
+          "key": "-pVKnv4E-k4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6815230498dd4c6a853ae2af",
+          "published_at": "2025-01-07T03:28:06.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Daniel Craig is...",
+          "key": "vKDj_kM9xfI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "675e9b69f74c3a1388ba06f2",
+          "published_at": "2024-12-11T14:30:34.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official International Trailer #2",
+          "key": "3ZtwsbxryMk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "675367bc72d1a8a59c29bcd1",
+          "published_at": "2024-12-06T12:05:53.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer 2",
+          "key": "ltinrfX03S4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "674484dfdae2e6a93825e855",
+          "published_at": "2024-11-25T14:00:56.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "eknj5_0tF2s",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6720dcc84be15469e70e6fac",
+          "published_at": "2024-10-29T13:00:48.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472159949
   },
   "1064213": {
     "id": 1064213,
@@ -929,8 +3165,9 @@
       "Karren Karagulian",
       "Vache Tovmasyan"
     ],
-    "trailerKey": "8m6UrWMl18M",
+    "trailerKey": "6CkwhiXbDnU",
     "trailerKeys": [
+      "6CkwhiXbDnU",
       "8m6UrWMl18M",
       "PLhZ8tyVMSc",
       "p1HxTmV5i7c",
@@ -953,7 +3190,159 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574989
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Dal 20 febbraio al cinema",
+          "key": "nKq-ZLS69yc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67aa7d427c9910814f9b8cbc",
+          "published_at": "2025-01-31T17:01:01.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Trailer Ufficiale",
+          "key": "6CkwhiXbDnU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "66ed88d1184657008efe0ebb",
+          "published_at": "2024-09-20T14:04:13.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Anora is the name on everyone's lips 💋",
+          "key": "j0Rr_t54b6E",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676687371b06c5f28b74ba26",
+          "published_at": "2024-10-28T16:26:26.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer #2",
+          "key": "8m6UrWMl18M",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6706a89844265c435978511e",
+          "published_at": "2024-10-09T15:59:15.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official International Trailer 1",
+          "key": "PLhZ8tyVMSc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "66e30d5d9013fe872223a244",
+          "published_at": "2024-09-12T15:00:29.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Redband Trailer",
+          "key": "p1HxTmV5i7c",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "669548b51f30c43eca1bc06f",
+          "published_at": "2024-07-15T16:02:25.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Greenband Trailer",
+          "key": "vgrXTvL_l_c",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "669548a08632f9718a059a58",
+          "published_at": "2024-07-15T16:02:21.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Anora is the name on everyone's lips 💋",
+          "key": "j0Rr_t54b6E",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676687371b06c5f28b74ba26",
+          "published_at": "2024-10-28T16:26:26.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer #2",
+          "key": "8m6UrWMl18M",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6706a89844265c435978511e",
+          "published_at": "2024-10-09T15:59:15.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official International Trailer 1",
+          "key": "PLhZ8tyVMSc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "66e30d5d9013fe872223a244",
+          "published_at": "2024-09-12T15:00:29.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Redband Trailer",
+          "key": "p1HxTmV5i7c",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "669548b51f30c43eca1bc06f",
+          "published_at": "2024-07-15T16:02:25.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Greenband Trailer",
+          "key": "vgrXTvL_l_c",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "669548a08632f9718a059a58",
+          "published_at": "2024-07-15T16:02:21.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472159618
   },
   "1092936": {
     "id": 1092936,
@@ -994,7 +3383,51 @@
       }
     ],
     "tagline": "Benvenuti",
-    "_cachedAt": 1777227574906
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "La valle dei sorrisi - Trailer ufficiale - Dal 17 settembre al cinema",
+          "key": "lv9zqWPBnuA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "687f8ee4cd0a0d7884f770a7",
+          "published_at": "2025-07-22T10:51:05.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The Holy Boy | Official Trailer",
+          "key": "I1efDwrKCh8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "687f864428a6b89656d99727",
+          "published_at": "2025-07-21T15:56:17.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The Holy Boy | Official Trailer",
+          "key": "I1efDwrKCh8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "687f864428a6b89656d99727",
+          "published_at": "2025-07-21T15:56:17.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472158731
   },
   "1143973": {
     "id": 1143973,
@@ -1026,7 +3459,25 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574612
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "IL MAESTRO - Trailer Ufficiale",
+          "key": "Jg-dhKCOPZo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68d51ca83d7be6582359d458",
+          "published_at": "2025-09-25T09:00:09.000Z"
+        }
+      ],
+      "en": [],
+      "original": []
+    },
+    "_cachedAt": 1777472160456
   },
   "1193128": {
     "id": 1193128,
@@ -1048,7 +3499,10 @@
     "trailerKey": "VvGvWHHjK2o",
     "trailerKeys": [
       "VvGvWHHjK2o",
-      "sAWwT2ENK_c"
+      "sAWwT2ENK_c",
+      "vdvpueYg-rA",
+      "US2xPAHEiLU",
+      "1Aefk5Mda7M"
     ],
     "rating": "18+",
     "original_language": "ar",
@@ -1063,7 +3517,254 @@
       }
     ],
     "tagline": "Based on 14 million true stories.",
-    "_cachedAt": 1777227574784
+    "multiLangVideos": {
+      "it": [],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The Least Of These",
+          "key": "vdvpueYg-rA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6995b9a30889e168ad2b01fc",
+          "published_at": "2026-02-17T18:00:59.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "A Must See Movie This Winter",
+          "key": "US2xPAHEiLU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6968e7315c6bcb4a10078c8e",
+          "published_at": "2026-01-15T03:00:41.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "We're all strangers, but we're all connected",
+          "key": "1Aefk5Mda7M",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6965741c00bc45745190da62",
+          "published_at": "2026-01-12T16:00:02.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "If You Get Caught, That's Not My Problem",
+          "key": "_A2iAqvatOc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6965743ad53fa1eb22d8cc5f",
+          "published_at": "2026-01-11T21:00:46.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Don't Miss I Was a Stranger",
+          "key": "OaYIpXiJEn8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6962d9725fb5c00fd65967c9",
+          "published_at": "2026-01-10T17:00:42.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Now In Theaters",
+          "key": "VbsuXqL09S0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6962d987c78aae806fd1506d",
+          "published_at": "2026-01-09T17:00:52.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "What Guarantees They Make It Safely?",
+          "key": "NsCrv0y9YWQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "695649ad2b91190cb2e420b5",
+          "published_at": "2025-12-29T23:23:24.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer 2",
+          "key": "VvGvWHHjK2o",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "693b3bfb647d11cc03c3bad5",
+          "published_at": "2025-12-11T16:00:01.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Fourteen Million True Stories Of Survival",
+          "key": "NWo5AaoSq1M",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69468ade25905827412fb6c8",
+          "published_at": "2025-12-09T23:00:39.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "sAWwT2ENK_c",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "68cd986cddf045e02b97cdf5",
+          "published_at": "2025-09-18T20:00:02.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The Least Of These",
+          "key": "vdvpueYg-rA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6995b9a30889e168ad2b01fc",
+          "published_at": "2026-02-17T18:00:59.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "A Must See Movie This Winter",
+          "key": "US2xPAHEiLU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6968e7315c6bcb4a10078c8e",
+          "published_at": "2026-01-15T03:00:41.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "We're all strangers, but we're all connected",
+          "key": "1Aefk5Mda7M",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6965741c00bc45745190da62",
+          "published_at": "2026-01-12T16:00:02.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "If You Get Caught, That's Not My Problem",
+          "key": "_A2iAqvatOc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6965743ad53fa1eb22d8cc5f",
+          "published_at": "2026-01-11T21:00:46.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Don't Miss I Was a Stranger",
+          "key": "OaYIpXiJEn8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6962d9725fb5c00fd65967c9",
+          "published_at": "2026-01-10T17:00:42.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Now In Theaters",
+          "key": "VbsuXqL09S0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6962d987c78aae806fd1506d",
+          "published_at": "2026-01-09T17:00:52.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "What Guarantees They Make It Safely?",
+          "key": "NsCrv0y9YWQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "695649ad2b91190cb2e420b5",
+          "published_at": "2025-12-29T23:23:24.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer 2",
+          "key": "VvGvWHHjK2o",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "693b3bfb647d11cc03c3bad5",
+          "published_at": "2025-12-11T16:00:01.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Fourteen Million True Stories Of Survival",
+          "key": "NWo5AaoSq1M",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69468ade25905827412fb6c8",
+          "published_at": "2025-12-09T23:00:39.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "sAWwT2ENK_c",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "68cd986cddf045e02b97cdf5",
+          "published_at": "2025-09-18T20:00:02.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472161124
   },
   "1220564": {
     "id": 1220564,
@@ -1085,8 +3786,10 @@
     "trailerKey": "9UfrzDKrhEc",
     "trailerKeys": [
       "9UfrzDKrhEc",
-      "Qm5Ri7ZuAWY",
-      "M53SBs1-qc8"
+      "HvtpsCBsZ8w",
+      "ih4_MCHrD44",
+      "UVPhVYIIlnU",
+      "o3OsEAkS0Wg"
     ],
     "rating": "18+",
     "original_language": "pt",
@@ -1105,7 +3808,267 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574629
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "L’Agente Segreto -  Il thriller politico più atteso dell’anno | Trailer ufficiale",
+          "key": "HvtpsCBsZ8w",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "697d0f29557e786d31ea0a9a",
+          "published_at": "2026-01-30T17:41:38.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Dive into Kleber Mendonça Filho's dizzying world of commotion & secrets. [Subtitled]",
+          "key": "ih4_MCHrD44",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69e29867c2e3cf51fb7c8087",
+          "published_at": "2026-04-17T13:00:40.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "High-stakes. [Subtitled]",
+          "key": "UVPhVYIIlnU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69e294b9cb51a8a6c8bedee2",
+          "published_at": "2026-04-16T11:00:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "★★★★★ across the board. [Subtitled]",
+          "key": "o3OsEAkS0Wg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69da1a613c54089db5026a5c",
+          "published_at": "2026-04-10T17:03:11.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Wagner Moura enters a cat-and-mouse hunt in Kleber Mendonça Filho’s THE SECRET AGENT. [Subtitled]",
+          "key": "XkscmgtXzNk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69c2fe99e5f490cdc7352e91",
+          "published_at": "2026-03-23T18:00:59.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "A Thank You Message from THE SECRET AGENT [Subtitled]",
+          "key": "jU2P_gZa_Go",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69a8cd25a2f37e97f933efd4",
+          "published_at": "2026-03-04T21:32:18.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Wagner Moura delivers a tour-de-force Oscar-nominated performance in THE SECRET AGENT. [Subtitled]",
+          "key": "XQb8EwF48JY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6999fa2e894239cb9cb287a7",
+          "published_at": "2026-02-21T18:00:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "★★★★★ \"This is one of the year’s best films, and one of the most distinctive\"- RogerEbert.com",
+          "key": "XfGIMve54G8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6996326c61504e9e8e3c8e10",
+          "published_at": "2026-02-18T19:00:39.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The party of the year.",
+          "key": "EDiX2xVbTLU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6992209da1f934a02c1aeeb6",
+          "published_at": "2026-02-15T18:00:34.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "9UfrzDKrhEc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68f118cda703f3def71e2254",
+          "published_at": "2025-10-16T16:00:14.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser Trailer [Subtitled]",
+          "key": "0nNAVGX8n7w",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68b0916d8f7c185c7ef399da",
+          "published_at": "2025-08-28T15:56:32.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Dive into Kleber Mendonça Filho's dizzying world of commotion & secrets. [Subtitled]",
+          "key": "ih4_MCHrD44",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69e29867c2e3cf51fb7c8087",
+          "published_at": "2026-04-17T13:00:40.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "High-stakes. [Subtitled]",
+          "key": "UVPhVYIIlnU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69e294b9cb51a8a6c8bedee2",
+          "published_at": "2026-04-16T11:00:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "★★★★★ across the board. [Subtitled]",
+          "key": "o3OsEAkS0Wg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69da1a613c54089db5026a5c",
+          "published_at": "2026-04-10T17:03:11.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Wagner Moura enters a cat-and-mouse hunt in Kleber Mendonça Filho’s THE SECRET AGENT. [Subtitled]",
+          "key": "XkscmgtXzNk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69c2fe99e5f490cdc7352e91",
+          "published_at": "2026-03-23T18:00:59.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "A Thank You Message from THE SECRET AGENT [Subtitled]",
+          "key": "jU2P_gZa_Go",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69a8cd25a2f37e97f933efd4",
+          "published_at": "2026-03-04T21:32:18.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Wagner Moura delivers a tour-de-force Oscar-nominated performance in THE SECRET AGENT. [Subtitled]",
+          "key": "XQb8EwF48JY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6999fa2e894239cb9cb287a7",
+          "published_at": "2026-02-21T18:00:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "★★★★★ \"This is one of the year’s best films, and one of the most distinctive\"- RogerEbert.com",
+          "key": "XfGIMve54G8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6996326c61504e9e8e3c8e10",
+          "published_at": "2026-02-18T19:00:39.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The party of the year.",
+          "key": "EDiX2xVbTLU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6992209da1f934a02c1aeeb6",
+          "published_at": "2026-02-15T18:00:34.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "9UfrzDKrhEc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68f118cda703f3def71e2254",
+          "published_at": "2025-10-16T16:00:14.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser Trailer [Subtitled]",
+          "key": "0nNAVGX8n7w",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68b0916d8f7c185c7ef399da",
+          "published_at": "2025-08-28T15:56:32.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777473634282
   },
   "1254808": {
     "id": 1254808,
@@ -1124,13 +4087,12 @@
       "Adrien Rouyard",
       "Antoine Besson"
     ],
-    "trailerKey": "qqmnGWhUaM8",
+    "trailerKey": "_AbW-q0_l70",
     "trailerKeys": [
-      "qqmnGWhUaM8",
+      "_AbW-q0_l70",
       "sRqWbsdACzg",
       "UufRzKVFseg",
-      "795BXtBR2u4",
-      "K-o8AsbQgwI"
+      "795BXtBR2u4"
     ],
     "rating": "18+",
     "original_language": "fr",
@@ -1149,7 +4111,99 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574646
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "NOUVELLE VAGUE  di Richard Linklater - Trailer ITA HD",
+          "key": "_AbW-q0_l70",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "698a2b619edf7f33c2cb0b55",
+          "published_at": "2026-02-09T11:01:20.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Trailer [Subtitled]",
+          "key": "sRqWbsdACzg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "693d9ee103e5caeb735dfbaa",
+          "published_at": "2025-11-27T12:39:47.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "UufRzKVFseg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68c03944ad3fc053b49bcaa4",
+          "published_at": "2025-09-09T12:00:00.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer [Subtitled]",
+          "key": "795BXtBR2u4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6828c971d5e676ea920bcf5c",
+          "published_at": "2025-05-17T07:29:23.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Trailer [Subtitled]",
+          "key": "sRqWbsdACzg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "693d9ee103e5caeb735dfbaa",
+          "published_at": "2025-11-27T12:39:47.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "UufRzKVFseg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68c03944ad3fc053b49bcaa4",
+          "published_at": "2025-09-09T12:00:00.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer [Subtitled]",
+          "key": "795BXtBR2u4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6828c971d5e676ea920bcf5c",
+          "published_at": "2025-05-17T07:29:23.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472159567
   },
   "1283320": {
     "id": 1283320,
@@ -1171,7 +4225,8 @@
     "trailerKey": "4cJL6vmYOeo",
     "trailerKeys": [
       "4cJL6vmYOeo",
-      "xUnNNwA4MiA"
+      "xUnNNwA4MiA",
+      "O-hgR7RC39c"
     ],
     "rating": "14+",
     "original_language": "en",
@@ -1182,7 +4237,86 @@
       }
     ],
     "tagline": "You're going to be just fine.",
-    "_cachedAt": 1777227574354
+    "multiLangVideos": {
+      "it": [],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Trailer #2",
+          "key": "O-hgR7RC39c",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68e10ba5cc96686ebd9ca2f9",
+          "published_at": "2025-10-02T22:40:58.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "4cJL6vmYOeo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68c1b690fdd786ebf99c1b32",
+          "published_at": "2025-09-10T16:00:39.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Trailer",
+          "key": "xUnNNwA4MiA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68adfb0bf362d15c3056b3f4",
+          "published_at": "2025-08-26T13:01:45.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Trailer #2",
+          "key": "O-hgR7RC39c",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68e10ba5cc96686ebd9ca2f9",
+          "published_at": "2025-10-02T22:40:58.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "4cJL6vmYOeo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68c1b690fdd786ebf99c1b32",
+          "published_at": "2025-09-10T16:00:39.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Trailer",
+          "key": "xUnNNwA4MiA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68adfb0bf362d15c3056b3f4",
+          "published_at": "2025-08-26T13:01:45.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160980
   },
   "1284460": {
     "id": 1284460,
@@ -1246,7 +4380,8 @@
     "trailerKey": "_PGGOPXvGq0",
     "trailerKeys": [
       "_PGGOPXvGq0",
-      "DzcxY4fpyh0"
+      "DzcxY4fpyh0",
+      "Ucmn6T9Z3lw"
     ],
     "rating": "T",
     "original_language": "en",
@@ -1257,7 +4392,86 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227575092
+    "multiLangVideos": {
+      "it": [],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official International Trailer",
+          "key": "_PGGOPXvGq0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "691f23769afeb8d0ad058582",
+          "published_at": "2025-11-20T14:01:08.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "DzcxY4fpyh0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68b7161dd2c74fd7e120136f",
+          "published_at": "2025-09-02T15:50:42.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser Trailer",
+          "key": "Ucmn6T9Z3lw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "688b928b118e7c6d3bb5b400",
+          "published_at": "2025-07-31T14:01:47.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official International Trailer",
+          "key": "_PGGOPXvGq0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "691f23769afeb8d0ad058582",
+          "published_at": "2025-11-20T14:01:08.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "DzcxY4fpyh0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68b7161dd2c74fd7e120136f",
+          "published_at": "2025-09-02T15:50:42.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser Trailer",
+          "key": "Ucmn6T9Z3lw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "688b928b118e7c6d3bb5b400",
+          "published_at": "2025-07-31T14:01:47.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160921
   },
   "1317149": {
     "id": 1317149,
@@ -1268,7 +4482,7 @@
     "logo_path": "/fNGB1ayJR6WsJdvpqdbNIa8p8L0.png",
     "release_date": "2025-09-22",
     "director": "Kirk Jones",
-    "runtime": 121,
+    "runtime": 120,
     "cast": [
       "Robert Aramayo",
       "Maxine Peake",
@@ -1280,7 +4494,9 @@
     "trailerKeys": [
       "10ynpduiRpM",
       "7vwC2GKi3iA",
-      "oeWqQN3snCU"
+      "oeWqQN3snCU",
+      "tTOWWYWFnLo",
+      "reyahMfpVS8"
     ],
     "rating": "14+",
     "original_language": "en",
@@ -1295,7 +4511,254 @@
       }
     ],
     "tagline": "I blink. I twitch. I jump. I click. I whistle. I shout.",
-    "_cachedAt": 1777227574680
+    "multiLangVideos": {
+      "it": [],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "10ynpduiRpM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "69d232cc29a2b74c8faef770",
+          "published_at": "2026-03-26T16:50:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Red Band Trailer",
+          "key": "7vwC2GKi3iA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "69a9da36af089cfd57eabc08",
+          "published_at": "2026-03-05T17:09:00.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Now",
+          "key": "tTOWWYWFnLo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69131cfec5c5faff3aa0d1f6",
+          "published_at": "2025-11-11T10:18:56.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Fan Reviews",
+          "key": "reyahMfpVS8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68e966ca3a728a24324a9fbe",
+          "published_at": "2025-10-10T10:01:28.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Audiences love I SWEAR",
+          "key": "IyoU4uCiVMY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68e29e6f0ea2056e89bd94f9",
+          "published_at": "2025-10-05T10:00:34.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas October 10th",
+          "key": "BIiGynGuRPI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68de849ced58267a0d6a795d",
+          "published_at": "2025-10-02T13:44:19.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In cinemas October 10th",
+          "key": "BB7NExkWNxw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68d40bbf8d21d580956d53f4",
+          "published_at": "2025-09-24T08:38:54.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Starring Robert Aramayo as John Davidson",
+          "key": "Vykfg46Ue-Y",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68d26126ae30a3e9f6cd837f",
+          "published_at": "2025-09-23T08:51:12.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Based on a true story",
+          "key": "vi0jm4vvNfE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68ca8fac1f34e4916c1f217f",
+          "published_at": "2025-09-17T10:08:22.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "oeWqQN3snCU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "686fa15927620ab32fe808b0",
+          "published_at": "2025-07-10T11:00:10.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "10ynpduiRpM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "69d232cc29a2b74c8faef770",
+          "published_at": "2026-03-26T16:50:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Red Band Trailer",
+          "key": "7vwC2GKi3iA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "69a9da36af089cfd57eabc08",
+          "published_at": "2026-03-05T17:09:00.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Now",
+          "key": "tTOWWYWFnLo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69131cfec5c5faff3aa0d1f6",
+          "published_at": "2025-11-11T10:18:56.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Fan Reviews",
+          "key": "reyahMfpVS8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68e966ca3a728a24324a9fbe",
+          "published_at": "2025-10-10T10:01:28.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Audiences love I SWEAR",
+          "key": "IyoU4uCiVMY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68e29e6f0ea2056e89bd94f9",
+          "published_at": "2025-10-05T10:00:34.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas October 10th",
+          "key": "BIiGynGuRPI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68de849ced58267a0d6a795d",
+          "published_at": "2025-10-02T13:44:19.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In cinemas October 10th",
+          "key": "BB7NExkWNxw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68d40bbf8d21d580956d53f4",
+          "published_at": "2025-09-24T08:38:54.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Starring Robert Aramayo as John Davidson",
+          "key": "Vykfg46Ue-Y",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68d26126ae30a3e9f6cd837f",
+          "published_at": "2025-09-23T08:51:12.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Based on a true story",
+          "key": "vi0jm4vvNfE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68ca8fac1f34e4916c1f217f",
+          "published_at": "2025-09-17T10:08:22.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "oeWqQN3snCU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "686fa15927620ab32fe808b0",
+          "published_at": "2025-07-10T11:00:10.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160842
   },
   "1317288": {
     "id": 1317288,
@@ -1314,9 +4777,13 @@
       "Kevin O'Leary",
       "Tyler, The Creator"
     ],
-    "trailerKey": "s9gSuKaKcqM",
+    "trailerKey": "nEZq1gcyoD0",
     "trailerKeys": [
-      "s9gSuKaKcqM"
+      "nEZq1gcyoD0",
+      "s9gSuKaKcqM",
+      "kc753BQgPBY",
+      "pwE3ZG1kIqw",
+      "WzqTNmvS_TI"
     ],
     "rating": "14+",
     "original_language": "en",
@@ -1331,7 +4798,471 @@
       }
     ],
     "tagline": "Sogna in grande",
-    "_cachedAt": 1777227574570
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Marty Supreme | Trailer Italiano Ufficiale HD",
+          "key": "nEZq1gcyoD0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "693ab2e30c21a57667f62172",
+          "published_at": "2025-12-11T09:31:00.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Marty Supreme | Teaser italiano HD",
+          "key": "kc753BQgPBY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69300e879349df8556635b33",
+          "published_at": "2025-10-14T08:33:08.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere Now",
+          "key": "pwE3ZG1kIqw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "696f82281a1f5b6d40e0abf7",
+          "published_at": "2026-01-20T10:03:12.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere Now",
+          "key": "WzqTNmvS_TI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "696f8243f54aa7f4c99621c0",
+          "published_at": "2026-01-20T10:03:08.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere Now",
+          "key": "IlHtuDLJ9eQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "696aacf92b77454e7ce1f42d",
+          "published_at": "2026-01-16T14:35:32.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere Now",
+          "key": "0dRJFlDC9Tc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "696aa5350c07657776dd4016",
+          "published_at": "2026-01-16T14:35:27.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Promo",
+          "key": "tfTmjBKEuMI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6960043a49d4de0eca363c55",
+          "published_at": "2026-01-08T18:31:35.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas Boxing Day, Cinemas Everywhere January 1st",
+          "key": "MWsrVa8xupg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69451fcfe41379f2390726eb",
+          "published_at": "2025-12-18T10:08:36.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas Boxing Day, Cinemas Everywhere January 1st",
+          "key": "BqDz8N6CRU0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6945200dbba2840a8a811672",
+          "published_at": "2025-12-18T10:08:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas Boxing Day, Cinemas Everywhere January 1st",
+          "key": "29Z2JAJ0izw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6942e58af9a6e71287e8128a",
+          "published_at": "2025-12-16T17:56:18.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas Boxing Day, Cinemas Everywhere January 1st",
+          "key": "2IHDMovO25s",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6942e52d473aa155ac4e40ca",
+          "published_at": "2025-12-16T17:56:14.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Marty Supreme x NBA on ESPN - Official Promo",
+          "key": "-V83sCEy6N8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "693dc19024fc1bf7c499eba7",
+          "published_at": "2025-12-13T16:59:00.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas December 26th, Cinemas Everywhere January 1st",
+          "key": "oVje3kigLPM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "693af8b3ef131ac051cdf3d7",
+          "published_at": "2025-12-11T14:16:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas December 26th, Cinemas Everywhere January 1st",
+          "key": "zvGykFaBY20",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6939ee575b7641671bae9ee6",
+          "published_at": "2025-12-10T15:33:52.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas December 26th, Cinemas Everywhere January 1st",
+          "key": "02W2DDkBIvI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6939ee487a399df255af125c",
+          "published_at": "2025-12-10T15:33:43.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas December 26th, Cinemas Everywhere January 1st",
+          "key": "5MkkyO5rAHo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6939ee19c9aaea9ee31d2790",
+          "published_at": "2025-12-10T15:33:40.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas December 26th, Cinemas Everywhere January 1st",
+          "key": "CAXvtv6Nawk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6935aa2a40b88b118217b26d",
+          "published_at": "2025-12-04T11:34:37.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Promo",
+          "key": "uop5nXq-LNc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69307495c5f066445679a1d4",
+          "published_at": "2025-12-03T17:00:58.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "s9gSuKaKcqM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "691342cd0041954608a0d4f0",
+          "published_at": "2025-11-11T14:01:11.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser",
+          "key": "PI6-qKhzTt8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "689c8ce06c45426dd35d2227",
+          "published_at": "2025-08-13T12:57:00.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere Now",
+          "key": "pwE3ZG1kIqw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "696f82281a1f5b6d40e0abf7",
+          "published_at": "2026-01-20T10:03:12.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere Now",
+          "key": "WzqTNmvS_TI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "696f8243f54aa7f4c99621c0",
+          "published_at": "2026-01-20T10:03:08.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere Now",
+          "key": "IlHtuDLJ9eQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "696aacf92b77454e7ce1f42d",
+          "published_at": "2026-01-16T14:35:32.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas Everywhere Now",
+          "key": "0dRJFlDC9Tc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "696aa5350c07657776dd4016",
+          "published_at": "2026-01-16T14:35:27.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Promo",
+          "key": "tfTmjBKEuMI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6960043a49d4de0eca363c55",
+          "published_at": "2026-01-08T18:31:35.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas Boxing Day, Cinemas Everywhere January 1st",
+          "key": "MWsrVa8xupg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69451fcfe41379f2390726eb",
+          "published_at": "2025-12-18T10:08:36.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas Boxing Day, Cinemas Everywhere January 1st",
+          "key": "BqDz8N6CRU0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6945200dbba2840a8a811672",
+          "published_at": "2025-12-18T10:08:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas Boxing Day, Cinemas Everywhere January 1st",
+          "key": "29Z2JAJ0izw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6942e58af9a6e71287e8128a",
+          "published_at": "2025-12-16T17:56:18.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas Boxing Day, Cinemas Everywhere January 1st",
+          "key": "2IHDMovO25s",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6942e52d473aa155ac4e40ca",
+          "published_at": "2025-12-16T17:56:14.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Marty Supreme x NBA on ESPN - Official Promo",
+          "key": "-V83sCEy6N8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "693dc19024fc1bf7c499eba7",
+          "published_at": "2025-12-13T16:59:00.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas December 26th, Cinemas Everywhere January 1st",
+          "key": "oVje3kigLPM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "693af8b3ef131ac051cdf3d7",
+          "published_at": "2025-12-11T14:16:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas December 26th, Cinemas Everywhere January 1st",
+          "key": "zvGykFaBY20",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6939ee575b7641671bae9ee6",
+          "published_at": "2025-12-10T15:33:52.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas December 26th, Cinemas Everywhere January 1st",
+          "key": "02W2DDkBIvI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6939ee487a399df255af125c",
+          "published_at": "2025-12-10T15:33:43.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas December 26th, Cinemas Everywhere January 1st",
+          "key": "5MkkyO5rAHo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6939ee19c9aaea9ee31d2790",
+          "published_at": "2025-12-10T15:33:40.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Selected UK Cinemas December 26th, Cinemas Everywhere January 1st",
+          "key": "CAXvtv6Nawk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6935aa2a40b88b118217b26d",
+          "published_at": "2025-12-04T11:34:37.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Promo",
+          "key": "uop5nXq-LNc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69307495c5f066445679a1d4",
+          "published_at": "2025-12-03T17:00:58.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "s9gSuKaKcqM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "691342cd0041954608a0d4f0",
+          "published_at": "2025-11-11T14:01:11.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser",
+          "key": "PI6-qKhzTt8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "689c8ce06c45426dd35d2227",
+          "published_at": "2025-08-13T12:57:00.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777473443521
   },
   "1400381": {
     "id": 1400381,
@@ -1350,8 +5281,9 @@
       "Aimee Mann",
       "Rebecca Moore"
     ],
-    "trailerKey": "DRrcgLRX8Qc",
+    "trailerKey": "OoSVHPxsr_U",
     "trailerKeys": [
+      "OoSVHPxsr_U",
       "DRrcgLRX8Qc"
     ],
     "rating": "T",
@@ -1367,7 +5299,51 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227575127
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "IT’S NEVER OVER: JEFF BUCKLEY - al cinema solo il 16, 17 e 18 marzo - TRAILER",
+          "key": "OoSVHPxsr_U",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "69833c0383e3f06a1eded46e",
+          "published_at": "2026-02-03T14:00:12.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "DRrcgLRX8Qc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6877d9c1f7f33c30b9779a79",
+          "published_at": "2025-07-16T15:15:21.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "DRrcgLRX8Qc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6877d9c1f7f33c30b9779a79",
+          "published_at": "2025-07-16T15:15:21.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472159374
   },
   "1400782": {
     "id": 1400782,
@@ -1401,7 +5377,38 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227575024
+    "multiLangVideos": {
+      "it": [],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "fNp85HGJtoo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68d2d7d3b6c8bf2bb6ced0aa",
+          "published_at": "2025-09-23T14:00:00.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "fNp85HGJtoo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68d2d7d3b6c8bf2bb6ced0aa",
+          "published_at": "2025-09-23T14:00:00.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472159693
   },
   "1426432": {
     "id": 1426432,
@@ -1433,7 +5440,38 @@
       }
     ],
     "tagline": "Eroi di un Sogno",
-    "_cachedAt": 1777227574587
+    "multiLangVideos": {
+      "it": [],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Children of the stars | Teaser Trailer",
+          "key": "7m1LQuk-9sk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "696266b6ec738a0c47b54f68",
+          "published_at": "2026-01-01T16:00:06.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Children of the stars | Teaser Trailer",
+          "key": "7m1LQuk-9sk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "696266b6ec738a0c47b54f68",
+          "published_at": "2026-01-01T16:00:06.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777474123656
   },
   "1445363": {
     "id": 1445363,
@@ -1452,10 +5490,13 @@
       "Charlie Hodge",
       "Jerry Scheff"
     ],
-    "trailerKey": "2s_dCvUgOBI",
+    "trailerKey": "IHZqYVngmrA",
     "trailerKeys": [
+      "IHZqYVngmrA",
       "2s_dCvUgOBI",
-      "xsD6nCbQDcA"
+      "xsD6nCbQDcA",
+      "v9fEeCvCLJ8",
+      "ShF30-rbWrU"
     ],
     "rating": "T",
     "original_language": "en",
@@ -1470,14 +5511,226 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574745
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "EPiC: ELVIS PRESLEY IN CONCERT | Trailer Ufficiale",
+          "key": "IHZqYVngmrA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6980b8a9ef19ca5a40b98c25",
+          "published_at": "2026-01-15T16:00:00.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Time to dust off your concert fit - EPiC: Elvis Presley in Concert is back in IMAX now!",
+          "key": "v9fEeCvCLJ8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69b6fe0229f5a259b901fba2",
+          "published_at": "2026-03-14T19:00:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Graceland  👉 Vegas 👉 UK, Elvis has entered the building!",
+          "key": "ShF30-rbWrU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69a413da31b5ee4be6e2b58a",
+          "published_at": "2026-02-27T18:00:28.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "You + Me + Elvis",
+          "key": "MPlXSv7_doM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69a4142b9eb51793d01879ff",
+          "published_at": "2026-02-27T12:00:39.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Elvis finally performs in the UK!",
+          "key": "jKwTCKR95Cs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69a18eb57fc29a2198e2e03c",
+          "published_at": "2026-02-24T12:01:23.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "You've never seen Elvis like this before!",
+          "key": "FFNcUYNzblg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69a18b7b01ec6cfbc413dc6a",
+          "published_at": "2026-02-24T12:00:24.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Get moving in IMAX",
+          "key": "PalDl9XNjn8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69977e593a594361b0ab8e32",
+          "published_at": "2026-02-17T20:00:36.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "2s_dCvUgOBI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6966bd940cf6956f1ff810c6",
+          "published_at": "2026-01-13T17:00:09.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser Trailer",
+          "key": "xsD6nCbQDcA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "69385a367c53c9e550f7cf8c",
+          "published_at": "2025-12-09T16:59:00.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Time to dust off your concert fit - EPiC: Elvis Presley in Concert is back in IMAX now!",
+          "key": "v9fEeCvCLJ8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69b6fe0229f5a259b901fba2",
+          "published_at": "2026-03-14T19:00:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Graceland  👉 Vegas 👉 UK, Elvis has entered the building!",
+          "key": "ShF30-rbWrU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69a413da31b5ee4be6e2b58a",
+          "published_at": "2026-02-27T18:00:28.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "You + Me + Elvis",
+          "key": "MPlXSv7_doM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69a4142b9eb51793d01879ff",
+          "published_at": "2026-02-27T12:00:39.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Elvis finally performs in the UK!",
+          "key": "jKwTCKR95Cs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69a18eb57fc29a2198e2e03c",
+          "published_at": "2026-02-24T12:01:23.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "You've never seen Elvis like this before!",
+          "key": "FFNcUYNzblg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69a18b7b01ec6cfbc413dc6a",
+          "published_at": "2026-02-24T12:00:24.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Get moving in IMAX",
+          "key": "PalDl9XNjn8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "69977e593a594361b0ab8e32",
+          "published_at": "2026-02-17T20:00:36.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "2s_dCvUgOBI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6966bd940cf6956f1ff810c6",
+          "published_at": "2026-01-13T17:00:09.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser Trailer",
+          "key": "xsD6nCbQDcA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "69385a367c53c9e550f7cf8c",
+          "published_at": "2025-12-09T16:59:00.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160628
   },
   "1480382": {
     "id": 1480382,
     "title": "La voce di Hind Rajab",
     "overview": "29 gennaio 2024. I volontari della Mezzaluna Rossa ricevono una chiamata di emergenza. Una bambina di sei anni è intrappolata in un’auto sotto attacco a Gaza, e implora di essere salvata. Mentre cercano di tenerla al telefono fanno tutto il possibile per farle arrivare un’ambulanza. Il suo nome era Hind Rajab.",
     "poster_path": "/dxMJK7Ugfs7M0Ac9qFIHsmeX3k2.jpg",
-    "backdrop_path": "/kdUmu49P3uv49ljOU2lo6ticFz.jpg",
+    "backdrop_path": "/wCwda6d7dispc8bW7ayzOmS17Kv.jpg",
     "logo_path": "/ds7Kevb1Xaskpnar9UFzrCjEFFV.png",
     "release_date": "2025-09-10",
     "director": "Kaouther Ben Hania",
@@ -1491,7 +5744,8 @@
     ],
     "trailerKey": "JkeKrG0YONQ",
     "trailerKeys": [
-      "JkeKrG0YONQ"
+      "JkeKrG0YONQ",
+      "wXDxhHwpExk"
     ],
     "rating": "10+",
     "original_language": "ar",
@@ -1506,6 +5760,50 @@
       }
     ],
     "tagline": "",
-    "_cachedAt": 1777227574532
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "LA VOCE DI HIND RAJAB | Teaser italiano ufficiale HD",
+          "key": "wXDxhHwpExk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "68ce92fecec8440247d41209",
+          "published_at": "2025-09-19T10:25:00.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "JkeKrG0YONQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6925db61df1ecfb3b2371189",
+          "published_at": "2025-11-25T14:59:30.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "JkeKrG0YONQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6925db61df1ecfb3b2371189",
+          "published_at": "2025-11-25T14:59:30.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777472160486
   }
 }

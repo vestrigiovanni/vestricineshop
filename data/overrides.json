@@ -7,6 +7,29 @@
     "manualSoldOut": true,
     "tmdbId": "701387"
   },
+  "760329": {
+    "customTitle": "The Smashing Machine",
+    "customOverview": "Il lottatore di arti marziali miste Mark Kerr lotta contro la dipendenza, contro la sua ossessione per la vittoria e anche contro l'amore, mentre attraversa il suo periodo di massimo splendore nella promozione più importante e competitiva della sua disciplina, la UFC.",
+    "versionLanguage": "Lingua Originale",
+    "subtitles": "Nessuno",
+    "customPosterPath": "/q27WPifVszkPRjUsGcuqW1XlIXu.jpg",
+    "customBackdropPath": "/5ZI8XCZKtE24zvNOpmrWa9599c9.jpg",
+    "customDirector": [
+      "Benny Safdie"
+    ],
+    "customCast": [
+      "Dwayne Johnson",
+      "Emily Blunt",
+      "Ryan Bader",
+      "Bas Rutten",
+      "Олександр Усик"
+    ],
+    "customRoomName": "SALA CA GRANDA",
+    "customRating": "10+",
+    "manualSoldOut": false,
+    "customTrailerUrl": "https://www.youtube.com/watch?v=vZxK7CSMOPw",
+    "tmdbId": "760329"
+  },
   "1020006": {
     "customTitle": "Priscilla",
     "customOverview": "Quando l’adolescente Priscilla Beaulieu incontra a una festa Elvis Presley, l’uomo, che è già una superstar del rock’n’roll, nel privato le si rivela come qualcuno di completamente diverso: un amore travolgente, un alleato nella solitudine e un amico vulnerabile. Attraverso gli occhi di Priscilla, Sofia Coppola ci racconta il lato nascosto di un grande mito americano, nel lungo corteggiamento e nel matrimonio turbolento con Elvis. Una storia iniziata in una base dell’esercito tedesco e proseguita nella sua tenuta da sogno a Graceland. Una storia fatta di amore, sogni e fama.",
@@ -42,6 +65,29 @@
     "customTrailerUrl": "2jzXHW6Qe70",
     "tmdbId": "1033148"
   },
+  "1220564": {
+    "customTitle": "L'agente segreto",
+    "customOverview": "Brasile, 1977. Marcelo è in fuga. Raggiunge Recife durante la settimana del Carnevale per riabbracciare il figlio, ma scopre presto che la città non è l’ameno rifugio che aveva immaginato: sotto la superficie festosa pulsa una realtà soffocante, carica di tensione, violenza e pericolo.",
+    "versionLanguage": "Lingua Originale",
+    "subtitles": "Nessuno",
+    "customPosterPath": "/hQWzqAQ798fBOzQZ7cuLjTOLqCI.jpg",
+    "customBackdropPath": "/pKwwcqT5wI9Uc0Gnp9EiNmBWbM5.jpg",
+    "customDirector": [
+      "Kleber Mendonça Filho"
+    ],
+    "customCast": [
+      "Wagner Moura",
+      "Tânia Maria",
+      "Alice Carvalho",
+      "Maria Fernanda Cândido",
+      "Gabriel Leone"
+    ],
+    "customRoomName": "SALA CA GRANDA",
+    "customRating": "18+",
+    "manualSoldOut": false,
+    "customTrailerUrl": "https://www.youtube.com/watch?v=0nNAVGX8n7w",
+    "tmdbId": "1220564"
+  },
   "1284460": {
     "manualSoldOut": true,
     "tmdbId": "1284460"
@@ -51,11 +97,27 @@
     "customOverview": "Marty Mauser (Timothée Chalamet) è un venditore di scarpe con un’irrefrenabile ossessione per il ping pong che si muove nella New York degli anni ’50 fra truffe, scommesse, passioni proibite e sogni di gloria. Un’esistenza rocambolesca per un personaggio larger than life, eccentrico e ambiziosissimo, smodato e leggendario.",
     "versionLanguage": "Lingua Originale",
     "subtitles": "Nessuno",
-    "customPosterPath": "/i0Mr9XFc0KqtWDODSRFg5kl0NNF.jpg",
+    "customPosterPath": "/5wcW4C3ZdIOXBU14bjpD98CbvgO.jpg",
     "customBackdropPath": "/ncFeMHXI3c5dvroM89JxyH5ctXl.jpg",
-    "customRoomName": "",
+    "customRoomName": "SALA CA GRANDA",
     "customRating": "14+",
     "manualSoldOut": false,
-    "tmdbId": "1317288"
+    "tmdbId": "1317288",
+    "customDirector": [
+      "Josh Safdie"
+    ],
+    "customCast": [
+      "Timothée Chalamet",
+      "Gwyneth Paltrow",
+      "Odessa A'zion",
+      "Kevin O'Leary",
+      "Tyler",
+      "The Creator"
+    ],
+    "customTrailerUrl": "https://www.youtube.com/watch?v=PI6-qKhzTt8"
+  },
+  "1426432": {
+    "customBackdropPath": "/92iirSDCytedK9Y69HMyqZxZnox.jpg",
+    "tmdbId": "1426432"
   }
 }

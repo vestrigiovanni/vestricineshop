@@ -14,6 +14,7 @@ export interface MovieOverride {
   subtitles?: string;      // e.g., "Sub ITA"
   customRoomName?: string;
   customTrailerUrl?: string;
+  customTrailerTitle?: string;
 }
 
 export function getOverrides(): Record<string, MovieOverride> {

@@ -1,69 +1,87 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { adminGetOverrides, adminSaveOverride, adminDeleteOverride, adminGetProgrammedMovies, adminGetMovieById, adminClearMovieMetadata, adminSyncSoldOutStatus, adminSearchMovies } from '@/actions/adminActions';
-import { searchMovies, MovieItem, getTMDBImageUrl } from '@/services/tmdb';
+import { useState, useEffect, useCallback, useTransition } from 'react';
+import {
+  adminGetOverrides,
+  adminSaveOverride,
+  adminDeleteOverride,
+  adminGetProgrammedMovies,
+  adminGetMovieById,
+  adminClearMovieMetadata,
+  adminSyncSoldOutStatus,
+  adminSearchMovies,
+} from '@/actions/adminActions';
+import { getTMDBImageUrl } from '@/services/tmdb';
 import Image from 'next/image';
-import { Save, Trash2, Search, Edit3, X, Info, Globe, Languages, Image as ImageIcon, RefreshCw, Play } from 'lucide-react';
+import {
+  Save, Trash2, Search, Edit3, X, Info, Globe, Languages,
+  Image as ImageIcon, RefreshCw, Play, CheckCircle2, Film,
+  AlertTriangle, Loader2, ChevronRight, Star, Sparkles, LayoutGrid
+} from 'lucide-react';
 import styles from './MoviesControl.module.css';
 import ImagePickerModal from './ImagePickerModal';
 import TrailerPickerModal from './TrailerPickerModal';
+import VisualControlCenter from './VisualControlCenter';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
+
+const EMPTY_FORM = {
+  customTitle: '',
+  customOverview: '',
+  versionLanguage: 'Lingua Originale',
+  subtitles: 'Nessuno',
+  customPosterPath: '',
+  customBackdropPath: '',
+  customDirector: '',
+  customCast: '',
+  customRoomName: 'SALA CA GRANDA',
+  customRating: '',
+  manualSoldOut: false,
+  customTrailerUrl: '',
+};
 
 export default function MoviesControlPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<MovieItem[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [overrides, setOverrides] = useState<Record<string, any>>({});
   const [programmedMovies, setProgrammedMovies] = useState<any[]>([]);
-  const [editingMovie, setEditingMovie] = useState<MovieItem | null>(null);
+  const [editingMovie, setEditingMovie] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
-  const [formState, setFormState] = useState({
-    customTitle: '',
-    customOverview: '',
-    versionLanguage: 'Lingua Originale',
-    subtitles: 'Nessuno',
-    customPosterPath: '',
-    customBackdropPath: '',
-    customDirector: '',
-    customCast: '',
-    customRoomName: '',
-    customRating: '',
-    manualSoldOut: false,
-    customTrailerUrl: ''
-  });
-  const [pickerState, setPickerState] = useState<{ isOpen: boolean; type: 'poster' | 'backdrop' | 'trailer' }>({
-    isOpen: false,
-    type: 'poster'
-  });
+  const [searching, setSearching] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [formState, setFormState] = useState({ ...EMPTY_FORM });
+  const [pickerState, setPickerState] = useState<{
+    isOpen: boolean; type: 'poster' | 'backdrop' | 'trailer';
+  }>({ isOpen: false, type: 'poster' });
+  const [isPending, startTransition] = useTransition();
+  const [isVisualCenterOpen, setIsVisualCenterOpen] = useState(false);
 
-  useEffect(() => {
-    loadOverrides();
-  }, []);
-
-  const loadOverrides = async () => {
+  const loadData = useCallback(async () => {
     const [ovData, progData] = await Promise.all([
       adminGetOverrides(),
-      adminGetProgrammedMovies()
+      adminGetProgrammedMovies(),
     ]);
     setOverrides(ovData);
     setProgrammedMovies(progData);
-  };
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-    setLoading(true);
+    setSearching(true);
     const results = await adminSearchMovies(searchQuery);
     setSearchResults(results);
-    setLoading(false);
+    setSearching(false);
   };
 
-  const openEditor = (movie: MovieItem) => {
-    const override = overrides[movie.id.toString()] || {};
+  const openEditor = (movie: any) => {
+    const override = overrides[movie.id?.toString() || movie.tmdbId] || {};
     setEditingMovie(movie);
+    setSaveSuccess(false);
     setFormState({
-      customTitle: override.customTitle || movie.title,
-      customOverview: override.customOverview || movie.overview,
+      customTitle: override.customTitle || movie.title || '',
+      customOverview: override.customOverview || movie.overview || '',
       versionLanguage: override.versionLanguage || 'Lingua Originale',
       subtitles: override.subtitles || 'Nessuno',
       customPosterPath: override.customPosterPath || movie.poster_path || '',
@@ -73,7 +91,7 @@ export default function MoviesControlPage() {
       customRoomName: override.customRoomName || 'SALA CA GRANDA',
       customRating: override.customRating || movie.rating || '',
       manualSoldOut: override.manualSoldOut || false,
-      customTrailerUrl: override.customTrailerUrl || movie.trailerKey || ''
+      customTrailerUrl: override.customTrailerUrl || (movie.trailerKey ? `https://www.youtube.com/watch?v=${movie.trailerKey}` : ''),
     });
   };
 
@@ -81,10 +99,8 @@ export default function MoviesControlPage() {
     setLoading(true);
     try {
       const movie = await adminGetMovieById(tmdbId);
-      if (movie) {
-        openEditor(movie);
-      }
-    } catch (e) {
+      if (movie) openEditor(movie);
+    } catch {
       alert('Errore nel recupero dettagli film');
     } finally {
       setLoading(false);
@@ -94,218 +110,310 @@ export default function MoviesControlPage() {
   const handleSave = async () => {
     if (!editingMovie) return;
     setLoading(true);
-    const savePayload = {
+    setSaveSuccess(false);
+    const id = editingMovie.id?.toString() || editingMovie.tmdbId;
+    const payload = {
       ...formState,
-      customDirector: formState.customDirector ? formState.customDirector.split(',').map(s => s.trim()) : undefined,
-      customCast: formState.customCast ? formState.customCast.split(',').map(s => s.trim()) : undefined
+      customDirector: formState.customDirector
+        ? formState.customDirector.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : undefined,
+      customCast: formState.customCast
+        ? formState.customCast.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : undefined,
     };
-    await adminSaveOverride(editingMovie.id.toString(), savePayload);
-    await loadOverrides();
-    setEditingMovie(null);
+    await adminSaveOverride(id, payload);
+    // Re-fetch overrides immediately so the UI reflects the change
+    await loadData();
+    setSaveSuccess(true);
     setLoading(false);
+    setTimeout(() => setSaveSuccess(false), 3000);
   };
 
   const handleDelete = async (tmdbId: string) => {
-    if (!confirm('Sei sicuro di voler eliminare gli override per questo film?')) return;
+    if (!confirm('Eliminare gli override per questo film?')) return;
     setLoading(true);
     await adminDeleteOverride(tmdbId);
-    await loadOverrides();
+    await loadData();
+    if (editingMovie && (editingMovie.id?.toString() === tmdbId || editingMovie.tmdbId === tmdbId)) {
+      setEditingMovie(null);
+    }
     setLoading(false);
-  };
-
-  const openPicker = (type: 'poster' | 'backdrop') => {
-    if (!editingMovie) return;
-    setPickerState({ isOpen: true, type });
   };
 
   const handleRefreshMetadata = async () => {
     if (!editingMovie) return;
-    if (!confirm('Vuoi ricaricare i metadati da TMDB? Questo cancellerà la cache locale per questo film.')) return;
+    if (!confirm('Ricaricare i metadati da TMDB? La cache locale verrà cancellata.')) return;
     setLoading(true);
-    await adminClearMovieMetadata(editingMovie.id.toString());
-    // After clearing, we fetch again to rebuild cache
-    const freshMovie = await adminGetMovieById(editingMovie.id.toString());
-    if (freshMovie) {
-      setEditingMovie(freshMovie);
-      // We don't overwrite the form state automatically to avoid losing unsaved manual overrides
-      // but the cache is now fresh for the next page load.
-    }
+    const id = editingMovie.id?.toString() || editingMovie.tmdbId;
+    await adminClearMovieMetadata(id);
+    const freshMovie = await adminGetMovieById(id);
+    if (freshMovie) setEditingMovie(freshMovie);
     setLoading(false);
-    alert('Metadata resettati con successo. Al prossimo caricamento pagina verranno ricalcolati.');
   };
 
   const handleImageSelect = (path: string) => {
     if (pickerState.type === 'poster') {
-      setFormState({ ...formState, customPosterPath: path });
+      setFormState(f => ({ ...f, customPosterPath: path }));
     } else if (pickerState.type === 'backdrop') {
-      setFormState({ ...formState, customBackdropPath: path });
-    } else if (pickerState.type === 'trailer') {
-      setFormState({ ...formState, customTrailerUrl: path });
+      setFormState(f => ({ ...f, customBackdropPath: path }));
+    } else {
+      setFormState(f => ({ ...f, customTrailerUrl: path }));
     }
   };
 
   const handleSyncSoldOut = async () => {
-    if (!confirm('Vuoi controllare tutte le quote su Pretix e aggiornare gli stati Sold Out nel database? Questa operazione potrebbe richiedere alcuni secondi.')) return;
+    if (!confirm('Controllare tutte le quote su Pretix e aggiornare gli stati Sold Out?')) return;
     setSyncing(true);
     try {
       await adminSyncSoldOutStatus();
-      await loadOverrides();
-      alert('Sincronizzazione completata con successo!');
-    } catch (e) {
+      await loadData();
+      alert('Sincronizzazione completata!');
+    } catch {
       alert('Errore durante la sincronizzazione');
     } finally {
       setSyncing(false);
     }
   };
 
+  const editingId = editingMovie?.id?.toString() || editingMovie?.tmdbId;
+  const posterUrl = formState.customPosterPath
+    ? (formState.customPosterPath.startsWith('/')
+        ? getTMDBImageUrl(formState.customPosterPath, 'w342')
+        : formState.customPosterPath)
+    : null;
+
   return (
     <div className={styles.container}>
+      {/* ── HEADER ─────────────────────────────────────────────── */}
       <header className={styles.header}>
         <div>
-          <h1 className={styles.title}>Torre di Controllo: Movie Overrides</h1>
-          <p className={styles.subtitle}>Gestisci i metadati, la lingua e le versioni dei film indipendentemente da TMDB.</p>
+          <div className={styles.headerBadge}><Film size={14} /> Torre di Controllo</div>
+          <h1 className={styles.title}>Movie Override System</h1>
+          <p className={styles.subtitle}>
+            Personalizza metadati, poster, trailer e versione linguistica indipendentemente da TMDB.
+          </p>
         </div>
-        <button 
-          onClick={handleSyncSoldOut} 
-          className={styles.btnSync} 
-          disabled={syncing}
-          title="Controlla disponibilità quote su Pretix"
-        >
-          <RefreshCw size={18} className={syncing ? styles.spin : ''} />
-          {syncing ? 'Sincronizzazione...' : 'Sincronizza Sold Out'}
-        </button>
+        <div className={styles.headerButtons}>
+          <button
+            onClick={() => setIsVisualCenterOpen(true)}
+            className={styles.btnVisualCenter}
+            title="Gestione rapida estetica film"
+          >
+            <Sparkles size={16} />
+            Cambia meta dati velocemente
+          </button>
+          <button
+            onClick={handleSyncSoldOut}
+            className={styles.btnSync}
+            disabled={syncing}
+            title="Controlla disponibilità su Pretix"
+          >
+            <RefreshCw size={16} className={syncing ? styles.spin : ''} />
+            {syncing ? 'Sincronizzazione…' : 'Sync Sold Out'}
+          </button>
+        </div>
       </header>
 
       <div className={styles.mainGrid}>
-        {/* Left Column: Search & Current Overrides */}
+        {/* ── LEFT COLUMN ────────────────────────────────────────── */}
         <div className={styles.leftCol}>
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}><Edit3 size={18} /> Film Programmati sul Sito</h2>
-            <p className={styles.sectionDesc}>Clicca su un film per sovrascrivere i suoi dati.</p>
+
+          {/* Programmed Movies */}
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <Film size={16} className={styles.cardIcon} />
+              <span>Film in Programmazione</span>
+              <span className={styles.countBadge}>{programmedMovies.length}</span>
+            </div>
+            <p className={styles.cardDesc}>Clicca su un film per aprire l'editor.</p>
             <div className={styles.programmedList}>
               {programmedMovies.length === 0 ? (
-                <p className={styles.emptyState}>Nessun film programmato al momento.</p>
+                <div className={styles.emptyState}>
+                  <Info size={32} strokeWidth={1} />
+                  <p>Nessun film programmato.</p>
+                </div>
               ) : (
-                programmedMovies.map(movie => (
-                  <div key={movie.tmdbId} className={styles.programmedRow} onClick={() => handleSelectProgrammed(movie.tmdbId)}>
-                    <div className={styles.programmedInfo}>
-                      <strong>{movie.title}</strong>
-                      <span>Ultima proiezione: {new Date(movie.lastDate).toLocaleDateString('it-IT')}</span>
+                programmedMovies.map(movie => {
+                  const isEditing = editingId === movie.tmdbId;
+                  const hasOverride = !!overrides[movie.tmdbId];
+                  return (
+                    <div
+                      key={movie.tmdbId}
+                      className={`${styles.programmedRow} ${isEditing ? styles.programmedRowActive : ''}`}
+                      onClick={() => handleSelectProgrammed(movie.tmdbId)}
+                    >
+                      <div className={styles.programmedInfo}>
+                        <strong>{movie.title}</strong>
+                        <span>Prossima: {new Date(movie.lastDate).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}</span>
+                      </div>
+                      <div className={styles.programmedRight}>
+                        {hasOverride && <span className={styles.overrideBadge}>✓ Override</span>}
+                        <ChevronRight size={16} className={styles.chevron} />
+                      </div>
                     </div>
-                    {overrides[movie.tmdbId] && <span className={styles.overrideBadge}>Override Attivo</span>}
-                    <Edit3 size={14} className={styles.editIcon} />
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </section>
 
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}><Search size={18} /> Cerca Altri Film su TMDB</h2>
+          {/* Search TMDB */}
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <Search size={16} className={styles.cardIcon} />
+              <span>Cerca Film su TMDB</span>
+            </div>
             <div className={styles.searchBar}>
-              <input 
-                type="text" 
-                value={searchQuery} 
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cerca per titolo..."
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                placeholder="Titolo del film…"
                 className={styles.input}
               />
-              <button onClick={handleSearch} className={styles.btnPrimary} disabled={loading}>
-                {loading ? '...' : 'Cerca'}
+              <button onClick={handleSearch} className={styles.btnSearch} disabled={searching}>
+                {searching ? <Loader2 size={16} className={styles.spin} /> : <Search size={16} />}
               </button>
             </div>
-
-            <div className={styles.resultsGrid}>
-              {searchResults.map(movie => (
-                <div key={movie.id} className={styles.movieCard} onClick={() => openEditor(movie)}>
-                  <div className={styles.posterThumb}>
-                    {movie.poster_path ? (
-                      <Image src={getTMDBImageUrl(movie.poster_path, 'w185')!} alt={movie.title} fill />
-                    ) : (
-                      <div className={styles.noPoster}>No Img</div>
-                    )}
+            {searchResults.length > 0 && (
+              <div className={styles.resultsGrid}>
+                {searchResults.map(movie => (
+                  <div
+                    key={movie.id}
+                    className={`${styles.movieCard} ${editingId === movie.id?.toString() ? styles.movieCardActive : ''}`}
+                    onClick={() => openEditor(movie)}
+                    title={movie.title}
+                  >
+                    <div className={styles.posterThumb}>
+                      {movie.poster_path ? (
+                        <Image
+                          src={getTMDBImageUrl(movie.poster_path, 'w185')!}
+                          alt={movie.title}
+                          fill
+                          sizes="120px"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div className={styles.noPoster}><Film size={24} /></div>
+                      )}
+                      {overrides[movie.id?.toString()] && (
+                        <div className={styles.overlayCk}><CheckCircle2 size={16} /></div>
+                      )}
+                    </div>
+                    <div className={styles.movieCardInfo}>
+                      <span className={styles.movieCardTitle}>{movie.title}</span>
+                      <span className={styles.movieCardYear}>{movie.release_date?.slice(0, 4)}</span>
+                    </div>
                   </div>
-                  <div className={styles.movieInfo}>
-                    <h3>{movie.title}</h3>
-                    <p>{movie.release_date?.split('-')[0]}</p>
-                    {overrides[movie.id.toString()] && <span className={styles.overrideBadge}>Override Attivo</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
 
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}><Edit3 size={18} /> Override Attivi</h2>
-            <div className={styles.overridesList}>
-              {Object.keys(overrides).length === 0 ? (
-                <p className={styles.emptyState}>Nessun override configurato.</p>
-              ) : (
-                Object.entries(overrides).map(([id, ov]: [string, any]) => (
+          {/* Active Overrides */}
+          {Object.keys(overrides).length > 0 && (
+            <section className={styles.card}>
+              <div className={styles.cardHeader}>
+                <Star size={16} className={styles.cardIcon} />
+                <span>Override Attivi</span>
+                <span className={styles.countBadge}>{Object.keys(overrides).length}</span>
+              </div>
+              <div className={styles.overridesList}>
+                {Object.entries(overrides).map(([id, ov]: [string, any]) => (
                   <div key={id} className={styles.overrideRow}>
-                    <div className={styles.overrideMain}>
-                      <strong>{ov.customTitle}</strong>
-                      <span>ID: {id} • {ov.versionLanguage}</span>
+                    <div className={styles.overrideInfo}>
+                      <strong>{ov.customTitle || 'Film senza titolo'}</strong>
+                      <span>{ov.versionLanguage} {ov.subtitles !== 'Nessuno' ? `• ${ov.subtitles}` : ''}</span>
                     </div>
-                    <div className={styles.overrideActions}>
-                      <button onClick={() => handleDelete(id)} className={styles.btnDelete}><Trash2 size={16} /></button>
-                    </div>
+                    <button
+                      onClick={() => handleDelete(id)}
+                      className={styles.btnDeleteSmall}
+                      title="Elimina override"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
-                ))
-              )}
-            </div>
-          </section>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
-        {/* Right Column: Editor */}
+        {/* ── RIGHT COLUMN: EDITOR ──────────────────────────────── */}
         <div className={styles.rightCol}>
           {editingMovie ? (
             <section className={styles.editorSection}>
-              <div className={styles.editorHeader}>
-                <h2>Editor Override</h2>
-                <div className={styles.editorHeaderActions}>
-                  <button onClick={handleRefreshMetadata} className={styles.btnRefresh} title="Reset Cache TMDB">
-                    <RefreshCw size={18} className={loading ? styles.spin : ''} />
+              {/* Editor Header with poster preview */}
+              <div className={styles.editorTopBar}>
+                <div className={styles.editorPosterPreview}>
+                  {posterUrl ? (
+                    <img src={posterUrl} alt="Poster" />
+                  ) : (
+                    <div className={styles.editorPosterPlaceholder}><Film size={32} strokeWidth={1} /></div>
+                  )}
+                </div>
+                <div className={styles.editorMovieInfo}>
+                  <div className={styles.editorMovieTitle}>{editingMovie.title}</div>
+                  <div className={styles.editorMovieMeta}>
+                    {editingMovie.release_date?.slice(0, 4)} · {editingMovie.original_language?.toUpperCase()}
+                    {editingId && overrides[editingId] && (
+                      <span className={styles.overrideBadge} style={{ marginLeft: 8 }}>✓ Override Attivo</span>
+                    )}
+                  </div>
+                </div>
+                <div className={styles.editorActions}>
+                  <button onClick={handleRefreshMetadata} className={styles.btnIconGhost} title="Ricarica da TMDB">
+                    <RefreshCw size={16} className={loading ? styles.spin : ''} />
                   </button>
-                  <button onClick={() => setEditingMovie(null)} className={styles.btnClose}><X size={20} /></button>
+                  {editingId && overrides[editingId] && (
+                    <button onClick={() => handleDelete(editingId)} className={styles.btnIconDanger} title="Elimina override">
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                  <button onClick={() => setEditingMovie(null)} className={styles.btnIconGhost} title="Chiudi">
+                    <X size={18} />
+                  </button>
                 </div>
               </div>
 
               <div className={styles.editorBody}>
+                {/* Title */}
                 <div className={styles.formGroup}>
-                  <label>Titolo Personalizzato</label>
-                  <input 
-                    type="text" 
-                    value={formState.customTitle} 
-                    onChange={(e) => setFormState({...formState, customTitle: e.target.value})}
+                  <label className={styles.label}>Titolo Personalizzato</label>
+                  <input
+                    type="text"
+                    value={formState.customTitle}
+                    onChange={e => setFormState(f => ({ ...f, customTitle: e.target.value }))}
                     className={styles.input}
+                    placeholder="Titolo visualizzato sul sito"
                   />
                 </div>
 
-                <div className={styles.formGrid}>
+                {/* Version + Subtitles */}
+                <div className={styles.formRow}>
                   <div className={styles.formGroup}>
-                    <label><Globe size={14} /> Versione (Lingua)</label>
-                    <select 
-                      value={formState.versionLanguage} 
-                      onChange={(e) => setFormState({...formState, versionLanguage: e.target.value})}
+                    <label className={styles.label}><Globe size={12} /> Versione Lingua</label>
+                    <select
+                      value={formState.versionLanguage}
+                      onChange={e => setFormState(f => ({ ...f, versionLanguage: e.target.value }))}
                       className={styles.input}
                     >
                       <option value="Lingua Originale">Lingua Originale</option>
                       <option value="English Version">English Version</option>
                       <option value="Versione Originale">Versione Originale</option>
+                      <option value="Version Française">Version Française</option>
                     </select>
                   </div>
-
                   <div className={styles.formGroup}>
-                    <label><Languages size={14} /> Sottotitoli</label>
-                    <select 
-                      value={formState.subtitles} 
-                      onChange={(e) => setFormState({...formState, subtitles: e.target.value})}
+                    <label className={styles.label}><Languages size={12} /> Sottotitoli</label>
+                    <select
+                      value={formState.subtitles}
+                      onChange={e => setFormState(f => ({ ...f, subtitles: e.target.value }))}
                       className={styles.input}
                     >
                       <option value="Nessuno">Nessuno</option>
-                      <option value="Italiano">Sottotitoli in Italiano</option>
+                      <option value="Italiano">Sottotitoli Italiano</option>
                       <option value="Sub ITA">Sub ITA</option>
                       <option value="English">Sub English</option>
                       <option value="Sub ENG">Sub ENG</option>
@@ -313,200 +421,224 @@ export default function MoviesControlPage() {
                   </div>
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label>Rating (Età)</label>
-                  <select 
-                    value={formState.customRating} 
-                    onChange={(e) => setFormState({...formState, customRating: e.target.value})}
-                    className={styles.input}
-                  >
-                    <option value="">Default TMDB</option>
-                    <option value="T">T (Tutti)</option>
-                    <option value="6+">6+</option>
-                    <option value="10+">10+</option>
-                    <option value="14+">14+</option>
-                    <option value="18+">18+</option>
-                  </select>
+                {/* Rating + Room */}
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Classificazione Età</label>
+                    <select
+                      value={formState.customRating}
+                      onChange={e => setFormState(f => ({ ...f, customRating: e.target.value }))}
+                      className={styles.input}
+                    >
+                      <option value="">Default TMDB</option>
+                      <option value="T">T (Tutti)</option>
+                      <option value="6+">6+</option>
+                      <option value="10+">10+</option>
+                      <option value="14+">14+</option>
+                      <option value="18+">18+</option>
+                    </select>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Nome Sala</label>
+                    <input
+                      type="text"
+                      value={formState.customRoomName}
+                      onChange={e => setFormState(f => ({ ...f, customRoomName: e.target.value }))}
+                      className={styles.input}
+                      placeholder="SALA CA GRANDA"
+                    />
+                  </div>
                 </div>
 
+                {/* Director + Cast */}
                 <div className={styles.formGroup}>
-                  <label>Regista (separati da virgola)</label>
-                  <input 
-                    type="text" 
-                    value={formState.customDirector} 
-                    onChange={(e) => setFormState({...formState, customDirector: e.target.value})}
+                  <label className={styles.label}>Regista (separati da virgola)</label>
+                  <input
+                    type="text"
+                    value={formState.customDirector}
+                    onChange={e => setFormState(f => ({ ...f, customDirector: e.target.value }))}
                     className={styles.input}
-                    placeholder="Quentin Tarantino"
+                    placeholder="Nome Regista"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Cast (separati da virgola)</label>
+                  <input
+                    type="text"
+                    value={formState.customCast}
+                    onChange={e => setFormState(f => ({ ...f, customCast: e.target.value }))}
+                    className={styles.input}
+                    placeholder="Attore 1, Attore 2, …"
                   />
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label>Cast (separati da virgola)</label>
-                  <input 
-                    type="text" 
-                    value={formState.customCast} 
-                    onChange={(e) => setFormState({...formState, customCast: e.target.value})}
-                    className={styles.input}
-                    placeholder="Brad Pitt, Leonardo DiCaprio"
-                  />
-                </div>
+                {/* Divider */}
+                <div className={styles.sectionDivider}><ImageIcon size={14} /> Immagini &amp; Media</div>
 
+                {/* Poster */}
                 <div className={styles.formGroup}>
-                  <label>Nome Sala Personalizzato</label>
-                  <input 
-                    type="text" 
-                    value={formState.customRoomName} 
-                    onChange={(e) => setFormState({...formState, customRoomName: e.target.value})}
-                    className={styles.input}
-                    placeholder="SALA CA GRANDA"
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label>Poster URL (Opzionale)</label>
-                  <div className={styles.inputWithAction}>
-                    <div className={styles.imagePreviewGroup}>
-                      {formState.customPosterPath && (
-                        <div className={styles.miniPosterPreview}>
-                          <img 
-                            src={formState.customPosterPath.startsWith('/') ? getTMDBImageUrl(formState.customPosterPath, 'w185')! : formState.customPosterPath} 
-                            alt="Poster Preview" 
-                          />
-                        </div>
-                      )}
-                      <input 
-                        type="text" 
-                        value={formState.customPosterPath} 
-                        onChange={(e) => setFormState({...formState, customPosterPath: e.target.value})}
-                        className={styles.input}
-                        placeholder="/path-to-poster.jpg"
-                      />
-                    </div>
-                    <button 
-                      type="button" 
-                      className={styles.btnAction} 
+                  <label className={styles.label}>Poster</label>
+                  <div className={styles.mediaInputRow}>
+                    {formState.customPosterPath && (
+                      <div className={styles.thumbPoster}>
+                        <img
+                          src={formState.customPosterPath.startsWith('/')
+                            ? getTMDBImageUrl(formState.customPosterPath, 'w92')!
+                            : formState.customPosterPath}
+                          alt="Poster"
+                        />
+                      </div>
+                    )}
+                    <input
+                      type="text"
+                      value={formState.customPosterPath}
+                      onChange={e => setFormState(f => ({ ...f, customPosterPath: e.target.value }))}
+                      className={styles.input}
+                      placeholder="/path.jpg oppure URL completo"
+                    />
+                    <button
+                      type="button"
+                      className={styles.btnPick}
                       onClick={() => setPickerState({ isOpen: true, type: 'poster' })}
                       title="Scegli da TMDB"
                     >
-                      <ImageIcon size={18} />
+                      <ImageIcon size={16} />
                     </button>
                   </div>
                 </div>
 
+                {/* Backdrop */}
                 <div className={styles.formGroup}>
-                  <label>Backdrop URL (Opzionale)</label>
-                  <div className={styles.inputWithAction}>
-                    <div className={styles.imagePreviewGroup}>
-                      {formState.customBackdropPath && (
-                        <div className={styles.miniBackdropPreview}>
-                          <img 
-                            src={formState.customBackdropPath.startsWith('/') ? getTMDBImageUrl(formState.customBackdropPath, 'w300')! : formState.customBackdropPath} 
-                            alt="Backdrop Preview" 
-                          />
-                        </div>
-                      )}
-                      <input 
-                        type="text" 
-                        value={formState.customBackdropPath} 
-                        onChange={(e) => setFormState({...formState, customBackdropPath: e.target.value})}
-                        className={styles.input}
-                        placeholder="/path-to-backdrop.jpg"
-                      />
-                    </div>
-                    <button 
-                      type="button" 
-                      className={styles.btnAction} 
+                  <label className={styles.label}>Backdrop</label>
+                  <div className={styles.mediaInputRow}>
+                    {formState.customBackdropPath && (
+                      <div className={styles.thumbBackdrop}>
+                        <img
+                          src={formState.customBackdropPath.startsWith('/')
+                            ? getTMDBImageUrl(formState.customBackdropPath, 'w300')!
+                            : formState.customBackdropPath}
+                          alt="Backdrop"
+                        />
+                      </div>
+                    )}
+                    <input
+                      type="text"
+                      value={formState.customBackdropPath}
+                      onChange={e => setFormState(f => ({ ...f, customBackdropPath: e.target.value }))}
+                      className={styles.input}
+                      placeholder="/path.jpg oppure URL completo"
+                    />
+                    <button
+                      type="button"
+                      className={styles.btnPick}
                       onClick={() => setPickerState({ isOpen: true, type: 'backdrop' })}
                       title="Scegli da TMDB"
                     >
-                      <ImageIcon size={18} />
+                      <ImageIcon size={16} />
                     </button>
                   </div>
                 </div>
 
-                <div className={styles.formGroup} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '15px', padding: '10px', background: '#ffebee', borderRadius: '8px' }}>
-                  <input 
-                    type="checkbox" 
-                    id="manualSoldOut"
-                    checked={formState.manualSoldOut} 
-                    onChange={(e) => setFormState({...formState, manualSoldOut: e.target.checked})}
-                    style={{ width: '20px', height: '20px', accentColor: '#d32f2f' }}
-                  />
-                  <label htmlFor="manualSoldOut" style={{ color: '#d32f2f', fontWeight: 'bold', margin: 0, cursor: 'pointer' }}>Forza Sold Out (Kill-Switch)</label>
-                </div>
-
+                {/* Trailer */}
                 <div className={styles.formGroup}>
-                  <label><Play size={14} /> YouTube Trailer URL (Override)</label>
-                  <div className={styles.inputWithAction}>
-                    <div className={styles.trailerPreviewGroup}>
-                      {formState.customTrailerUrl && (
-                        <div className={styles.trailerMiniThumb}>
-                          <img 
-                            src={`https://img.youtube.com/vi/${extractYouTubeId(formState.customTrailerUrl)}/mqdefault.jpg`} 
-                            alt="Preview" 
-                          />
-                          <div className={styles.playOverlay}><Play size={12} fill="white" /></div>
-                        </div>
-                      )}
-                      <input 
-                        type="text" 
-                        value={formState.customTrailerUrl} 
-                        onChange={(e) => setFormState({...formState, customTrailerUrl: e.target.value})}
-                        className={styles.input}
-                        placeholder="https://www.youtube.com/watch?v=..."
-                      />
-                    </div>
-                    <button 
-                      type="button" 
-                      className={styles.btnAction} 
+                  <label className={styles.label}><Play size={12} /> Trailer YouTube (Override)</label>
+                  <div className={styles.mediaInputRow}>
+                    {formState.customTrailerUrl && extractYouTubeId(formState.customTrailerUrl) && (
+                      <div className={styles.thumbTrailer}>
+                        <img
+                          src={`https://img.youtube.com/vi/${extractYouTubeId(formState.customTrailerUrl)}/mqdefault.jpg`}
+                          alt="Trailer"
+                        />
+                        <div className={styles.thumbPlayOverlay}><Play size={10} fill="white" color="white" /></div>
+                      </div>
+                    )}
+                    <input
+                      type="text"
+                      value={formState.customTrailerUrl}
+                      onChange={e => setFormState(f => ({ ...f, customTrailerUrl: e.target.value }))}
+                      className={styles.input}
+                      placeholder="https://www.youtube.com/watch?v=…"
+                    />
+                    <button
+                      type="button"
+                      className={styles.btnPick}
                       onClick={() => setPickerState({ isOpen: true, type: 'trailer' })}
-                      title="Scegli Trailer da TMDB"
+                      title="Scegli da TMDB"
                     >
-                      <Play size={18} />
+                      <Play size={16} />
                     </button>
                   </div>
                 </div>
 
-                <div className={styles.formGroup} style={{ marginTop: '15px' }}>
-                  <label>Overview (Trama)</label>
-                  <textarea 
-                    value={formState.customOverview} 
-                    onChange={(e) => setFormState({...formState, customOverview: e.target.value})}
+                {/* Overview */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Trama (Overview)</label>
+                  <textarea
+                    value={formState.customOverview}
+                    onChange={e => setFormState(f => ({ ...f, customOverview: e.target.value }))}
                     className={styles.textarea}
-                    rows={6}
+                    rows={5}
+                    placeholder="Descrizione del film…"
                   />
                 </div>
 
-                <button onClick={handleSave} className={styles.btnSave} disabled={loading}>
-                  <Save size={18} /> {loading ? 'Salvataggio...' : 'Salva Override'}
+                {/* Sold Out Kill Switch */}
+                <label className={styles.killSwitchLabel}>
+                  <input
+                    type="checkbox"
+                    checked={formState.manualSoldOut}
+                    onChange={e => setFormState(f => ({ ...f, manualSoldOut: e.target.checked }))}
+                    className={styles.killSwitchCheck}
+                  />
+                  <AlertTriangle size={14} />
+                  Forza SOLD OUT (Kill-Switch)
+                </label>
+
+                {/* Save Button */}
+                <button onClick={handleSave} className={`${styles.btnSave} ${saveSuccess ? styles.btnSaveSuccess : ''}`} disabled={loading}>
+                  {loading ? (
+                    <><Loader2 size={18} className={styles.spin} /> Salvataggio…</>
+                  ) : saveSuccess ? (
+                    <><CheckCircle2 size={18} /> Salvato con Successo!</>
+                  ) : (
+                    <><Save size={18} /> Salva Override</>
+                  )}
                 </button>
               </div>
             </section>
           ) : (
             <div className={styles.editorPlaceholder}>
-              <Info size={48} strokeWidth={1} />
-              <h3>Seleziona un film per iniziare</h3>
-              <p>Cerca un film a sinistra o seleziona un override esistente per modificarlo.</p>
+              <div className={styles.placeholderIcon}><Film size={56} strokeWidth={0.8} /></div>
+              <h3>Nessun film selezionato</h3>
+              <p>Seleziona un film dalla lista a sinistra oppure cercane uno su TMDB per aprire l'editor dei metadati.</p>
             </div>
           )}
         </div>
       </div>
 
+      {/* Modals */}
       {pickerState.isOpen && editingMovie && pickerState.type !== 'trailer' && (
-        <ImagePickerModal 
-          movieId={editingMovie.id.toString()}
-          type={pickerState.type as any}
+        <ImagePickerModal
+          movieId={editingMovie.id?.toString() || editingMovie.tmdbId}
+          type={pickerState.type as 'poster' | 'backdrop'}
           onSelect={handleImageSelect}
-          onClose={() => setPickerState({ ...pickerState, isOpen: false })}
+          onClose={() => setPickerState(s => ({ ...s, isOpen: false }))}
         />
       )}
 
       {pickerState.isOpen && editingMovie && pickerState.type === 'trailer' && (
-        <TrailerPickerModal 
-          multiLangVideos={editingMovie.multiLangVideos || { it: [], en: [] }}
+        <TrailerPickerModal
+          movieId={editingMovie.id?.toString() || editingMovie.tmdbId}
           onSelect={handleImageSelect}
-          onClose={() => setPickerState({ ...pickerState, isOpen: false })}
+          onClose={() => setPickerState(s => ({ ...s, isOpen: false }))}
           currentKey={extractYouTubeId(formState.customTrailerUrl) || undefined}
+        />
+      )}
+      {isVisualCenterOpen && (
+        <VisualControlCenter
+          isOpen={isVisualCenterOpen}
+          onClose={() => setIsVisualCenterOpen(false)}
+          onRefresh={loadData}
         />
       )}
     </div>
