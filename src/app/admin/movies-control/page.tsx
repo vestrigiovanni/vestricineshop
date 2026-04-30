@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import {
   adminGetOverrides,
-  adminSaveOverride,
+  upsertMovieOverride,
   adminDeleteOverride,
   adminGetProgrammedMovies,
   adminGetMovieById,
@@ -80,18 +80,18 @@ export default function MoviesControlPage() {
     setEditingMovie(movie);
     setSaveSuccess(false);
     setFormState({
-      customTitle: override.customTitle || movie.title || '',
-      customOverview: override.customOverview || movie.overview || '',
+      customTitle: override.customTitle !== undefined ? override.customTitle : (movie.title || ''),
+      customOverview: override.customOverview !== undefined ? override.customOverview : (movie.overview || ''),
       versionLanguage: override.versionLanguage || 'Lingua Originale',
       subtitles: override.subtitles || 'Nessuno',
-      customPosterPath: override.customPosterPath || movie.poster_path || '',
-      customBackdropPath: override.customBackdropPath || movie.backdrop_path || '',
-      customDirector: override.customDirector?.join(', ') || movie.director || '',
-      customCast: override.customCast?.join(', ') || movie.cast?.join(', ') || '',
+      customPosterPath: override.customPosterPath !== undefined ? override.customPosterPath : (movie.poster_path || ''),
+      customBackdropPath: override.customBackdropPath !== undefined ? override.customBackdropPath : (movie.backdrop_path || ''),
+      customDirector: override.customDirector ? override.customDirector.join(', ') : (movie.director || ''),
+      customCast: override.customCast ? override.customCast.join(', ') : (movie.cast?.join(', ') || ''),
       customRoomName: override.customRoomName || 'SALA CA GRANDA',
-      customRating: override.customRating || movie.rating || '',
+      customRating: override.customRating !== undefined ? override.customRating : (movie.rating || ''),
       manualSoldOut: override.manualSoldOut || false,
-      customTrailerUrl: override.customTrailerUrl || (movie.trailerKey ? `https://www.youtube.com/watch?v=${movie.trailerKey}` : ''),
+      customTrailerUrl: override.customTrailerUrl !== undefined ? override.customTrailerUrl : (movie.trailerKey ? `https://www.youtube.com/watch?v=${movie.trailerKey}` : ''),
     });
   };
 
@@ -121,7 +121,7 @@ export default function MoviesControlPage() {
         ? formState.customCast.split(',').map((s: string) => s.trim()).filter(Boolean)
         : undefined,
     };
-    await adminSaveOverride(id, payload);
+    await upsertMovieOverride(id, payload);
     // Re-fetch overrides immediately so the UI reflects the change
     await loadData();
     setSaveSuccess(true);

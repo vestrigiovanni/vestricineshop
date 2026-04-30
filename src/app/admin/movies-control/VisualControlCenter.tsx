@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, Sparkles, Filter, Search, Film, Save, Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
 import styles from './VisualControlCenter.module.css';
 import VisualAssetCard from './VisualAssetCard';
-import { adminSaveOverride, adminGetVisualControlData } from '@/actions/adminActions';
+import { upsertMovieOverride, adminGetVisualControlData } from '@/actions/adminActions';
 import ImagePickerModal from './ImagePickerModal';
 import TrailerPickerModal from './TrailerPickerModal';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
@@ -30,7 +30,7 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
   const [search, setSearch] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-  const [debouncedSave, setDebouncedSave] = useState<{ id: string, data: any } | null>(null);
+  const [pendingDeltas, setPendingDeltas] = useState<Record<string, any>>({});
   const [pickerState, setPickerState] = useState<{
     isOpen: boolean; 
     type: 'poster' | 'backdrop' | 'trailer';
@@ -57,33 +57,35 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
 
   // Debounce saving
   useEffect(() => {
-    if (!debouncedSave) return;
+    const idsToSave = Object.keys(pendingDeltas);
+    if (idsToSave.length === 0) return;
     
     const timer = setTimeout(async () => {
-      const { id, data } = debouncedSave;
-      setSavingId(id);
-      try {
-        await adminSaveOverride(id, data);
-        setSavedIds(prev => new Set(prev).add(id));
-        setTimeout(() => {
-          setSavedIds(prev => {
-            const next = new Set(prev);
-            next.delete(id);
-            return next;
-          });
-        }, 2000);
-        // Do not full refresh to avoid jumping, just update local state if needed
-        // but since we updated the override in the local state already, it's fine.
-      } catch (error) {
-        console.error('Error saving override:', error);
-      } finally {
-        setSavingId(null);
-        setDebouncedSave(null);
+      const deltasToSave = { ...pendingDeltas };
+      setPendingDeltas({}); // Clear pending deltas
+      
+      for (const id of idsToSave) {
+        setSavingId(id);
+        try {
+          await upsertMovieOverride(id, deltasToSave[id]);
+          setSavedIds(prev => new Set(prev).add(id));
+          setTimeout(() => {
+            setSavedIds(prev => {
+              const next = new Set(prev);
+              next.delete(id);
+              return next;
+            });
+          }, 2000);
+        } catch (error) {
+          console.error('Error saving override:', error);
+        } finally {
+          setSavingId(null);
+        }
       }
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [debouncedSave]);
+  }, [pendingDeltas]);
 
   const filteredMovies = useMemo(() => {
     return hydratedMovies.filter(movie => {
@@ -100,8 +102,11 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
     setHydratedMovies(prev => prev.map(m => {
       if (m.tmdbId === tmdbId) {
         const newOverride = { ...m.override, [field]: value };
-        // Trigger debounce save
-        setDebouncedSave({ id: tmdbId, data: newOverride });
+        // Accumulate only the delta
+        setPendingDeltas(prevDeltas => {
+          const currentDelta = prevDeltas[tmdbId] || {};
+          return { ...prevDeltas, [tmdbId]: { ...currentDelta, [field]: value } };
+        });
         return { ...m, override: newOverride };
       }
       return m;

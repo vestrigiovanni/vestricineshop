@@ -1103,9 +1103,11 @@ export async function adminGetOverrides() {
  * Also invalidates the TMDB disk cache for this movie so the next
  * page render re-fetches fresh metadata (poster/backdrop/trailer).
  */
-export async function adminSaveOverride(tmdbId: string, override: any) {
+export async function upsertMovieOverride(tmdbId: string, override: any) {
   const { saveOverride, deleteMovieMetadata } = await import('@/services/db.service');
   saveOverride(tmdbId, override);
+
+  console.log(`[DB Sync] Salvataggio completato per ID ${tmdbId}. Campi aggiornati: ${Object.keys(override).join(', ')}`);
 
   // Bust the TMDB metadata disk cache so the next SSR pass picks up
   // the new customPosterPath / customBackdropPath / customTrailerUrl.

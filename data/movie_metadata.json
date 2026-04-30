@@ -303,6 +303,196 @@
     },
     "_cachedAt": 1777472160988
   },
+  "837": {
+    "id": 837,
+    "title": "Videodrome",
+    "overview": "Max Renn (James Woods) è a capo di una piccola stazioncina televisiva specializzata in roba forte e cerca sempre di trovare roba ancora più forte e a poco prezzo per rimpolpare il palinsesto e vincere la graduale assuefazione del pubblico. Uno dei suoi impiegati, Harlan (Peter Dvorsky), riesce ad avere accesso a una stazione televisiva pirata chiamata Videodrome che trasmette film estremi di torture, mutilazioni e cose del genere. Molto interessato, Max vorrebbe quel materiale per la sua televisione e incarica Masha (Lynn Gorman), che abitualmente gli procura i filmati, di scoprire chi ne abbia la proprietà. Masha gli rivela che non si tratta di finzione: sono vere atrocità.",
+    "poster_path": "/twlUmenWKB9EfUi3xA684m4solR.jpg",
+    "backdrop_path": "/Ad2O6XFMEFktT8IgDIdfJcyro0V.jpg",
+    "logo_path": "/yILjXtJQV5AijosqVy23bKpQHeG.png",
+    "release_date": "1983-02-04",
+    "director": "David Cronenberg",
+    "runtime": 90,
+    "cast": [
+      "James Woods",
+      "Debbie Harry",
+      "Sonja Smits",
+      "Peter Dvorsky",
+      "Leslie Carlson"
+    ],
+    "trailerKey": "v8BUXKcp8zE",
+    "trailerKeys": [
+      "v8BUXKcp8zE",
+      "X2EyfTGzwY4"
+    ],
+    "rating": "14+",
+    "original_language": "en",
+    "genres": [
+      {
+        "id": 27,
+        "name": "Horror"
+      },
+      {
+        "id": 878,
+        "name": "Fantascienza"
+      },
+      {
+        "id": 9648,
+        "name": "Mistero"
+      }
+    ],
+    "tagline": "Prima controlla la vostra mente, poi distrugge il vostro corpo",
+    "multiLangVideos": {
+      "it": [],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Original Trailer",
+          "key": "v8BUXKcp8zE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "62e4285d57530e0058be4dfd",
+          "published_at": "2022-07-29T14:50:35.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "X2EyfTGzwY4",
+          "site": "YouTube",
+          "size": 480,
+          "type": "Trailer",
+          "official": true,
+          "id": "62e42976fc5f06006105942a",
+          "published_at": "2015-01-24T00:39:33.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Original Trailer",
+          "key": "v8BUXKcp8zE",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "62e4285d57530e0058be4dfd",
+          "published_at": "2022-07-29T14:50:35.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "X2EyfTGzwY4",
+          "site": "YouTube",
+          "size": 480,
+          "type": "Trailer",
+          "official": true,
+          "id": "62e42976fc5f06006105942a",
+          "published_at": "2015-01-24T00:39:33.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777550805029
+  },
+  "1443": {
+    "id": 1443,
+    "title": "Il giardino delle vergini suicide",
+    "overview": "Cinque sorelle fra i quindici e i diciannove anni vivono infelici, tormentate da genitori che credono di fare il loro bene. La madre è integralista e cieca: costringe una delle sorelle, per punizione, a bruciare i dischi più cari. Il padre è molle e latitante, tutto preso a costruire i suoi modellini. Certo, ci sono i ragazzi che le corteggiano e le stimano, ma non basta. La prima muore gettandosi sulle punte del cancello di casa. Le altre quattro organizzano uno struggente suicidio collettivo.",
+    "poster_path": "/gp4sqRZfmx1NkFusXNcbQfWtT6Y.jpg",
+    "backdrop_path": "/n0eHYh6xb8m1PdwUcuVEyJyiwfQ.jpg",
+    "logo_path": "/vqXnIcxVBKjZDwCbbN7FW8i3na9.png",
+    "release_date": "2000-04-21",
+    "director": "Sofia Coppola",
+    "runtime": 95,
+    "cast": [
+      "Kirsten Dunst",
+      "Josh Hartnett",
+      "James Woods",
+      "Kathleen Turner",
+      "Michael Paré"
+    ],
+    "trailerKey": "8kDcCGlaBwY",
+    "trailerKeys": [
+      "8kDcCGlaBwY",
+      "oIQ4P5F0bHo",
+      "CuC1v0I-GCQ"
+    ],
+    "rating": "14+",
+    "original_language": "en",
+    "genres": [
+      {
+        "id": 18,
+        "name": "Dramma"
+      },
+      {
+        "id": 10749,
+        "name": "Romance"
+      }
+    ],
+    "tagline": "Bello, misterioso, inquietante, invariabilmente fatale. Proprio come la vita.",
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "'IL GIARDINO DELLE VERGINI SUICIDE'  dal 6 maggio al cinema in versione restaurata (trailer)",
+          "key": "oIQ4P5F0bHo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "667c14eaae059e12df18512b",
+          "published_at": "2024-04-05T15:36:36.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Il giardino delle vergini suicide (film 1999) TRAILER ITALIANO",
+          "key": "CuC1v0I-GCQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "667c14dcae059e12df185126",
+          "published_at": "2023-10-21T22:00:11.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "8kDcCGlaBwY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "5c0c30609251414795081e29",
+          "published_at": "2018-11-08T18:45:39.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer",
+          "key": "8kDcCGlaBwY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "5c0c30609251414795081e29",
+          "published_at": "2018-11-08T18:45:39.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777550804450
+  },
   "1807": {
     "id": 1807,
     "title": "Elephant",
@@ -611,6 +801,69 @@
     },
     "_cachedAt": 1777472160845
   },
+  "34025": {
+    "id": 34025,
+    "title": "Kisses",
+    "overview": "Two kids, Dylan and Kylie, run away from home on Christmas Day and spend a night of magic and terror on the streets of inner-city Dublin.",
+    "poster_path": "/rPzxkRMb4WXL3hchssrr7pRtyEs.jpg",
+    "backdrop_path": "/wpOgG6GzXTkJDmgWawOd6whqu0S.jpg",
+    "logo_path": null,
+    "release_date": "2008-07-11",
+    "director": "Lance Daly",
+    "runtime": 72,
+    "cast": [
+      "Kelly O'Neill",
+      "Shane Curry",
+      "Paul Roe",
+      "Roy Dempsey",
+      "Aaron Courtney"
+    ],
+    "trailerKey": "p2rYbhW03ps",
+    "trailerKeys": [
+      "p2rYbhW03ps"
+    ],
+    "rating": "18+",
+    "original_language": "en",
+    "genres": [
+      {
+        "id": 18,
+        "name": "Dramma"
+      }
+    ],
+    "tagline": "",
+    "multiLangVideos": {
+      "it": [],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Theatrical Trailer",
+          "key": "p2rYbhW03ps",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6928c312222e5a1e2e371c48",
+          "published_at": "2010-04-26T17:48:55.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Theatrical Trailer",
+          "key": "p2rYbhW03ps",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6928c312222e5a1e2e371c48",
+          "published_at": "2010-04-26T17:48:55.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777550804837
+  },
   "34647": {
     "id": 34647,
     "title": "Enter the Void",
@@ -741,6 +994,267 @@
       ]
     },
     "_cachedAt": 1777472160052
+  },
+  "39210": {
+    "id": 39210,
+    "title": "Somewhere",
+    "overview": "Un attore, che conduce un'esistenza sregolata e alloggia al Chateau Marmont - celebre hotel losangelino frequentato da sempre dalle star di Hollywood - è costretto a mettere in discussione tutto il suo passato, quando sua figlia, una ragazzina di undici anni, si trasferirà a vivere da lui.",
+    "poster_path": "/jWSoKvqqQVlcl4dDSXlPC67wsSi.jpg",
+    "backdrop_path": "/dU6AJHsvDC2WsRJ8Pc2vpLuK3ZD.jpg",
+    "logo_path": "/Aq5L1sMtxD4UKJAUxs8nbKU4vZJ.png",
+    "release_date": "2010-09-03",
+    "director": "Sofia Coppola",
+    "runtime": 98,
+    "cast": [
+      "Stephen Dorff",
+      "Elle Fanning",
+      "Chris Pontius",
+      "Laura Chiatti",
+      "Lala Sloatman"
+    ],
+    "trailerKey": "iEga7Hz9a3U",
+    "trailerKeys": [
+      "iEga7Hz9a3U",
+      "oYVc0YX-iio"
+    ],
+    "rating": "14+",
+    "original_language": "en",
+    "genres": [
+      {
+        "id": 18,
+        "name": "Dramma"
+      }
+    ],
+    "tagline": "",
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Trailer Somewhere (ITA)",
+          "key": "oYVc0YX-iio",
+          "site": "YouTube",
+          "size": 480,
+          "type": "Trailer",
+          "official": false,
+          "id": "572a4d7292514109fe000549",
+          "published_at": "2010-08-20T04:09:27.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "iEga7Hz9a3U",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "5c0c26f30e0a2638c508cb54",
+          "published_at": "2010-06-21T20:38:13.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "iEga7Hz9a3U",
+          "site": "YouTube",
+          "size": 720,
+          "type": "Trailer",
+          "official": true,
+          "id": "5c0c26f30e0a2638c508cb54",
+          "published_at": "2010-06-21T20:38:13.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777550804552
+  },
+  "152603": {
+    "id": 152603,
+    "title": "Solo gli amanti sopravvivono",
+    "overview": "Adam, un musicista underground, è gravemente depresso per via della piega che la sua vita umana sta prendendo, nonostante i suoi sforzi. Torna allora a far coppia con la sua enigmatica amante, Eve, con la quale ha diviso diversi secoli di amore. Ma il loro idillio è interrotto dall'arrivo della selvaggia e imprevedibile sorella minore di Eve, Ava.",
+    "poster_path": "/28n9mombFtczMe2Uzuxs6wNse1W.jpg",
+    "backdrop_path": "/d7HZzHd2rz23KKWlf7RH144SvpG.jpg",
+    "logo_path": "/rnX5Y15RwL8cBwy1SPSjiQIzOqy.png",
+    "release_date": "2013-12-12",
+    "director": "Jim Jarmusch",
+    "runtime": 123,
+    "cast": [
+      "Tilda Swinton",
+      "Tom Hiddleston",
+      "Anton Yelchin",
+      "Mia Wasikowska",
+      "Jeffrey Wright"
+    ],
+    "trailerKey": "pkeWhokaPPs",
+    "trailerKeys": [
+      "pkeWhokaPPs",
+      "ycOKvWrwYFo",
+      "Lb9mBqWD8H4",
+      "FsXJHHWnlR0",
+      "XYH3dzmHsK8"
+    ],
+    "rating": "T",
+    "original_language": "en",
+    "genres": [
+      {
+        "id": 18,
+        "name": "Dramma"
+      },
+      {
+        "id": 10749,
+        "name": "Romance"
+      },
+      {
+        "id": 14,
+        "name": "Fantasy"
+      }
+    ],
+    "tagline": "",
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "SOLO GLI AMANTI SOPRAVVIVONO trailer italiano",
+          "key": "FsXJHHWnlR0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "68e3f4dfddb950ce8d36e952",
+          "published_at": "2014-04-26T12:26:28.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "pkeWhokaPPs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6596eb73a698cf477d43a06c",
+          "published_at": "2014-03-13T16:31:06.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Only Lovers Left Alive pre-roll",
+          "key": "XYH3dzmHsK8",
+          "site": "YouTube",
+          "size": 480,
+          "type": "Teaser",
+          "official": true,
+          "id": "67fe80609d1f778ab89977cd",
+          "published_at": "2014-02-11T13:15:22.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Teaser Trailer",
+          "key": "sJQPOMosdGc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67fe800b437f0b80eead388b",
+          "published_at": "2014-01-10T12:10:15.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Australian Trailer",
+          "key": "ycOKvWrwYFo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "533ec6fac3a3685448009b6b",
+          "published_at": "2013-12-11T06:20:38.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "Lb9mBqWD8H4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "67fe819e61b1c4bb329979dd",
+          "published_at": "2013-11-12T11:07:18.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official US Trailer",
+          "key": "pkeWhokaPPs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6596eb73a698cf477d43a06c",
+          "published_at": "2014-03-13T16:31:06.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Only Lovers Left Alive pre-roll",
+          "key": "XYH3dzmHsK8",
+          "site": "YouTube",
+          "size": 480,
+          "type": "Teaser",
+          "official": true,
+          "id": "67fe80609d1f778ab89977cd",
+          "published_at": "2014-02-11T13:15:22.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official UK Teaser Trailer",
+          "key": "sJQPOMosdGc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67fe800b437f0b80eead388b",
+          "published_at": "2014-01-10T12:10:15.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Australian Trailer",
+          "key": "ycOKvWrwYFo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "533ec6fac3a3685448009b6b",
+          "published_at": "2013-12-11T06:20:38.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "Lb9mBqWD8H4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "67fe819e61b1c4bb329979dd",
+          "published_at": "2013-11-12T11:07:18.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777550804957
   },
   "265177": {
     "id": 265177,
@@ -991,6 +1505,35 @@
     },
     "_cachedAt": 1777472160240
   },
+  "502318": {
+    "id": 502318,
+    "title": "La convocazione",
+    "overview": "Sessanta cittadini, estratti a sorte da un sistema informatico, prendono posto nell’aula in cui si celebrano i processi della II sezione della Corte d’Assise d’Appello. Dopo una giornata sapranno chi, fra di loro, verrà scelto dal Presidente della Corte come giudice popolare: figura anonima, relegata ai margini della scena nelle pagine di cronaca giudiziaria, ma comunque determinante, con i propri giudizi di condanna o assoluzione, ai fini degli esiti processuali.",
+    "poster_path": "/5VqpF6eA6BWHr71XtwJqISIxp67.jpg",
+    "backdrop_path": null,
+    "logo_path": null,
+    "release_date": "2017-12-01",
+    "director": "Enrico Maisto",
+    "runtime": 56,
+    "cast": [],
+    "trailerKey": null,
+    "trailerKeys": [],
+    "rating": "T",
+    "original_language": "it",
+    "genres": [
+      {
+        "id": 99,
+        "name": "Documentario"
+      }
+    ],
+    "tagline": "",
+    "multiLangVideos": {
+      "it": [],
+      "en": [],
+      "original": []
+    },
+    "_cachedAt": 1777550804609
+  },
   "524635": {
     "id": 524635,
     "title": "La cronologia dell’acqua",
@@ -1202,6 +1745,1410 @@
       ]
     },
     "_cachedAt": 1777472160136
+  },
+  "661539": {
+    "id": 661539,
+    "title": "A Complete Unknown",
+    "overview": "A COMPLETE UNKNOWN segue l'arrivo del diciannovenne Bob Dylan a New York nel 1961, alla ricerca del suo eroe, un Woody Guthrie malato. Viene accolto dalla scena folk newyorkese (Guthrie, Pete Seeger, Joan Baez e altri) che riconosce il suo talento. Trova ingaggi nei club del centro e diventa presto un fenomeno, sotto contratto con la Columbia Records. Il film segue l'ascesa di Dylan a fenomeno culturale, le sue forti relazioni nel mondo della musica folk e la sua definitiva transizione dalla musica folk, formando una band, confondendo i suoi fan e deludendo la comunità musicale che lo aveva inizialmente accolto.",
+    "poster_path": "/lrukuw7z38D2OJhJ0iMERCcXwt2.jpg",
+    "backdrop_path": "/lRfRxUBMHEdveOJsIA0FNnRJQgu.jpg",
+    "logo_path": "/MDFnP9Oq23xwBkeUXKz5hcqFAB.png",
+    "release_date": "2024-12-25",
+    "director": "James Mangold",
+    "runtime": 141,
+    "cast": [
+      "Timothée Chalamet",
+      "Edward Norton",
+      "Elle Fanning",
+      "Monica Barbaro",
+      "Scoot McNairy"
+    ],
+    "trailerKey": "KuVnRN_LVOw",
+    "trailerKeys": [
+      "KuVnRN_LVOw",
+      "pHvskfTszoU",
+      "ob4SHtT6cC0",
+      "NO9hXSD5K4A",
+      "FdV-Cs5o8mc"
+    ],
+    "rating": "14+",
+    "original_language": "en",
+    "genres": [
+      {
+        "id": 18,
+        "name": "Dramma"
+      },
+      {
+        "id": 10402,
+        "name": "Musica"
+      }
+    ],
+    "tagline": "",
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "A Complete Unknown | Trailer Finale | Dal 23 Gennaio al Cinema",
+          "key": "KuVnRN_LVOw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "678966d09de8a2d834979863",
+          "published_at": "2025-01-13T12:17:35.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "A Complete Unknown | Trailer Ufficiale",
+          "key": "pHvskfTszoU",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6708ee206adf662021301cb9",
+          "published_at": "2024-10-11T09:08:37.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "A Complete Unknown | Teaser Ufficiale | Dal 23 Gennaio al Cinema",
+          "key": "p3UER_QJjlA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6708ee108d487f6541287099",
+          "published_at": "2024-09-09T14:29:04.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Hard Rain Review",
+          "key": "F5E1ReqMnlo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67cf24376676e9940010fbf8",
+          "published_at": "2025-03-09T04:00:16.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Take the stage. Be the first to watch at home.",
+          "key": "rsOxcq2A83M",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67cb6386f8e1f1bc90f584ed",
+          "published_at": "2025-03-07T17:01:08.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Accolades",
+          "key": "fbBH18J-of0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67c2a487bf660774896dd701",
+          "published_at": "2025-03-01T04:00:25.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Attention Review",
+          "key": "2T7oAa1lyuY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67c0a735c153ece2e2a24f01",
+          "published_at": "2025-02-27T04:00:02.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Be the first to watch. Buy it now only on Digital.",
+          "key": "_fejyb0cxSA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67be510ef32e950c4a3d34b7",
+          "published_at": "2025-02-25T17:00:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Think Twice",
+          "key": "rsDFi_jEhdQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67af66c6f12cec6e301cc891",
+          "published_at": "2025-02-13T20:00:37.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Edward Norton",
+          "key": "prZ21e5I5zM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67af66d9fc6e82f86e8e6a0e",
+          "published_at": "2025-02-11T19:00:37.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Be the first to watch at home, nominated for 8 Academy Awards®.",
+          "key": "ob4SHtT6cC0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "67af6708104612e8633b6de5",
+          "published_at": "2025-02-11T16:00:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Rolling",
+          "key": "ZWYTXUUzeEA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67aae37115cf29606eb09917",
+          "published_at": "2025-02-10T18:14:56.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Original",
+          "key": "HZtMWnprBuw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67aae364984e1e22179b8cd5",
+          "published_at": "2025-02-09T18:00:17.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Revelation",
+          "key": "r2bo95ADB8c",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67aae35c15cf29606eb09911",
+          "published_at": "2025-02-08T18:00:38.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Triumph",
+          "key": "PAkZXMn5ESk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67a76c9d31001bec13c8b67e",
+          "published_at": "2025-02-07T19:00:27.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Remember Me",
+          "key": "uw_FeIp0OHs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67a5ecdfc1e5ed8bfc85e01b",
+          "published_at": "2025-02-06T18:00:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Nominated for 8 Academy Awards® including Best Picture.",
+          "key": "XE6QcFNZtsk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67a31291dc24ee93d1810d81",
+          "published_at": "2025-02-04T23:47:59.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Fashion",
+          "key": "VjyKGWL1smk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67a0b03f601ebc9870cb4af6",
+          "published_at": "2025-02-02T17:00:34.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Accolades",
+          "key": "lgnid6ASPso",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "679c49dc4e9a4595ecbdd7a0",
+          "published_at": "2025-01-29T17:00:54.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Warm Welcome",
+          "key": "fqVlDg6Sfjc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "679c49d0d4381a4fc9011e68",
+          "published_at": "2025-01-28T17:00:45.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Nominations",
+          "key": "9edO2LzpTqs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "679605fe9a30a85b2723b14a",
+          "published_at": "2025-01-24T22:30:00.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The Times They Are A-Changin’",
+          "key": "qUUcWwtQQVA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "679605f1df4b0191ce2adfad",
+          "published_at": "2025-01-24T17:00:59.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Eight Nominations",
+          "key": "AYv3_C90hlo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67933baeace3eab82e1847b8",
+          "published_at": "2025-01-23T23:44:47.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Nominations",
+          "key": "0XOL7_WlGdM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67933ba7559e2d974b482e22",
+          "published_at": "2025-01-23T15:31:01.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Subterranean Homesick Reviews",
+          "key": "jI6bzpKHVMs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6791e9cf0a041b47e7fa6f83",
+          "published_at": "2025-01-22T19:00:26.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Sold Out",
+          "key": "tmhNhi1GuL8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6791e9c00a041b47e7fa6f7e",
+          "published_at": "2025-01-22T18:00:42.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "SAG",
+          "key": "-7uxS3aFTqM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "678c5de535902b0f936df385",
+          "published_at": "2025-01-17T18:00:18.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Romance",
+          "key": "6mwa_B7sePk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "678c5df9a915feb7106502f2",
+          "published_at": "2025-01-17T17:00:08.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Rising Sun",
+          "key": "yt_jLKMds90",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "678c5e0fa93ce48bca4319fd",
+          "published_at": "2025-01-16T17:01:13.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Experience",
+          "key": "uFhrJyLH5Bk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "677f1b8c44d649ffae7b2882",
+          "published_at": "2025-01-07T20:00:22.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Fearless",
+          "key": "8m2LsvyQYWk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "677b666855d4b38f93670ae7",
+          "published_at": "2025-01-05T17:07:39.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "BOB!",
+          "key": "DuEam_Mwkps",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67771cd515521f83d9667b8a",
+          "published_at": "2025-01-01T17:00:12.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Celebration",
+          "key": "zZlbuebomM4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "677254b83fc76ea5889277fe",
+          "published_at": "2024-12-29T17:06:21.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Timothée Is Bob",
+          "key": "j7lb8318GgA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "677254ab3fc76ea5889277fb",
+          "published_at": "2024-12-28T20:39:02.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Spirit",
+          "key": "uLbtKkaD2ZM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676f9a9bbf10ff1984619192",
+          "published_at": "2024-12-27T20:10:07.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Complete",
+          "key": "zuBrn8SZ914",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676e4355d6d10ecc8c12ac75",
+          "published_at": "2024-12-26T17:00:54.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Now Playing",
+          "key": "Qm74qw4qH40",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676d094962ba310fc01283c9",
+          "published_at": "2024-12-25T17:02:41.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "My Type",
+          "key": "S9XcqoOKpAk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676d0959bf10ff1984613bfc",
+          "published_at": "2024-12-24T19:59:41.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "American Icon",
+          "key": "9_Gx8x-rb8g",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676a35b729783775687ec585",
+          "published_at": "2024-12-23T18:01:58.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Final Trailer",
+          "key": "NO9hXSD5K4A",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "676a358ceda441dc9364b180",
+          "published_at": "2024-12-23T16:03:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Accolades",
+          "key": "Cc5QoGKCkYo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676a35c9f68dc118f77ebd8c",
+          "published_at": "2024-12-22T17:01:50.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Hold On",
+          "key": "eZt4NF-R83A",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676616c3ae1b411f405e1bb9",
+          "published_at": "2024-12-20T19:00:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Bob Dylan",
+          "key": "sN2R3-itbUg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676616dc52ab12dfea5e0430",
+          "published_at": "2024-12-20T17:00:57.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Attention",
+          "key": "YucqjtNoVNI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676616ee330bce6ec990ee46",
+          "published_at": "2024-12-19T22:04:56.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Joan Baez",
+          "key": "Crn438FuVp8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6766173e330bce6ec990ee6e",
+          "published_at": "2024-12-19T17:00:17.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Sylvie Russo",
+          "key": "J2HPjWPi95E",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6763d96cd6d44159d8ffe045",
+          "published_at": "2024-12-18T17:00:29.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "One Week",
+          "key": "gKQ8BF0udXM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6763d96167c96321804a4b1b",
+          "published_at": "2024-12-18T16:00:41.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Pete Seeger",
+          "key": "-AwSLSJIlTs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6762bb8240d2c02ecdab04a4",
+          "published_at": "2024-12-17T19:01:51.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Johnny Cash",
+          "key": "3c4mdnRhT74",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6760e1bab1ab10c010bafd6b",
+          "published_at": "2024-12-16T22:55:40.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Icon Review",
+          "key": "eEd83XBd2ug",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6760e1c6b1ab10c010bafd6e",
+          "published_at": "2024-12-15T17:09:38.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Take 1",
+          "key": "8Wwdr56pFgw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6760e1e1e602b5d1a4bb01b5",
+          "published_at": "2024-12-13T23:03:52.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "I'll Sing Louder",
+          "key": "zZwqHXT8tDA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "675bcd530d945f8c438e3f5e",
+          "published_at": "2024-12-12T22:05:46.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Date Night",
+          "key": "OyoYPUqikBg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "675a305c7c2d51bdbd1f6aaf",
+          "published_at": "2024-12-10T22:05:02.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Get Tickets Now",
+          "key": "xes-sIZc198",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "675a304aff0272934b0ac2d7",
+          "published_at": "2024-12-09T17:02:54.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Hit Play",
+          "key": "dlhNqg7H35k",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67521c0384ca928d00c9f4ef",
+          "published_at": "2024-12-05T14:01:04.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Rebel",
+          "key": "7qziOUa3Pmc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "674dc9277473778bbd9af7b9",
+          "published_at": "2024-12-01T23:01:21.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "FdV-Cs5o8mc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "670536751b96b8ef4c69d7b6",
+          "published_at": "2024-10-08T13:00:10.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser",
+          "key": "TcNNteP22gQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "66a10441a33cb8674135f993",
+          "published_at": "2024-07-24T13:03:50.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Hard Rain Review",
+          "key": "F5E1ReqMnlo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67cf24376676e9940010fbf8",
+          "published_at": "2025-03-09T04:00:16.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Take the stage. Be the first to watch at home.",
+          "key": "rsOxcq2A83M",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67cb6386f8e1f1bc90f584ed",
+          "published_at": "2025-03-07T17:01:08.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Accolades",
+          "key": "fbBH18J-of0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67c2a487bf660774896dd701",
+          "published_at": "2025-03-01T04:00:25.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Attention Review",
+          "key": "2T7oAa1lyuY",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67c0a735c153ece2e2a24f01",
+          "published_at": "2025-02-27T04:00:02.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Be the first to watch. Buy it now only on Digital.",
+          "key": "_fejyb0cxSA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67be510ef32e950c4a3d34b7",
+          "published_at": "2025-02-25T17:00:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Think Twice",
+          "key": "rsDFi_jEhdQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67af66c6f12cec6e301cc891",
+          "published_at": "2025-02-13T20:00:37.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Edward Norton",
+          "key": "prZ21e5I5zM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67af66d9fc6e82f86e8e6a0e",
+          "published_at": "2025-02-11T19:00:37.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Be the first to watch at home, nominated for 8 Academy Awards®.",
+          "key": "ob4SHtT6cC0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "67af6708104612e8633b6de5",
+          "published_at": "2025-02-11T16:00:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Rolling",
+          "key": "ZWYTXUUzeEA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67aae37115cf29606eb09917",
+          "published_at": "2025-02-10T18:14:56.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Original",
+          "key": "HZtMWnprBuw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67aae364984e1e22179b8cd5",
+          "published_at": "2025-02-09T18:00:17.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Revelation",
+          "key": "r2bo95ADB8c",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67aae35c15cf29606eb09911",
+          "published_at": "2025-02-08T18:00:38.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Triumph",
+          "key": "PAkZXMn5ESk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67a76c9d31001bec13c8b67e",
+          "published_at": "2025-02-07T19:00:27.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Remember Me",
+          "key": "uw_FeIp0OHs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67a5ecdfc1e5ed8bfc85e01b",
+          "published_at": "2025-02-06T18:00:49.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Nominated for 8 Academy Awards® including Best Picture.",
+          "key": "XE6QcFNZtsk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67a31291dc24ee93d1810d81",
+          "published_at": "2025-02-04T23:47:59.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Fashion",
+          "key": "VjyKGWL1smk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67a0b03f601ebc9870cb4af6",
+          "published_at": "2025-02-02T17:00:34.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Accolades",
+          "key": "lgnid6ASPso",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "679c49dc4e9a4595ecbdd7a0",
+          "published_at": "2025-01-29T17:00:54.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Warm Welcome",
+          "key": "fqVlDg6Sfjc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "679c49d0d4381a4fc9011e68",
+          "published_at": "2025-01-28T17:00:45.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Nominations",
+          "key": "9edO2LzpTqs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "679605fe9a30a85b2723b14a",
+          "published_at": "2025-01-24T22:30:00.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "The Times They Are A-Changin’",
+          "key": "qUUcWwtQQVA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "679605f1df4b0191ce2adfad",
+          "published_at": "2025-01-24T17:00:59.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Eight Nominations",
+          "key": "AYv3_C90hlo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67933baeace3eab82e1847b8",
+          "published_at": "2025-01-23T23:44:47.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Nominations",
+          "key": "0XOL7_WlGdM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67933ba7559e2d974b482e22",
+          "published_at": "2025-01-23T15:31:01.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Subterranean Homesick Reviews",
+          "key": "jI6bzpKHVMs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6791e9cf0a041b47e7fa6f83",
+          "published_at": "2025-01-22T19:00:26.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Sold Out",
+          "key": "tmhNhi1GuL8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6791e9c00a041b47e7fa6f7e",
+          "published_at": "2025-01-22T18:00:42.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "SAG",
+          "key": "-7uxS3aFTqM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "678c5de535902b0f936df385",
+          "published_at": "2025-01-17T18:00:18.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Romance",
+          "key": "6mwa_B7sePk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "678c5df9a915feb7106502f2",
+          "published_at": "2025-01-17T17:00:08.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Rising Sun",
+          "key": "yt_jLKMds90",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "678c5e0fa93ce48bca4319fd",
+          "published_at": "2025-01-16T17:01:13.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Experience",
+          "key": "uFhrJyLH5Bk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "677f1b8c44d649ffae7b2882",
+          "published_at": "2025-01-07T20:00:22.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Fearless",
+          "key": "8m2LsvyQYWk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "677b666855d4b38f93670ae7",
+          "published_at": "2025-01-05T17:07:39.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "BOB!",
+          "key": "DuEam_Mwkps",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67771cd515521f83d9667b8a",
+          "published_at": "2025-01-01T17:00:12.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Celebration",
+          "key": "zZlbuebomM4",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "677254b83fc76ea5889277fe",
+          "published_at": "2024-12-29T17:06:21.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Timothée Is Bob",
+          "key": "j7lb8318GgA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "677254ab3fc76ea5889277fb",
+          "published_at": "2024-12-28T20:39:02.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Spirit",
+          "key": "uLbtKkaD2ZM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676f9a9bbf10ff1984619192",
+          "published_at": "2024-12-27T20:10:07.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Complete",
+          "key": "zuBrn8SZ914",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676e4355d6d10ecc8c12ac75",
+          "published_at": "2024-12-26T17:00:54.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Now Playing",
+          "key": "Qm74qw4qH40",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676d094962ba310fc01283c9",
+          "published_at": "2024-12-25T17:02:41.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "My Type",
+          "key": "S9XcqoOKpAk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676d0959bf10ff1984613bfc",
+          "published_at": "2024-12-24T19:59:41.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "American Icon",
+          "key": "9_Gx8x-rb8g",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676a35b729783775687ec585",
+          "published_at": "2024-12-23T18:01:58.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Final Trailer",
+          "key": "NO9hXSD5K4A",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "676a358ceda441dc9364b180",
+          "published_at": "2024-12-23T16:03:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Accolades",
+          "key": "Cc5QoGKCkYo",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676a35c9f68dc118f77ebd8c",
+          "published_at": "2024-12-22T17:01:50.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Hold On",
+          "key": "eZt4NF-R83A",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676616c3ae1b411f405e1bb9",
+          "published_at": "2024-12-20T19:00:31.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Bob Dylan",
+          "key": "sN2R3-itbUg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676616dc52ab12dfea5e0430",
+          "published_at": "2024-12-20T17:00:57.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Attention",
+          "key": "YucqjtNoVNI",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "676616ee330bce6ec990ee46",
+          "published_at": "2024-12-19T22:04:56.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Joan Baez",
+          "key": "Crn438FuVp8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6766173e330bce6ec990ee6e",
+          "published_at": "2024-12-19T17:00:17.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Sylvie Russo",
+          "key": "J2HPjWPi95E",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6763d96cd6d44159d8ffe045",
+          "published_at": "2024-12-18T17:00:29.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "One Week",
+          "key": "gKQ8BF0udXM",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6763d96167c96321804a4b1b",
+          "published_at": "2024-12-18T16:00:41.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Pete Seeger",
+          "key": "-AwSLSJIlTs",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6762bb8240d2c02ecdab04a4",
+          "published_at": "2024-12-17T19:01:51.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Johnny Cash",
+          "key": "3c4mdnRhT74",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6760e1bab1ab10c010bafd6b",
+          "published_at": "2024-12-16T22:55:40.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Icon Review",
+          "key": "eEd83XBd2ug",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6760e1c6b1ab10c010bafd6e",
+          "published_at": "2024-12-15T17:09:38.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Take 1",
+          "key": "8Wwdr56pFgw",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6760e1e1e602b5d1a4bb01b5",
+          "published_at": "2024-12-13T23:03:52.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "I'll Sing Louder",
+          "key": "zZwqHXT8tDA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "675bcd530d945f8c438e3f5e",
+          "published_at": "2024-12-12T22:05:46.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Date Night",
+          "key": "OyoYPUqikBg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "675a305c7c2d51bdbd1f6aaf",
+          "published_at": "2024-12-10T22:05:02.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Get Tickets Now",
+          "key": "xes-sIZc198",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "675a304aff0272934b0ac2d7",
+          "published_at": "2024-12-09T17:02:54.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Hit Play",
+          "key": "dlhNqg7H35k",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "67521c0384ca928d00c9f4ef",
+          "published_at": "2024-12-05T14:01:04.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Rebel",
+          "key": "7qziOUa3Pmc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "674dc9277473778bbd9af7b9",
+          "published_at": "2024-12-01T23:01:21.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer",
+          "key": "FdV-Cs5o8mc",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "670536751b96b8ef4c69d7b6",
+          "published_at": "2024-10-08T13:00:10.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Teaser",
+          "key": "TcNNteP22gQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "66a10441a33cb8674135f993",
+          "published_at": "2024-07-24T13:03:50.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777550804623
   },
   "701387": {
     "id": 701387,
@@ -1880,6 +3827,162 @@
       ]
     },
     "_cachedAt": 1777472158893
+  },
+  "801112": {
+    "id": 801112,
+    "title": "Rapito",
+    "overview": "Nel 1858, nel quartiere ebraico di Bologna, i soldati del Papa irrompono nella casa della famiglia Mortara. Per ordine del cardinale, sono andati a prendere Edgardo, il loro figlio di sette anni. Secondo le dichiarazioni di una domestica, ritenuto in punto di morte, a sei mesi, il bambino era stato segretamente battezzato. La legge papale è inappellabile: deve ricevere un'educazione cattolica. I genitori di Edgardo, sconvolti, faranno di tutto per riavere il figlio. Sostenuta dall'opinione pubblica e dalla comunità ebraica internazionale, la battaglia dei Mortara assume presto una dimensione politica. Ma il Papa non accetta di restituire il bambino. Mentre Edgardo cresce nella fede cattolica, il potere temporale della Chiesa volge al tramonto e le truppe sabaude conquistano Roma.",
+    "poster_path": "/tFGQpFRzj9imHe3sKEph8b3e4LT.jpg",
+    "backdrop_path": "/12GAm3EiHUUeCB5mk3NphURUh1R.jpg",
+    "logo_path": "/jw8oukBBVAfTGbBnRDDVf9rI8DO.png",
+    "release_date": "2023-05-25",
+    "director": "Marco Bellocchio",
+    "runtime": 125,
+    "cast": [
+      "Enea Sala",
+      "Leonardo Maltese",
+      "Paolo Pierobon",
+      "Fausto Russo Alesi",
+      "Barbara Ronchi"
+    ],
+    "trailerKey": "plbm-8m8ax8",
+    "trailerKeys": [
+      "plbm-8m8ax8",
+      "LCwiOmN28H0",
+      "oQAK0yBHQZ8",
+      "2463RQosVoA",
+      "OxhNJmKnKjA"
+    ],
+    "rating": "14+",
+    "original_language": "it",
+    "genres": [
+      {
+        "id": 18,
+        "name": "Dramma"
+      },
+      {
+        "id": 36,
+        "name": "Storia"
+      }
+    ],
+    "tagline": "",
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Trailer Ufficial",
+          "key": "plbm-8m8ax8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "64524af687a27a0154318c5c",
+          "published_at": "2023-05-03T10:30:28.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official :30 Cutdown [Subtitled]",
+          "key": "2463RQosVoA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6650a15ba7cfca301bec4789",
+          "published_at": "2024-05-16T18:06:07.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "US Trailer V2 [Subtitled]",
+          "key": "LCwiOmN28H0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "66509f5b5c47b2b48a18f9a3",
+          "published_at": "2024-05-08T18:33:18.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas 26 April [Subtitled]",
+          "key": "OxhNJmKnKjA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6626e192cb6db50186b10d11",
+          "published_at": "2024-04-16T15:17:26.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "oQAK0yBHQZ8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "65104430e1faed00ae303205",
+          "published_at": "2023-08-25T03:10:16.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official :30 Cutdown [Subtitled]",
+          "key": "2463RQosVoA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6650a15ba7cfca301bec4789",
+          "published_at": "2024-05-16T18:06:07.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "US Trailer V2 [Subtitled]",
+          "key": "LCwiOmN28H0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "66509f5b5c47b2b48a18f9a3",
+          "published_at": "2024-05-08T18:33:18.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "In Cinemas 26 April [Subtitled]",
+          "key": "OxhNJmKnKjA",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "6626e192cb6db50186b10d11",
+          "published_at": "2024-04-16T15:17:26.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "oQAK0yBHQZ8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "65104430e1faed00ae303205",
+          "published_at": "2023-08-25T03:10:16.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777550804526
   },
   "848685": {
     "id": 848685,
@@ -3428,6 +5531,312 @@
       ]
     },
     "_cachedAt": 1777472158731
+  },
+  "1108350": {
+    "id": 1108350,
+    "title": "Sconosciuti puri",
+    "overview": "Every night nameless bodies land in Dr. Cristina Cattaneo’s autopsy room. She calls them the Pure Unknown.  These Pure Unknown often belong to the fringes of society. They are homeless, sex workers, runaway teenagers. Lately, they have mostly been migrants, rejected by the Mediterranean Sea onto the shores of Italy.  If all rights belong to the living, nothing is left to the dead. So what happens when the dead have lost their identity? In the face of this growing multitude, no one seems concerned about their right to dignity.No one but Cristina.",
+    "poster_path": "/aYsSZ1Fe2xbl5fqmK2VXMLBCOOv.jpg",
+    "backdrop_path": "/w96fyM9FJAUSr8Em8bcPJahtXaB.jpg",
+    "logo_path": null,
+    "release_date": "2023-04-20",
+    "director": "Mattia Colombo",
+    "runtime": 93,
+    "cast": [
+      "Cristina Cattaneo"
+    ],
+    "trailerKey": null,
+    "trailerKeys": [],
+    "rating": "T",
+    "original_language": "it",
+    "genres": [
+      {
+        "id": 99,
+        "name": "Documentario"
+      }
+    ],
+    "tagline": "Who will fight for their names?",
+    "multiLangVideos": {
+      "it": [],
+      "en": [],
+      "original": []
+    },
+    "_cachedAt": 1777550804758
+  },
+  "1115757": {
+    "id": 1115757,
+    "title": "Troppo azzurro",
+    "overview": "Dario, 25 anni, è aggrappato al suo equilibrio da adolescente: vive ancora a casa con i suoi e ha lo stesso gruppo di amici dal liceo. Quando nel torrido agosto romano inizia a frequentarsi prima con Caterina, una ragazza conosciuta per caso, e poi con Lara, la ragazza “irraggiungibile” che ha sempre amato, dovrà scegliere se restare nella sua comfort zone o lasciarsi finalmente andare.",
+    "poster_path": "/mhB76sSnFXWAVQ2uiBxZrC4ei7J.jpg",
+    "backdrop_path": "/lwcTjh37F9AxH6VWOM645y4ysA0.jpg",
+    "logo_path": "/9sj8CB0kDV5R6HZCN3vOFpDYkFs.png",
+    "release_date": "2024-05-09",
+    "director": "Filippo Barbagallo",
+    "runtime": 88,
+    "cast": [
+      "Filippo Barbagallo",
+      "Alice Benvenuti",
+      "Martina Gatti",
+      "Brando Pacitto",
+      "Valeria Milillo"
+    ],
+    "trailerKey": "Wh51VxUuXh8",
+    "trailerKeys": [
+      "Wh51VxUuXh8"
+    ],
+    "rating": "T",
+    "original_language": "it",
+    "genres": [
+      {
+        "id": 35,
+        "name": "Commedia"
+      }
+    ],
+    "tagline": "",
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Troppo azzurro (2024) - Trailer ufficiale",
+          "key": "Wh51VxUuXh8",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6619282566e4690165bc69e2",
+          "published_at": "2024-04-12T10:38:20.000Z"
+        }
+      ],
+      "en": [],
+      "original": []
+    },
+    "_cachedAt": 1777550804350
+  },
+  "1118770": {
+    "id": 1118770,
+    "title": "Diciannove",
+    "overview": "Il film racconta la storia di un diciannovenne di Palermo che lascia Londra, dove studia economia, per trasferirsi a Siena ed iniziare la facoltà di lettere. Il viaggio introspettivo tra i ricordi del protagonista mostra la sua maturazione mentre è alla ricerca del proprio posto del mondo.",
+    "poster_path": "/nedGROwZra8ysrG5tfCBEViDAUc.jpg",
+    "backdrop_path": "/z5zLsEH8vha7JtxyeAE0T2csbmq.jpg",
+    "logo_path": null,
+    "release_date": "2025-02-27",
+    "director": "Giovanni Tortorici",
+    "runtime": 109,
+    "cast": [
+      "Manfredi Marini",
+      "Vittoria Planeta",
+      "Dana Giuliano",
+      "Zackari Delmas",
+      "Luca Lazzareschi"
+    ],
+    "trailerKey": "IJ4laV1GTTk",
+    "trailerKeys": [
+      "IJ4laV1GTTk",
+      "Ar4jYjvak9g",
+      "fh72rHbmt1A"
+    ],
+    "rating": "6+",
+    "original_language": "it",
+    "genres": [
+      {
+        "id": 18,
+        "name": "Dramma"
+      }
+    ],
+    "tagline": "",
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "DICIANNOVE di Giovanni Tortorici - Trailer Ufficiale",
+          "key": "IJ4laV1GTTk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "67a72193b9360c3e33e06195",
+          "published_at": "2025-02-06T13:08:37.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official U.S. Trailer [Subtitled]",
+          "key": "Ar4jYjvak9g",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "6836bb4b8a750b1501eb3ee0",
+          "published_at": "2025-05-27T18:27:05.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "fh72rHbmt1A",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68205c54c94058087d4b3ed4",
+          "published_at": "2025-05-01T05:41:59.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official U.S. Trailer [Subtitled]",
+          "key": "Ar4jYjvak9g",
+          "site": "YouTube",
+          "size": 2160,
+          "type": "Trailer",
+          "official": true,
+          "id": "6836bb4b8a750b1501eb3ee0",
+          "published_at": "2025-05-27T18:27:05.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer [Subtitled]",
+          "key": "fh72rHbmt1A",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "68205c54c94058087d4b3ed4",
+          "published_at": "2025-05-01T05:41:59.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777550804752
+  },
+  "1141163": {
+    "id": 1141163,
+    "title": "Diva Futura",
+    "overview": "Nell'Italia a cavallo tra gli anni 80 e gli anni 90, Debora Attanasio viene assunta come segretaria all'agenzia Diva Futura, specializzata nella produzione di film erotici e pornografici.",
+    "poster_path": "/qLfdMy5LmUlkqgm3jvgVvIbvQWO.jpg",
+    "backdrop_path": "/pbgyEav25kSJHbtnlEifVwt68SU.jpg",
+    "logo_path": "/lYfxgHPyzzwKxCGLGQwIZAI5AY5.png",
+    "release_date": "2025-02-06",
+    "director": "Giulia Louise Steigerwalt",
+    "runtime": 128,
+    "cast": [
+      "Pietro Castellitto",
+      "Barbara Ronchi",
+      "Denise Capezza",
+      "Tesa Litvan",
+      "Lidija Kordić"
+    ],
+    "trailerKey": "eznTbBaKvXk",
+    "trailerKeys": [
+      "eznTbBaKvXk",
+      "Ev3VK2FQlN0",
+      "MS4OJ62-9mQ",
+      "aUeKyL4bCMk"
+    ],
+    "rating": "6+",
+    "original_language": "it",
+    "genres": [
+      {
+        "id": 18,
+        "name": "Dramma"
+      },
+      {
+        "id": 10749,
+        "name": "Romance"
+      },
+      {
+        "id": 35,
+        "name": "Commedia"
+      }
+    ],
+    "tagline": "",
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Diva Futura | Trailer Ufficiale",
+          "key": "eznTbBaKvXk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6786a8ea136e157cf27ba28e",
+          "published_at": "2025-01-14T16:32:42.000Z"
+        },
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "Diva Futura | Teaser Trailer",
+          "key": "MS4OJ62-9mQ",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": true,
+          "id": "670f9d31547de4a74f60df07",
+          "published_at": "2024-09-04T08:30:55.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer [Subtitled]",
+          "key": "Ev3VK2FQlN0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6915301eeacffe65b23a3e70",
+          "published_at": "2025-09-05T06:12:24.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Diva Futura - Teaser trailer",
+          "key": "aUeKyL4bCMk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": false,
+          "id": "6726e8ade86453169bc364e2",
+          "published_at": "2024-09-04T08:48:45.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Trailer [Subtitled]",
+          "key": "Ev3VK2FQlN0",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6915301eeacffe65b23a3e70",
+          "published_at": "2025-09-05T06:12:24.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Diva Futura - Teaser trailer",
+          "key": "aUeKyL4bCMk",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Teaser",
+          "official": false,
+          "id": "6726e8ade86453169bc364e2",
+          "published_at": "2024-09-04T08:48:45.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777550804078
   },
   "1143973": {
     "id": 1143973,
@@ -5263,6 +7672,108 @@
       ]
     },
     "_cachedAt": 1777473443521
+  },
+  "1356670": {
+    "id": 1356670,
+    "title": "L’ultimo turno",
+    "overview": "Floria è un'infermiera che lavora con passione e professionalità nel reparto di chirurgia di un ospedale. Ogni suo movimento è perfetto. È sempre in ascolto di tutti i pazienti, anche nelle situazioni più stressanti, e si rende sempre disponibile, facendo fronte a ogni emergenza. Ma nella cruda realtà della sua routine quotidiana, in un reparto sovraffollato e a corto di personale, spesso le situazioni sono imprevedibili. Floria si prende cura, fra tanti altri, di una giovane madre gravemente malata e di un anziano signore che attende con apprensione la sua diagnosi. Via via che la notte avanza, il suo lavoro assume sempre più i contorni di una corsa contro il tempo.",
+    "poster_path": "/5rdPS4URp6joVC0gOW5QF5TVkux.jpg",
+    "backdrop_path": "/4kK75XUW2Ho9jgWjs9qFnJkEhpr.jpg",
+    "logo_path": "/ocDHT2uRUo97ojraMIzgnVc9MSI.png",
+    "release_date": "2025-02-27",
+    "director": "Petra Biondina Volpe",
+    "runtime": 92,
+    "cast": [
+      "Leonie Benesch",
+      "Alireza Bayram",
+      "Jürg Plüss",
+      "Jasmin Mattei",
+      "Lale Yavaş"
+    ],
+    "trailerKey": "UlxEVrEhVes",
+    "trailerKeys": [
+      "UlxEVrEhVes",
+      "x-bFONM8vak",
+      "GAfNciUIWCg"
+    ],
+    "rating": "14+",
+    "original_language": "de",
+    "genres": [
+      {
+        "id": 18,
+        "name": "Dramma"
+      }
+    ],
+    "tagline": "",
+    "multiLangVideos": {
+      "it": [
+        {
+          "iso_639_1": "it",
+          "iso_3166_1": "IT",
+          "name": "L'ULTIMO TURNO un film di Petra Volpe | Trailer Ufficiale | dal 20 agosto al cinema",
+          "key": "GAfNciUIWCg",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": false,
+          "id": "6878c6ca5fe5688001062585",
+          "published_at": "2025-07-17T08:55:01.000Z"
+        }
+      ],
+      "en": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Late Shift | Official Trailer | In Select Theaters March 20",
+          "key": "UlxEVrEhVes",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "69861ea4cf9cd8704134548d",
+          "published_at": "2026-02-06T15:58:29.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer (English subtitles)",
+          "key": "x-bFONM8vak",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6833803ed9b03bb2710552ef",
+          "published_at": "2025-05-09T02:34:07.000Z"
+        }
+      ],
+      "original": [
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Late Shift | Official Trailer | In Select Theaters March 20",
+          "key": "UlxEVrEhVes",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "69861ea4cf9cd8704134548d",
+          "published_at": "2026-02-06T15:58:29.000Z"
+        },
+        {
+          "iso_639_1": "en",
+          "iso_3166_1": "US",
+          "name": "Official Trailer (English subtitles)",
+          "key": "x-bFONM8vak",
+          "site": "YouTube",
+          "size": 1080,
+          "type": "Trailer",
+          "official": true,
+          "id": "6833803ed9b03bb2710552ef",
+          "published_at": "2025-05-09T02:34:07.000Z"
+        }
+      ]
+    },
+    "_cachedAt": 1777550804888
   },
   "1400381": {
     "id": 1400381,
