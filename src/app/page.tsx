@@ -4,7 +4,7 @@ import WeeklyCinemaCalendar from '@/components/WeeklyCinemaCalendar/WeeklyCinema
 import { extractYouTubeId } from '@/utils/youtubeUtils';
 import styles from './page.module.css';
 import { unstable_noStore as noStore } from 'next/cache';
-import { MovieOverride, PretixSync } from '@prisma/client';
+import type { MovieOverride, PretixSync } from '@prisma/client';
 
 // Define the type for the projection with the included movie
 type ProjectionWithMovie = PretixSync & {

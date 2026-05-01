@@ -9,6 +9,7 @@ import RatingBadge from './RatingBadge';
 import LanguageBadge from './LanguageBadge';
 import AgeVerificationModal from './AgeVerificationModal';
 
+import type { MovieOverride, PretixSync } from '@prisma/client';
 import { getTrustedSubeventMetadata } from '@/actions/bookingActions';
 
 import { isVM18, isVM14, normalizeRating } from '@/utils/ratingUtils';
@@ -336,10 +337,10 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
             <div className={styles.topRightRating}>
               {metaSource.rating && <RatingBadge id={metaSource.rating} size="md" />}
               <LanguageBadge 
-                language={metaSource.versionLanguage || ''} 
-                subtitles={metaSource.subtitles || ''} 
-                size="sm" 
-                showLabel={false}
+                language={metaSource.versionLanguage || 'ITA'} 
+                subtitles={metaSource.subtitles || 'NESSUNO'} 
+                size="md" 
+                showLabel={true}
               />
             </div>
           );
