@@ -29,6 +29,15 @@ const LANGUAGE_MAP: Record<string, string> = {
 };
 
 /**
+ * Detects if a string contains non-Latin characters (Arabic, Cyrillic, CJK, etc.)
+ */
+export function isNonLatin(text: string): boolean {
+  if (!text) return false;
+  // Regex matches Arabic, Cyrillic, Greek, Hebrew, and CJK characters
+  return /[\u0600-\u06FF\u0400-\u04FF\u0370-\u03FF\u0590-\u05FF\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7AF]/.test(text);
+}
+
+/**
  * Converts a TMDB language code to a human-readable Italian name.
  */
 export function getLanguageName(code?: string): string {

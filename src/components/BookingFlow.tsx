@@ -440,9 +440,9 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
                 const r = String(metaSource.rating || '');
                 const norm = normalizeRating(r);
                 
-                if (norm === '18+' || norm === '14+' || norm === '10+') {
-                  const age = norm === '18+' ? '18' : (norm === '14+' ? '14' : '10');
-                  const isRestriction = norm === '18+' || norm === '14+';
+                if (norm === '18+' || norm === '14+' || norm === '10+' || norm === '6+') {
+                  const age = norm === '18+' ? '18' : (norm === '14+' ? '14' : (norm === '10+' ? '10' : '6'));
+                  const isRestriction = norm === '18+'; // Only 18+ gets the RED legal warning
                   
                   return (
                     <div className={isRestriction ? styles.legalInfo : `${styles.legalInfo} ${styles.infoOnly}`}>
@@ -450,7 +450,9 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
                       <span>
                         {isRestriction 
                           ? `L'accesso a questa proiezione è limitato ai maggiori di ${age} anni.`
-                          : `La visione di questo film è consigliata dai ${age} anni in su.`}
+                          : (norm === '14+' 
+                              ? `L'accesso a questa proiezione è limitato ai maggiori di 14 anni.`
+                              : `La visione di questo film è consigliata dai ${age} anni in su.`)}
                       </span>
                     </div>
                   );

@@ -2,7 +2,7 @@ import { normalizeRating } from '@/utils/ratingUtils';
 const TMDB_API_KEY = '00ea09c7fb5bf89b064f6001a2de3122';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-import { MovieItem } from './tmdb.utils';
+import { MovieItem, isNonLatin } from './tmdb.utils';
 export * from './tmdb.utils';
 
 export interface MovieDetails extends MovieItem {
@@ -126,7 +126,28 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
     
     if (!response.ok) return null;
     const details = await response.json();
-
+    
+    // LATINIZATION FALLBACK: Se il titolo contiene caratteri non latini (Arabo, Giapponese, etc.), recuperiamo la versione inglese
+    if (isNonLatin(details.title)) {
+      console.log(`[TMDB DEBUG] Titolo non latino rilevato per ID ${id} ("${details.title}"), recupero versione inglese...`);
+      const enUrl = `${TMDB_BASE_URL}/movie/${id}?language=en-US&api_key=${TMDB_API_KEY}`;
+      try {
+        const enResponse = await fetch(enUrl, {
+          headers: { 'accept': 'application/json' },
+          cache: 'no-store'
+        });
+        if (enResponse.ok) {
+          const enData = await enResponse.json();
+          if (enData.title && !isNonLatin(enData.title)) {
+            details.title = enData.title;
+            console.log(`[TMDB DEBUG] Titolo inglese recuperato: ${details.title}`);
+          }
+        }
+      } catch (e) {
+        console.error(`[TMDB ERROR] Latinization fallback fallito per ${id}:`, e);
+      }
+    }
+    
     // FALLBACK: Se la trama in italiano manca, proviamo a recuperare quella in inglese
     if (!details.overview || details.overview.trim() === '') {
       console.log(`[TMDB DEBUG] Trama italiana mancante per ID ${id}, recupero versione inglese...`);
