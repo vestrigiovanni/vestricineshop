@@ -109,7 +109,11 @@
   right: 4.5rem;
   z-index: 50;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
+
 
 @media (max-width: 768px) {
   .topRightRating {

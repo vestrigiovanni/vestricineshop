@@ -1,99 +1,62 @@
 /**
- * Utility for mapping full language names to short descriptive codes.
+ * Utility for mapping language codes and generating display tags.
+ * Now optimized for the ISO 639-2/3 (3-letter) codified system.
  */
-
-const LANGUAGE_MAP: Record<string, string> = {
-  'italiano': 'ITA',
-  'inglese': 'ENG',
-  'english': 'ENG',
-  'francese': 'FRA',
-  'french': 'FRA',
-  'spagnolo': 'SPA',
-  'spanish': 'SPA',
-  'tedesco': 'GER',
-  'german': 'GER',
-  'giapponese': 'JPN',
-  'japanese': 'JPN',
-  'coreano': 'KOR',
-  'korean': 'KOR',
-  'cinese': 'CHN',
-  'chinese': 'CHN',
-  'originale': 'OR'
-};
-
-const LANGUAGE_DETAILS: Record<string, { name: string; flag: string }> = {
-  'ITA': { name: 'Italiano', flag: '🇮🇹' },
-  'ENG': { name: 'Inglese', flag: '🇺🇸' },
-  'FRA': { name: 'Francese', flag: '🇫🇷' },
-  'SPA': { name: 'Spagnolo', flag: '🇪🇸' },
-  'GER': { name: 'Tedesco', flag: '🇩🇪' },
-  'JPN': { name: 'Giapponese', flag: '🇯🇵' },
-  'KOR': { name: 'Coreano', flag: '🇰🇷' },
-  'CHN': { name: 'Cinese', flag: '🇨🇳' },
-  'OR': { name: 'Lingua Originale', flag: '🌐' }
-};
-
-const SUBTITLE_MAP: Record<string, string> = {
-  'italiano': 'SUB ITA',
-  'inglese': 'SUB ENG',
-  'english': 'SUB ENG',
-  'nessuno': '',
-  'no': '',
-  '-': ''
-};
-
-export function getLanguageCode(lang: string): string {
-  const normalized = lang.toLowerCase().trim();
-  return LANGUAGE_MAP[normalized] || normalized.substring(0, 3).toUpperCase();
-}
-
-export function getLanguageFull(input: string): { name: string; flag: string } {
-  const code = getLanguageCode(input);
-  return LANGUAGE_DETAILS[code] || { name: code, flag: '🌐' };
-}
-
-export function getSubtitleFull(input: string): string {
-  if (!input || input.toLowerCase() === 'no' || input.toLowerCase() === 'nessuno' || input === '-') return '';
-  const clean = input.toLowerCase().replace(/^sub\s+/i, '');
-  const code = getLanguageCode(clean);
-  return LANGUAGE_DETAILS[code]?.name || code;
-}
-
-export function getSubtitleLabel(sub: string): string {
-  const normalized = sub.toLowerCase().trim();
-  if (SUBTITLE_MAP[normalized] !== undefined) {
-    return SUBTITLE_MAP[normalized];
-  }
-  if (!normalized || normalized === 'no' || normalized === 'nessuno') return '';
-  return `SUB ${normalized.substring(0, 3).toUpperCase()}`;
-}
 
 export interface TagInfo {
   code: string;
   type: 'language' | 'subtitle' | 'format';
 }
 
-export function getMovieTags(language: string, subtitles: string, format: string = ''): TagInfo[] {
+/**
+ * Returns a list of tags to display for a specific showtime/movie.
+ * Values should ideally be 3-letter codes (ITA, ENG, etc.)
+ */
+export function getMovieTags(language: string = '', subtitles: string = '', format: string = ''): TagInfo[] {
   const tags: TagInfo[] = [];
 
-  const langCode = getLanguageCode(language);
-  const subLabel = getSubtitleLabel(subtitles);
+  // Normalize language: if it's "Italiano" -> ITA, if it's "Inglese" -> ENG, etc.
+  // But ideally they are already ITA, ENG, etc. from the new sync logic.
+  let langCode = language.toUpperCase().trim();
+  if (langCode === 'ITALIANO' || langCode === 'LINGUA ITALIANA') langCode = 'ITA';
+  if (langCode === 'INGLESE' || langCode === 'ENGLISH' || langCode === 'ORIGINALE') langCode = 'ENG';
+  
+  // Subtitles normalization
+  let subCode = subtitles.toUpperCase().trim();
+  if (subCode === 'NESSUNO' || subCode === 'NO' || subCode === '-') subCode = '';
+  if (subCode === 'ITALIANO' || subCode === 'SOTTOTITOLI ITA') subCode = 'SUB ITA';
+  if (subCode.length === 3 && subCode !== 'SUB') subCode = `SUB ${subCode}`;
+
   const is3d = format.toUpperCase().includes('3D');
 
-  // Always show audio language
-  if (langCode) {
-    tags.push({ code: langCode, type: 'language' });
+  // Audio Language Tag
+  if (langCode && langCode !== 'NULL') {
+    tags.push({ 
+      code: langCode.substring(0, 3), 
+      type: 'language' 
+    });
   }
 
-  // Show subtitles if present
-  if (subLabel) {
-    tags.push({ code: subLabel, type: 'subtitle' });
+  // Subtitle Tag
+  if (subCode && subCode !== 'NULL') {
+    tags.push({ 
+      code: subCode.startsWith('SUB') ? subCode : `SUB ${subCode.substring(0, 3)}`, 
+      type: 'subtitle' 
+    });
   }
 
-  // Show 3D format
+  // Format Tag (3D)
   if (is3d) {
     tags.push({ code: '3D', type: 'format' });
   }
 
   return tags;
+}
+
+export function getLanguageCode(lang: string): string {
+  if (!lang) return '';
+  const val = lang.toUpperCase().trim();
+  if (val === 'ITALIANO') return 'ITA';
+  if (val === 'INGLESE' || val === 'ENGLISH') return 'ENG';
+  return val.substring(0, 3);
 }

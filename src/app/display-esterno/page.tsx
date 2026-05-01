@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getDisplayData, DisplayMovieData } from '@/actions/displayActions';
 import styles from './DisplayEsterno.module.css';
-import { getTMDBImageUrl } from '@/services/tmdb';
+import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { Maximize, Minimize } from 'lucide-react';
 import RatingBadge from '@/components/RatingBadge';
 import { toZonedTime } from 'date-fns-tz';

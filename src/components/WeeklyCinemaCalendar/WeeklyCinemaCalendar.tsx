@@ -5,7 +5,9 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Ticket } from 'luc
 import styles from './WeeklyCinemaCalendar.module.css';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import RatingBadge from '../RatingBadge';
+import LanguageBadge from '../LanguageBadge';
 import { getMovieTags, TagInfo } from '@/utils/languageUtils';
+
 import { useAutoScroll } from '@/context/AutoScrollContext';
 import useSWR from 'swr';
 
@@ -190,27 +192,22 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
                             <span className={`${styles.slotTime} ${isSoldOut ? styles.strikethroughTime : ''}`}>
                               {time}
                             </span>
-                            {(() => {
-                               // 1. Priorità al rating calcolato live (coerente con Homepage)
-                               if (se.calculatedRating) {
-                                 return <RatingBadge id={se.calculatedRating} size="xs" className={styles.calendarBadge} />;
-                               }
-                               // 2. Fallback al commento Pretix (vecchi eventi)
-                               try {
-                                 if (se.comment) {
-                                   const meta = JSON.parse(se.comment);
-                                   if (meta.rating) return <RatingBadge id={meta.rating} size="xs" className={styles.calendarBadge} />;
-                                 }
-                               } catch (e) {}
-                               return null;
-                             })()}
+
                             <div className={styles.tagWrapper}>
-                              {tags.map((tag: TagInfo, idx: number) => (
-                                <span key={idx} className={`${styles.tag} ${styles[`tag${tag.type.charAt(0).toUpperCase() + tag.type.slice(1)}` as keyof typeof styles]} ${tag.code === 'ITA' ? styles.tagIta : ''}`}>
-                                  {tag.code}
-                                </span>
-                              ))}
+                              <RatingBadge 
+                                rating={se.meta_data?.rating || 'T'} 
+                                size="xs" 
+                                className={styles.calendarBadge} 
+                              />
+                              <LanguageBadge 
+                                language={se.meta_data?.versionLanguage || 'ITA'} 
+                                subtitles={se.meta_data?.subtitles || 'NESSUNO'} 
+                                size="xs" 
+                                showLabel={false}
+                              />
+
                             </div>
+
                           </div>
                           <span className={styles.slotTitle}>{title}</span>
                           <span className={styles.slotRoom}>{room}</span>

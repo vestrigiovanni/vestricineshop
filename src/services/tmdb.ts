@@ -1,47 +1,9 @@
 import { normalizeRating } from '@/utils/ratingUtils';
-import { getMovieMetadata, saveMovieMetadata } from './db.service';
 const TMDB_API_KEY = '00ea09c7fb5bf89b064f6001a2de3122';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-export interface MovieItem {
-  id: number;
-  title: string;
-  overview: string;
-  poster_path: string | null;
-  backdrop_path: string | null;
-  release_date: string;
-  original_language?: string;
-  rating?: string;
-  trailerKey?: string;
-  multiLangVideos?: { it: any[]; en: any[]; original: any[] };
-  director?: string;
-  cast?: string[];
-}
-
-const LANGUAGE_MAP: Record<string, string> = {
-  'en': 'Inglese',
-  'it': 'Italiano',
-  'fr': 'Francese',
-  'de': 'Tedesco',
-  'es': 'Spagnolo',
-  'ja': 'Giapponese',
-  'ko': 'Coreano',
-  'zh': 'Cinese',
-  'ru': 'Russo',
-  'pt': 'Portoghese',
-  'hi': 'Indiano',
-  'ar': 'Arabo',
-};
-
-/**
- * Converts a TMDB language code to a human-readable Italian name.
- */
-export function getLanguageName(code?: string): string {
-  if (!code) return 'N/D';
-  const name = LANGUAGE_MAP[code.toLowerCase()];
-  if (name) return name;
-  return 'Originale';
-}
+import { MovieItem } from './tmdb.utils';
+export * from './tmdb.utils';
 
 export interface MovieDetails extends MovieItem {
   runtime: number;
@@ -212,11 +174,19 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
 }
 
 /**
- * Extracts the director's name from the movie details crew.
+ * Extracts all directors' names from the movie details crew.
+ */
+export function getDirectors(details: MovieDetails): string[] {
+  const directors = details.credits?.crew.filter(person => person.job === 'Director');
+  return directors ? directors.map(d => d.name) : [];
+}
+
+/**
+ * Extracts the primary director's name (compatibility helper).
  */
 export function getDirector(details: MovieDetails): string {
-  const director = details.credits?.crew.find(person => person.job === 'Director');
-  return director ? director.name : 'Sconosciuto';
+  const directors = getDirectors(details);
+  return directors.length > 0 ? directors[0] : 'Sconosciuto';
 }
 
 /**
@@ -312,16 +282,6 @@ export function getMovieLogo(details: MovieDetails): string | null {
   if (enLogo) return enLogo.file_path;
   
   return logos[0].file_path;
-}
-
-/**
- * Helper to construct the full image URL from TMDB path.
- * Size can be 'w500', 'original', etc.
- */
-export function getTMDBImageUrl(path: string | null | undefined, size: string = 'w500'): string | undefined {
-  if (!path) return undefined;
-  if (path.startsWith('http')) return path;
-  return `https://image.tmdb.org/t/p/${size}${path}`;
 }
 
 /**
@@ -629,28 +589,28 @@ export async function getEnhancedRating(details: MovieDetails): Promise<string> 
  * Uses a persistent cache to avoid repeated heavy API calls.
  */
 export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
+  const { getMovieMetadata, saveMovieMetadata } = await import('./db.service');
   // 1. Try to get from persistent cache
   const cached = getMovieMetadata(tmdbId);
   if (cached) {
-    // If cache is very old (e.g., > 30 days), we might want to refresh, 
-    // but for now let's keep it until manual removal to maximize speed.
     return cached;
   }
 
   console.log(`[METADATA SYNC] 🚀 Syncing full metadata for TMDB ID: ${tmdbId}`);
 
-  // 2. Fetch basic details (this uses its own internal cache for the raw response)
-  const details = await getMovieDetails(tmdbId);
-  if (!details) return null;
+  try {
+    // 2. Fetch basic details (this uses its own internal cache for the raw response)
+    const details = await getMovieDetails(tmdbId);
+    if (!details) return null;
 
-  // 3. Process all heavy metadata in parallel
+    // 3. Process all heavy metadata in parallel
   const [rating, trailerKeys, multiLangVideos] = await Promise.all([
     getEnhancedRating(details),
     getMovieTrailers(tmdbId),
     getMultiLangVideos(tmdbId)
   ]);
 
-  const director = getDirector(details);
+  const directors = getDirectors(details);
   const cast = getCast(details, 5);
   const logo_path = getMovieLogo(details);
   const trailerKey = trailerKeys[0] || null;
@@ -678,7 +638,7 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
     backdrop_path: backdrop_path,
     logo_path: logo_path,
     release_date: details.release_date,
-    director: director,
+    director: directors,
     runtime: details.runtime,
     cast: cast,
     trailerKey: trailerKey,
@@ -693,7 +653,12 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
   // 6. Save to persistent cache
   saveMovieMetadata(tmdbId, enriched);
 
-  return enriched;
+    return enriched;
+  } catch (error) {
+    console.error(`[METADATA SYNC] ❌ FAILED for tmdbId=${tmdbId}:`, error);
+    // Don't throw, just return null to allow the rest of the application to function
+    return null;
+  }
 }
 
 export async function getMultiLangVideos(id: string) {

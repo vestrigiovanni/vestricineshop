@@ -123,16 +123,19 @@
 
 .meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.2rem;
+  flex-wrap: nowrap; /* Impone una riga sola su desktop */
+  gap: 0.8rem;
   align-items: center;
   margin-bottom: 2rem;
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
-  font-size: 0.88rem;
+  font-size: clamp(0.85rem, 1.1vw, 1.05rem); 
+
   font-weight: 600;
   color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Massive readability boost */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
+
 
 .metaValue {
   color: #ffffff;
@@ -146,10 +149,11 @@
 }
 
 .metaSeparator {
-  opacity: 0.2;
-  font-weight: 200;
-  margin: 0 0.2rem;
+  opacity: 0.4;
+  font-weight: 300;
+  margin: 0 0.1rem;
 }
+
 
 .metaLabel {
   font-weight: 700;
@@ -335,9 +339,11 @@
 
 .showtimeLabels {
   display: flex;
-  gap: 4px;
-  margin-bottom: 6px;
+  gap: 6px;
+  margin-bottom: 8px;
+  justify-content: center;
 }
+
 
 .tag {
   font-size: 0.65rem;
@@ -452,7 +458,15 @@
   .cardWrapper {
     min-width: 140px;
   }
+
+  .meta {
+    flex-wrap: wrap; /* Ritorna a capo su mobile per leggibilità */
+    gap: 0.8rem;
+    font-size: 0.8rem;
+    white-space: normal;
+  }
 }
+
 
 /* ── Sold Out Status ── */
 .soldOutCard {
@@ -573,21 +587,11 @@
   transform: scale(1.1);
 }
 
-.langBadge {
+.langBadgeOverlay {
   position: absolute;
   top: 12px;
-  right: 12px;
-  background: rgba(15, 17, 21, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 240, 0.2);
-  color: #FFFFF0;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 1px;
+  left: 12px;
   z-index: 40;
   pointer-events: none;
-  font-family: var(--font-cinzel), serif;
 }
+

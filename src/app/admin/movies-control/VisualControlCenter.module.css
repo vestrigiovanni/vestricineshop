@@ -218,6 +218,13 @@
   transform: scale(1.1);
 }
 
+.movieTitleContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 4px;
+}
+
 .movieDate {
   font-size: 0.7rem;
   color: #d4af37;
@@ -289,6 +296,26 @@
 
 .refreshBtn:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.populatingBtn {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.3);
+  color: #d4af37;
+  gap: 8px;
+  padding: 8px 16px;
+}
+
+.populatingBtn:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.2);
+  border-color: #d4af37;
+}
+
+.btnLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .statusBadge {

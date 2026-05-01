@@ -6,7 +6,7 @@ import { Info } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import styles from './TicketPDF.module.css';
-import { getTMDBImageUrl } from '@/services/tmdb';
+import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import RatingBadge from './RatingBadge';
 
 interface TicketData {

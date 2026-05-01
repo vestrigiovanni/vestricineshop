@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Loader2, Plus, Calendar } from 'lucide-react';
-import { searchMovies, MovieItem, getTMDBImageUrl } from '@/services/tmdb';
+import { Search, Loader2, Plus } from 'lucide-react';
+import { adminSearchMovies } from '@/actions/adminActions';
+import { MovieItem, getTMDBImageUrl } from '@/services/tmdb.utils';
 import RatingBadge from './RatingBadge';
 import styles from './AdminSearch.module.css';
 
@@ -17,7 +18,7 @@ export default function AdminSearch() {
 
     setIsLoading(true);
     try {
-      const data = await searchMovies(query);
+      const data = await adminSearchMovies(query);
       setResults(data);
     } catch (error) {
       console.error('Search failed', error);

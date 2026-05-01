@@ -1,7 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getMovieDetails, getTMDBImageUrl, getItalianRating, getEnhancedRating } from '@/services/tmdb';
+import prisma from '@/lib/prisma';
+import { getTMDBImageUrl } from '@/services/tmdb';
 import BookingFlow from '@/components/BookingFlow';
 import RatingBadge from '@/components/RatingBadge';
 import { Calendar, Clock, MapPin } from 'lucide-react';
@@ -16,7 +17,10 @@ export default async function MovieDetail({
 }) {
   const { id } = await params;
   const { subevent } = await searchParams;
-  const movie = await getMovieDetails(id);
+  
+  const movie = await prisma.movieOverride.findUnique({
+    where: { tmdbId: id }
+  });
 
   if (!movie) {
     notFound();
@@ -24,16 +28,24 @@ export default async function MovieDetail({
 
   const subeventId = subevent ? parseInt(subevent, 10) : undefined;
 
-  const backdropUrl = getTMDBImageUrl(movie.backdrop_path, 'original');
-  const posterUrl = getTMDBImageUrl(movie.poster_path, 'w500');
+  const backdropUrl = movie.customBackdropPath && movie.customBackdropPath.startsWith('/')
+    ? getTMDBImageUrl(movie.customBackdropPath, 'original')
+    : movie.customBackdropPath || '';
+    
+  const posterUrl = movie.customPosterPath && movie.customPosterPath.startsWith('/')
+    ? getTMDBImageUrl(movie.customPosterPath, 'w500')
+    : movie.customPosterPath || '';
 
-  const director = movie.credits?.crew.find(person => person.job === 'Director')?.name;
-  const cast = movie.credits?.cast.slice(0, 5).map(person => person.name).join(', ');
+  const director = movie.customDirector || '';
+  const cast = movie.customCast || '';
+  const title = movie.customTitle || 'Senza Titolo';
+  const overview = movie.customOverview || 'Trama non disponibile.';
+  const rating = movie.customRating || 'T';
 
   return (
     <main className={styles.main}>
       <div className={styles.backdropContainer}>
-        {movie.backdrop_path && (
+        {backdropUrl && (
           <>
             <Image
               src={backdropUrl!}
@@ -59,10 +71,10 @@ export default async function MovieDetail({
 
         <div className={styles.grid}>
           <div className={styles.posterWrapper}>
-            {movie.poster_path ? (
+            {posterUrl ? (
               <Image
                 src={posterUrl!}
-                alt={`Locandina di ${movie.title}`}
+                alt={`Locandina di ${title}`}
                 fill
                 className={styles.posterImage}
                 sizes="(max-width: 768px) 100vw, 400px"
@@ -75,23 +87,18 @@ export default async function MovieDetail({
           </div>
 
           <div className={styles.infoWrapper}>
-            <h1 className={styles.title}>{movie.title}</h1>
+            <h1 className={styles.title}>{title}</h1>
             
             <div className={styles.metadata}>
               <div className={styles.tagGroup}>
-                <span className={styles.tag}><Calendar size={18} /> {movie.release_date?.split('-')[0]}</span>
-                {movie.runtime > 0 && <span className={styles.tag}><Clock size={18} /> {movie.runtime} min</span>}
-                <RatingBadge rating={await getEnhancedRating(movie)} size="md" />
+                <span className={styles.tag}><Calendar size={18} /> {(movie as any).releaseDate ? (movie as any).releaseDate.split('-')[0] : 'N/D'}</span>
+                <span className={styles.tag}><Clock size={18} /> {(movie as any).runtime || 'N/D'} min</span>
+                <RatingBadge rating={rating} size="md" />
                 <span className={styles.tag}><MapPin size={18} /> Cinema Vestri</span>
-              </div>
-              <div className={styles.genres}>
-                {movie.genres.map(g => (
-                  <span key={g.id} className={styles.genreTag}>{g.name}</span>
-                ))}
               </div>
             </div>
 
-            <p className={styles.overview}>{movie.overview || 'Trama non disponibile.'}</p>
+            <p className={styles.overview}>{overview}</p>
 
             <div className={styles.credits}>
               {director && (

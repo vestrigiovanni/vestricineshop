@@ -1,8 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { MovieItem, getTMDBImageUrl } from '@/services/tmdb';
+import { MovieItem, getTMDBImageUrl } from '@/services/tmdb.utils';
 import { Calendar, Clock } from 'lucide-react';
 import styles from './MovieCard.module.css';
+import LanguageBadge from './LanguageBadge';
+
 
 
 interface MovieCardProps {
@@ -36,9 +38,9 @@ export default function MovieCard({ movie }: MovieCardProps) {
           )}
 
 
-          {movie.subtitles && movie.subtitles !== 'Nessuno' && movie.subtitles.includes('ITA') && (
-            <div className={styles.langBadge}>SUB IT</div>
-          )}
+          {/* LanguageBadge removed from poster as requested */}
+
+
           {isSoldOut && (
             <>
               <div className={styles.soldOutBanner}>SOLD OUT</div>

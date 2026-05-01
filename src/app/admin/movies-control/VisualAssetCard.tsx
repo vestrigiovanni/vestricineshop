@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ImageIcon, Play, Link, CheckCircle2, Globe, Search } from 'lucide-react';
 import styles from './VisualControlCenter.module.css';
-import { getTMDBImageUrl } from '@/services/tmdb';
+import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
 
 interface VisualAssetCardProps {

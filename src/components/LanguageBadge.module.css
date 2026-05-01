@@ -1,0 +1,94 @@
+.badgeContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-outfit, 'Outfit', sans-serif);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.langBadge {
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+  color: #000;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.3);
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.subBadge {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  text-transform: uppercase;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.subBadge:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.icon {
+  opacity: 0.9;
+  color: #fff;
+}
+
+/* Sizes */
+.sm {
+  gap: 4px;
+}
+
+.sm .langBadge, .sm .subBadge {
+  padding: 2px 6px;
+  font-size: 0.62rem;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+}
+
+.sm .icon {
+  width: 10px;
+  height: 10px;
+}
+
+
+.lg .langBadge, .lg .subBadge {
+  padding: 5px 14px;
+  font-size: 0.88rem;
+  border-radius: 6px;
+}
+.xs .langBadge, .xs .subBadge {
+  padding: 1px 4px;
+  font-size: 0.55rem;
+  border-radius: 2px;
+  letter-spacing: 0.02em;
+}
+
+.xs .icon {
+  width: 8px;
+  height: 8px;
+}
+
+.xs {
+  gap: 2px;
+}
+
+.lg .icon {
+  width: 18px;
+  height: 18px;
+}
+

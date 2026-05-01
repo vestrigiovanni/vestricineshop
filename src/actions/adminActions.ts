@@ -187,8 +187,90 @@ export async function adminSearchMovies(query: string) {
 }
 
 export async function adminGetMovieById(id: string) {
-  return await getEnrichedMovieMetadata(id);
+  try {
+    console.log(`[adminGetMovieById] 🎬 Fetching details for ID: ${id}`);
+    const { getEnrichedMovieMetadata } = await import('@/services/tmdb');
+    const metadata = await getEnrichedMovieMetadata(id);
+    
+    // Auto-Hydration: ensure movie is in DB if metadata was successfully fetched
+    if (metadata) {
+      try {
+        const prisma = (await import('@/lib/prisma')).default;
+        const existing = await prisma.movieOverride.findUnique({ where: { tmdbId: id } }) as any;
+
+        // If record is missing or incomplete (missing releaseDate/runtime), update it
+        const needsUpdate = !existing || !existing.releaseDate || !existing.runtime;
+        
+        if (needsUpdate) {
+          console.log(`[adminGetMovieById] 🚀 Auto-populating DB for movie: ${id} (${metadata.title})`);
+          await (prisma.movieOverride as any).upsert({
+            where: { tmdbId: id },
+            update: {
+              customTitle: existing?.customTitle || metadata.title,
+              customOverview: existing?.customOverview || metadata.overview,
+              customPosterPath: existing?.customPosterPath || metadata.poster_path || '',
+              customBackdropPath: existing?.customBackdropPath || metadata.backdrop_path || '',
+              customLogoPath: existing?.customLogoPath || metadata.logo_path || '',
+              customRating: existing?.customRating || metadata.rating || 'T',
+              customDirector: existing?.customDirector || (Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || '')),
+              customCast: existing?.customCast || (Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || '')),
+              releaseDate: existing?.releaseDate || metadata.release_date,
+              runtime: existing?.runtime || metadata.runtime,
+            },
+            create: {
+              tmdbId: id,
+              customTitle: metadata.title,
+              customOverview: metadata.overview,
+              customPosterPath: metadata.poster_path || '',
+              customBackdropPath: metadata.backdrop_path || '',
+              customLogoPath: metadata.logo_path || '',
+              customRating: metadata.rating || 'T',
+              customDirector: Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || ''),
+              customCast: Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || ''),
+              releaseDate: metadata.release_date,
+              runtime: metadata.runtime,
+              isManualOverride: false,
+              isDraft: false
+            } as any
+          });
+          revalidatePath('/');
+        }
+      } catch (dbErr) {
+        console.error(`[adminGetMovieById] ❌ DB Error during auto-population for ${id}:`, dbErr);
+        // We don't throw here to allow the metadata to be returned even if DB update fails
+      }
+    }
+
+    if (!metadata) {
+      console.log(`[adminGetMovieById] ⚠️ Metadata not found for ${id}, checking DB fallback...`);
+      // FALLBACK: Se TMDB fallisce, cerchiamo almeno se abbiamo un override nel DB
+      const prisma = (await import('@/lib/prisma')).default;
+      const existing = await prisma.movieOverride.findUnique({ where: { tmdbId: id } }) as any;
+      if (existing) {
+        return {
+          tmdbId: id,
+          title: existing.customTitle || 'Film senza titolo (TMDB Error)',
+          overview: existing.customOverview || '',
+          poster_path: existing.customPosterPath || '',
+          backdrop_path: existing.customBackdropPath || '',
+          logo_path: existing.customLogoPath || '',
+          rating: existing.customRating || 'T',
+          director: existing.customDirector ? existing.customDirector.split(', ') : [],
+          cast: existing.customCast ? existing.customCast.split(', ') : [],
+          release_date: existing.releaseDate || '',
+          runtime: existing.runtime || 0,
+          id: id // for compatibility
+        };
+      }
+    }
+
+    return metadata;
+  } catch (error: any) {
+    console.error(`[adminGetMovieById] ❌ CRITICAL FAILURE for ID ${id}:`, error);
+    throw new Error(`Errore nel recupero dettagli film (ID: ${id}): ${error.message}`);
+  }
 }
+
 
 export async function adminListEvents() {
   return await listSubEvents(true);
@@ -1095,7 +1177,7 @@ export async function adminCreateSeatingPlan(name: string, numRows: number = 5, 
  */
 export async function adminGetOverrides() {
   const { getOverrides } = await import('@/services/db.service');
-  return getOverrides();
+  return await getOverrides();
 }
 
 /**
@@ -1104,37 +1186,92 @@ export async function adminGetOverrides() {
  * page render re-fetches fresh metadata (poster/backdrop/trailer).
  */
 export async function upsertMovieOverride(tmdbId: string, override: any) {
-  const { saveOverride, deleteMovieMetadata } = await import('@/services/db.service');
-  saveOverride(tmdbId, override);
-
-  console.log(`[DB Sync] Salvataggio completato per ID ${tmdbId}. Campi aggiornati: ${Object.keys(override).join(', ')}`);
-
-  // Bust the TMDB metadata disk cache so the next SSR pass picks up
-  // the new customPosterPath / customBackdropPath / customTrailerUrl.
-  deleteMovieMetadata(tmdbId);
-  
-  // Also clear the raw TMDB cache for this movie to be 100% sure
-  const fs = await import('fs');
-  const path = await import('path');
-  const CACHE_PATH = path.join(process.cwd(), 'data', 'tmdb_cache.json');
-  const cacheKeys = [`movie_details_${tmdbId}`, `movie_videos_${tmdbId}`, `movie_images_${tmdbId}`];
-  
-  if (fs.existsSync(CACHE_PATH)) {
-    try {
-      const cache = JSON.parse(fs.readFileSync(CACHE_PATH, 'utf8'));
-      let changed = false;
-      cacheKeys.forEach(key => {
-        if (cache[key]) { delete cache[key]; changed = true; }
-      });
-      if (changed) fs.writeFileSync(CACHE_PATH, JSON.stringify(cache, null, 2), 'utf8');
-    } catch (e) {}
+  // Validate identity: tmdbId must be a non-empty string
+  if (!tmdbId || typeof tmdbId !== 'string') {
+    throw new Error(`[upsertMovieOverride] ID non valido: "${tmdbId}". Operazione annullata.`);
   }
 
-  // Revalidate all affected routes (layout + page)
-  revalidatePath('/', 'layout');
-  revalidatePath('/', 'page');
+  const { saveOverride, deleteMovieMetadata } = await import('@/services/db.service');
+
+  // TRUE DB WRITE — confirmed before revalidation
+  try {
+    const writeSuccess = await saveOverride(tmdbId, { 
+      ...override, 
+      customDirector: Array.isArray(override.customDirector) ? override.customDirector.join(', ') : override.customDirector,
+      customCast: Array.isArray(override.customCast) ? override.customCast.join(', ') : override.customCast,
+      isManualOverride: true,
+      isDraft: false
+    });
+    
+    if (!writeSuccess) {
+      throw new Error(`Scrittura DB fallita per tmdbId=${tmdbId}`);
+    }
+
+    // 🔍 Debug log — visible in terminal/Vercel logs only after confirmed write
+    console.log('💾 DB_WRITE_CONFIRMED:', tmdbId, override);
+
+    // Bust the enriched metadata disk cache so the next SSR pass picks up
+    // the new customPosterPath / customBackdropPath / customTrailerUrl.
+    deleteMovieMetadata(tmdbId);
+
+    // --- NEW: Immediate Push to Pretix ---
+    // Instead of waiting for the next cron sync, we push the new metadata to all
+    // sub-events associated with this movie RIGHT NOW.
+    try {
+      const prisma = (await import('@/lib/prisma')).default;
+      const { updateSubEvent } = await import('@/services/pretix');
+      const syncedProjections = await prisma.pretixSync.findMany({ 
+        where: { tmdbId: tmdbId } 
+      });
+
+      console.log(`[upsertMovieOverride] 🚀 Instant-pushing updated metadata to ${syncedProjections.length} Pretix sub-events...`);
+      
+      const commentObj = {
+        tmdbId: tmdbId,
+        rating: override.customRating || 'T',
+        runtime: override.runtime || 120,
+        versionLanguage: override.versionLanguage || 'ITA',
+        subtitles: override.subtitles || 'NESSUNO',
+        posterPath: override.customPosterPath || '',
+        backdropPath: override.customBackdropPath || '',
+        logoPath: override.customLogoPath || '',
+        director: override.customDirector || '',
+        cast: override.customCast || '',
+      };
+
+      for (const proj of syncedProjections) {
+        await updateSubEvent(proj.pretixId, {
+          comment: JSON.stringify(commentObj),
+          meta_data: {
+            lingua: override.versionLanguage || 'ITA',
+            sottotitoli: override.subtitles || 'NESSUNO'
+          }
+        });
+      }
+    } catch (pushErr) {
+      console.error(`[upsertMovieOverride] ⚠️ Failed to push immediate update to Pretix for ${tmdbId}:`, pushErr);
+      // We don't throw here, as the DB write was already successful.
+    }
+    
+    revalidatePath('/');
+    revalidatePath('/admin/movies-control');
+    revalidatePath('/[slug]', 'layout'); // Catch-all for movie detail pages if any
+    return { success: true };
+  } catch (err: any) {
+    console.error(`[upsertMovieOverride] CRITICAL ERROR for tmdbId=${tmdbId}:`, err);
+    throw new Error(`[upsertMovieOverride] Scrittura DB fallita per tmdbId=${tmdbId}. Verifica i log del server per i dettagli Prisma.`);
+  }
+}
+
+/**
+ * BIG BANG: Total Database Population
+ */
+export async function adminSyncAllMovies(forceRefresh: boolean = false): Promise<any> {
+  const { syncPretixToDatabase } = await import('@/services/sync.service');
+  const result = await syncPretixToDatabase({ forceMetadataRefresh: forceRefresh });
+  revalidatePath('/');
   revalidatePath('/admin/movies-control');
-  return { success: true };
+  return result;
 }
 
 /**
@@ -1142,13 +1279,14 @@ export async function upsertMovieOverride(tmdbId: string, override: any) {
  */
 export async function adminDeleteOverride(tmdbId: string) {
   const { getOverrides, deleteMovieMetadata } = await import('@/services/db.service');
-  const fs = await import('fs');
-  const path = await import('path');
-  const DB_PATH = path.join(process.cwd(), 'data', 'overrides.json');
-
-  const overrides = getOverrides();
-  delete overrides[tmdbId];
-  fs.writeFileSync(DB_PATH, JSON.stringify(overrides, null, 2), 'utf8');
+  
+  // Use Prisma directly
+  const prisma = (await import('@/lib/prisma')).default;
+  try {
+    await prisma.movieOverride.delete({ where: { tmdbId } });
+  } catch(e) {
+    // Ignore if not found
+  }
 
   // Also bust the TMDB disk cache
   deleteMovieMetadata(tmdbId);
@@ -1163,28 +1301,39 @@ export async function adminDeleteOverride(tmdbId: string) {
  * OVERRIDE SYSTEM: GET ALL UNIQUE PROGRAMMED MOVIES
  */
 export async function adminGetProgrammedMovies() {
-  const { listSubEvents } = await import('@/services/pretix');
+  const prisma = (await import('@/lib/prisma')).default;
   
-  const subEvents = await listSubEvents(true); // Get future events
-  const uniqueMovies: Record<string, { tmdbId: string; title: string; lastDate: string }> = {};
+  // Get unique movies from PretixSync table (synced by cron)
+  const syncProjections = await prisma.pretixSync.findMany({
+    where: { active: true },
+    orderBy: { dateFrom: 'asc' }
+  });
 
-  for (const se of subEvents) {
-    let tmdbId = '';
-    try {
-      if (se.comment) {
-        const metadata = JSON.parse(se.comment);
-        tmdbId = metadata.tmdbId;
-      }
-    } catch (e) {}
+  const uniqueMovies: Record<string, { tmdbId: string; title: string; lastDate: string; projections: any[] }> = {};
 
+  for (const se of syncProjections) {
+    const tmdbId = se.tmdbId;
     if (tmdbId) {
-      if (!uniqueMovies[tmdbId] || new Date(se.date_from) > new Date(uniqueMovies[tmdbId].lastDate)) {
+      if (!uniqueMovies[tmdbId]) {
         uniqueMovies[tmdbId] = {
           tmdbId,
-          title: se.name?.it || se.name,
-          lastDate: se.date_from
+          title: se.name,
+          lastDate: se.dateFrom.toISOString(),
+          projections: []
         };
+      } else if (new Date(se.dateFrom) > new Date(uniqueMovies[tmdbId].lastDate)) {
+        uniqueMovies[tmdbId].lastDate = se.dateFrom.toISOString();
       }
+      uniqueMovies[tmdbId].projections.push({
+        pretixId: se.pretixId,
+        dateFrom: se.dateFrom.toISOString(),
+        startTime: (se as any).startTime,
+        endTime: (se as any).endTime,
+        roomName: se.roomName,
+        isSoldOut: se.isSoldOut,
+        availableSeats: se.availableSeats,
+        totalSeats: (se as any).totalSeats
+      });
     }
   }
 

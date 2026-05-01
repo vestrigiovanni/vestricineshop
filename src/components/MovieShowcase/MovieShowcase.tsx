@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
-import { getTMDBImageUrl } from '@/services/tmdb';
+import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import styles from './MovieShowcase.module.css';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import { getMovieTags, TagInfo } from '@/utils/languageUtils';
@@ -12,6 +12,8 @@ import useSWR from 'swr';
 import RatingBadge from '../RatingBadge';
 import { useTrailer } from '@/context/TrailerContext';
 import CustomVideoPlayer from '../CustomVideoPlayer/CustomVideoPlayer';
+import LanguageBadge from '../LanguageBadge';
+
 
 const AUTO_SCROLL_INTERVAL = 5000;
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -234,28 +236,17 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
           )}
           <div className={styles.meta}>
             <span className={styles.metaValue} suppressHydrationWarning>
-              {isMounted ? (new Date(activeMovie.release_date).getFullYear() || 'N/D') : ''}
+              {isMounted ? (activeMovie.release_date ? (activeMovie.release_date.includes('-') ? activeMovie.release_date.split('-')[0] : new Date(activeMovie.release_date).getFullYear()) : 'N/D') : ''}
             </span>
-            {activeMovie.runtime && (
+            {activeMovie.runtime && activeMovie.runtime > 0 && (
               <div className={styles.metaGroup}>
                 <span className={styles.metaSeparator}>•</span>
                 <span className={styles.metaLabel}>DURATA:</span>
                 <span className={styles.metaValue}>{activeMovie.runtime} MIN</span>
               </div>
             )}
-            {activeMovie.rating && (
-              <div className={styles.metaGroup}>
-                <span className={styles.metaSeparator}>•</span>
-                <RatingBadge rating={activeMovie.rating} size="md" />
-              </div>
-            )}
 
-            {activeMovie.subtitles && activeMovie.subtitles !== 'Nessuno' && (
-              <div className={styles.metaGroup}>
-                <span className={styles.metaSeparator}>•</span>
-                <span className={styles.versionBadge}>{activeMovie.subtitles.toUpperCase()}</span>
-              </div>
-            )}
+
             {activeMovie.director && (
               <div className={styles.directorMeta}>
                 <span className={styles.metaSeparator}>•</span>
@@ -320,20 +311,15 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                     disabled={se.isSoldOut}
                   >
                     <div className={styles.showtimeLabels}>
-                      {tags.map((tag: TagInfo, idx: number) => (
-                        <span 
-                          key={idx} 
-                          className={[
-                            styles.tag, 
-                            styles[`tag${tag.type.charAt(0).toUpperCase() + tag.type.slice(1)}` as keyof typeof styles],
-                            tag.code === 'ITA' ? styles.tagIta : ''
-                          ].filter(Boolean).join(' ')}
-                          suppressHydrationWarning
-                        >
-                          {tag.code}
-                        </span>
-                      ))}
+                      <RatingBadge rating={activeMovie.rating || 'T'} size="xs" />
+                      <LanguageBadge 
+                        language={activeMovie.versionLanguage} 
+                        subtitles={activeMovie.subtitles} 
+                        size="sm" 
+                        showLabel={false}
+                      />
                     </div>
+
                     <span className={styles.showtimeDate}>
                       {isMounted ? dayStr : dateObj.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
                     </span>
@@ -385,9 +371,9 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                   </div>
                 )}
 
-                {movie.subtitles && movie.subtitles !== 'Nessuno' && movie.subtitles.includes('ITA') && (
-                  <div className={styles.langBadge}>SUB IT</div>
-                )}
+                {/* LanguageBadge removed from poster as requested */}
+
+
                 {movie.rating && (
                   <div className={styles.ratingBadgeOverlay}>
                     <RatingBadge rating={movie.rating} size="sm" />

@@ -1,7 +1,7 @@
 import React from 'react';
 import MovieCard from '../MovieCard';
 import styles from './MovieGallery.module.css';
-import { MovieItem } from '@/services/tmdb';
+import { MovieItem } from '@/services/tmdb.utils';
 import { Calendar, Clock } from 'lucide-react';
 
 interface MovieGalleryProps {

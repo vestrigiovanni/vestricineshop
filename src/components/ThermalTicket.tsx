@@ -3,7 +3,7 @@
 import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import styles from './ThermalTicket.module.css';
-import { getTMDBImageUrl } from '@/services/tmdb';
+import { getTMDBImageUrl } from '@/services/tmdb.utils';
 
 interface ThermalTicketProps {
   data: {

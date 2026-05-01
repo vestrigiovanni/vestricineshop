@@ -1,12 +1,13 @@
 .calendarContainer {
   width: 100vw;
   margin: 4rem calc(-50vw + 50%);
-  padding: 4rem 1.5rem;
+  padding: 4rem 0.75rem;
   background-color: var(--background);
   color: #ffffff;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
+
 
 .calendarWrapper {
   max-width: 1200px;
@@ -75,9 +76,11 @@
 
 .calendarGrid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 1.5rem;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1rem;
 }
+
+
 
 .dayColumn {
   display: flex;
@@ -122,16 +125,17 @@
 }
 
 .movieSlot {
-  padding: 1.5rem;
+  padding: 1rem;
   background-color: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
+  border-radius: 12px;
   text-align: left;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: hidden;
   cursor: pointer;
 }
+
 
 .movieSlot:hover {
   background-color: rgba(255, 255, 255, 0.05);
@@ -142,10 +146,13 @@
 
 .slotHeader {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column; /* Stack time and badges vertically to save horizontal space */
+  gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
+
+
+
 
 .slotTime {
   display: block;
@@ -157,10 +164,14 @@
 
 .tagWrapper {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* Permette ai badge di andare a capo se non c'è spazio */
   gap: 4px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
+
+
+
+
 
 .tag {
   font-size: 0.6rem;

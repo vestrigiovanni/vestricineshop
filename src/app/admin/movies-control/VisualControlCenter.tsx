@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, Sparkles, Filter, Search, Film, Save, Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
+import { X, Sparkles, Filter, Search, Film, Save, Loader2, CheckCircle2, RefreshCw, Globe } from 'lucide-react';
 import styles from './VisualControlCenter.module.css';
 import VisualAssetCard from './VisualAssetCard';
 import { upsertMovieOverride, adminGetVisualControlData } from '@/actions/adminActions';
@@ -30,6 +30,7 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
   const [search, setSearch] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [populating, setPopulating] = useState(false);
   const [pendingDeltas, setPendingDeltas] = useState<Record<string, any>>({});
   const [pickerState, setPickerState] = useState<{
     isOpen: boolean; 
@@ -59,23 +60,27 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
   useEffect(() => {
     const idsToSave = Object.keys(pendingDeltas);
     if (idsToSave.length === 0) return;
-    
+
     const timer = setTimeout(async () => {
       const deltasToSave = { ...pendingDeltas };
       setPendingDeltas({}); // Clear pending deltas
-      
+
       for (const id of idsToSave) {
         setSavingId(id);
         try {
-          await upsertMovieOverride(id, deltasToSave[id]);
-          setSavedIds(prev => new Set(prev).add(id));
-          setTimeout(() => {
-            setSavedIds(prev => {
-              const next = new Set(prev);
-              next.delete(id);
-              return next;
-            });
-          }, 2000);
+          const result = await upsertMovieOverride(id, deltasToSave[id]);
+          if (result?.success) {
+            setSavedIds(prev => new Set(prev).add(id));
+            // 🔄 Sync MOS immediately after confirmed DB write
+            onRefresh();
+            setTimeout(() => {
+              setSavedIds(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
+            }, 2000);
+          }
         } catch (error) {
           console.error('Error saving override:', error);
         } finally {
@@ -85,7 +90,7 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [pendingDeltas]);
+  }, [pendingDeltas, onRefresh]);
 
   const filteredMovies = useMemo(() => {
     return hydratedMovies.filter(movie => {
@@ -126,6 +131,27 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
     setPickerState({ isOpen: true, type, movieId });
   };
 
+  const handleManualPopulate = async () => {
+    if (!confirm('Avviare il popolamento globale del database? Questa operazione potrebbe richiedere alcuni minuti.')) return;
+    
+    setPopulating(true);
+    try {
+      const res = await fetch('/api/cron/sync-pretix?manual=true');
+      const data = await res.json();
+      if (data.success) {
+        alert(`Popolamento completato! Upserted: ${data.upserted}, Cleaned: ${data.cleaned}`);
+        loadHydratedData();
+      } else {
+        alert('Errore durante il popolamento: ' + (data.error || 'Sconosciuto'));
+      }
+    } catch (error) {
+      console.error('Manual populate failed:', error);
+      alert('Errore di rete durante il popolamento.');
+    } finally {
+      setPopulating(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -138,6 +164,15 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
             <span className={styles.badge}>PRO</span>
           </div>
           <div className={styles.headerActions}>
+            <button 
+              onClick={handleManualPopulate} 
+              className={`${styles.refreshBtn} ${styles.populatingBtn}`} 
+              disabled={populating || loading}
+              title="Popolamento Globale (TMDb + Pretix)"
+            >
+              <Sparkles size={16} className={populating ? styles.spin : ''} />
+              <span className={styles.btnLabel}>{populating ? 'Popolamento...' : 'Popola Database Ora'}</span>
+            </button>
             <button onClick={loadHydratedData} className={styles.refreshBtn} disabled={loading}>
               <RefreshCw size={16} className={loading ? styles.spin : ''} />
             </button>
@@ -164,7 +199,7 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
                 Senza Trailer
               </button>
             </div>
-            <button className={styles.closeBtn} onClick={() => { onClose(); onRefresh(); }}>
+            <button className={styles.closeBtn} onClick={onClose}>
               <X size={20} />
             </button>
           </div>
@@ -196,7 +231,14 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
                   return (
                     <tr key={movie.tmdbId} className={styles.row}>
                       <td className={styles.movieInfo}>
-                        <div className={styles.movieTitle}>{movie.title}</div>
+                        <div className={styles.movieTitleContainer}>
+                          <div className={styles.movieTitle}>{movie.title}</div>
+                          {movie.override.isManualOverride ? (
+                            <span className={styles.badgeMod}>PERSONALIZZATO</span>
+                          ) : (
+                            <span className={styles.badgeTmdb}>ORIGINALE</span>
+                          )}
+                        </div>
                         <div className={styles.movieMeta}>TMDB ID: {movie.tmdbId}</div>
                         <div className={styles.movieDate}>Prossima: {new Date(movie.lastDate).toLocaleDateString('it-IT')}</div>
                       </td>
@@ -232,7 +274,18 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
                       </td>
                       <td>
                         <div className={styles.trailerInfoInput}>
-                          <label>Titolo Trailer</label>
+                          <div className={styles.assetHeader}>
+                            <label>Titolo Trailer</label>
+                            {movie.override.customTrailerTitle ? (
+                              <span className={styles.badgeMod}>
+                                <CheckCircle2 size={10} /> PERSONALIZZATO
+                              </span>
+                            ) : (
+                              <span className={styles.badgeTmdb}>
+                                <Globe size={10} /> TMDB ORIGINAL
+                              </span>
+                            )}
+                          </div>
                           <input 
                             type="text" 
                             value={movie.override.customTrailerTitle || ''}

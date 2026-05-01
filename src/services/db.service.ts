@@ -1,186 +1,199 @@
-
+import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 export interface MovieOverride {
   tmdbId: string;
-  customTitle?: string;
-  customDirector?: string[];
-  customCast?: string[];
-  customRating?: string;
-  customPosterPath?: string;
-  customBackdropPath?: string;
-  customOverview?: string;
+  customTitle?: string | null;
+  customDirector?: string | null;
+  customCast?: string | null;
+  customRating?: string | null;
+  customPosterPath?: string | null;
+  customBackdropPath?: string | null;
+  customLogoPath?: string | null;
+  customOverview?: string | null;
   manualSoldOut?: boolean;
-  versionLanguage?: string; // e.g., "Lingua Originale"
-  subtitles?: string;      // e.g., "Sub ITA"
-  customRoomName?: string;
-  customTrailerUrl?: string;
-  customTrailerTitle?: string;
+  versionLanguage?: string | null;
+  subtitles?: string | null;
+  customRoomName?: string | null;
+  customTrailerUrl?: string | null;
+  customTrailerTitle?: string | null;
+  isManualOverride?: boolean;
+  isDraft?: boolean;
+  updatedAt?: Date;
+  releaseDate?: string | null;
+  runtime?: number | null;
 }
 
-export function getOverrides(): Record<string, MovieOverride> {
+
+export async function isMovieSoldOut(subEventId: number, tmdbId: string | null): Promise<boolean> {
+  // 1. Check manual override in DB
+  if (tmdbId) {
+    const override = await prisma.movieOverride.findUnique({
+      where: { tmdbId },
+      select: { manualSoldOut: true }
+    });
+    if (override?.manualSoldOut) return true;
+  }
+
+  // 2. Check Pretix status in PretixSync (updated during sync)
+  const syncData = await prisma.pretixSync.findUnique({
+    where: { pretixId: subEventId },
+    select: { isSoldOut: true }
+  });
+
+  return syncData?.isSoldOut || false;
+}
+
+export async function getOverrides(): Promise<Record<string, MovieOverride>> {
   try {
-    if (typeof window !== 'undefined') return {}; // Non-browser environment only
-    const fs = require('fs');
-    const path = require('path');
-    const DB_PATH = path.join(process.cwd(), 'data', 'overrides.json');
-    if (!fs.existsSync(DB_PATH)) {
-      return {};
+    const overrides = await prisma.movieOverride.findMany();
+    const record: Record<string, MovieOverride> = {};
+    for (const o of overrides) {
+      record[o.tmdbId] = o;
     }
-    const data = fs.readFileSync(DB_PATH, 'utf8');
-    return JSON.parse(data);
+    return record;
   } catch (error) {
-    console.error('Error reading overrides DB:', error);
+    console.error('Error reading overrides from DB:', error);
     return {};
   }
 }
 
-export function getOverride(tmdbId: string): MovieOverride | null {
-  const overrides = getOverrides();
-  return overrides[tmdbId] || null;
-}
-
-export function saveOverride(tmdbId: string, override: Partial<MovieOverride>) {
+export async function getOverride(tmdbId: string): Promise<MovieOverride | null> {
   try {
-    if (typeof window !== 'undefined') return;
-    const fs = require('fs');
-    const path = require('path');
-    const DB_PATH = path.join(process.cwd(), 'data', 'overrides.json');
-    const overrides = getOverrides();
-    overrides[tmdbId] = {
-      ...(overrides[tmdbId] || {}),
-      ...override,
-      tmdbId,
-    };
-    fs.writeFileSync(DB_PATH, JSON.stringify(overrides, null, 2), 'utf8');
-  } catch (e) {
-    console.error('Error saving override:', e);
-  }
-}
-
-// Simple File-Based Cache for TMDB data
-export function getCachedTMDB(key: string): any | null {
-  try {
-    if (typeof window !== 'undefined') return null;
-    const fs = require('fs');
-    const path = require('path');
-    const CACHE_PATH = path.join(process.cwd(), 'data', 'tmdb_cache.json');
-    if (!fs.existsSync(CACHE_PATH)) return null;
-    const cache = JSON.parse(fs.readFileSync(CACHE_PATH, 'utf8'));
-    const entry = cache[key];
-    if (entry && (Date.now() - entry.timestamp < 24 * 60 * 60 * 1000)) { // 24 hours
-      return entry.data;
-    }
-    return null;
+    return await prisma.movieOverride.findUnique({
+      where: { tmdbId }
+    });
   } catch (e) {
     return null;
   }
 }
 
-export function setCachedTMDB(key: string, data: any) {
+export async function saveOverride(tmdbId: string, override: Partial<MovieOverride>): Promise<boolean> {
   try {
-    if (typeof window !== 'undefined') return;
-    const fs = require('fs');
-    const path = require('path');
-    const CACHE_PATH = path.join(process.cwd(), 'data', 'tmdb_cache.json');
-    let cache: any = {};
-    if (fs.existsSync(CACHE_PATH)) {
-      cache = JSON.parse(fs.readFileSync(CACHE_PATH, 'utf8'));
+    const cleanOverride: any = {};
+    for (const [key, value] of Object.entries(override)) {
+      if (value !== undefined) {
+        // Ensure director and cast are strings even if passed as arrays
+        if ((key === 'customDirector' || key === 'customCast') && Array.isArray(value)) {
+          cleanOverride[key] = value.join(', ');
+        } else {
+          cleanOverride[key] = value;
+        }
+      }
     }
-    cache[key] = {
-      data,
-      timestamp: Date.now()
-    };
-    fs.writeFileSync(CACHE_PATH, JSON.stringify(cache, null, 2), 'utf8');
-  } catch (e) {
-    console.error('Error writing TMDB cache:', e);
+
+    await prisma.movieOverride.upsert({
+      where: { tmdbId },
+      update: cleanOverride,
+      create: {
+        tmdbId,
+        ...cleanOverride
+      }
+    });
+
+    // Forziamo il refresh della home per riflettere i cambiamenti
+    revalidatePath('/');
+    return true;
+  } catch (e: any) {
+    console.error(`[DB Service] Error saving override for tmdbId=${tmdbId}:`, e);
+    return false;
   }
 }
 
-// Enriched Movie Metadata Cache (Unified)
-const METADATA_PATH = require('path').join(process.cwd(), 'data', 'movie_metadata.json');
-
-export function getMovieMetadata(tmdbId: string): any | null {
+/**
+ * BIG BANG: Initial population of the database.
+ */
+export async function syncAllMoviesFromPretix() {
+  const { listSubEvents } = await import('./pretix');
+  const { getEnrichedMovieMetadata } = await import('./tmdb');
+  
+  console.log('🚀 [BIG BANG] Starting total synchronization...');
+  
   try {
-    if (typeof window !== 'undefined') return null;
-    const fs = require('fs');
-    if (!fs.existsSync(METADATA_PATH)) return null;
-    const cache = JSON.parse(fs.readFileSync(METADATA_PATH, 'utf8'));
-    const entry = cache[tmdbId];
-    if (entry && (Date.now() - (entry._cachedAt || 0) < 24 * 60 * 60 * 1000)) {
-      return entry;
+    const subEvents = await listSubEvents(false);
+    const tmdbIds = new Set<string>();
+    
+    subEvents.forEach((se: any) => {
+      if (se.comment) {
+        try {
+          const data = JSON.parse(se.comment);
+          if (data.tmdbId) tmdbIds.add(data.tmdbId.toString());
+        } catch {
+          const match = se.comment.match(/TMDB_ID:(\d+)/);
+          if (match) tmdbIds.add(match[1]);
+        }
+      }
+    });
+
+    let count = 0;
+    for (const id of tmdbIds) {
+      const existing = await prisma.movieOverride.findUnique({ where: { tmdbId: id } });
+      
+      if (!existing) {
+        const metadata = await getEnrichedMovieMetadata(id);
+        if (metadata) {
+          await prisma.movieOverride.create({
+            data: {
+              tmdbId: id,
+              customTitle: metadata.title,
+              customOverview: metadata.overview,
+              customPosterPath: metadata.poster_path || '',
+              customBackdropPath: metadata.backdrop_path || '',
+              customLogoPath: metadata.logo_path || '',
+              customRating: metadata.rating || 'T',
+              customDirector: Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || ''),
+              customCast: Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || ''),
+              isManualOverride: false,
+              isDraft: false
+            }
+          });
+          count++;
+        }
+      }
     }
-    return null;
-  } catch (e) {
-    return null;
+
+    revalidatePath('/');
+    return { success: true, added: count };
+  } catch (error) {
+    console.error('[BIG BANG] Error during sync:', error);
+    throw error;
   }
 }
 
-export function saveMovieMetadata(tmdbId: string, metadata: any) {
-  try {
-    if (typeof window !== 'undefined') return;
-    const fs = require('fs');
-    let cache: any = {};
-    if (fs.existsSync(METADATA_PATH)) {
-      cache = JSON.parse(fs.readFileSync(METADATA_PATH, 'utf8'));
-    }
-    cache[tmdbId] = {
-      ...metadata,
-      _cachedAt: Date.now()
-    };
-    fs.writeFileSync(METADATA_PATH, JSON.stringify(cache, null, 2), 'utf8');
-  } catch (e) {
-    console.error('Error saving movie metadata:', e);
-  }
-}
-
-export function deleteMovieMetadata(tmdbId: string) {
-  try {
-    if (typeof window !== 'undefined') return;
-    const fs = require('fs');
-    if (!fs.existsSync(METADATA_PATH)) return;
-    const cache = JSON.parse(fs.readFileSync(METADATA_PATH, 'utf8'));
-    if (cache[tmdbId]) {
-      delete cache[tmdbId];
-      fs.writeFileSync(METADATA_PATH, JSON.stringify(cache, null, 2), 'utf8');
-    }
-  } catch (e) {
-    console.error('Error deleting movie metadata:', e);
-  }
-}
-
-// --- Short-term Cache (Pretix Availability, etc.) ---
-const SHORT_TERM_CACHE_PATH = require('path').join(process.cwd(), 'data', 'short_term_cache.json');
+// Memory caching
+const cacheMap = new Map<string, { data: any, timestamp: number }>();
 
 export function getShortTermCache(key: string, ttlSeconds: number = 60): any | null {
-  try {
-    if (typeof window !== 'undefined') return null;
-    const fs = require('fs');
-    if (!fs.existsSync(SHORT_TERM_CACHE_PATH)) return null;
-    const cache = JSON.parse(fs.readFileSync(SHORT_TERM_CACHE_PATH, 'utf8'));
-    const entry = cache[key];
-    if (entry && (Date.now() - entry.timestamp < ttlSeconds * 1000)) {
-      return entry.data;
-    }
-    return null;
-  } catch (e) {
-    return null;
+  const entry = cacheMap.get(key);
+  if (entry && (Date.now() - entry.timestamp < ttlSeconds * 1000)) {
+    return entry.data;
   }
+  return null;
 }
 
 export function setShortTermCache(key: string, data: any) {
-  try {
-    if (typeof window !== 'undefined') return;
-    const fs = require('fs');
-    let cache: any = {};
-    if (fs.existsSync(SHORT_TERM_CACHE_PATH)) {
-      cache = JSON.parse(fs.readFileSync(SHORT_TERM_CACHE_PATH, 'utf8'));
-    }
-    cache[key] = {
-      data,
-      timestamp: Date.now()
-    };
-    fs.writeFileSync(SHORT_TERM_CACHE_PATH, JSON.stringify(cache, null, 2), 'utf8');
-  } catch (e) {
-    console.error('Error writing short-term cache:', e);
-  }
+  cacheMap.set(key, { data, timestamp: Date.now() });
+}
+
+export function getCachedTMDB(key: string): any | null {
+  return getShortTermCache(`tmdb_${key}`, 24 * 60 * 60);
+}
+
+export function setCachedTMDB(key: string, data: any) {
+  setShortTermCache(`tmdb_${key}`, data);
+}
+
+export function getMovieMetadata(tmdbId: string): any | null {
+  return getShortTermCache(`metadata_${tmdbId}`, 24 * 60 * 60);
+}
+
+export function saveMovieMetadata(tmdbId: string, metadata: any) {
+  setShortTermCache(`metadata_${tmdbId}`, metadata);
+}
+
+export function deleteMovieMetadata(tmdbId: string) {
+  cacheMap.delete(`metadata_${tmdbId}`);
+  cacheMap.delete(`tmdb_movie_details_${tmdbId}`);
+  cacheMap.delete(`tmdb_movie_details_${tmdbId}_smart_v3`);
+  cacheMap.delete(`tmdb_movie_details_${tmdbId}_smart_multi_v3`);
 }

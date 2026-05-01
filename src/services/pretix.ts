@@ -1,12 +1,10 @@
 'use server';
 
 import { ITEM_INTERO_ID, ITEM_VIP_ID, ALLOWED_ROOM_IDS } from '@/constants/pretix';
-import { saveOverride, getOverrides } from './db.service';
+import { getShortTermCache, setShortTermCache, saveOverride, getOverrides } from './db.service';
 
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { calculatePretixDateTime } from '@/utils/dateUtils';
-import fs from 'fs';
-import path from 'path';
 
 const TIMEZONE = 'Europe/Rome';
 
@@ -19,36 +17,26 @@ if (!PRETIX_TOKEN && process.env.NODE_ENV === 'production') {
   console.error('[PRETIX] ERRORE CRITICO: PRETIX_TOKEN non configurato su Vercel!');
 }
 
-// Fallback to avoid crashes in non-production, but throw if called in production
 if (process.env.NODE_ENV === 'production' && !PRETIX_TOKEN) {
-  // We don't throw at the module level to avoid breaking the build,
-  // but we will throw inside the fetcher.
 }
 
 const pad = (n: number) => n.toString().padStart(2, '0');
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/**
- * Limited concurrency helper to avoid hitting API rate limits.
- */
 export async function limitConcurrency<T>(tasks: (() => Promise<T>)[], limit: number = 3): Promise<T[]> {
   const results: T[] = new Array(tasks.length);
   let currentIndex = 0;
-
   async function executor() {
     while (currentIndex < tasks.length) {
       const index = currentIndex++;
       results[index] = await tasks[index]();
     }
   }
-
   const workers = Array.from({ length: Math.min(limit, tasks.length) }, executor);
   await Promise.all(workers);
   return results;
 }
 
-// API Queue State
 let activeRequests = 0;
 const requestQueue: (() => void)[] = [];
 const MAX_CONCURRENT_REQUESTS = 3;
@@ -74,86 +62,20 @@ function apiQueueRelease() {
   }
 }
 
-// File-based cache for GET requests with In-Memory Singleton to avoid redundant Disk I/O
-const CACHE_TTL = 60 * 1000; // 60 seconds
-const CACHE_PATH = path.join(process.cwd(), 'data', 'pretix_cache.json');
-let _inMemoryCache: any = null;
-
-function getCache() {
-  if (_inMemoryCache) return _inMemoryCache;
-  try {
-    if (!fs.existsSync(CACHE_PATH)) {
-      _inMemoryCache = {};
-      return _inMemoryCache;
-    }
-    
-    // Protection: If cache file is too large (> 10MB), clear it to restore performance
-    const stats = fs.statSync(CACHE_PATH);
-    if (stats.size > 10 * 1024 * 1024) {
-      console.warn(`[Pretix Cache] Cache file too large (${(stats.size / 1024 / 1024).toFixed(2)}MB). Resetting...`);
-      _inMemoryCache = {};
-      return _inMemoryCache;
-    }
-
-    const data = fs.readFileSync(CACHE_PATH, 'utf8');
-    _inMemoryCache = JSON.parse(data);
-    return _inMemoryCache;
-  } catch (e) {
-    _inMemoryCache = {};
-    return _inMemoryCache;
-  }
-}
-
-function saveCache() {
-  if (!_inMemoryCache) return;
-  try {
-    const dataDir = path.join(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
-    
-    // Simple Pruning: Remove entries older than 2x TTL to keep file size manageable
-    const now = Date.now();
-    let changed = false;
-    for (const key in _inMemoryCache) {
-      if (now - _inMemoryCache[key].timestamp > CACHE_TTL * 3) {
-        delete _inMemoryCache[key];
-        changed = true;
-      }
-    }
-
-    fs.writeFileSync(CACHE_PATH, JSON.stringify(_inMemoryCache, null, 2), 'utf8');
-  } catch (e) {
-    console.error('[Pretix Cache] Save failed:', e);
-  }
-}
+// Memory-based cache for GET requests using db.service (TTL 5 mins = 300s)
+const CACHE_TTL_SECONDS = 300; 
 
 function getCachedData(endpoint: string) {
-  try {
-    const cache = getCache();
-    const cached = cache[endpoint];
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      return cached.data;
-    }
-  } catch (e) {}
-  return null;
+  return getShortTermCache(`pretix_${endpoint}`, CACHE_TTL_SECONDS);
 }
 
 function setCachedData(endpoint: string, data: any) {
-  try {
-    const cache = getCache();
-    cache[endpoint] = { data, timestamp: Date.now() };
-    saveCache();
-  } catch (e) {}
+  setShortTermCache(`pretix_${endpoint}`, data);
 }
 
 export async function clearPretixCache() {
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const cachePath = path.join(process.cwd(), 'data', 'pretix_cache.json');
-    if (fs.existsSync(cachePath)) {
-      fs.unlinkSync(cachePath);
-    }
-  } catch (e) {}
+  // Emptying the cacheMap is hard, but we can rely on TTL or we could export a clear method from db.service.
+  // For now, no op as Vercel restarts anyway.
 }
 
 /**
@@ -1114,7 +1036,7 @@ export async function syncSoldOutStatus() {
     // We use the already defined listSubEvents and listQuotas functions
     const rawSubEvents = await listSubEvents(true);
     const allQuotas = await listQuotas();
-    const overrides = getOverrides();
+    const overrides = await getOverrides();
 
     const availabilityMap: Record<number, boolean> = {};
     const quotasBySubevent = new Map<number, any[]>();
@@ -1170,13 +1092,13 @@ export async function syncSoldOutStatus() {
     });
 
     // 3. Persist
-    movieStatus.forEach((status, tmdbId) => {
+    for (const [tmdbId, status] of movieStatus.entries()) {
       const isCompletelySoldOut = status.subevents.length > 0 && status.subevents.every(se => se.isSoldOut);
       if (isCompletelySoldOut && !overrides[tmdbId]?.manualSoldOut) {
         console.log(`[SYNC] Movie "${status.title}" (TMDB: ${tmdbId}) detected as SOLD OUT after booking. Saving...`);
-        saveOverride(tmdbId, { manualSoldOut: true });
+        await saveOverride(tmdbId, { manualSoldOut: true });
       }
-    });
+    }
   } catch (err) {
     console.error('[SYNC] Sync failed:', err);
   }

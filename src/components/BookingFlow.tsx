@@ -6,12 +6,16 @@ import SeatMap from './SeatMap';
 import CheckoutTimer from './CheckoutTimer';
 import CheckoutButton from './CheckoutButton';
 import RatingBadge from './RatingBadge';
+import LanguageBadge from './LanguageBadge';
 import AgeVerificationModal from './AgeVerificationModal';
+
+import { getTrustedSubeventMetadata } from '@/actions/bookingActions';
+
 import { isVM18, isVM14, normalizeRating } from '@/utils/ratingUtils';
 import { listSubEvents, getItemAvailability, getSubEvent, listQuotas, getSubEventSeats } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
-import { getLanguageFull, getSubtitleFull } from '@/utils/languageUtils';
 import { Loader2, Calendar, Clock, ChevronLeft, Info, AlertTriangle, Globe, MessageSquare, X } from 'lucide-react';
+
 import styles from './BookingFlow.module.css';
 
 interface BookingFlowProps {
@@ -19,34 +23,7 @@ interface BookingFlowProps {
   onClose?: () => void;
 }
 
-function LanguageDetailView({ lingua, sottotitoli, comment }: { lingua?: string; sottotitoli?: string; comment?: string }) {
-  let displayLingua = lingua;
-  let displaySottotitoli = sottotitoli;
 
-  // Fallback to comment JSON if meta_data is empty
-  if (!displayLingua && comment) {
-    try {
-      const meta = JSON.parse(comment);
-      displayLingua = meta.versionLanguage;
-      displaySottotitoli = meta.subtitles;
-    } catch (e) {}
-  }
-
-  if (!displayLingua) return null;
-
-  return (
-    <div className={styles.languageDetail}>
-      <Globe size={14} className={styles.langIcon} />
-      <span className={styles.langText}>{displayLingua.toUpperCase()}</span>
-      {displaySottotitoli && displaySottotitoli !== 'Nessuno' && (
-        <>
-          <span className={styles.langDivider}>|</span>
-          <span className={styles.langText}>{displaySottotitoli.toUpperCase()}</span>
-        </>
-      )}
-    </div>
-  );
-}
 
 export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   const [selectedSeats, setSelectedSeats] = useState<Map<string, string>>(new Map());
@@ -58,6 +35,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   const [isSoldOut, setIsSoldOut] = useState(false);
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [isAgeVerified, setIsAgeVerified] = useState(false);
+  const [trustedMetadata, setTrustedMetadata] = useState<any>(null);
 
   useEffect(() => {
     sessionStorage.removeItem('age-verified');
@@ -147,15 +125,39 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
     }
   }, [subeventId]);
 
-  // Handle prop-based subeventId age verification
+  // ────────────────────────────────────────────────────────────
+  // NEW: TRUSTED METADATA FETCHING (Source of Truth: Neon DB)
+  // ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (subeventId && selectedSubEvent && !isAgeVerified) {
+    async function fetchTrustedData() {
+      if (selectedSubeventId) {
+        const metadata = await getTrustedSubeventMetadata(selectedSubeventId);
+        if (metadata) {
+          setTrustedMetadata(metadata);
+          
+          // Apply immediate age verification logic based on DB source
+          const needsVerification = isVM18(metadata.rating);
+          if (needsVerification && !isAgeVerified) {
+            setShowAgeVerification(true);
+          } else if (!needsVerification) {
+            setIsAgeVerified(true);
+            setShowAgeVerification(false);
+          }
+        }
+      }
+    }
+    fetchTrustedData();
+  }, [selectedSubeventId, isAgeVerified]);
+
+  // Handle prop-based subeventId age verification (Legacy/Fallback)
+  useEffect(() => {
+    if (subeventId && selectedSubEvent && !isAgeVerified && !trustedMetadata) {
       try {
         if (selectedSubEvent.comment) {
           const meta = JSON.parse(selectedSubEvent.comment);
           const needsVerification = isVM18(meta.rating);
           if (needsVerification) {
-            setIsAgeVerified(false); // Reset to be sure
+            setIsAgeVerified(false); 
             setShowAgeVerification(true);
           } else {
             setIsAgeVerified(true);
@@ -163,7 +165,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
         }
       } catch (e) {}
     }
-  }, [subeventId, selectedSubEvent, isAgeVerified]);
+  }, [subeventId, selectedSubEvent, isAgeVerified, trustedMetadata]);
 
   useEffect(() => {
     fetchSchedules();
@@ -321,20 +323,28 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
 
       {/* Top-Right prominent rating badge for better readability */}
       {(() => {
-          try {
-            if (selectedSubEvent?.comment) {
-              const meta = JSON.parse(selectedSubEvent.comment);
-              if (meta.rating) {
-                return (
-                  <div className={styles.topRightRating}>
-                    <RatingBadge id={meta.rating} size="md" />
-                  </div>
-                );
-              }
-            }
-          } catch (e) {}
-          return null;
+          // Use trusted metadata from DB if available, otherwise fallback to Pretix comment
+          const metaSource = trustedMetadata || (() => {
+            try {
+              return selectedSubEvent?.comment ? JSON.parse(selectedSubEvent.comment) : null;
+            } catch { return null; }
+          })();
+
+          if (!metaSource) return null;
+
+          return (
+            <div className={styles.topRightRating}>
+              {metaSource.rating && <RatingBadge id={metaSource.rating} size="md" />}
+              <LanguageBadge 
+                language={metaSource.versionLanguage || ''} 
+                subtitles={metaSource.subtitles || ''} 
+                size="sm" 
+                showLabel={false}
+              />
+            </div>
+          );
       })()}
+
       <div className={styles.header}>
         <div className={styles.titleBlock}>
           <div className={styles.titleRow}>
@@ -347,13 +357,9 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
               </button>
             )}
           </div>
-          {selectedSubeventId && selectedSubEvent && (
-            <LanguageDetailView 
-              lingua={selectedSubEvent.meta_data?.lingua} 
-              sottotitoli={selectedSubEvent.meta_data?.sottotitoli} 
-              comment={selectedSubEvent.comment}
-            />
-          )}
+          {/* Removing redundant badge below title - it's already in the top-right next to the rating */}
+
+
           <p className={styles.desc}>
             {selectedSubeventId ? `${dateStr}` : 'Seleziona un orario per procedere alla scelta dei posti.'}
           </p>
@@ -422,28 +428,33 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
             </div>
 
             {(() => {
-                try {
-                  if (selectedSubEvent?.comment) {
-                    const meta = JSON.parse(selectedSubEvent.comment);
-                    const r = String(meta.rating || '');
-                    const norm = normalizeRating(r);
-                    if (norm === '18+' || norm === '14+' || norm === '10+') {
-                      const age = norm === '18+' ? '18' : (norm === '14+' ? '14' : '10');
-                      const isRestriction = norm === '18+' || norm === '14+';
-                      
-                      return (
-                        <div className={isRestriction ? styles.legalInfo : `${styles.legalInfo} ${styles.infoOnly}`}>
-                          {isRestriction ? <AlertTriangle size={14} /> : <Info size={14} />}
-                          <span>
-                            {isRestriction 
-                              ? `L'accesso a questa proiezione è limitato ai maggiori di ${age} anni.`
-                              : `La visione di questo film è consigliata dai ${age} anni in su.`}
-                          </span>
-                        </div>
-                      );
-                    }
-                  }
-                } catch (e) {}
+                // AGE WARNING LOGIC: TRUSTED DB FIRST
+                const metaSource = trustedMetadata || (() => {
+                  try {
+                    return selectedSubEvent?.comment ? JSON.parse(selectedSubEvent.comment) : null;
+                  } catch { return null; }
+                })();
+
+                if (!metaSource) return null;
+
+                const r = String(metaSource.rating || '');
+                const norm = normalizeRating(r);
+                
+                if (norm === '18+' || norm === '14+' || norm === '10+') {
+                  const age = norm === '18+' ? '18' : (norm === '14+' ? '14' : '10');
+                  const isRestriction = norm === '18+' || norm === '14+';
+                  
+                  return (
+                    <div className={isRestriction ? styles.legalInfo : `${styles.legalInfo} ${styles.infoOnly}`}>
+                      {isRestriction ? <AlertTriangle size={14} /> : <Info size={14} />}
+                      <span>
+                        {isRestriction 
+                          ? `L'accesso a questa proiezione è limitato ai maggiori di ${age} anni.`
+                          : `La visione di questo film è consigliata dai ${age} anni in su.`}
+                      </span>
+                    </div>
+                  );
+                }
                 return null;
             })()}
 

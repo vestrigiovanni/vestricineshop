@@ -22,9 +22,10 @@ import {
   adminGetQuotaAvailability, 
   adminGetEmptyProjections,
   adminClearCache,
-  adminGetOverrides
+  adminGetOverrides,
+  adminSyncAllMovies
 } from '@/actions/adminActions';
-import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb';
+import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb.utils';
 import Image from 'next/image';
 import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw, Settings } from 'lucide-react';
 import RoomManagementModal from './RoomManagementModal';
@@ -78,10 +79,12 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     setIsSyncing(true);
     try {
       await adminClearCache();
+      // Trigger the full database mirror (Pretix -> DB)
+      await adminSyncAllMovies(false); 
       const updatedEvents = await adminListEvents();
       setEvents(updatedEvents);
       await initPlans();
-      alert('Sincronizzazione completata! I dati sono stati aggiornati da Pretix.');
+      alert('Sincronizzazione completata! Il database è ora speculare a Pretix.');
     } catch (error) {
       console.error('Sync error:', error);
       alert('Errore durante la sincronizzazione.');

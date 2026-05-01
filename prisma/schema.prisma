@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model MovieOverride {
+  tmdbId             String   @id
+  customTitle        String?
+  customOverview     String?
+  customRating       String?
+  customPosterPath   String?
+  customBackdropPath String?
+  customLogoPath     String?
+  customTrailerUrl   String?
+  customTrailerTitle String?
+  versionLanguage    String?
+  subtitles          String?
+  customRoomName     String?
+  manualSoldOut      Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+  isManualOverride   Boolean  @default(false)
+  isDraft            Boolean  @default(false)
+  customDirector     String?
+  customCast         String?
+  releaseDate        String?
+  runtime            Int?
+  projections        PretixSync[]
+}
+
+model PretixSync {
+  pretixId        Int      @id
+  name            String
+  slug            String?
+  dateFrom        DateTime
+  dateTo          DateTime?
+  startTime       String?
+  endTime         String?
+  seatingPlanId   Int?
+  roomName        String?
+  isSoldOut       Boolean  @default(false)
+  availableSeats  Int?
+  totalSeats      Int?
+  tmdbId          String?
+  movie           MovieOverride? @relation(fields: [tmdbId], references: [tmdbId])
+  comment         String?
+  metaLingua      String?
+  metaSottotitoli String?
+  metaFormat      String?
+  active          Boolean  @default(true)
+  isHidden        Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+}
+

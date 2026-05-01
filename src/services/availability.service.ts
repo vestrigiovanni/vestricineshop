@@ -11,7 +11,7 @@ import { getOverrides, getShortTermCache, setShortTermCache } from './db.service
  */
 export async function getAvailabilityMap(): Promise<Record<number, boolean>> {
   const CACHE_KEY = 'availability_map_v3';
-  const cached = getShortTermCache(CACHE_KEY, 60); // 60 seconds TTL
+  const cached = getShortTermCache(CACHE_KEY, 300); // 300 seconds TTL (5 minutes)
   if (cached) {
     return cached;
   }
