@@ -28,6 +28,7 @@ import {
 import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb.utils';
 import Image from 'next/image';
 import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw, Settings } from 'lucide-react';
+import TicketRecoveryButton from './TicketRecovery';
 import RoomManagementModal from './RoomManagementModal';
 
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
@@ -779,6 +780,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           <ShoppingBag size={18} />
           APRI CASSA
         </a>
+
+        <TicketRecoveryButton />
 
         <button
           onClick={() => setShowDisplayModal(true)}

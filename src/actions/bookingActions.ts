@@ -1,7 +1,8 @@
-'use server';
+"use server";
 
 import prisma from '@/lib/prisma';
-import { MovieOverride } from '@/services/db.service';
+import { listQuotas } from '@/services/pretix';
+import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 
 /**
  * SOURCE OF TRUTH: Fetches movie metadata from the Neon database
@@ -56,10 +57,13 @@ export async function getTrustedSubeventMetadata(subeventId: number) {
  */
 export async function reportSoldOut(subeventId: number) {
   try {
-    const { syncSingleSubevent } = await import('@/services/sync.service');
-    await syncSingleSubevent(subeventId);
+    const { updateEventAvailability } = await import('@/services/sync.service');
+    await updateEventAvailability(subeventId);
     return { success: true };
   } catch (error) {
+    console.error(`[Booking Actions] Error reporting sold out for ${subeventId}:`, error);
+    return { success: false, error };
+  }
 }
 
 /**
@@ -68,9 +72,6 @@ export async function reportSoldOut(subeventId: number) {
  */
 export async function verifyQuotaAvailability(subeventId: number): Promise<{ isSoldOut: boolean, availableSeats: number | null }> {
   try {
-    const { listQuotas } = await import('@/services/pretix');
-    const { ITEM_INTERO_ID, ITEM_VIP_ID } = await import('@/constants/pretix');
-    
     const quotas = await listQuotas(subeventId);
     const relevantQuotas = quotas.filter((q: any) => 
       Array.isArray(q.items) && (q.items.includes(ITEM_INTERO_ID) || q.items.includes(ITEM_VIP_ID))

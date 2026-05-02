@@ -297,8 +297,9 @@ const DB_STALENESS_MS = 60000; // 1 minute (Use DB if younger)
 /**
  * Syncs ONLY a single sub-event availability.
  * SURGICAL SYNC: Only calls Pretix if data is stale or forced (after purchase).
+ * Renamed to updateEventAvailability for consistency with granular quota logic.
  */
-export async function syncSingleSubevent(subeventId: number, force: boolean = false) {
+export async function updateEventAvailability(subeventId: number, force: boolean = false) {
   const now = Date.now();
   
   // 1. Throttle check (Memory)
@@ -353,9 +354,8 @@ export async function syncSingleSubevent(subeventId: number, force: boolean = fa
 
     console.log(`[DB-UPDATE] ID: ${subeventId} | Avail: ${availableSeats} | SoldOut: ${isSoldOut}`);
 
-    if (isSoldOut && !existing?.isSoldOut) {
-      try { revalidatePath('/'); } catch {}
-    }
+    // Revalida sempre per aggiornare i badge granulari (es. se resta 1 posto)
+    try { revalidatePath('/'); } catch {}
 
   } catch (error) {
     console.error(`[SYNC-SURGICAL] Failed for ${subeventId}:`, error);
@@ -380,7 +380,7 @@ export async function syncFutureSubeventsSurgically() {
     // so this won't DDoS Pretix if called frequently.
     let count = 0;
     for (const se of rawSubEvents) {
-      await syncSingleSubevent(se.id);
+      await updateEventAvailability(se.id);
       count++;
       
       // Polite delay: 50ms between requests to avoid burst spikes

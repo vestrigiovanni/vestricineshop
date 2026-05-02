@@ -10,7 +10,7 @@ import LanguageBadge from './LanguageBadge';
 import AgeVerificationModal from './AgeVerificationModal';
 
 import type { MovieOverride, PretixSync } from '@prisma/client';
-import { getTrustedSubeventMetadata, reportSoldOut } from '@/actions/bookingActions';
+import { getTrustedSubeventMetadata, reportSoldOut, verifyQuotaAvailability } from '@/actions/bookingActions';
 
 import { isVM18, isVM14, normalizeRating } from '@/utils/ratingUtils';
 import { listSubEvents, getItemAvailability, getSubEvent, listQuotas, getSubEventSeats, finalizeBooking } from '@/services/pretix';
@@ -38,8 +38,14 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   const [isAgeVerified, setIsAgeVerified] = useState(false);
   const [trustedMetadata, setTrustedMetadata] = useState<any>(null);
 
+  const [refreshCounter, setRefreshCounter] = useState(0);
+
   useEffect(() => {
     sessionStorage.removeItem('age-verified');
+    // Reset state whenever the component mounts (Modal opens)
+    setCheckoutStarted(false);
+    setSelectedSeats(new Map());
+    setRefreshCounter(prev => prev + 1);
   }, []);
 
   const fetchSchedules = useCallback(async () => {
@@ -223,16 +229,27 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
 
   const handleBookingSuccess = () => {
     console.log('[BookingFlow] Booking successful, cleaning up and redirecting...');
-    // 1. Clear local state
+    // 1. Clear local state and session identifiers
     setSelectedSeats(new Map());
     setSelectedSubeventId(null);
     setCheckoutStarted(false);
     
-    // 2. Close modal if onClose provided
-    if (onClose) onClose();
+    // Pulizia Carrello/Sessione
+    sessionStorage.removeItem('age-verified');
+    if (selectedSubeventId) {
+      sessionStorage.removeItem(`order_${selectedSubeventId}`);
+    }
+    // Rimuovi eventuali riferimenti a sessioni Pretix legacy
+    localStorage.removeItem('pretix_cart_id');
+    localStorage.removeItem('pretix_session_id');
     
-    // 3. Force hard redirect to Success Page (Standard Tecnico)
-    window.location.href = `/success?subeventId=${selectedSubeventId}`;
+    // 2. Force UI Refresh to invalidate stale availability in other components
+    const { useRouter } = require('next/navigation');
+    try {
+      window.location.reload(); // Hard reload as requested for absolute clean state
+    } catch (e) {
+      window.location.href = `/success?subeventId=${selectedSubeventId}`;
+    }
   };
 
   const handleAgeVerified = () => {
@@ -240,8 +257,25 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
     setIsAgeVerified(true);
   };
 
-  const startCheckout = () => {
-    if (selectedSeats.size > 0) setCheckoutStarted(true);
+  const startCheckout = async () => {
+    if (selectedSeats.size === 0) return;
+    
+    setLoading(true);
+    try {
+      // Real-time verification before opening checkout
+      const availability = await verifyQuotaAvailability(selectedSubeventId!);
+      if (availability.isSoldOut) {
+        setIsSoldOut(true);
+        setLoading(false);
+        return;
+      }
+      setCheckoutStarted(true);
+    } catch (err) {
+      console.error('Availability check failed', err);
+      setCheckoutStarted(true); // Fallback to proceed anyway
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ── Loading ──────────────────────────────────────────────────
@@ -445,6 +479,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
         <>
           <div className={styles.seatMapWrapper}>
               <SeatMap
+                key={`${selectedSubeventId}-${refreshCounter}`}
                 selectedSeats={new Set(selectedSeats.keys())}
                 onSeatToggle={handleSeatToggle}
                 subeventId={selectedSubeventId}

@@ -717,8 +717,8 @@ export async function finalizeBooking(email: string, seats: string[], subeventId
     // ATOMIC SYNC: We MUST await this to ensure the DB is updated before the client redirects
     try {
       if (subeventId) {
-        const { syncSingleSubevent } = await import('@/services/sync.service');
-        await syncSingleSubevent(subeventId, true);
+        const { updateEventAvailability } = await import('@/services/sync.service');
+        await updateEventAvailability(subeventId, true);
       }
       
       // We don't necessarily need to await the global movie status check, 
@@ -990,8 +990,8 @@ export async function createCassaOrder(params: {
   // --- NEW: Post-booking REAL-TIME sync (Standard Tecnico) ---
   // ATOMIC SYNC: Await to ensure the DB is fresh for the POS/Cassa
   try {
-    const { syncSingleSubevent } = await import('@/services/sync.service');
-    await syncSingleSubevent(subeventId, true);
+    const { updateEventAvailability } = await import('@/services/sync.service');
+    await updateEventAvailability(subeventId, true);
     
     // Also run the global movie status check
     await syncSoldOutStatus();
@@ -1014,7 +1014,8 @@ export async function getSubEventSeats(subeventId: number) {
     const allSeats: any[] = [];
 
     while (endpoint) {
-      const data = await fetchPretix(endpoint);
+      // FORZA IL REFRESH: skipCache = true per avere lo stato reale dei posti
+      const data = await fetchPretix(endpoint, {}, true);
       if (data?.results && Array.isArray(data.results)) {
         allSeats.push(...data.results);
       } else if (Array.isArray(data)) {
@@ -1089,6 +1090,136 @@ export async function syncSoldOutStatus() {
     }
   } catch (err) {
     console.error('[SYNC] Global status check failed:', err);
+  }
+}
+
+/**
+ * Fetches order positions for shows occurring on a specific date.
+ * Uses /orderpositions/ with subevent date filters.
+ */
+/**
+ * Fetches order positions for shows occurring on a specific date.
+ * SURGICAL FIX: First gets subevent IDs for the date, then filters orderpositions.
+ */
+export async function getTicketsByDate(dateStr: string) {
+  try {
+    // 1. Get SubEvents for this specific day to get their IDs
+    // Pretix filters for /subevents/ are date_from_after and date_from_before
+    const subEventsData = await fetchPretix(`/subevents/?date_from_after=${dateStr}T00:00:00Z&date_from_before=${dateStr}T23:59:59Z`, {}, true);
+    const subEventIds = (subEventsData.results || []).map((se: any) => se.id);
+
+    if (subEventIds.length === 0) {
+      console.log(`[TicketRecovery] No subevents found for ${dateStr}`);
+      return [];
+    }
+
+    // 2. Fetch order positions filtered by these subevent IDs
+    // We use multiple 'subevent=ID' parameters as comma-separated lists are not supported for this filter.
+    const subeventParams = subEventIds.map((id: number) => `subevent=${id}`).join('&');
+    let endpoint = `/orderpositions/?${subeventParams}&order__status=p&expand=subevent&expand=item&expand=order`; 
+    const allPositions: any[] = [];
+
+    while (endpoint) {
+      const data = await fetchPretix(endpoint, {}, true);
+      
+      if (data?.results) {
+        data.results.forEach((pos: any) => {
+          const itemObj = pos.item;
+          pos.item_name = itemObj?.name?.it || itemObj?.name?.en || 'Film Sconosciuto';
+          pos.order_code = pos.order?.code || pos.order; 
+          
+          const subevent = pos.subevent;
+          pos.show_time = subevent?.date_from ? new Date(subevent.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '??:??';
+          
+          // Customer info: Check position first (attendee), then fallback to order
+          pos.customer_name = pos.attendee_name || pos.order?.email || 'Acquirente';
+          pos.customer_email = pos.attendee_email || pos.order?.email || '';
+          pos.seat_name = pos.seat?.name || '';
+          
+          allPositions.push(pos);
+        });
+      }
+
+      if (data?.next) {
+        try {
+          const nextUrl = new URL(data.next);
+          endpoint = nextUrl.pathname.replace(
+            `/api/v1/organizers/${PRETIX_ORGANIZER}/events/${PRETIX_EVENT}`,
+            ''
+          ) + nextUrl.search;
+        } catch {
+          endpoint = '';
+        }
+      } else {
+        endpoint = '';
+      }
+    }
+
+    // Sort by show time
+    return allPositions.sort((a, b) => {
+      const timeA = a.subevent?.date_from || '';
+      const timeB = b.subevent?.date_from || '';
+      return timeA.localeCompare(timeB);
+    });
+  } catch (error) {
+    console.error(`Error fetching tickets for date ${dateStr}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Starts a batch rendering process for multiple ticket positions.
+ */
+export async function renderBatchTickets(orderPositions: string[]) {
+  try {
+    const payload = {
+      positions: orderPositions,
+      renderer: 'pdf'
+    };
+    
+    const data = await fetchPretix('/ticketpdfrenderer/render_batch/', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    
+    return data; // contains status_url
+  } catch (error) {
+    console.error('Error starting batch rendering:', error);
+    throw error;
+  }
+}
+
+/**
+ * Polls the batch rendering status until completion.
+ */
+export async function checkBatchStatus(statusUrl: string) {
+  // Extract endpoint from statusUrl if it's a full URL
+  let endpoint = statusUrl;
+  if (statusUrl.startsWith('http')) {
+    try {
+      const url = new URL(statusUrl);
+      endpoint = url.pathname.replace(
+        `/api/v1/organizers/${PRETIX_ORGANIZER}/events/${PRETIX_EVENT}`,
+        ''
+      );
+    } catch {
+      endpoint = statusUrl;
+    }
+  }
+
+  while (true) {
+    try {
+      const response = await fetchPretix(endpoint, {}, true);
+      // Pretix batch rendering returns 200 OK with the final document when done.
+      return response;
+    } catch (error: any) {
+      if (error.message.includes('409')) {
+        console.log('[Pretix] Batch rendering in progress (409). Retrying in 2s...');
+        await sleep(2000);
+        continue;
+      }
+      throw error;
+    }
   }
 }
 

@@ -187,4 +187,28 @@ h6 {
     padding: 0 1rem;
   }
 }
-/* Print: each component manages its own @media print via CSS Modules */
+
+.pretix-button {
+  background: #2185d0;
+  color: #fff !important;
+  font-weight: 700;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(33, 133, 208, 0.3);
+  border: none;
+  cursor: pointer;
+}
+
+.pretix-button:hover {
+  background: #1678c2;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(33, 133, 208, 0.4);
+}
+
+.pretix-button:active {
+  transform: translateY(0);
+}
