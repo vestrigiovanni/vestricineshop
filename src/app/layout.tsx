@@ -6,11 +6,13 @@ import './globals.css';
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
+  display: 'swap',
 });
 
 const cinzel = Cinzel({
   subsets: ['latin'],
   variable: '--font-cinzel',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {

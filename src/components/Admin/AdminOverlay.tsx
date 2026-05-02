@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import AdminPanel from './AdminPanel';
+import dynamic from 'next/dynamic';
+const AdminPanel = dynamic(() => import('./AdminPanel'), { ssr: false });
 import { adminListEvents } from '@/actions/adminActions';
 import { X, Loader2 } from 'lucide-react';
 import styles from './AdminOverlay.module.css';

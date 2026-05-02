@@ -11,6 +11,7 @@ import {
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import { getMovieDetails } from '@/services/tmdb';
 import { revalidatePath } from 'next/cache';
+import prisma from '@/lib/prisma';
 
 // ─────────────────────────────────────────────────────────────────
 // NOTE: Filesystem archiving is disabled to support read-only environments like Vercel.
@@ -68,9 +69,14 @@ export interface CassaScreening {
 }
 
 async function mapSubEventsToCassaScreenings(subEvents: any[]): Promise<CassaScreening[]> {
-  const [quotaResults, roomsMap] = await Promise.all([
+  const subEventIds = subEvents.map(se => se.id);
+  const [quotaResults, roomsMap, dbSyncs] = await Promise.all([
     Promise.all(subEvents.map((se: any) => listQuotas(se.id))),
     getSeatingPlansMap(),
+    prisma.pretixSync.findMany({
+      where: { pretixId: { in: subEventIds } },
+      include: { movie: true }
+    })
   ]);
 
   return Promise.all(
@@ -116,6 +122,9 @@ async function mapSubEventsToCassaScreenings(subEvents: any[]): Promise<CassaScr
       let year = '';
       let rating = '';
 
+      const dbSync = dbSyncs.find(d => d.pretixId === se.id);
+      const dbRating = dbSync?.movie?.customRating;
+
       if (se.comment) {
         try {
           const meta = JSON.parse(se.comment);
@@ -130,8 +139,10 @@ async function mapSubEventsToCassaScreenings(subEvents: any[]): Promise<CassaScr
           tagline = meta.tagline || '';
           genres = meta.genres || '';
           year = meta.year || '';
-          rating = meta.rating || '';
+          rating = dbRating || meta.rating || '';
         } catch {}
+      } else {
+        rating = dbRating || '';
       }
 
       const seatingPlanId = Number(se.seating_plan);

@@ -42,10 +42,16 @@ export default function Footer() {
   return (
     <footer className={styles.footer}>
       <div className={styles.container}>
-        <p suppressHydrationWarning>&copy; {new Date().getFullYear()} VESTRICINEMASHOP. Tutti i diritti riservati.</p>
-        <button onClick={handleAdminClick} className={styles.adminButton}>
-          Admin
-        </button>
+        {mounted ? (
+          <>
+            <p suppressHydrationWarning>&copy; {new Date().getFullYear()} VESTRICINEMASHOP. Tutti i diritti riservati.</p>
+            <button onClick={handleAdminClick} className={styles.adminButton}>
+              Admin
+            </button>
+          </>
+        ) : (
+          <p>&copy; VESTRICINEMASHOP. Tutti i diritti riservati.</p>
+        )}
       </div>
 
       {isModalOpen && (

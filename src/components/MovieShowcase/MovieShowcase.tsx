@@ -183,7 +183,9 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
 
   const activeMovie = sortedMovies.find(m => m.id === activeMovieId) || sortedMovies[0];
 
-  console.log("Cast per film " + activeMovie?.title, activeMovie?.cast);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log("Cast per film " + activeMovie?.title, activeMovie?.cast);
+  }
 
   const handleShowtimeClick = (subeventId: number, isSoldOut: boolean) => {
     if (isSoldOut) return;
@@ -321,7 +323,7 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                     </div>
 
                     <span className={styles.showtimeDate}>
-                      {isMounted ? dayStr : dateObj.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      {isMounted ? dayStr : ''}
                     </span>
                     <span className={styles.showtimeTime}>
                       {se.isSoldOut ? `ESAURITO` : (isMounted ? dateObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '')}

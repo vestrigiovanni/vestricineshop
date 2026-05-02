@@ -340,7 +340,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
           subeventId={selectedSubeventId!} 
           selectedSeats={seatIds} 
           onSuccess={handleBookingSuccess}
-          movieRating={(() => {
+          movieRating={trustedMetadata?.rating || (() => {
             try {
               if (selectedSubEvent?.comment) {
                 const meta = JSON.parse(selectedSubEvent.comment);

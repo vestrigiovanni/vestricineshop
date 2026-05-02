@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styles from './CustomVideoPlayer.module.css';
 import { X } from 'lucide-react';
+import Script from 'next/script';
 
 interface CustomVideoPlayerProps {
   videoId: string | null;
@@ -45,16 +46,18 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
 
   useEffect(() => {
     setMounted(true);
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube-nocookie.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-      window.onYouTubeIframeAPIReady = () => setApiReady(true);
-    } else if (window.YT && window.YT.Player) {
+    if (window.YT && window.YT.Player) {
       setApiReady(true);
     }
   }, []);
+
+  const handleScriptLoad = () => {
+    if (window.YT) {
+      window.onYouTubeIframeAPIReady = () => setApiReady(true);
+      // In case it's already ready
+      if (window.YT.Player) setApiReady(true);
+    }
+  };
 
   useEffect(() => {
     if (!isPlaying || !mounted || !apiReady || videoPlaylist.length === 0 || allVideosFailed) return;
@@ -188,6 +191,11 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
       ref={containerRef}
       className={`${styles.playerContainer} ${isPlaying ? styles.visible : styles.hidden} ${!showControls ? styles.hideCursor : ''}`}
     >
+      <Script 
+        src="https://www.youtube.com/iframe_api"
+        strategy="afterInteractive"
+        onLoad={handleScriptLoad}
+      />
       <div className={styles.videoWrapper}>
         {allVideosFailed && backdropUrl && (
           <div

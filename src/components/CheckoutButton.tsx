@@ -181,7 +181,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
           tagline: meta.tagline || '',
           genres: meta.genres || '',
           year: meta.year || '',
-          rating: meta.rating || '',
+          rating: movieRating || meta.rating || '',
           tmdbId: resolvedTmdbId,
         };
         setSubeventData(newSubeventData);
