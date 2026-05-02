@@ -82,7 +82,9 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
     try {
       // 1. Finalize the booking
       const order = await finalizeBooking(finalEmail, selectedSeats, subeventId);
-      console.log('Order created successfully:', order);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('Order created successfully:', order);
+        }
       const newOrderCode = order.code;
       setOrderCode(newOrderCode);
       
@@ -136,7 +138,9 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
               const firstResult = searchData.results?.[0];
               if (firstResult) {
                 resolvedTmdbId = String(firstResult.id);
-                console.log(`[CheckoutButton] TMDB fallback: resolved "${cleanTitle}" → ID ${resolvedTmdbId}`);
+                if (process.env.NODE_ENV !== 'production') {
+                  console.log(`[CheckoutButton] TMDB fallback: resolved "${cleanTitle}" → ID ${resolvedTmdbId}`);
+                }
               }
             }
           } catch (e) {
@@ -217,7 +221,9 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
       // Removed router.refresh() to prevent unwanted full page reloads that close the modal
       
       if (onSuccess) {
-        console.log('[CHECKOUT] Triggering success callback...');
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[CHECKOUT] Triggering success callback...');
+        }
         onSuccess();
       }
     } catch (err: any) {

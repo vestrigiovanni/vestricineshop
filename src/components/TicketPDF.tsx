@@ -296,14 +296,14 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
         <div className={styles.bottomSection}>
           <div className={styles.showInfo}>
             <div className={styles.showInfoLeft}>
-              <span>{formatDate(startDate)}</span>
+              <span suppressHydrationWarning>{formatDate(startDate)}</span>
             </div>
 
             <div className={styles.showInfoCenter}>
               <span className={styles.dot}>|</span>
-              <span>{formatTime(startDate)}</span>
+              <span suppressHydrationWarning>{formatTime(startDate)}</span>
               <span className={styles.dot}>|</span>
-              <span>{formatTime(endDate)}</span>
+              <span suppressHydrationWarning>{formatTime(endDate)}</span>
               <span className={styles.dot}>|</span>
             </div>
 

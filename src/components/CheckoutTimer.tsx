@@ -11,8 +11,14 @@ interface CheckoutTimerProps {
 
 export default function CheckoutTimer({ maxTimeSeconds, onExpire }: CheckoutTimerProps) {
   const [timeLeft, setTimeLeft] = useState(maxTimeSeconds);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (timeLeft <= 0) {
       onExpire();
       return;
@@ -27,6 +33,8 @@ export default function CheckoutTimer({ maxTimeSeconds, onExpire }: CheckoutTime
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
+
+  if (!mounted) return null;
 
   return (
     <div className={`${styles.timer} ${timeLeft < 60 ? styles.urgent : ''}`}>

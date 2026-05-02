@@ -39,8 +39,10 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   const [trustedMetadata, setTrustedMetadata] = useState<any>(null);
 
   const [refreshCounter, setRefreshCounter] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     sessionStorage.removeItem('age-verified');
     // Reset state whenever the component mounts (Modal opens)
     setCheckoutStarted(false);
@@ -137,8 +139,14 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   // ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (isSoldOut && selectedSubeventId) {
-      console.log(`[BookingFlow] Detecting Sold Out for ${selectedSubeventId}, reporting to backend...`);
-      reportSoldOut(selectedSubeventId).catch(err => console.error('[SYNC] Failed to report sold out:', err));
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[BookingFlow] Detecting Sold Out for ${selectedSubeventId}, reporting to backend...`);
+      }
+      reportSoldOut(selectedSubeventId).catch(err => {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[SYNC] Failed to report sold out:', err);
+        }
+      });
     }
   }, [isSoldOut, selectedSubeventId]);
 
@@ -228,7 +236,9 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   };
 
   const handleBookingSuccess = () => {
-    console.log('[BookingFlow] Booking successful, cleaning up technical session data...');
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[BookingFlow] Booking successful, cleaning up technical session data...');
+    }
     
     // We no longer redirect automatically to /success. 
     // This allows the CheckoutButton to show its own success UI with download buttons.
@@ -267,6 +277,9 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
       setLoading(false);
     }
   };
+
+  // ── Mounting ──────────────────────────────────────────────────
+  if (!mounted) return null;
 
   // ── Loading ──────────────────────────────────────────────────
   if (loading) {
@@ -397,7 +410,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
       <div className={styles.header}>
         <div className={styles.titleBlock}>
           <div className={styles.titleRow}>
-            <h2 className={styles.title}>
+            <h2 className={styles.title} suppressHydrationWarning>
               {selectedSubeventId ? `${movieTitle} — ${timeStr}` : 'Scegli la proiezione'}
             </h2>
             {onClose && (
@@ -409,7 +422,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
           {/* Removing redundant badge below title - it's already in the top-right next to the rating */}
 
 
-          <p className={styles.desc}>
+          <p className={styles.desc} suppressHydrationWarning>
             {selectedSubeventId ? `${dateStr}` : 'Seleziona un orario per procedere alla scelta dei posti.'}
           </p>
         </div>
@@ -442,14 +455,14 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
                 >
                   <div className={styles.subeventInfo}>
                     <Clock size={14} className={styles.metaIcon} />
-                    <span className={styles.subeventTime}>
+                    <span className={styles.subeventTime} suppressHydrationWarning>
                       {date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     {se.isSoldOut && <span className={styles.soldOutBadge}>ESAURITO</span>}
                   </div>
                   <div className={styles.subeventInfo}>
                     <Calendar size={13} className={styles.metaIcon} />
-                    <span className={styles.subeventDate}>
+                    <span className={styles.subeventDate} suppressHydrationWarning>
                       {date.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </span>
                   </div>

@@ -28,7 +28,9 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClo
     async function loadData() {
       if (!subeventId) return;
 
-      console.log(`[SeatMap] 🚀 Loading sub-event ${subeventId} (Simplified Mode)`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[SeatMap] 🚀 Loading sub-event ${subeventId} (Simplified Mode)`);
+      }
       setLoading(true);
       try {
         // 1. Fetch Seats directly from Seats API
@@ -62,7 +64,9 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClo
 
         setSeats(extractedSeats);
       } catch (error) {
-        console.error('[SeatMap] ❌ LOAD ERROR:', error);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[SeatMap] ❌ LOAD ERROR:', error);
+        }
         setSeats([]);
       } finally {
         setLoading(false);
