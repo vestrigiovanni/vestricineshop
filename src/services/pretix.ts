@@ -41,7 +41,21 @@ let activeRequests = 0;
 const requestQueue: (() => void)[] = [];
 const MAX_CONCURRENT_REQUESTS = 3;
 
+// Global halt for rate-limiting
+let isRateLimited = false;
+let rateLimitResetTime = 0;
+
 async function apiQueueGate() {
+  if (isRateLimited) {
+    const now = Date.now();
+    if (now < rateLimitResetTime) {
+      const wait = rateLimitResetTime - now;
+      console.warn(`[Pretix] Rate-limit active. Waiting ${wait}ms before next gate...`);
+      await sleep(wait);
+    }
+    isRateLimited = false;
+  }
+
   if (activeRequests < MAX_CONCURRENT_REQUESTS) {
     activeRequests++;
     return;
@@ -252,7 +266,7 @@ function parsePretixError(errorText: string, endpoint?: string): string {
 /**
  * Helper to fetch data from Pretix API
  */
-async function fetchPretix(endpoint: string, options: RequestInit = {}) {
+export async function fetchPretix(endpoint: string, options: RequestInit = {}, skipCache: boolean = false) {
   if (!PRETIX_TOKEN) {
     throw new Error('Configurazione Mancante: PRETIX_TOKEN non trovato nell\'ambiente (Vercel Secrets).');
   }
@@ -261,7 +275,7 @@ async function fetchPretix(endpoint: string, options: RequestInit = {}) {
   
   // Only cache GET requests without body
   const isCacheable = (!options.method || options.method === 'GET') && !options.body;
-  if (isCacheable) {
+  if (isCacheable && !skipCache) {
     const cached = getCachedData(endpoint);
     if (cached) return cached;
   }
@@ -293,8 +307,12 @@ async function fetchPretix(endpoint: string, options: RequestInit = {}) {
 
         if (response.status === 429) {
           const retryAfter = response.headers.get('Retry-After');
-          const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : 1000 * Math.pow(2, attempt);
-          console.warn(`[Pretix] 429 Too Many Requests at ${endpoint}. Retrying in ${waitMs}ms... (Attempt ${attempt + 1}/${maxRetries})`);
+          const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : 2000 * Math.pow(2, attempt);
+          
+          isRateLimited = true;
+          rateLimitResetTime = Date.now() + waitMs + 500; // Buffer 500ms
+          
+          console.error(`[Pretix] 🛑 429 RATE LIMIT (Retry-After: ${retryAfter || 'auto'}). Halting all requests for ${waitMs}ms...`);
           await sleep(waitMs);
           continue;
         }
@@ -302,45 +320,20 @@ async function fetchPretix(endpoint: string, options: RequestInit = {}) {
         if (!response.ok) {
           const errorText = await response.text();
           const status = response.status;
-
-          if (status === 400) {
-            console.error(`Pretix API error [400 Bad Request] at ${endpoint}. Error details:`, errorText);
-            throw new Error(parsePretixError(errorText, endpoint));
-          } else if (status === 403) {
-            console.error(`Pretix API error [403 Forbidden] at ${endpoint}. This usually means the event has tickets sold and is locked.`);
-            throw new Error(`Pretix API Error 403: L'evento è in uso (biglietti emessi) e non può essere modificato.`);
-          } else {
-            console.error(`Pretix API error [${status}] at ${endpoint}:`, errorText);
-            throw new Error(`Pretix API failed: ${status} ${errorText}`);
-          }
+          console.error(`Pretix API error [${status}] at ${endpoint}:`, errorText);
+          throw new Error(`Pretix API failed: ${status}`);
         }
 
         if (response.status === 204) return null;
-
-        const contentType = response.headers.get('content-type');
-        let data: any;
-
-        if (contentType && contentType.includes('application/json')) {
-          try {
-            data = await response.json();
-          } catch (e) {
-            console.error(`[Pretix] Failed to parse JSON from ${endpoint}:`, e);
-            throw new Error(`Risposta del server non valida (JSON corrotto).`);
-          }
-        } else {
-          data = await response.text();
-        }
-
-        if (isCacheable) {
-          setCachedData(endpoint, data);
-        }
+        
+        const data = await response.json();
+        if (isCacheable && !skipCache) setCachedData(endpoint, data);
         return data;
 
-      } catch (error) {
+      } catch (error: any) {
         if (attempt === maxRetries) throw error;
-        // Exponential backoff for network errors
-        const waitMs = 500 * Math.pow(2, attempt);
-        await sleep(waitMs);
+        // Generic backoff for other errors
+        await sleep(500 * Math.pow(2, attempt));
       }
     }
   } finally {
@@ -518,32 +511,44 @@ export async function createQuota(subeventId: number, name: string, size: number
 /**
  * List all quotas for the event, optionally filtered by sub-event.
  */
+/**
+ * Fetches quotas for a specific sub-event.
+ * SURGICAL SYNC: Global pagination is disabled to avoid 429 rate-limiting.
+ */
 export async function listQuotas(subeventId?: number) {
   try {
-    // IMPORTANT: `with_availability=true` tells Pretix to compute and return
-    // the real-time `available_number` field for each quota.
-    // Without this parameter, `available_number` is always null and the
-    // isSoldOut check in page.tsx will never trigger.
-    const base = subeventId ? `/quotas/?subevent=${subeventId}&` : '/quotas/?';
-    const endpoint = `${base}with_availability=true`;
-    const data = await fetchPretix(endpoint, {
-      next: { tags: ['availability'] }
-    } as any);
-
-    const results = data.results || [];
-
-    // [DEBUG] Log availability for traceability
-    if (subeventId && results.length > 0) {
-      const intero = results.find((q: any) => Array.isArray(q.items) && q.items.includes(ITEM_INTERO_ID));
-      const vip = results.find((q: any) => Array.isArray(q.items) && q.items.includes(ITEM_VIP_ID));
-      console.log(`[DEBUG] Subevent ID: ${subeventId} | Quota Intero: ${intero?.available_number ?? 'N/D'} | Quota VIP: ${vip?.available_number ?? 'N/D'}`);
+    if (!subeventId) {
+      // PROHIBITED: Global quota sync is too heavy (46+ pages).
+      // If no subeventId is provided, we return empty or throw to prevent DDoS.
+      console.warn('[Pretix] Global listQuotas() call blocked to prevent 429 rate-limiting. Use subeventId.');
+      return [];
     }
 
-    return results;
+    const endpoint = `/quotas/?subevent=${subeventId}&with_availability=true`;
+    const data = await fetchPretix(endpoint, {
+      next: { tags: ['availability'] }
+    } as any, true); // skipCache = true for availability!
+
+    return data.results || [];
   } catch (error) {
-    console.error('Error listing quotas:', error);
+    console.error(`Error listing quotas for subevent ${subeventId}:`, error);
     return [];
   }
+}
+
+/**
+ * Fetches all quotas for a specific sub-event.
+ * Alias for listQuotas(subeventId) to maintain compatibility.
+ */
+export async function getSubeventQuotas(subeventId: number) {
+  return await listQuotas(subeventId);
+}
+
+/**
+ * Optimized check for Biglietto Intero availability.
+ */
+export async function getFastInteroAvailability(subeventId: number) {
+  return await getItemAvailability(subeventId, ITEM_INTERO_ID);
 }
 
 /**
@@ -636,30 +641,32 @@ export async function getItemAvailability(subeventId: number, itemId: number) {
  */
 export async function isSubEventSoldOut(subeventId: number) {
   try {
-    const se = await getSubEvent(subeventId);
+    const quotas = await listQuotas(subeventId);
+    
+    // DIAGNOSTIC LOG (as requested)
+    console.log(`[DEBUG-QUOTAS] SubEvent: ${subeventId} | Raw Quotas:`, JSON.stringify(quotas));
 
-    // 1. Fallback se l'evento in sè non è vendibile
-    if (se) {
-      if (se.best_availability_state === 'sold_out' || (se.active && se.presale_is_running === false)) {
-        return true;
-      }
+    // Robust Identification: 
+    // 1. Look for exact name "Quota Intero" (case-insensitive)
+    // 2. Fallback to any quota containing the ITEM_INTERO_ID
+    // 3. Fallback to "Biglietti" (observed in some events)
+    const interoQuota = quotas.find((q: any) => 
+      (q.name && q.name.trim().toLowerCase() === "quota intero") ||
+      (Array.isArray(q.items) && q.items.includes(ITEM_INTERO_ID)) ||
+      (q.name && q.name.trim().toLowerCase() === "biglietti")
+    );
+
+    if (!interoQuota) {
+      console.warn(`[DEBUG-QUOTAS] 'Quota Intero' NOT FOUND for subevent ${subeventId}. Quotas:`, quotas.map((q: any) => `${q.name} (ID: ${q.id})`));
+      return false; // FAIL-OPEN
     }
 
-    // 2. Controllo reale su API Seats (WySiWyG)
-    const seats = await getSubEventSeats(subeventId);
-    if (!seats || seats.length === 0) {
-       // Se non ci sono posti configurati, diamo per vendibile per fail-safe
-       return false;
-    }
+    const available_number = interoQuota.available_number;
+    const isSoldOut = available_number !== null && available_number <= 0;
 
-    // Un posto è vendibile se non è bloccato e non c'è nessun ordine/cart.
-    const freeSeatsCount = seats.reduce((count: number, s: any) => {
-      const isOccupied = s.available === false || !!s.blocked || s.orderposition !== null || s.cartposition !== null;
-      return count + (isOccupied ? 0 : 1);
-    }, 0);
+    console.log(`[DEBUG-QUOTAS] ID: ${subeventId} | Quota: ${interoQuota.name} | Available: ${available_number} | isSoldOut: ${isSoldOut}`);
 
-    // ESECUZIONE RICHIESTA: Sold out solo se i posti sono effettivamente 0
-    return freeSeatsCount === 0;
+    return isSoldOut;
   } catch (error) {
     console.error(`Error in isSubEventSoldOut for ${subeventId}:`, error);
     return false; // FAIL-SAFE: available
@@ -706,10 +713,20 @@ export async function finalizeBooking(email: string, seats: string[], subeventId
       body: JSON.stringify(orderPayload)
     });
 
-    // --- NEW: Post-booking sync ---
-    // We don't await this to avoid delaying the user's confirmation page,
-    // but we start it immediately.
-    syncSoldOutStatus().catch(err => console.error('[SYNC] Background error:', err));
+    // --- NEW: Post-booking REAL-TIME sync (Standard Tecnico) ---
+    // ATOMIC SYNC: We MUST await this to ensure the DB is updated before the client redirects
+    try {
+      if (subeventId) {
+        const { syncSingleSubevent } = await import('@/services/sync.service');
+        await syncSingleSubevent(subeventId, true);
+      }
+      
+      // We don't necessarily need to await the global movie status check, 
+      // but we do it for absolute consistency
+      await syncSoldOutStatus();
+    } catch (err) {
+      console.error('[SYNC] Sync error after order:', err);
+    }
 
     return data;
   } catch (error) {
@@ -970,6 +987,18 @@ export async function createCassaOrder(params: {
     body: JSON.stringify(orderPayload),
   });
 
+  // --- NEW: Post-booking REAL-TIME sync (Standard Tecnico) ---
+  // ATOMIC SYNC: Await to ensure the DB is fresh for the POS/Cassa
+  try {
+    const { syncSingleSubevent } = await import('@/services/sync.service');
+    await syncSingleSubevent(subeventId, true);
+    
+    // Also run the global movie status check
+    await syncSoldOutStatus();
+  } catch (err) {
+    console.error('[SYNC] Sync error after Cassa order:', err);
+  }
+
   return data;
 }
 
@@ -1019,87 +1048,47 @@ export async function getSubEventSeats(subeventId: number) {
 }
 
 /**
- * Simple check for quotas (Deprecated, use listQuotas)
- */
-export async function checkQuota() {
-  return await listQuotas();
-}
-
-/**
  * Post-booking availability sync logic.
+ * Checks if a movie is fully sold out across all its subevents using DB data.
  */
 export async function syncSoldOutStatus() {
   try {
-    console.log('[SYNC] Starting post-booking availability sync...');
+    const prisma = (await import('@/lib/prisma')).default;
+    const { getOverrides, saveOverride } = await import('./db.service');
     
-    // 1. Get current availability
-    // We use the already defined listSubEvents and listQuotas functions
-    const rawSubEvents = await listSubEvents(true);
-    const allQuotas = await listQuotas();
-    const overrides = await getOverrides();
-
-    const availabilityMap: Record<number, boolean> = {};
-    const quotasBySubevent = new Map<number, any[]>();
-    allQuotas.forEach((q: any) => {
-      if (q.subevent) {
-        if (!quotasBySubevent.has(q.subevent)) quotasBySubevent.set(q.subevent, []);
-        quotasBySubevent.get(q.subevent)!.push(q);
-      }
-    });
-
-    rawSubEvents.forEach(se => {
-      const seQuotas = quotasBySubevent.get(se.id) || [];
-
-      // Logic: Quotas (PRIMARY)
-      let quotaSoldOut = false;
-      const relevantQuotas = seQuotas.filter((q: any) => 
-        Array.isArray(q.items) && (q.items.includes(ITEM_INTERO_ID) || q.items.includes(ITEM_VIP_ID))
-      );
-
-      if (relevantQuotas.length > 0) {
-        const totalQuotaAvailable = relevantQuotas.reduce((sum: number, q: any) => {
-          return sum + (q.available_number !== null ? Math.max(0, q.available_number) : 0);
-        }, 0);
-        const allQuotasUnavailable = relevantQuotas.every((q: any) => q.available === false);
-        if (allQuotasUnavailable || totalQuotaAvailable <= 0) {
-          quotaSoldOut = true;
-        }
-      }
-
-      // Overall State
-      const stateSoldOut = se.best_availability_state === 'sold_out' || (se.active && se.presale_is_running === false);
-
-      availabilityMap[se.id] = !!(stateSoldOut || quotaSoldOut);
-    });
+    console.log('[SYNC] Checking for global movie sold-out status...');
+    
+    // 1. Get all active projections and overrides from DB
+    const [projections, overrides] = await Promise.all([
+      prisma.pretixSync.findMany({
+        where: { active: true },
+        select: { pretixId: true, isSoldOut: true, tmdbId: true, name: true }
+      }),
+      getOverrides()
+    ]);
 
     // 2. Group by movie
     const movieStatus = new Map<string, { title: string, subevents: any[] }>();
-    rawSubEvents.forEach(se => {
-      let tmdbId = null;
-      if (se.comment) {
-        try {
-          const commentData = JSON.parse(se.comment);
-          tmdbId = commentData.tmdbId?.toString();
-        } catch {
-          const match = se.comment.match(/TMDB_ID:(\d+)/);
-          tmdbId = match ? match[1] : null;
-        }
-      }
-      if (tmdbId) {
-        if (!movieStatus.has(tmdbId)) movieStatus.set(tmdbId, { title: se.name?.it || 'Film', subevents: [] });
-        movieStatus.get(tmdbId)!.subevents.push({ id: se.id, isSoldOut: availabilityMap[se.id] ?? false });
-      }
+    projections.forEach(p => {
+      if (!p.tmdbId) return;
+      if (!movieStatus.has(p.tmdbId)) movieStatus.set(p.tmdbId, { title: p.name || 'Film', subevents: [] });
+      movieStatus.get(p.tmdbId)!.subevents.push({ id: p.pretixId, isSoldOut: p.isSoldOut });
     });
 
-    // 3. Persist
+    // 3. Persist manual override if all subevents in DB are sold out
     for (const [tmdbId, status] of movieStatus.entries()) {
       const isCompletelySoldOut = status.subevents.length > 0 && status.subevents.every(se => se.isSoldOut);
       if (isCompletelySoldOut && !overrides[tmdbId]?.manualSoldOut) {
-        console.log(`[SYNC] Movie "${status.title}" (TMDB: ${tmdbId}) detected as SOLD OUT after booking. Saving...`);
+        console.log(`[SYNC] Movie "${status.title}" (TMDB: ${tmdbId}) detected as FULLY SOLD OUT. Saving override...`);
         await saveOverride(tmdbId, { manualSoldOut: true });
+      } else if (!isCompletelySoldOut && overrides[tmdbId]?.manualSoldOut) {
+        // Auto-reopen if not completely sold out anymore
+        console.log(`[SYNC] Movie "${status.title}" (TMDB: ${tmdbId}) is no longer fully sold out. Reopening...`);
+        await saveOverride(tmdbId, { manualSoldOut: false });
       }
     }
   } catch (err) {
-    console.error('[SYNC] Sync failed:', err);
+    console.error('[SYNC] Global status check failed:', err);
   }
 }
+

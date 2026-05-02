@@ -33,8 +33,9 @@ const LANGUAGE_MAP: Record<string, string> = {
  */
 export function isNonLatin(text: string): boolean {
   if (!text) return false;
-  // Regex matches Arabic, Cyrillic, Greek, Hebrew, and CJK characters
-  return /[\u0600-\u06FF\u0400-\u04FF\u0370-\u03FF\u0590-\u05FF\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7AF]/.test(text);
+  // Standard Tecnico: rileva script non autorizzati (non-latini)
+  // Usiamo nomi brevi (Latn, Zyyy, P) per compatibilità estesa con parser e linter
+  return /[^\p{sc=Latn}\p{sc=Zyyy}\p{P}]/u.test(text);
 }
 
 /**

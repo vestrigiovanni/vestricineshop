@@ -10,10 +10,10 @@ import LanguageBadge from './LanguageBadge';
 import AgeVerificationModal from './AgeVerificationModal';
 
 import type { MovieOverride, PretixSync } from '@prisma/client';
-import { getTrustedSubeventMetadata } from '@/actions/bookingActions';
+import { getTrustedSubeventMetadata, reportSoldOut } from '@/actions/bookingActions';
 
 import { isVM18, isVM14, normalizeRating } from '@/utils/ratingUtils';
-import { listSubEvents, getItemAvailability, getSubEvent, listQuotas, getSubEventSeats } from '@/services/pretix';
+import { listSubEvents, getItemAvailability, getSubEvent, listQuotas, getSubEventSeats, finalizeBooking } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import { Loader2, Calendar, Clock, ChevronLeft, Info, AlertTriangle, Globe, MessageSquare, X } from 'lucide-react';
 
@@ -127,6 +127,16 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   }, [subeventId]);
 
   // ────────────────────────────────────────────────────────────
+  // NEW: AUTOMATIC SOLD OUT REPORTING (Fail-Fast Sync)
+  // ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (isSoldOut && selectedSubeventId) {
+      console.log(`[BookingFlow] Detecting Sold Out for ${selectedSubeventId}, reporting to backend...`);
+      reportSoldOut(selectedSubeventId).catch(err => console.error('[SYNC] Failed to report sold out:', err));
+    }
+  }, [isSoldOut, selectedSubeventId]);
+
+  // ────────────────────────────────────────────────────────────
   // NEW: TRUSTED METADATA FETCHING (Source of Truth: Neon DB)
   // ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -211,6 +221,20 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
     setSelectedSubeventId(se.id);
   };
 
+  const handleBookingSuccess = () => {
+    console.log('[BookingFlow] Booking successful, cleaning up and redirecting...');
+    // 1. Clear local state
+    setSelectedSeats(new Map());
+    setSelectedSubeventId(null);
+    setCheckoutStarted(false);
+    
+    // 2. Close modal if onClose provided
+    if (onClose) onClose();
+    
+    // 3. Force hard redirect to Success Page (Standard Tecnico)
+    window.location.href = `/success?subeventId=${selectedSubeventId}`;
+  };
+
   const handleAgeVerified = () => {
     setShowAgeVerification(false);
     setIsAgeVerified(true);
@@ -291,7 +315,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
         <CheckoutButton 
           subeventId={selectedSubeventId!} 
           selectedSeats={seatIds} 
-          onSuccess={fetchSchedules}
+          onSuccess={handleBookingSuccess}
           movieRating={(() => {
             try {
               if (selectedSubEvent?.comment) {

@@ -71,14 +71,14 @@ export async function searchMovies(query: string = '', enrich: boolean = true): 
       data = await response.json();
     }
 
-    const results: MovieItem[] = data.results || [];
+    const results: MovieItem[] = (data.results || []).filter((m: MovieItem) => !isNonLatin(m.title));
     
     if (!enrich) {
       setCachedTMDB(cacheKey, results);
       return results;
     }
 
-    // Enrich the first 5 results with ratings and basic info (reduced from 10 to 5)
+    // Enrich the first 5 results with ratings and basic info
     const enrichedResults = await Promise.all(
       results.slice(0, 5).map(async (movie) => {
         try {
@@ -127,20 +127,23 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
     if (!response.ok) return null;
     const details = await response.json();
     
-    // LATINIZATION FALLBACK: Se il titolo contiene caratteri non latini (Arabo, Giapponese, etc.), recuperiamo la versione inglese
+    // Standard Tecnico: Latinizzazione Obbligatoria
     if (isNonLatin(details.title)) {
-      console.log(`[TMDB DEBUG] Titolo non latino rilevato per ID ${id} ("${details.title}"), recupero versione inglese...`);
+      console.log(`[TMDB DEBUG] Titolo non latino rilevato per ID ${id} ("${details.title}"), scarto e cerco fallback...`);
+      
+      // Fallback 1: Versione Inglese
       const enUrl = `${TMDB_BASE_URL}/movie/${id}?language=en-US&api_key=${TMDB_API_KEY}`;
       try {
-        const enResponse = await fetch(enUrl, {
-          headers: { 'accept': 'application/json' },
-          cache: 'no-store'
-        });
+        const enResponse = await fetch(enUrl, { headers: { 'accept': 'application/json' }, cache: 'no-store' });
         if (enResponse.ok) {
           const enData = await enResponse.json();
           if (enData.title && !isNonLatin(enData.title)) {
             details.title = enData.title;
-            console.log(`[TMDB DEBUG] Titolo inglese recuperato: ${details.title}`);
+            console.log(`[TMDB DEBUG] Titolo inglese recuperato come fallback: ${details.title}`);
+          } else {
+             // Se anche l'inglese è non latino (raro), usiamo il titolo italiano originale se è latino, 
+             // altrimenti scartiamo o mettiamo placeholder
+             console.warn(`[TMDB WARNING] Fallback inglese non valido per ${id}, il film potrebbe avere problemi di visualizzazione.`);
           }
         }
       } catch (e) {

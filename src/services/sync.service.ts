@@ -11,29 +11,51 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
   console.log('[SYNC] Starting Pretix -> Database synchronization...');
   const startTime = Date.now();
 
-  // 1. Fetch all future sub-events, seating plans, and global quotas for availability
-  const [rawSubEvents, roomsMap, allQuotas] = await Promise.all([
+  // 1. Fetch all future sub-events and seating plans
+  const [rawSubEvents, roomsMap] = await Promise.all([
     listSubEvents(true), // true = only future events
-    getSeatingPlansMap(),
-    listQuotas(), // Fetches all quotas with availability
+    getSeatingPlansMap()
   ]);
 
-  // Group quotas by sub-event for efficient lookup
-  const quotasBySubevent = new Map<number, any[]>();
-  allQuotas.forEach((q: any) => {
-    if (q.subevent) {
-      if (!quotasBySubevent.has(q.subevent)) {
-        quotasBySubevent.set(q.subevent, []);
-      }
-      quotasBySubevent.get(q.subevent)!.push(q);
-    }
-  });
+  // IMPORTANT: We NO LONGER fetch all quotas globally here to avoid 429 rate-limiting.
+  // Availability is now handled surgically by syncSingleSubevent.
 
   let upsertCount = 0;
   const currentPretixIds = new Set<number>();
   const currentTmdbIds = new Set<string>();
 
-  // 2. Process each sub-event and sync to PretixSync table
+  // 2. STAGE 1: Ensure all movies exist in MovieOverride (as stubs if needed)
+  // This prevents foreign key constraint errors during PretixSync upsert
+  const uniqueTmdbIdsFromProjections = new Set<string>();
+  for (const se of rawSubEvents) {
+    let tmdbId: string | null = null;
+    if (se.comment) {
+      try {
+        const commentData = JSON.parse(se.comment);
+        tmdbId = commentData.tmdbId?.toString() || null;
+      } catch {
+        const tmdbIdMatch = se.comment.match(/TMDB_ID:(\d+)/);
+        tmdbId = tmdbIdMatch ? tmdbIdMatch[1] : null;
+      }
+    }
+    if (tmdbId) uniqueTmdbIdsFromProjections.add(tmdbId);
+  }
+
+  console.log(`[SYNC] Ensuring ${uniqueTmdbIdsFromProjections.size} movies exist in MovieOverride...`);
+  for (const tmdbId of uniqueTmdbIdsFromProjections) {
+    await prisma.movieOverride.upsert({
+      where: { tmdbId },
+      update: {}, // Don't overwrite existing manual data
+      create: { 
+        tmdbId,
+        customTitle: 'Caricamento...', // Stub title
+        isManualOverride: false,
+        isDraft: false
+      }
+    });
+  }
+
+  // 3. STAGE 2: Sync each sub-event to PretixSync table
   for (const se of rawSubEvents) {
     currentPretixIds.add(se.id);
 
@@ -52,73 +74,43 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
       currentTmdbIds.add(tmdbId);
     }
 
-    // Calculate availability based on Pretix data
-    const seQuotas = quotasBySubevent.get(se.id) || [];
-    const relevantQuotas = seQuotas.filter((q: any) =>
-      Array.isArray(q.items) && (q.items.includes(ITEM_INTERO_ID) || q.items.includes(ITEM_VIP_ID))
-    );
-
-    let isPretixSoldOut = se.best_availability_state === 'sold_out' || (se.active && se.presale_is_running === false);
-    let totalQuotaAvailable = null;
-    let totalQuotaSize = null;
-
-    if (relevantQuotas.length > 0) {
-      totalQuotaAvailable = relevantQuotas.reduce((sum: number, q: any) => {
-        return sum + (q.available_number !== null ? Math.max(0, q.available_number) : 0);
-      }, 0);
-      totalQuotaSize = relevantQuotas.reduce((sum: number, q: any) => {
-        return sum + (q.size !== null ? Math.max(0, q.size) : 0);
-      }, 0);
-      const allQuotasUnavailable = relevantQuotas.every((q: any) => q.available === false);
-      if (!isPretixSoldOut && (allQuotasUnavailable || totalQuotaAvailable <= 0)) {
-        isPretixSoldOut = true;
-      }
-    }
+    // Availability is handled by surgical sync later or kept from DB
+    // We don't overwrite isSoldOut here if we don't have new quota data
+    const existingSync = await prisma.pretixSync.findUnique({ where: { pretixId: se.id } });
+    const isPretixSoldOut = existingSync?.isSoldOut ?? false;
+    const totalQuotaAvailable = existingSync?.availableSeats ?? null;
+    const totalQuotaSize = existingSync?.totalSeats ?? null;
 
     const roomName = se.seating_plan ? (roomsMap[se.seating_plan] || 'Sala') : 'Sala';
 
+    // 2. Write to PretixSync Table
+    const syncData = {
+      name: se.name?.it || se.name || 'Sconosciuto',
+      slug: se.slug,
+      dateFrom: new Date(se.date_from),
+      dateTo: se.date_to ? new Date(se.date_to) : null,
+      startTime: new Date(se.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }),
+      endTime: se.date_to ? new Date(se.date_to).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }) : null,
+      seatingPlanId: se.seating_plan,
+      roomName: roomName,
+      isSoldOut: isPretixSoldOut,
+      availableSeats: totalQuotaAvailable,
+      totalSeats: totalQuotaSize,
+      tmdbId: tmdbId,
+      comment: se.comment,
+      active: se.active,
+      metaLingua: se.meta_data?.lingua || null,
+      metaSottotitoli: se.meta_data?.sottotitoli || null,
+      metaFormat: se.meta_data?.format || null,
+    };
+
     await prisma.pretixSync.upsert({
       where: { pretixId: se.id },
-      update: {
-        name: se.name?.it || se.name || 'Sconosciuto',
-        slug: se.slug,
-        dateFrom: new Date(se.date_from),
-        dateTo: se.date_to ? new Date(se.date_to) : null,
-        startTime: new Date(se.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }),
-        endTime: se.date_to ? new Date(se.date_to).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }) : null,
-        seatingPlanId: se.seating_plan,
-        roomName: roomName,
-        isSoldOut: isPretixSoldOut,
-        availableSeats: totalQuotaAvailable,
-        totalSeats: totalQuotaSize,
-        tmdbId: tmdbId,
-        comment: se.comment,
-        active: se.active,
-        metaLingua: se.meta_data?.lingua || null,
-        metaSottotitoli: se.meta_data?.sottotitoli || null,
-        metaFormat: se.meta_data?.format || null,
-      } as any,
-      create: {
-        pretixId: se.id,
-        name: se.name?.it || se.name || 'Sconosciuto',
-        slug: se.slug,
-        dateFrom: new Date(se.date_from),
-        dateTo: se.date_to ? new Date(se.date_to) : null,
-        startTime: new Date(se.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }),
-        endTime: se.date_to ? new Date(se.date_to).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }) : null,
-        seatingPlanId: se.seating_plan,
-        roomName: roomName,
-        isSoldOut: isPretixSoldOut,
-        availableSeats: totalQuotaAvailable,
-        totalSeats: totalQuotaSize,
-        tmdbId: tmdbId,
-        comment: se.comment,
-        active: se.active,
-        metaLingua: se.meta_data?.lingua || null,
-        metaSottotitoli: se.meta_data?.sottotitoli || null,
-        metaFormat: se.meta_data?.format || null,
-      } as any,
+      update: syncData,
+      create: { pretixId: se.id, ...syncData }
     });
+
+    console.log(`[DB-WRITE-CHECK] ID: ${se.id} | availableSeats: ${totalQuotaAvailable} | isSoldOut: ${isPretixSoldOut}`);
     upsertCount++;
   }
 
@@ -281,8 +273,12 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
   const endTime = Date.now();
   console.log(`[SYNC] Complete in ${endTime - startTime}ms. Upserted: ${upsertCount}, Cleaned: ${deleteProjections.count}, Movies Deleted: ${movieDeleteCount}`);
 
-  revalidatePath('/');
-  revalidatePath('/admin/movies-control');
+  try {
+    revalidatePath('/');
+    revalidatePath('/admin/movies-control');
+  } catch (err) {
+    console.warn('[SYNC] revalidatePath skipped (likely running in standalone script):', (err as any).message);
+  }
 
   return {
     success: true,
@@ -291,4 +287,110 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
     moviesCleaned: movieDeleteCount,
     duration: endTime - startTime
   };
+}
+
+// Memory lock for throttling (Standard Tecnico)
+const lastSyncBySubevent = new Map<number, number>();
+const SYNC_THROTTLE_MS = 60000; // 60 seconds per subevent
+const DB_STALENESS_MS = 60000; // 1 minute (Use DB if younger)
+
+/**
+ * Syncs ONLY a single sub-event availability.
+ * SURGICAL SYNC: Only calls Pretix if data is stale or forced (after purchase).
+ */
+export async function syncSingleSubevent(subeventId: number, force: boolean = false) {
+  const now = Date.now();
+  
+  // 1. Throttle check (Memory)
+  const lastSync = lastSyncBySubevent.get(subeventId) || 0;
+  if (!force && (now - lastSync < SYNC_THROTTLE_MS)) {
+    return; // Skip: too many requests for this ID
+  }
+
+  try {
+    // 2. Staleness check (Database)
+    const existing = await prisma.pretixSync.findUnique({
+      where: { pretixId: subeventId },
+      select: { updatedAt: true, isSoldOut: true }
+    });
+
+    if (!force && existing?.updatedAt) {
+      const dbAge = now - new Date(existing.updatedAt).getTime();
+      if (dbAge < DB_STALENESS_MS) {
+        return; // Data is fresh enough in DB
+      }
+    }
+
+    console.log(`[SYNC-SURGICAL] Updating subevent ${subeventId}...`);
+    lastSyncBySubevent.set(subeventId, now);
+    
+    // 3. Fetch specific quota from Pretix
+    const quotas = await listQuotas(subeventId);
+    
+    const interoQuota = quotas.find((q: any) => 
+      (q.name && q.name.trim().toLowerCase().includes("quota intero")) ||
+      (q.name && q.name.trim().toLowerCase().includes("posto unico")) ||
+      (q.name && q.name.trim().toLowerCase().includes("intero")) ||
+      (Array.isArray(q.items) && q.items.includes(ITEM_INTERO_ID)) ||
+      (q.name && q.name.trim().toLowerCase() === "biglietti")
+    );
+
+    if (!interoQuota) return;
+
+    const availableSeats = interoQuota.available_number;
+    const isSoldOut = availableSeats !== null && availableSeats <= 0;
+
+    // 4. Update database
+    await prisma.pretixSync.update({
+      where: { pretixId: subeventId },
+      data: {
+        isSoldOut,
+        availableSeats,
+        totalSeats: interoQuota.size,
+        updatedAt: new Date()
+      }
+    });
+
+    console.log(`[DB-UPDATE] ID: ${subeventId} | Avail: ${availableSeats} | SoldOut: ${isSoldOut}`);
+
+    if (isSoldOut && !existing?.isSoldOut) {
+      try { revalidatePath('/'); } catch {}
+    }
+
+  } catch (error) {
+    console.error(`[SYNC-SURGICAL] Failed for ${subeventId}:`, error);
+  }
+}
+
+
+
+/**
+ * BACKGROUND SYNC: Updates future subevents surgically with throttling.
+ * This ensures that even without a manual purchase, the Sold Out status is updated.
+ */
+export async function syncFutureSubeventsSurgically() {
+  try {
+    console.log('[SYNC-FUTURE] Starting surgical background sync for future events...');
+    
+    // 1. Get the list of future subevents
+    const rawSubEvents = await listSubEvents(true);
+    
+    // 2. Iterate and sync each one
+    // syncSingleSubevent already has a 60s/5min throttle internally, 
+    // so this won't DDoS Pretix if called frequently.
+    let count = 0;
+    for (const se of rawSubEvents) {
+      await syncSingleSubevent(se.id);
+      count++;
+      
+      // Polite delay: 50ms between requests to avoid burst spikes
+      if (count % 5 === 0) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
+    
+    console.log(`[SYNC-FUTURE] Finished surgical sync of ${count} future events.`);
+  } catch (err) {
+    console.error('[SYNC-FUTURE] Background sync failed:', err);
+  }
 }

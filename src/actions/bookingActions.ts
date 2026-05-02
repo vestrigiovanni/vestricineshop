@@ -9,10 +9,15 @@ import { MovieOverride } from '@/services/db.service';
  */
 export async function getTrustedSubeventMetadata(subeventId: number) {
   try {
-    // 1. Get the tmdbId from PretixSync table
+    // 1. Get the data from PretixSync table
     const syncData = await prisma.pretixSync.findUnique({
       where: { pretixId: subeventId },
-      select: { tmdbId: true }
+      select: { 
+        tmdbId: true,
+        metaLingua: true,
+        metaSottotitoli: true,
+        roomName: true
+      }
     });
 
     if (!syncData?.tmdbId) {
@@ -26,19 +31,37 @@ export async function getTrustedSubeventMetadata(subeventId: number) {
 
     if (!override) return null;
 
-    // 3. Construct the clean metadata object
+    // 3. Construct the clean metadata object (Standard Tecnico)
     return {
       tmdbId: syncData.tmdbId,
       rating: (override as any).customRating || 'T',
-      versionLanguage: (override as any).versionLanguage || 'ITA',
-      subtitles: (override as any).subtitles || 'NESSUNO',
+      // Prioritize PretixSync (direct from Pretix) then MovieOverride
+      versionLanguage: syncData.metaLingua || (override as any).versionLanguage || 'ITA',
+      subtitles: syncData.metaSottotitoli || (override as any).subtitles || 'NESSUNO',
       title: (override as any).customTitle,
       posterPath: (override as any).customPosterPath,
       backdropPath: (override as any).customBackdropPath,
       runtime: (override as any).runtime || 120,
+      roomName: syncData.roomName || 'Sala'
     };
   } catch (error) {
     console.error(`[Booking Actions] Error fetching trusted metadata for ${subeventId}:`, error);
     return null;
   }
 }
+
+/**
+ * Triggered by the client when it detects a "Sold Out" state 
+ * during the booking process. Ensures the database is synchronized.
+ */
+export async function reportSoldOut(subeventId: number) {
+  try {
+    const { syncSingleSubevent } = await import('@/services/sync.service');
+    await syncSingleSubevent(subeventId);
+    return { success: true };
+  } catch (error) {
+    console.error(`[Booking Actions] Error reporting sold out for ${subeventId}:`, error);
+    return { success: false };
+  }
+}
+

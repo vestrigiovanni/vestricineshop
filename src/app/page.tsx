@@ -20,6 +20,17 @@ export default async function Home() {
   console.log('[SSR] Caricamento homepage dal Database Neon...');
   const startTime = Date.now();
 
+  // BACKGROUND SYNC (Standard Tecnico): 
+  // Triggera una sincronizzazione chirurgica delle proiezioni future in background.
+  // Essendo asincrona e non attesa (no await), non rallenta il caricamento della pagina.
+  // La funzione interna gestisce il throttling (60s) per non sovraccaricare Pretix.
+  (async () => {
+    try {
+      const { syncFutureSubeventsSurgically } = await import('@/services/sync.service');
+      syncFutureSubeventsSurgically().catch(e => console.error('[BG-SYNC] Error:', e));
+    } catch (e) {}
+  })();
+
   // Una sola query SQL per recuperare tutto grazie alla relazione definita in Prisma
   const projections = (await (prisma.pretixSync as any).findMany({
     where: {
