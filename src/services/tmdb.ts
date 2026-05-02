@@ -116,7 +116,9 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
     const cached = getCachedTMDB(cacheKey);
     if (cached) return cached;
 
-    console.log(`[TMDB DEBUG] Recupero dettagli per ID: ${id}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[TMDB DEBUG] Recupero dettagli per ID: ${id}`);
+    }
     const url = `${TMDB_BASE_URL}/movie/${id}?language=it-IT&append_to_response=credits,images,release_dates&include_image_language=it,en,null&api_key=${TMDB_API_KEY}&t=${Date.now()}`;
     
     const response = await fetch(url, {
@@ -129,7 +131,9 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
     
     // Standard Tecnico: Latinizzazione Obbligatoria
     if (isNonLatin(details.title)) {
-      console.log(`[TMDB DEBUG] Titolo non latino rilevato per ID ${id} ("${details.title}"), scarto e cerco fallback...`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[TMDB DEBUG] Titolo non latino rilevato per ID ${id} ("${details.title}"), scarto e cerco fallback...`);
+      }
       
       // Fallback 1: Versione Inglese
       const enUrl = `${TMDB_BASE_URL}/movie/${id}?language=en-US&api_key=${TMDB_API_KEY}`;
@@ -139,21 +143,29 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
           const enData = await enResponse.json();
           if (enData.title && !isNonLatin(enData.title)) {
             details.title = enData.title;
-            console.log(`[TMDB DEBUG] Titolo inglese recuperato come fallback: ${details.title}`);
+            if (process.env.NODE_ENV !== 'production') {
+              console.log(`[TMDB DEBUG] Titolo inglese recuperato come fallback: ${details.title}`);
+            }
           } else {
              // Se anche l'inglese è non latino (raro), usiamo il titolo italiano originale se è latino, 
              // altrimenti scartiamo o mettiamo placeholder
-             console.warn(`[TMDB WARNING] Fallback inglese non valido per ${id}, il film potrebbe avere problemi di visualizzazione.`);
+             if (process.env.NODE_ENV !== 'production') {
+               console.warn(`[TMDB WARNING] Fallback inglese non valido per ${id}, il film potrebbe avere problemi di visualizzazione.`);
+             }
           }
         }
       } catch (e) {
-        console.error(`[TMDB ERROR] Latinization fallback fallito per ${id}:`, e);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(`[TMDB ERROR] Latinization fallback fallito per ${id}:`, e);
+        }
       }
     }
     
     // FALLBACK: Se la trama in italiano manca, proviamo a recuperare quella in inglese
     if (!details.overview || details.overview.trim() === '') {
-      console.log(`[TMDB DEBUG] Trama italiana mancante per ID ${id}, recupero versione inglese...`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[TMDB DEBUG] Trama italiana mancante per ID ${id}, recupero versione inglese...`);
+      }
       const enUrl = `${TMDB_BASE_URL}/movie/${id}?language=en-US&api_key=${TMDB_API_KEY}`;
       try {
         const enResponse = await fetch(enUrl, {
@@ -164,7 +176,9 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
           const enData = await enResponse.json();
           if (enData.overview) {
             details.overview = enData.overview;
-            console.log(`[TMDB DEBUG] Trama inglese recuperata per ID ${id}`);
+            if (process.env.NODE_ENV !== 'production') {
+              console.log(`[TMDB DEBUG] Trama inglese recuperata per ID ${id}`);
+            }
           }
           if (!details.tagline && enData.tagline) {
             details.tagline = enData.tagline;
@@ -219,13 +233,17 @@ export function getDirector(details: MovieDetails): string {
 export function getCast(details: any, limit: number = 5): string[] {
   const credits = details?.credits;
   if (!credits) {
-    console.warn(`[TMDB WARNING] Nessun credito trovato per il film: ${details?.title}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[TMDB WARNING] Nessun credito trovato per il film: ${details?.title}`);
+    }
     return [];
   }
   
   const cast = credits.cast;
   if (!cast || !Array.isArray(cast) || cast.length === 0) {
-    console.warn(`[TMDB WARNING] Cast non trovato o vuoto per il film: ${details?.title}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[TMDB WARNING] Cast non trovato o vuoto per il film: ${details?.title}`);
+    }
     return [];
   }
 
@@ -437,7 +455,9 @@ export function getItalianRating(details: MovieDetails): string {
   // Se l'Italia manca, ascoltiamo i vicini europei prima degli americani.
   const europeanConsensus = getEuropeanConsensus(results);
   if (europeanConsensus) {
-    console.log(`[Rating System] 🇪🇺 EUROPEAN CONSENSUS per "${details.title}": ${europeanConsensus}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[Rating System] 🇪🇺 EUROPEAN CONSENSUS per "${details.title}": ${europeanConsensus}`);
+    }
     return europeanConsensus;
   }
 
@@ -445,7 +465,9 @@ export function getItalianRating(details: MovieDetails): string {
   // Se l'Europa core manca, cerchiamo se nel resto del mondo il film è considerato estremo.
   const globalRedFlag = scanGlobalRedFlags(results);
   if (globalRedFlag) {
-    console.log(`[Rating System] 🚨 GLOBAL RED FLAG rilevata per "${details.title}": ${globalRedFlag}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[Rating System] 🚨 GLOBAL RED FLAG rilevata per "${details.title}": ${globalRedFlag}`);
+    }
     return globalRedFlag;
   }
 
@@ -482,7 +504,9 @@ export function getItalianRating(details: MovieDetails): string {
   );
 
   if (isDarkGenre) {
-    console.log(`[Rating System] 🛡️ Protezione Genere attivata per "${details.title}": Default 14+`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[Rating System] 🛡️ Protezione Genere attivata per "${details.title}": Default 14+`);
+    }
     return '14+';
   }
 
@@ -555,7 +579,9 @@ export async function getEnhancedRating(details: MovieDetails): Promise<string> 
   // 1. Check Override Manuali (Priorità Assoluta)
   if (MANUAL_RATING_OVERRIDES[title]) {
     const val = MANUAL_RATING_OVERRIDES[title];
-    console.log(`[Rating System] Film: ${title} | Fonte: OVERRIDE MANUALE | Rating finale: ${val}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[Rating System] Film: ${title} | Fonte: OVERRIDE MANUALE | Rating finale: ${val}`);
+    }
     return val;
   }
 
@@ -567,7 +593,9 @@ export async function getEnhancedRating(details: MovieDetails): Promise<string> 
     
     if (cert) {
       const normalized = normalizeRating(cert);
-      console.log(`[Rating System] Film: ${title} | Fonte: TMDb ITALIA | Rating finale: ${normalized}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[Rating System] Film: ${title} | Fonte: TMDb ITALIA | Rating finale: ${normalized}`);
+      }
       return normalized;
     }
   }
@@ -593,18 +621,22 @@ export async function getEnhancedRating(details: MovieDetails): Promise<string> 
       if (isDocumentary && mappedRating !== '18+') {
         // Skip intermediate OMDb ratings for documentaries
       } else if (isMoreRestrictive(currentRating, mappedRating)) {
-        console.log(`[OMDb Sync] Film: ${title} | Rating US: ${omdbRated} -> Convertito in IT: ${mappedRating} (Sostituito TMDb '${currentRating}')`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[OMDb Sync] Film: ${title} | Rating US: ${omdbRated} -> Convertito in IT: ${mappedRating} (Sostituito TMDb '${currentRating}')`);
+        }
         currentRating = mappedRating;
         fonteUsata = `OMDb (IMDb: ${omdbRated})`;
       }
     }
   }
 
-  console.log(`\n==================================================`);
-  console.log(`🎬 [RATING SYSTEM] Film: ${title}`);
-  console.log(`📊 Fonte: ${fonteUsata}`);
-  console.log(`✅ Rating finale: ${currentRating}`);
-  console.log(`==================================================\n`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n==================================================`);
+    console.log(`🎬 [RATING SYSTEM] Film: ${title}`);
+    console.log(`📊 Fonte: ${fonteUsata}`);
+    console.log(`✅ Rating finale: ${currentRating}`);
+    console.log(`==================================================\n`);
+  }
   return currentRating;
 }
 
@@ -620,7 +652,9 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
     return cached;
   }
 
-  console.log(`[METADATA SYNC] 🚀 Syncing full metadata for TMDB ID: ${tmdbId}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[METADATA SYNC] 🚀 Syncing full metadata for TMDB ID: ${tmdbId}`);
+  }
 
   try {
     // 2. Fetch basic details (this uses its own internal cache for the raw response)

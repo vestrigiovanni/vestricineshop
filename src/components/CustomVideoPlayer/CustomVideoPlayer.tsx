@@ -37,7 +37,9 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
     
     // Rimuovi duplicati mantenendo l'ordine (l'override sarà sempre primo)
     const uniqueList = Array.from(new Set(list));
-    console.log(`[Trailer System] Playlist prioritizzata (${uniqueList.length} video):`, uniqueList);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[Trailer System] Playlist prioritizzata (${uniqueList.length} video):`, uniqueList);
+    }
     return uniqueList;
   }, [videoId, videoIds]);
 
@@ -45,7 +47,7 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
     setMounted(true);
     if (!window.YT) {
       const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
+      tag.src = 'https://www.youtube-nocookie.com/iframe_api';
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
       window.onYouTubeIframeAPIReady = () => setApiReady(true);
@@ -88,6 +90,7 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
           loop: 1,
           playlist: currentId
         },
+        host: 'https://www.youtube-nocookie.com',
         events: {
           onReady: (event: any) => {
             event.target.playVideo();
@@ -103,7 +106,9 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
             }
           },
           onError: (event: any) => {
-            console.warn(`[Trailer Fallback] Fallimento su ID ${currentId} (Errore: ${event.data})`);
+            if (process.env.NODE_ENV !== 'production') {
+              console.warn(`[Trailer Fallback] Fallimento su ID ${currentId} (Errore: ${event.data})`);
+            }
             handleVideoError();
           }
         }
@@ -124,7 +129,9 @@ export default function CustomVideoPlayer({ videoId, videoIds = [], backdropUrl,
     if (currentVideoIndex < videoPlaylist.length - 1) {
       setCurrentVideoIndex(prev => prev + 1);
     } else {
-      console.info(`[Cinema Mode] Trailers non disponibili per questo titolo. Attivazione Backdrop Cinematografico.`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.info(`[Cinema Mode] Trailers non disponibili per questo titolo. Attivazione Backdrop Cinematografico.`);
+      }
       setAllVideosFailed(true);
       setShowCurtain(false);
     }

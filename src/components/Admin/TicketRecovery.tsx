@@ -26,6 +26,11 @@ export default function TicketRecoveryButton() {
   const [batchLoading, setBatchLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date('2026-05-02'));
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Abort controller ref for surgical fetching
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -134,7 +139,7 @@ export default function TicketRecoveryButton() {
                 </button>
                 <div className={styles.currentDate}>
                   <CalendarIcon size={18} />
-                  <span>{formatDateLabel(selectedDate)}</span>
+                  <span suppressHydrationWarning>{mounted ? formatDateLabel(selectedDate) : ''}</span>
                 </div>
                 <button onClick={() => changeDate(1)} className={styles.navBtn} disabled={loading}>
                   <ChevronRight size={24} />
@@ -171,7 +176,7 @@ export default function TicketRecoveryButton() {
               {loading ? (
                 <div className={styles.loaderCenter}>
                   <Loader2 className={styles.spin} size={48} />
-                  <p>Interrogazione Pretix in corso per il {formatDateLabel(selectedDate)}...</p>
+                  <p suppressHydrationWarning>Interrogazione Pretix in corso per il {mounted ? formatDateLabel(selectedDate) : ''}...</p>
                 </div>
               ) : (
                 <table className={styles.table}>

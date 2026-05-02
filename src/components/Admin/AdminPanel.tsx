@@ -28,7 +28,8 @@ import {
 import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb.utils';
 import Image from 'next/image';
 import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw, Settings } from 'lucide-react';
-import TicketRecoveryButton from './TicketRecovery';
+import dynamic from 'next/dynamic';
+const TicketRecoveryButton = dynamic(() => import('./TicketRecovery'), { ssr: false });
 import RoomManagementModal from './RoomManagementModal';
 
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';

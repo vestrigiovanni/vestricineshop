@@ -5,10 +5,15 @@ import styles from './Footer.module.css';
 import AdminOverlay from './Admin/AdminOverlay';
 
 export default function Footer() {
+  const [mounted, setMounted] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleAdminClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -37,7 +42,7 @@ export default function Footer() {
   return (
     <footer className={styles.footer}>
       <div className={styles.container}>
-        <p>&copy; {new Date().getFullYear()} VESTRICINEMASHOP. Tutti i diritti riservati.</p>
+        <p suppressHydrationWarning>&copy; {new Date().getFullYear()} VESTRICINEMASHOP. Tutti i diritti riservati.</p>
         <button onClick={handleAdminClick} className={styles.adminButton}>
           Admin
         </button>
