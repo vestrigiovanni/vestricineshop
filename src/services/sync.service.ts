@@ -7,7 +7,7 @@ import { MovieOverride } from './db.service';
 import { normalizeLanguageCode } from '@/constants/languages';
 
 
-export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boolean } = {}) {
+export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boolean; skipPush?: boolean } = {}) {
   console.log('[SYNC] Starting Pretix -> Database synchronization...');
   const startTime = Date.now();
 
@@ -123,21 +123,10 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
       where: { tmdbId }
     }) as MovieOverride | null;
 
-    // Se l'utente forza il refresh, o se il record non esiste, o se ha campi critici a NULL, interroga TMDb
-    const needsHydration = options.forceMetadataRefresh ||
-      !existingMovie ||
-      !existingMovie.customTitle ||
-      !existingMovie.customPosterPath ||
-      !existingMovie.customBackdropPath ||
-      !existingMovie.customDirector ||
-      !existingMovie.customLogoPath ||
-      !existingMovie.customTrailerUrl ||
-      existingMovie.releaseDate === null ||
-      existingMovie.runtime === null ||
-      existingMovie.versionLanguage === 'Italiano' ||
-      existingMovie.versionLanguage === 'Lingua Originale' ||
-      existingMovie.subtitles === 'Nessuno' ||
-      existingMovie.subtitles === 'Sottotitoli IT';
+    // OPTIMIZATION: Only hydrate if record is missing or force refresh is requested.
+    // Avoid re-hydrating just because some fields (like logo or trailer) are null,
+    // as those might simply be unavailable on TMDb/YouTube.
+    const needsHydration = options.forceMetadataRefresh || !existingMovie;
 
 
     if (needsHydration) {
@@ -234,38 +223,45 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
   }
 
   // 5. FINAL PUSH: Enriched Metadata back to Pretix (for BookingFlow and other API consumers)
-  console.log(`[SYNC] 🚀 Pushing FINAL database metadata to Pretix sub-events...`);
-  const { updateSubEvent } = await import('@/services/pretix');
-  const allSyncedProjections = await prisma.pretixSync.findMany({ where: { active: true } });
+  if (!options.skipPush) {
+    console.log(`[SYNC] 🚀 Pushing FINAL database metadata to Pretix sub-events...`);
+    const { updateSubEvent } = await import('@/services/pretix');
+    const allSyncedProjections = await prisma.pretixSync.findMany({ where: { active: true } });
 
-  for (const proj of allSyncedProjections) {
-    if (!proj.tmdbId) continue;
+    for (const proj of allSyncedProjections) {
+      if (!proj.tmdbId) continue;
 
-    const override = await prisma.movieOverride.findUnique({ where: { tmdbId: proj.tmdbId } }) as any;
-    if (override) {
-      try {
-        const commentObj = {
-          tmdbId: proj.tmdbId,
-          rating: override.customRating || 'T',
-          runtime: override.runtime || 120,
-          versionLanguage: override.versionLanguage?.trim() || 'ITA',
-          subtitles: override.subtitles?.trim() || 'NESSUNO',
-          posterPath: override.customPosterPath || '',
-          backdropPath: override.customBackdropPath || '',
-          logoPath: override.customLogoPath || '',
-          director: override.customDirector || '',
-          cast: override.customCast || '',
-        };
+      const override = await prisma.movieOverride.findUnique({ where: { tmdbId: proj.tmdbId } }) as any;
+      if (override) {
+        try {
+          const commentObj = {
+            tmdbId: proj.tmdbId,
+            rating: override.customRating || 'T',
+            runtime: override.runtime || 120,
+            versionLanguage: override.versionLanguage?.trim() || 'ITA',
+            subtitles: override.subtitles?.trim() || 'NESSUNO',
+            posterPath: override.customPosterPath || '',
+            backdropPath: override.customBackdropPath || '',
+            logoPath: override.customLogoPath || '',
+            director: override.customDirector || '',
+            cast: override.customCast || '',
+          };
 
-        await updateSubEvent(proj.pretixId, {
-          comment: JSON.stringify(commentObj),
-          meta_data: {
-            lingua: override.versionLanguage?.trim() || 'ITA',
-            sottotitoli: override.subtitles?.trim() || 'NESSUNO'
-          }
-        });
-      } catch (err) {
-        console.error(`[SYNC] Failed to push metadata to Pretix for sub-event ${proj.pretixId}:`, err);
+          const newComment = JSON.stringify(commentObj);
+          
+          // OPTIMIZATION: Only push if the comment in Pretix is different
+          if (proj.comment === newComment) continue;
+
+          await updateSubEvent(proj.pretixId, {
+            comment: newComment,
+            meta_data: {
+              lingua: override.versionLanguage?.trim() || 'ITA',
+              sottotitoli: override.subtitles?.trim() || 'NESSUNO'
+            }
+          });
+        } catch (err) {
+          console.error(`[SYNC] Failed to push metadata to Pretix for sub-event ${proj.pretixId}:`, err);
+        }
       }
     }
   }

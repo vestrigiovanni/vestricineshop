@@ -1364,7 +1364,10 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                 }
               >
                 {loading ? (
-                  <Loader2 className="animate-spin" size={20} />
+                  <>
+                    <Loader2 className="animate-spin" size={20} />
+                    <span>Sincronizzazione Database...</span>
+                  </>
                 ) : internalCollisions.length > 0 ? (
                   <><TriangleAlert size={18} /> CONFLITTO RILEVATO</>
                 ) : selectedSlots.length > 0 ? (

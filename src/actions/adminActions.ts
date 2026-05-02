@@ -479,7 +479,8 @@ export async function adminScheduleMovie(
   timeStr: string,
   seatingPlanId: number,
   override: boolean = false,
-  buffer: number = 0
+  buffer: number = 0,
+  skipSync: boolean = false
 ) {
   // ── TRACCIAMENTO ESECUZIONE (visibile nei log Vercel) ──────────────────────
   console.log(`[adminScheduleMovie] ▶ START (TECNICA STRINGA CRUDA)`, {
@@ -634,41 +635,47 @@ export async function adminScheduleMovie(
 
   const subeventId = subEvent.id;
 
-  // 6. Force 0.00 EUR for this sub-event for fixed products
-  const priceOverrides = [
+  // --- PARALLEL CONFIGURATION (Standard Tecnico) ---
+  // Parallelize Pretix setup to reduce scheduling time per show
+  const setupTasks: Promise<any>[] = [];
+
+  // 6. Price Overrides
+  setupTasks.push(setSubEventPriceOverrides(subeventId, [
     { item: ITEM_INTERO_ID, price: "0.00" },
     { item: ITEM_VIP_ID, price: "0.00" }
-  ];
-  await setSubEventPriceOverrides(subeventId, priceOverrides);
+  ]));
 
-  // 7. Create Quotas scoped to the sub-event
-  // Create 'Quota Intero' with size definitely > 0
+  // 7. Quota Intero
   if (interoSize > 0) {
-    await createQuota(
+    setupTasks.push(createQuota(
       subeventId,
       'Quota Intero',
       interoSize,
       [ITEM_INTERO_ID]
-    );
+    ));
   }
 
-  // Create 'Quota Poltrona' if defined
+  // 8. Quota Poltrona
   if (vipSize > 0) {
-    await createQuota(
+    setupTasks.push(createQuota(
       subeventId,
       'Quota Poltrona',
       vipSize,
       [ITEM_VIP_ID]
-    );
+    ));
   }
+
+  await Promise.all(setupTasks);
 
   // --- ATOMIC SYNC (Standard Tecnico) ---
   // Ensure the database is updated immediately after creation
-  try {
-    const { syncPretixToDatabase } = await import('@/services/sync.service');
-    await syncPretixToDatabase();
-  } catch (syncErr) {
-    console.error('[adminScheduleMovie] ⚠️ Background sync failed:', syncErr);
+  if (!skipSync) {
+    try {
+      const { syncPretixToDatabase } = await import('@/services/sync.service');
+      await syncPretixToDatabase({ skipPush: true });
+    } catch (syncErr) {
+      console.error('[adminScheduleMovie] ⚠️ Background sync failed:', syncErr);
+    }
   }
 
   revalidatePath('/');
@@ -1047,26 +1054,29 @@ export async function adminBulkScheduleMovie(
   let errorCount = 0;
   const errors: string[] = [];
 
-  for (const fullDate of selectedDates) {
+  // --- PARALLEL BULK SCHEDULING (Standard Tecnico) ---
+  // We process all slots in parallel to avoid sequential API overhead
+  const scheduleTasks = selectedDates.map(async (fullDate) => {
     try {
       const [datePart, timePart] = fullDate.includes('T') ? fullDate.split('T') : [fullDate, "00:00"];
-      // Clean up timePart if it has seconds/offset
       const cleanTime = timePart.substring(0, 5);
 
-      console.log(`[adminBulkScheduleMovie] Processing slot: ${datePart} ${cleanTime}`);
-      await adminScheduleMovie(movieData, datePart, cleanTime, seatingPlanId, false, buffer);
+      console.log(`[adminBulkScheduleMovie] Parallel processing slot: ${datePart} ${cleanTime}`);
+      await adminScheduleMovie(movieData, datePart, cleanTime, seatingPlanId, false, buffer, true);
       successCount++;
     } catch (e: any) {
       console.error(`Bulk Error at ${fullDate}:`, e);
       errorCount++;
       errors.push(`${fullDate}: ${e.message}`);
     }
-  }
+  });
+
+  await Promise.all(scheduleTasks);
 
   // --- ATOMIC SYNC (Standard Tecnico) ---
   try {
     const { syncPretixToDatabase } = await import('@/services/sync.service');
-    await syncPretixToDatabase();
+    await syncPretixToDatabase({ skipPush: true });
   } catch (syncErr) {
     console.error('[adminBulkScheduleMovie] ⚠️ Background sync failed:', syncErr);
   }
