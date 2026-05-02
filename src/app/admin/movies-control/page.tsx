@@ -9,13 +9,12 @@ import {
   adminGetMovieById,
   adminClearMovieMetadata,
   adminSyncSoldOutStatus,
-  adminSearchMovies,
   adminSyncAllMovies
 } from '@/actions/adminActions';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import Image from 'next/image';
 import {
-  Save, Trash2, Search, Edit3, X, Info, Globe, Languages,
+  Save, Trash2, Edit3, X, Info, Globe, Languages,
   Image as ImageIcon, RefreshCw, Play, CheckCircle2, Film,
   AlertTriangle, Loader2, ChevronRight, Star, Sparkles, LayoutGrid
 } from 'lucide-react';
@@ -25,6 +24,7 @@ import TrailerPickerModal from './TrailerPickerModal';
 import VisualControlCenter from './VisualControlCenter';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
 import { LANGUAGE_MAP, SUBTITLE_OPTIONS } from '@/constants/languages';
+import RatingBadge from '@/components/RatingBadge';
 
 
 const EMPTY_FORM = {
@@ -45,13 +45,10 @@ const EMPTY_FORM = {
 };
 
 export default function MoviesControlPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [overrides, setOverrides] = useState<Record<string, any>>({});
   const [programmedMovies, setProgrammedMovies] = useState<any[]>([]);
   const [editingMovie, setEditingMovie] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
-  const [searching, setSearching] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [formState, setFormState] = useState({ ...EMPTY_FORM });
@@ -72,21 +69,6 @@ export default function MoviesControlPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const handleSearch = () => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    setSearching(true);
-    // Filter from programmedMovies instead of calling TMDB
-    const query = searchQuery.toLowerCase();
-    const results = programmedMovies.filter(m => 
-      m.title?.toLowerCase().includes(query) || 
-      m.tmdbId?.toString().includes(query)
-    );
-    setSearchResults(results);
-    setSearching(false);
-  };
 
 
   const openEditor = (movie: any) => {
@@ -313,7 +295,10 @@ export default function MoviesControlPage() {
                           onClick={() => handleSelectProgrammed(movie.tmdbId)}
                         >
                           <div className={styles.programmedInfo}>
-                            <strong>{movie.title}</strong>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                              <RatingBadge rating={override?.customRating} size="xs" />
+                              <strong>{movie.title}</strong>
+                            </div>
                             <span>Prossima: {new Date(movie.lastDate).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}</span>
                           </div>
                           <div className={styles.programmedRight}>
@@ -333,72 +318,6 @@ export default function MoviesControlPage() {
                 </div>
               </section>
     
-              {/* Search TMDB */}
-              <section className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <Search size={16} className={styles.cardIcon} />
-                  <span>Cerca fra i Film in Programmazione</span>
-                </div>
-
-                <div className={styles.searchBar}>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                    placeholder="Cerca film programmato…"
-
-                    className={styles.input}
-                  />
-                  <button onClick={handleSearch} className={styles.btnSearch} disabled={searching}>
-                    {searching ? <Loader2 size={16} className={styles.spin} /> : <Search size={16} />}
-                  </button>
-                </div>
-                {searchResults.length > 0 && (
-                  <div className={styles.resultsGrid}>
-                    {searchResults.map(movie => {
-                      const id = movie.tmdbId || movie.id?.toString();
-                      const override = overrides[id];
-                      const posterPath = override?.customPosterPath || movie.poster_path;
-                      
-                      return (
-                        <div
-                          key={id}
-                          className={`${styles.movieCard} ${editingId === id ? styles.movieCardActive : ''}`}
-                          onClick={() => handleSelectProgrammed(id)}
-                          title={movie.title}
-                        >
-                          <div className={styles.posterThumb}>
-                            {posterPath ? (
-                              <Image
-                                src={posterPath.startsWith('/') ? getTMDBImageUrl(posterPath, 'w185')! : posterPath}
-                                alt={movie.title}
-                                fill
-                                sizes="120px"
-                                style={{ objectFit: 'cover' }}
-                              />
-                            ) : (
-                              <div className={styles.noPoster}><Film size={24} /></div>
-                            )}
-                            {override && (
-                              <div className={styles.overlayCk}>
-                                {override.isManualOverride ? <Edit3 size={12} /> : <CheckCircle2 size={12} />}
-                              </div>
-                            )}
-                          </div>
-                          <div className={styles.movieCardInfo}>
-                            <span className={styles.movieCardTitle}>{movie.title}</span>
-                            <span className={styles.movieCardYear}>
-                              {movie.release_date?.slice(0, 4) || (movie.lastDate ? new Date(movie.lastDate).getFullYear() : '')}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-              </section>
     
               {/* Active Overrides */}
               {Object.keys(overrides).length > 0 && (
@@ -413,6 +332,7 @@ export default function MoviesControlPage() {
                       <div key={id} className={styles.overrideRow}>
                         <div className={styles.overrideInfo}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <RatingBadge rating={ov.customRating} size="xs" />
                             <strong>{ov.customTitle || 'Film senza titolo'}</strong>
                             {ov.isManualOverride ? (
                               <span className={styles.manualBadge} style={{ fontSize: '0.55rem' }}>Personalizzato</span>
@@ -462,6 +382,20 @@ export default function MoviesControlPage() {
                   </div>
                 </div>
                 <div className={styles.editorActions}>
+                  <button 
+                    onClick={handleSave} 
+                    className={`${styles.btnSaveTop} ${saveSuccess ? styles.btnSaveSuccess : ''}`} 
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <Loader2 size={16} className={styles.spin} />
+                    ) : saveSuccess ? (
+                      <CheckCircle2 size={16} />
+                    ) : (
+                      <Save size={16} />
+                    )}
+                    <span>{saveSuccess ? 'Salvato!' : 'Salva'}</span>
+                  </button>
                   <button onClick={handleRefreshMetadata} className={styles.btnIconGhost} title="Ricarica da TMDB">
                     <RefreshCw size={16} className={loading ? styles.spin : ''} />
                   </button>
@@ -755,23 +689,13 @@ export default function MoviesControlPage() {
                   Forza SOLD OUT (Kill-Switch)
                 </label>
 
-                {/* Save Button */}
-                <button onClick={handleSave} className={`${styles.btnSave} ${saveSuccess ? styles.btnSaveSuccess : ''}`} disabled={loading}>
-                  {loading ? (
-                    <><Loader2 size={18} className={styles.spin} /> Salvataggio…</>
-                  ) : saveSuccess ? (
-                    <><CheckCircle2 size={18} /> Salvato con Successo!</>
-                  ) : (
-                    <><Save size={18} /> Salva Override</>
-                  )}
-                </button>
               </div>
             </section>
           ) : (
             <div className={styles.editorPlaceholder}>
               <div className={styles.placeholderIcon}><Film size={56} strokeWidth={0.8} /></div>
               <h3>Nessun film selezionato</h3>
-              <p>Seleziona un film dalla lista a sinistra oppure cercalo fra quelli in programmazione per aprire l'editor dei metadati.</p>
+              <p>Seleziona un film dalla lista a sinistra per aprire l'editor dei metadati.</p>
 
             </div>
           )}

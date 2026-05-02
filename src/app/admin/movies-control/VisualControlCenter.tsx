@@ -8,6 +8,7 @@ import { upsertMovieOverride, adminGetVisualControlData } from '@/actions/adminA
 import ImagePickerModal from './ImagePickerModal';
 import TrailerPickerModal from './TrailerPickerModal';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
+import RatingBadge from '@/components/RatingBadge';
 
 interface HydratedMovie {
   tmdbId: string;
@@ -232,7 +233,10 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
                     <tr key={movie.tmdbId} className={styles.row}>
                       <td className={styles.movieInfo}>
                         <div className={styles.movieTitleContainer}>
-                          <div className={styles.movieTitle}>{movie.title}</div>
+                          <div className={styles.movieTitle}>
+                            <RatingBadge rating={movie.override?.customRating || movie.tmdbData?.rating} size="xs" />
+                            {movie.title}
+                          </div>
                           {movie.override.isManualOverride ? (
                             <span className={styles.badgeMod}>PERSONALIZZATO</span>
                           ) : (
