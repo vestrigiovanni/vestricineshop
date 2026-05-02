@@ -60,8 +60,37 @@ export async function reportSoldOut(subeventId: number) {
     await syncSingleSubevent(subeventId);
     return { success: true };
   } catch (error) {
-    console.error(`[Booking Actions] Error reporting sold out for ${subeventId}:`, error);
-    return { success: false };
-  }
 }
 
+/**
+ * Real-time verification of quota availability.
+ * Used before opening the checkout to prevent race conditions.
+ */
+export async function verifyQuotaAvailability(subeventId: number): Promise<{ isSoldOut: boolean, availableSeats: number | null }> {
+  try {
+    const { listQuotas } = await import('@/services/pretix');
+    const { ITEM_INTERO_ID, ITEM_VIP_ID } = await import('@/constants/pretix');
+    
+    const quotas = await listQuotas(subeventId);
+    const relevantQuotas = quotas.filter((q: any) => 
+      Array.isArray(q.items) && (q.items.includes(ITEM_INTERO_ID) || q.items.includes(ITEM_VIP_ID))
+    );
+
+    let totalQuotaAvailable = 0;
+    let allQuotasUnavailable = true;
+    
+    if (relevantQuotas.length > 0) {
+      totalQuotaAvailable = relevantQuotas.reduce((sum: number, q: any) => {
+        return sum + (q.available_number !== null ? Math.max(0, q.available_number) : 0);
+      }, 0);
+      allQuotasUnavailable = relevantQuotas.every((q: any) => q.available === false);
+    }
+    
+    const isSoldOut = allQuotasUnavailable || totalQuotaAvailable <= 0;
+    
+    return { isSoldOut, availableSeats: totalQuotaAvailable };
+  } catch (error) {
+    console.error(`[Booking Actions] Error verifying availability for ${subeventId}:`, error);
+    return { isSoldOut: false, availableSeats: null }; // Fail-open
+  }
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Download, CheckCircle2, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { finalizeBooking, getSubEvent } from '@/services/pretix';
 import { isVM18 } from '@/utils/ratingUtils';
@@ -52,6 +53,8 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
 
+  const router = useRouter();
+
   const handleNextPreview = () => {
     setCurrentPreviewIndex((prev) => (prev + 1) % tickets.length);
   };
@@ -59,26 +62,6 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
   const handlePrevPreview = () => {
     setCurrentPreviewIndex((prev) => (prev - 1 + tickets.length) % tickets.length);
   };
-
-  // Persistence: Restore state on mount
-  useEffect(() => {
-    const savedOrder = sessionStorage.getItem(`order_${subeventId}`);
-    if (savedOrder) {
-      try {
-        const { tickets, orderCode, subeventData, isAnonymous } = JSON.parse(savedOrder);
-        setTickets(tickets);
-        setOrderCode(orderCode);
-        setSubeventData(subeventData);
-        setIsAnonymous(isAnonymous);
-        setSuccess(true);
-      } catch (e) {
-        console.error('Failed to restore order from session', e);
-      }
-    }
-  }, [subeventId]);
-
-
-
   const handleCheckout = async (targetEmail?: string) => {
     const finalEmail = targetEmail || email;
     if (!finalEmail) {
@@ -230,6 +213,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
       }
       
       setSuccess(true);
+      router.refresh();
 
       if (onSuccess) {
         console.log('[CHECKOUT] Triggering refresh callback...');
