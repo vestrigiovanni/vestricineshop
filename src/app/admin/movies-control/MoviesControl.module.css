@@ -39,7 +39,7 @@
 }
 
 .title {
-  font-family: 'Cinzel', serif;
+  font-family: inherit;
   font-size: 2.2rem;
   font-weight: 700;
   color: #FFFFF0;

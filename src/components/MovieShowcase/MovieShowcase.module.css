@@ -96,7 +96,7 @@
 }
 
 .title {
-  font-family: 'Cinzel', serif; /* Fallback diretto a Cinzel */
+  font-family: inherit;
   font-size: clamp(3rem, 5vw, 6rem);
   font-weight: 700;
   line-height: 1.1;

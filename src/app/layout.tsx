@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
-import { Inter, Cinzel } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import ClientFooter from '../components/ClientFooter';
 import './globals.css';
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
-  display: 'swap',
-});
-
-const cinzel = Cinzel({
-  subsets: ['latin'],
-  variable: '--font-cinzel',
   display: 'swap',
 });
 
@@ -32,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it">
-      <body className={`${inter.variable} ${cinzel.variable} antialiased`} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <body className={`${inter.variable} antialiased`} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <TrailerProvider>
           <AutoScrollProvider>
             <Providers>

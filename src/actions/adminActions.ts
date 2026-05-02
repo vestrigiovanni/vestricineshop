@@ -273,7 +273,7 @@ export async function adminGetMovieById(id: string) {
 
 
 export async function adminListEvents() {
-  return await listSubEvents(true);
+  return await listSubEvents(true, false, true);
 }
 
 /**
@@ -662,7 +662,17 @@ export async function adminScheduleMovie(
     );
   }
 
+  // --- ATOMIC SYNC (Standard Tecnico) ---
+  // Ensure the database is updated immediately after creation
+  try {
+    const { syncPretixToDatabase } = await import('@/services/sync.service');
+    await syncPretixToDatabase();
+  } catch (syncErr) {
+    console.error('[adminScheduleMovie] ⚠️ Background sync failed:', syncErr);
+  }
+
   revalidatePath('/');
+  revalidatePath('/admin/movies-control');
 
   // Alert logic: if IT was missing or all countries missing, we let the client know
   // Note: the check here is simple. If it's 'T' and we had a console warning in tmdb.ts, 
@@ -1053,7 +1063,16 @@ export async function adminBulkScheduleMovie(
     }
   }
 
+  // --- ATOMIC SYNC (Standard Tecnico) ---
+  try {
+    const { syncPretixToDatabase } = await import('@/services/sync.service');
+    await syncPretixToDatabase();
+  } catch (syncErr) {
+    console.error('[adminBulkScheduleMovie] ⚠️ Background sync failed:', syncErr);
+  }
+
   revalidatePath('/');
+  revalidatePath('/admin/movies-control');
   return {
     success: true,
     summary: `Creati ${successCount} spettacoli. Errori: ${errorCount}.`,

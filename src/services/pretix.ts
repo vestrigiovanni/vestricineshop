@@ -374,9 +374,9 @@ export async function getSeatingPlan(subeventId?: number) {
 /**
  * Fetches all seating plans from Pretix.
  */
-export async function listSeatingPlans() {
+export async function listSeatingPlans(skipCache = false) {
   try {
-    const data = await fetchPretix(`/organizers/${PRETIX_ORGANIZER}/seatingplans/`);
+    const data = await fetchPretix(`/organizers/${PRETIX_ORGANIZER}/seatingplans/`, {}, skipCache);
     const results = data.results || [];
     
     // Filtro di sicurezza: escludi solo le sale "spazzatura" con nomi specifici.
@@ -738,8 +738,10 @@ export async function finalizeBooking(email: string, seats: string[], subeventId
 /**
  * List all sub-events for the main event.
  * @param futureOnly If true, only returns sub-events that end after current time.
+ * @param includeHiddenRooms (Not used internally but kept for signature)
+ * @param skipCache If true, bypasses the memory cache.
  */
-export async function listSubEvents(futureOnly = false, includeHiddenRooms = false) {
+export async function listSubEvents(futureOnly = false, includeHiddenRooms = false, skipCache = false) {
   try {
     const params = new URLSearchParams();
 
@@ -759,7 +761,7 @@ export async function listSubEvents(futureOnly = false, includeHiddenRooms = fal
     while (endpoint) {
       const data = await fetchPretix(endpoint, {
         next: { tags: ['availability'] }
-      } as any);
+      } as any, skipCache);
       if (data?.results) {
         allResults.push(...data.results);
       }

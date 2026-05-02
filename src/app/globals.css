@@ -17,6 +17,7 @@
   --transition-smooth: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-snappy: all 0.2s ease-out;
   --text-muted: rgba(255, 255, 255, 0.5);
+  --font-apple: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 * {
@@ -31,7 +32,8 @@ body {
   overflow-x: hidden;
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-apple);
+  letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -55,9 +57,9 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-cinzel), serif;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 
 /* Glassmorphism primitives */

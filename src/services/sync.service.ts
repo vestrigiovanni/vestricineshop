@@ -13,7 +13,7 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
 
   // 1. Fetch all future sub-events and seating plans
   const [rawSubEvents, roomsMap] = await Promise.all([
-    listSubEvents(true), // true = only future events
+    listSubEvents(true, false, true), // true = only future events, true = skip cache
     getSeatingPlansMap()
   ]);
 
