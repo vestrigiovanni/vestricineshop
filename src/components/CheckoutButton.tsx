@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, CheckCircle2, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import { finalizeBooking, getSubEvent } from '@/services/pretix';
 import { isVM18 } from '@/utils/ratingUtils';
 import TicketPDF, { generateTicketPDF } from './TicketPDF';
@@ -213,10 +214,10 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
       }
       
       setSuccess(true);
-      router.refresh();
-
+      // Removed router.refresh() to prevent unwanted full page reloads that close the modal
+      
       if (onSuccess) {
-        console.log('[CHECKOUT] Triggering refresh callback...');
+        console.log('[CHECKOUT] Triggering success callback...');
         onSuccess();
       }
     } catch (err: any) {
@@ -373,6 +374,15 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
               </button>
             )}
             
+            <div className={styles.successActions}>
+              <Link 
+                href={`/success?subeventId=${subeventId}`}
+                className={styles.secondaryActionBtn}
+              >
+                Vedi riepilogo dettagliato
+              </Link>
+            </div>
+
             {isAnonymous && (
               <div className={styles.anonymousDisclaimer}>
                 <p>⚠️ <strong>Nota bene:</strong> Non riceverai una copia via email. Assicurati di scaricare o fare uno screenshot del biglietto ora.</p>

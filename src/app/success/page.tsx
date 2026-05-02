@@ -20,6 +20,8 @@ function SuccessContent() {
       const saved = sessionStorage.getItem(`order_${subeventId}`);
       if (saved) {
         setOrderData(JSON.parse(saved));
+        // Auto-open preview for immediate visibility as requested ("apre il pop up")
+        setIsPreviewOpen(true);
       }
     }
   }, [subeventId]);

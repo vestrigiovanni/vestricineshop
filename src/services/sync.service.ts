@@ -355,7 +355,8 @@ export async function updateEventAvailability(subeventId: number, force: boolean
     console.log(`[DB-UPDATE] ID: ${subeventId} | Avail: ${availableSeats} | SoldOut: ${isSoldOut}`);
 
     // Revalida sempre per aggiornare i badge granulari (es. se resta 1 posto)
-    try { revalidatePath('/'); } catch {}
+    // Rimosso revalidatePath per evitare il refresh della home che chiude il drawer durante il checkout
+    // try { revalidatePath('/'); } catch {}
 
   } catch (error) {
     console.error(`[SYNC-SURGICAL] Failed for ${subeventId}:`, error);

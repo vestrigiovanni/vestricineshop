@@ -228,28 +228,18 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   };
 
   const handleBookingSuccess = () => {
-    console.log('[BookingFlow] Booking successful, cleaning up and redirecting...');
-    // 1. Clear local state and session identifiers
-    setSelectedSeats(new Map());
-    setSelectedSubeventId(null);
-    setCheckoutStarted(false);
+    console.log('[BookingFlow] Booking successful, cleaning up technical session data...');
     
-    // Pulizia Carrello/Sessione
+    // We no longer redirect automatically to /success. 
+    // This allows the CheckoutButton to show its own success UI with download buttons.
+    // The user can manually close the drawer when they are done.
+    
     sessionStorage.removeItem('age-verified');
-    if (selectedSubeventId) {
-      sessionStorage.removeItem(`order_${selectedSubeventId}`);
-    }
-    // Rimuovi eventuali riferimenti a sessioni Pretix legacy
     localStorage.removeItem('pretix_cart_id');
     localStorage.removeItem('pretix_session_id');
     
-    // 2. Force UI Refresh to invalidate stale availability in other components
-    const { useRouter } = require('next/navigation');
-    try {
-      window.location.reload(); // Hard reload as requested for absolute clean state
-    } catch (e) {
-      window.location.href = `/success?subeventId=${selectedSubeventId}`;
-    }
+    // We don't call setSelectedSubeventId(null) or setCheckoutStarted(false) here
+    // because that would unmount the CheckoutButton and its success UI.
   };
 
   const handleAgeVerified = () => {

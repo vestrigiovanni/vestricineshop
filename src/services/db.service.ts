@@ -91,8 +91,6 @@ export async function saveOverride(tmdbId: string, override: Partial<MovieOverri
       }
     });
 
-    // Forziamo il refresh della home per riflettere i cambiamenti
-    revalidatePath('/');
     return true;
   } catch (e: any) {
     console.error(`[DB Service] Error saving override for tmdbId=${tmdbId}:`, e);
