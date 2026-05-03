@@ -265,35 +265,15 @@
   border-radius: 16px;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 767px) {
   .calendarContainer {
-    padding: 2rem 1rem;
+    padding: 2rem 0; /* Remove horizontal padding to let scroller hit edges */
     margin: 2rem 0;
     width: 100%;
   }
 
-  .calendarGrid {
-    grid-template-columns: repeat(7, 1fr);
-    gap: 0.25rem; /* Minimum gap for mobile */
-    overflow-x: hidden;
-  }
-  
-  .dayColumn {
-    min-width: 0;
-    flex: none;
-    gap: 0.5rem;
-  }
-
-  .dayNumber {
-    font-size: 1.25rem;
-  }
-
-  .slotTime {
-    font-size: 1rem;
-  }
-
-  .slotTitle {
-    font-size: 0.8rem;
+  .calendarWrapper {
+    padding: 0 1rem;
   }
 
   .header {
@@ -303,10 +283,132 @@
     margin-bottom: 2rem;
   }
 
+  .title {
+    font-size: 1.5rem;
+  }
+
   .navigation {
     width: 100%;
     justify-content: space-between;
   }
+
+  /* 📱 Mobile Scroller Styles */
+  .mobileScrollerWrapper {
+    display: block;
+    margin: 0 -1rem 2rem -1rem;
+    overflow-x: auto;
+    scrollbar-width: none; /* Hide scrollbar Firefox */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobileScrollerWrapper::-webkit-scrollbar {
+    display: none; /* Hide scrollbar Chrome/Safari */
+  }
+
+  .mobileScroller {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0 1rem;
+    min-width: min-content;
+  }
+
+  .mobileDateBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 65px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+  }
+
+  .mobileDayName {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+  }
+
+  .mobileDayNumber {
+    font-size: 1.5rem;
+    font-weight: 900;
+  }
+
+  .mobileDateBtnActive {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #000;
+    transform: scale(1.05);
+    box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+  }
+
+  .mobileDateBtnToday {
+    border-color: var(--primary);
+    border-width: 2px;
+  }
+
+  .calendarGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .dayColumn {
+    width: 100%;
+  }
+
+  .mobileHidden {
+    display: none;
+  }
+
+  .dayHeader {
+    display: none; /* Already shown in the scroller */
+  }
+
+  .slotsContainer {
+    gap: 0.75rem;
+  }
+
+  .movieSlot {
+    width: 100%;
+    min-height: 100px;
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 1.25rem;
+    background-color: #111111; /* Slightly lighter than OLED black for card contrast */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .slotHeader {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .slotTime {
+    font-size: 1.8rem;
+  }
+
+  .slotTitle {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+    color: #ffffff;
+  }
+
+  .slotRoom {
+    font-size: 0.75rem;
+    padding: 0.4rem 1rem;
+  }
+}
+
+/* Hide scroller on desktop */
+.mobileScrollerWrapper {
+  display: none;
 }
 
 /* ── Sold Out Status ── */

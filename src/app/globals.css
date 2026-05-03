@@ -159,35 +159,50 @@ h6 {
   }
 }
 
-/* ZERO-TOUCH MOBILE RESPONSIVE TWEAKS (GLOBAL) */
-@media (max-width: 768px) {
+/* 📱 MOBILE REVOLUTION SCORPED STYLES (2026 STANDARD) */
+@media screen and (max-width: 767px) {
+  :root {
+    --background: #000000; /* OLED Deep Black */
+    --foreground: #f1f1f1; /* Off-white for glaring reduction */
+    --surface: rgba(255, 255, 255, 0.05);
+    --surface-border: rgba(255, 255, 255, 0.1);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-size: clamp(16px, 4vw, 18px); /* Fluid typography */
+    padding-bottom: env(safe-area-inset-bottom); /* iOS Safe Area */
+  }
+
+  /* Universal Touch Target Optimization */
+  button, 
+  a, 
+  input, 
+  select,
+  .clickable {
+    min-height: 48px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 
   /* Previene lo zoom automatico su iOS Safari per tutti gli input */
-  input[type="text"],
-  input[type="number"],
-  input[type="email"],
-  input[type="password"],
-  input[type="search"],
-  input[type="tel"],
-  input[type="url"],
-  input[type="date"],
-  input[type="time"],
-  input[type="datetime-local"],
+  input,
   textarea,
   select {
     font-size: 16px !important;
   }
 
-  /* Rende le tabelle genericamente scrollabili orizzontalmente */
-  table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    width: 100%;
-  }
-
   .container {
     padding: 0 1rem;
+  }
+
+  /* Reset grid for mobile */
+  :where(.grid) {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
   }
 }
 

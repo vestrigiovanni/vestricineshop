@@ -65,6 +65,12 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
     return monday;
   });
 
+  // 📱 Mobile state: currently selected day in the horizontal scroller
+  const [selectedDayStr, setSelectedDayStr] = useState<string>(() => {
+    const now = new Date();
+    return toLocalDateStr(now);
+  });
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedSubevent, setSelectedSubevent] = useState<{ id: number; title: string } | null>(null);
 
@@ -78,6 +84,14 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
       return d;
     });
   }, [currentWeekStart]);
+
+  // Ensure selectedDayStr is within the current week when week changes
+  useEffect(() => {
+    const weekDayStrings = weekDays.map(d => toLocalDateStr(d));
+    if (!weekDayStrings.includes(selectedDayStr)) {
+      setSelectedDayStr(weekDayStrings[0]);
+    }
+  }, [weekDays, selectedDayStr]);
 
   const handlePrevWeek = () => {
     const d = new Date(currentWeekStart);
@@ -155,14 +169,42 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
           </div>
         </div>
 
+        {/* 📱 Mobile Horizontal Date Scroller */}
+        <div className={styles.mobileScrollerWrapper}>
+          <div className={styles.mobileScroller}>
+            {weekDays.map((day) => {
+              const dateStr = toLocalDateStr(day);
+              const isSelected = selectedDayStr === dateStr;
+              const isToday = new Date().toDateString() === day.toDateString();
+
+              return (
+                <button
+                  key={dateStr}
+                  className={`${styles.mobileDateBtn} ${isSelected ? styles.mobileDateBtnActive : ''} ${isToday ? styles.mobileDateBtnToday : ''}`}
+                  onClick={() => setSelectedDayStr(dateStr)}
+                >
+                  <span className={styles.mobileDayName}>
+                    {day.toLocaleDateString('it-IT', { weekday: 'short' })}
+                  </span>
+                  <span className={styles.mobileDayNumber}>{day.getDate()}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className={styles.calendarGrid}>
           {weekDays.map((day) => {
             const dateStr = toLocalDateStr(day);
             const dayScreenings = screeningsByDay[dateStr] || [];
             const isToday = new Date().toDateString() === day.toDateString();
+            const isMobileHidden = selectedDayStr !== dateStr;
             
             return (
-              <div key={dateStr} className={`${styles.dayColumn} ${isToday ? styles.today : ''}`}>
+              <div 
+                key={dateStr} 
+                className={`${styles.dayColumn} ${isToday ? styles.today : ''} ${isMobileHidden ? styles.mobileHidden : ''}`}
+              >
                 <div className={styles.dayHeader}>
                   <span className={styles.dayName}>
                     {day.toLocaleDateString('it-IT', { weekday: 'long' })}

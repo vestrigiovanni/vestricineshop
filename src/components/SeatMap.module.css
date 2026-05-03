@@ -211,8 +211,41 @@
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 767px) {
+  .container {
+    padding: 1rem;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    cursor: grab;
+  }
+
+  .container:active {
+    cursor: grabbing;
+  }
+
+  .simplifiedRow {
+    gap: 8px;
+    padding: 1rem;
+    min-width: 500px; /* Force some overflow for horizontal scrolling/panning */
+  }
+
+  .seat {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+
+  .seatLabel {
+    font-size: 0.75rem;
+  }
+
   .legend {
+    flex-wrap: wrap;
     gap: 1rem;
+    padding: 1rem;
+  }
+
+  .legendItem {
+    width: calc(50% - 1rem);
   }
 }
