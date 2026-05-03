@@ -42,6 +42,7 @@ const EMPTY_FORM = {
   customRating: '',
   manualSoldOut: false,
   customTrailerUrl: '',
+  mubiId: '',
 };
 
 export default function MoviesControlPage() {
@@ -90,6 +91,7 @@ export default function MoviesControlPage() {
       customRating: override.customRating ?? (movie.rating || ''),
       manualSoldOut: override.manualSoldOut || false,
       customTrailerUrl: override.customTrailerUrl ?? (movie.trailerKey ? `https://www.youtube.com/watch?v=${movie.trailerKey}` : ''),
+      mubiId: override.mubiId ?? (movie.mubiId || ''),
     });
   };
 
@@ -124,6 +126,7 @@ export default function MoviesControlPage() {
       customCast: formState.customCast
         ? formState.customCast.split(',').map((s: string) => s.trim()).filter(Boolean)
         : undefined,
+      awardYear: formState.awardYear ? parseInt(formState.awardYear) : null,
     };
     try {
       const result = await upsertMovieOverride(id, payload);
@@ -638,6 +641,21 @@ export default function MoviesControlPage() {
                     rows={5}
                     placeholder="Descrizione del film…"
                   />
+                </div>
+                
+                {/* MUBI Sync Info */}
+                <div className={styles.sectionDivider}><Star size={14} /> MUBI Sync</div>
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>MUBI ID / Slug</label>
+                    <input 
+                      type="text" 
+                      value={formState.mubiId} 
+                      onChange={e => setFormState(f => ({ ...f, mubiId: e.target.value }))} 
+                      className={styles.input} 
+                      placeholder="ID per sync manuale"
+                    />
+                  </div>
                 </div>
 
                 {/* Projections Table */}

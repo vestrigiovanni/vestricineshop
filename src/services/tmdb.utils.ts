@@ -6,6 +6,7 @@ export interface MovieItem {
   backdrop_path: string | null;
   release_date: string;
   original_language?: string;
+  original_title?: string;
   rating?: string;
   trailerKey?: string;
   multiLangVideos?: { it: any[]; en: any[]; original: any[] };

@@ -28,6 +28,24 @@ model MovieOverride {
   releaseDate        String?
   runtime            Int?
   projections        PretixSync[]
+  
+  // New Awards Relation
+  awards             MovieAward[]
+  
+  // Metadata
+  mubiId             String?
+}
+
+model MovieAward {
+  id          String   @id @default(cuid())
+  tmdbId      String
+  type        String   // 'oscar', 'cannes', 'venice', 'berlin', 'ssiff', 'bafta', 'telluride'
+  label       String   // "Academy Awards", "Festival de Cannes", etc.
+  details     String?
+  year        Int?
+  movie       MovieOverride @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
+
+  @@index([tmdbId])
 }
 
 model PretixSync {

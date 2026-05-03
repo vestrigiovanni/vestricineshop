@@ -1,6 +1,13 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+export interface MovieAward {
+  type: string;
+  label: string;
+  details?: string | null;
+  year?: number | null;
+}
+
 export interface MovieOverride {
   tmdbId: string;
   customTitle?: string | null;
@@ -22,6 +29,8 @@ export interface MovieOverride {
   updatedAt?: Date;
   releaseDate?: string | null;
   runtime?: number | null;
+  mubiId?: string | null;
+  awards?: MovieAward[];
 }
 
 
@@ -46,10 +55,12 @@ export async function isMovieSoldOut(subEventId: number, tmdbId: string | null):
 
 export async function getOverrides(): Promise<Record<string, MovieOverride>> {
   try {
-    const overrides = await prisma.movieOverride.findMany();
+    const overrides = await prisma.movieOverride.findMany({
+      include: { awards: true }
+    });
     const record: Record<string, MovieOverride> = {};
     for (const o of overrides) {
-      record[o.tmdbId] = o;
+      record[o.tmdbId] = o as any;
     }
     return record;
   } catch (error) {
@@ -61,8 +72,9 @@ export async function getOverrides(): Promise<Record<string, MovieOverride>> {
 export async function getOverride(tmdbId: string): Promise<MovieOverride | null> {
   try {
     return await prisma.movieOverride.findUnique({
-      where: { tmdbId }
-    });
+      where: { tmdbId },
+      include: { awards: true }
+    }) as any;
   } catch (e) {
     return null;
   }
@@ -71,8 +83,16 @@ export async function getOverride(tmdbId: string): Promise<MovieOverride | null>
 export async function saveOverride(tmdbId: string, override: Partial<MovieOverride>): Promise<boolean> {
   try {
     const cleanOverride: any = {};
+    const VALID_FIELDS = [
+      'customTitle', 'customOverview', 'customRating', 'customPosterPath', 
+      'customBackdropPath', 'customLogoPath', 'customTrailerUrl', 'customTrailerTitle',
+      'versionLanguage', 'subtitles', 'customRoomName', 'manualSoldOut',
+      'isManualOverride', 'isDraft', 'customDirector', 'customCast',
+      'releaseDate', 'runtime', 'mubiId'
+    ];
+
     for (const [key, value] of Object.entries(override)) {
-      if (value !== undefined) {
+      if (value !== undefined && VALID_FIELDS.includes(key)) {
         // Ensure director and cast are strings even if passed as arrays
         if ((key === 'customDirector' || key === 'customCast') && Array.isArray(value)) {
           cleanOverride[key] = value.join(', ');
@@ -82,12 +102,33 @@ export async function saveOverride(tmdbId: string, override: Partial<MovieOverri
       }
     }
 
+    const awardData = override.awards || [];
+
     await prisma.movieOverride.upsert({
       where: { tmdbId },
-      update: cleanOverride,
+      update: {
+        ...cleanOverride,
+        awards: {
+          deleteMany: {},
+          create: awardData.map(a => ({
+            type: a.type,
+            label: a.label,
+            details: a.details,
+            year: a.year
+          }))
+        }
+      },
       create: {
         tmdbId,
-        ...cleanOverride
+        ...cleanOverride,
+        awards: {
+          create: awardData.map(a => ({
+            type: a.type,
+            label: a.label,
+            details: a.details,
+            year: a.year
+          }))
+        }
       }
     });
 

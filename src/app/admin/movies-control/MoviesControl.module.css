@@ -816,3 +816,47 @@
   .formRow { grid-template-columns: 1fr; }
   .title { font-size: 1.6rem; }
 }
+
+/* Awards Admin Styles */
+.awardGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.awardItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.awardLabelCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.awardLabelCheck input {
+  width: 16px;
+  height: 16px;
+  accent-color: #e50914;
+}
+
+.awardLabelCheck span {
+  letter-spacing: 0.02em;
+}
+
+@media (min-width: 1024px) {
+  .awardGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

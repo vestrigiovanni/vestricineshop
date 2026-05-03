@@ -3,6 +3,7 @@ const TMDB_API_KEY = '00ea09c7fb5bf89b064f6001a2de3122';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 import { MovieItem, isNonLatin } from './tmdb.utils';
+import { fetchMubiAwards } from './mubi';
 export * from './tmdb.utils';
 
 export interface MovieDetails extends MovieItem {
@@ -662,10 +663,11 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
     if (!details) return null;
 
     // 3. Process all heavy metadata in parallel
-  const [rating, trailerKeys, multiLangVideos] = await Promise.all([
+  const [rating, trailerKeys, multiLangVideos, mubiData] = await Promise.all([
     getEnhancedRating(details),
     getMovieTrailers(tmdbId),
-    getMultiLangVideos(tmdbId)
+    getMultiLangVideos(tmdbId),
+    fetchMubiAwards(tmdbId, details.title, details.original_title, details.release_date?.split('-')[0])
   ]);
 
   const directors = getDirectors(details);
@@ -688,30 +690,30 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
   }
 
   // 5. Construct the final object
-  const enriched = {
-    id: details.id,
-    title: details.title,
-    overview: details.overview,
-    poster_path: details.poster_path,
-    backdrop_path: backdrop_path,
-    logo_path: logo_path,
-    release_date: details.release_date,
-    director: directors,
-    runtime: details.runtime,
-    cast: cast,
-    trailerKey: trailerKey,
-    trailerKeys: trailerKeys,
-    rating: rating,
-    original_language: details.original_language,
-    genres: details.genres,
-    tagline: details.tagline,
-    multiLangVideos: multiLangVideos
-  };
+    const result = {
+      tmdbId,
+      title: details.title,
+      original_title: details.original_title,
+      overview: details.overview,
+      poster_path: details.poster_path,
+      backdrop_path,
+      logo_path,
+      rating,
+      release_date: details.release_date,
+      runtime: details.runtime,
+      director: directors,
+      cast,
+      trailerUrl: trailerKey ? `https://www.youtube.com/watch?v=${trailerKey}` : null,
+      multiLangVideos,
+      awards: mubiData?.awards || [],
+      mubiId: mubiData?.mubiId || null,
+      syncedAt: new Date().toISOString()
+    };
 
   // 6. Save to persistent cache
-  saveMovieMetadata(tmdbId, enriched);
+  saveMovieMetadata(tmdbId, result);
 
-    return enriched;
+    return result;
   } catch (error) {
     console.error(`[METADATA SYNC] ❌ FAILED for tmdbId=${tmdbId}:`, error);
     // Don't throw, just return null to allow the rest of the application to function

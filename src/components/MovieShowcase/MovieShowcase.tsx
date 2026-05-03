@@ -13,6 +13,7 @@ import RatingBadge from '../RatingBadge';
 import { useTrailer } from '@/context/TrailerContext';
 import CustomVideoPlayer from '../CustomVideoPlayer/CustomVideoPlayer';
 import LanguageBadge from '../LanguageBadge';
+import MovieAwards from '../MovieAwards/MovieAwards';
 
 
 const AUTO_SCROLL_INTERVAL = 5000;
@@ -36,14 +37,9 @@ export interface GroupedMovie {
   rating?: string;
   versionLanguage?: string;
   subtitles?: string;
-  subevents: {
-    id: number;
-    date: string;
-    isSoldOut?: boolean;
-    language?: string;
-    subtitles?: string;
-    format?: string;
-  }[];
+  format?: string;
+  subevents: any[];
+  awards?: any[];
 }
 
 interface MovieShowcaseProps {
@@ -70,11 +66,11 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
   const { openTrailer } = useTrailer();
   const { isAutoScrollEnabled, disableAutoScroll } = useAutoScroll();
 
-  const liveMovies = useMemo(() => {
+  const liveMovies: GroupedMovie[] = useMemo(() => {
     if (!availabilityData) return initialMovies;
     
-    return initialMovies.map(movie => {
-      const updatedSubevents = movie.subevents.map(se => {
+    return initialMovies.map((movie: GroupedMovie) => {
+      const updatedSubevents = movie.subevents.map((se: any) => {
         // Robust lookup: check number and string keys
         const liveIsSoldOut = availabilityData[se.id] === true || availabilityData[se.id.toString()] === true;
         
@@ -86,7 +82,7 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
         };
       });
       
-      const allSubeventsSoldOut = updatedSubevents.length > 0 && updatedSubevents.every(se => se.isSoldOut === true);
+      const allSubeventsSoldOut = updatedSubevents.length > 0 && updatedSubevents.every((se: any) => se.isSoldOut === true);
       
       return {
         ...movie,
@@ -109,7 +105,7 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
 
   // --- Dynamic Sorting Logic (Live) ---
   // This sort includes availability data and is used for rendering the actual list and gallery.
-  const sortedMovies = useMemo(() => {
+  const sortedMovies: GroupedMovie[] = useMemo(() => {
     // CRITICAL: During hydration, we MUST render EXACTLY what the server did.
     // The server uses the order of initialMovies.
     if (!isHydrated || !availabilityData) return initialMovies;
@@ -222,83 +218,93 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
           className={isImmersiveMode ? `${styles.heroContent} ${styles.animateIn} ${styles.uiHidden}` : `${styles.heroContent} ${styles.animateIn}`} 
           key={activeMovieId}
         >
-          {activeMovie.logo_path ? (
-            <div className={styles.logoContainer}>
-              <Image 
-                src={getTMDBImageUrl(activeMovie.logo_path, 'w500')!} 
-                alt={activeMovie.title} 
-                fill
-                className={styles.movieLogo}
-                sizes="(max-width: 768px) 100vw, 400px"
-                priority
+          <div className={styles.heroLayout}>
+            <div className={styles.heroContentMain}>
+              {activeMovie.logo_path ? (
+                <div className={styles.logoContainer}>
+                  <Image 
+                    src={getTMDBImageUrl(activeMovie.logo_path, 'w500')!} 
+                    alt={activeMovie.title} 
+                    fill
+                    className={styles.movieLogo}
+                    sizes="(max-width: 768px) 100vw, 400px"
+                    priority
+                  />
+                </div>
+              ) : (
+                <h1 className={styles.title}>{activeMovie.title}</h1>
+              )}
+              <div className={styles.meta}>
+                <span className={styles.metaValue} suppressHydrationWarning>
+                  {isMounted ? (activeMovie.release_date ? (activeMovie.release_date.includes('-') ? activeMovie.release_date.split('-')[0] : new Date(activeMovie.release_date).getFullYear()) : 'N/D') : ''}
+                </span>
+                {activeMovie.runtime && activeMovie.runtime > 0 && (
+                  <div className={styles.metaGroup}>
+                    <span className={styles.metaSeparator}>•</span>
+                    <span className={styles.metaLabel}>DURATA:</span>
+                    <span className={styles.metaValue}>{activeMovie.runtime} MIN</span>
+                  </div>
+                )}
+
+                {activeMovie.director && (
+                  <div className={styles.directorMeta}>
+                    <span className={styles.metaSeparator}>•</span>
+                    <div className={styles.metaGroup}>
+                      <span className={styles.metaLabel}>REGIA:</span>
+                      <span className={styles.metaValue}>{activeMovie.director.toUpperCase()}</span>
+                      {isMounted && activeMovie.trailerKey && (
+                        <button 
+                          className={styles.trailerBtn} 
+                          onClick={() => setIsImmersiveMode(true)}
+                          title="Guarda il trailer"
+                        >
+                          <Video size={18} color="#ffffff" strokeWidth={2.5} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className={styles.overviewContainer}>
+                <p className={isOverviewExpanded ? `${styles.overview} ${styles.expanded}` : styles.overview}>
+                  {activeMovie.overview}
+                </p>
+                {isOverviewExpanded && activeMovie.cast && activeMovie.cast.length > 0 && (
+                  <p className={styles.castList}>
+                    <strong>Con:</strong> {activeMovie.cast.join(', ')}
+                  </p>
+                )}
+                {activeMovie.overview && activeMovie.overview.length > 150 && (
+                  <button 
+                    className={styles.readMoreBtn}
+                    onClick={() => setIsOverviewExpanded(!isOverviewExpanded)}
+                    aria-label={isOverviewExpanded ? 'Mostra meno' : 'Leggi di più'}
+                  >
+                    <span className={styles.readMoreText}>{isOverviewExpanded ? 'Meno' : 'Più'}</span>
+                    <svg 
+                      className={isOverviewExpanded ? `${styles.chevron} ${styles.chevronUp}` : styles.chevron} 
+                      width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.awardsColumn}>
+              <MovieAwards 
+                awards={activeMovie.awards || []}
+                vertical={true}
               />
             </div>
-          ) : (
-            <h1 className={styles.title}>{activeMovie.title}</h1>
-          )}
-          <div className={styles.meta}>
-            <span className={styles.metaValue} suppressHydrationWarning>
-              {isMounted ? (activeMovie.release_date ? (activeMovie.release_date.includes('-') ? activeMovie.release_date.split('-')[0] : new Date(activeMovie.release_date).getFullYear()) : 'N/D') : ''}
-            </span>
-            {activeMovie.runtime && activeMovie.runtime > 0 && (
-              <div className={styles.metaGroup}>
-                <span className={styles.metaSeparator}>•</span>
-                <span className={styles.metaLabel}>DURATA:</span>
-                <span className={styles.metaValue}>{activeMovie.runtime} MIN</span>
-              </div>
-            )}
-
-
-            {activeMovie.director && (
-              <div className={styles.directorMeta}>
-                <span className={styles.metaSeparator}>•</span>
-                <div className={styles.metaGroup}>
-                  <span className={styles.metaLabel}>REGIA:</span>
-                  <span className={styles.metaValue}>{activeMovie.director.toUpperCase()}</span>
-                  {isMounted && activeMovie.trailerKey && (
-                    <button 
-                      className={styles.trailerBtn} 
-                      onClick={() => setIsImmersiveMode(true)}
-                      title="Guarda il trailer"
-                    >
-                      <Video size={18} color="#ffffff" strokeWidth={2.5} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <div className={styles.overviewContainer}>
-            <p className={isOverviewExpanded ? `${styles.overview} ${styles.expanded}` : styles.overview}>
-              {activeMovie.overview}
-            </p>
-            {isOverviewExpanded && activeMovie.cast && activeMovie.cast.length > 0 && (
-              <p className={styles.castList}>
-                <strong>Con:</strong> {activeMovie.cast.join(', ')}
-              </p>
-            )}
-            {activeMovie.overview && activeMovie.overview.length > 150 && (
-              <button 
-                className={styles.readMoreBtn}
-                onClick={() => setIsOverviewExpanded(!isOverviewExpanded)}
-                aria-label={isOverviewExpanded ? 'Mostra meno' : 'Leggi di più'}
-              >
-                <span className={styles.readMoreText}>{isOverviewExpanded ? 'Meno' : 'Più'}</span>
-                <svg 
-                  className={isOverviewExpanded ? `${styles.chevron} ${styles.chevronUp}` : styles.chevron} 
-                  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-            )}
           </div>
           
           <div className={styles.showtimesSection}>
             <h3 className={styles.showtimesTitle}>Scegli orario e prenota</h3>
             <div className={styles.showtimesGrid}>
-              {activeMovie.subevents.map((se) => {
+              {activeMovie.subevents.map((se: any) => {
                 const dateObj = new Date(se.date);
                 const isToday = isMounted && dateObj.toDateString() === new Date().toDateString();
                 const dayStr = isToday ? 'Oggi' : (isMounted ? dateObj.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }) : '');

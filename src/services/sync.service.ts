@@ -162,6 +162,16 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
               subtitles: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) || existingMovie?.subtitles === 'Nessuno' || existingMovie?.subtitles === 'Sottotitoli IT'
                 ? (tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA')
                 : (existingMovie?.subtitles || (tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA')),
+              awards: {
+                deleteMany: {},
+                create: (tmdbData.awards || []).map((a: any) => ({
+                  type: a.type,
+                  label: a.label,
+                  details: a.details,
+                  year: a.year
+                }))
+              },
+              mubiId: tmdbData.mubiId || null,
             } as any,
             create: {
               tmdbId: tmdbId,
@@ -179,7 +189,16 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
               versionLanguage: tmdbData.original_language === 'it' ? 'ITA' : normalizeLanguageCode(tmdbData.original_language),
               subtitles: tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA',
               isManualOverride: false,
-              isDraft: false
+              isDraft: false,
+              awards: {
+                create: (tmdbData.awards || []).map((a: any) => ({
+                  type: a.type,
+                  label: a.label,
+                  details: a.details,
+                  year: a.year
+                }))
+              },
+              mubiId: tmdbData.mubiId || null,
             } as any
           });
           console.log(`✅ [DB_SYNC] Dati completi salvati per ID: ${tmdbId} (Trailer: ${trailerUrl ? 'OK' : 'Mancante'}, Logo: ${tmdbData.logo_path ? 'OK' : 'Mancante'})`);
@@ -245,6 +264,13 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
             logoPath: override.customLogoPath || '',
             director: override.customDirector || '',
             cast: override.customCast || '',
+            hasOscar: override.hasOscar || false,
+            oscarDetails: override.oscarDetails || '',
+            hasCannes: override.hasCannes || false,
+            cannesDetails: override.cannesDetails || '',
+            hasVenice: override.hasVenice || false,
+            veniceDetails: override.veniceDetails || '',
+            awardYear: override.awardYear || null,
           };
 
           const newComment = JSON.stringify(commentObj);

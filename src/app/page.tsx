@@ -41,7 +41,11 @@ export default async function Home() {
       }
     },
     include: {
-      movie: true
+      movie: {
+        include: {
+          awards: true
+        }
+      }
     },
     orderBy: {
       dateFrom: 'asc'
@@ -79,7 +83,7 @@ export default async function Home() {
   // Prepariamo l'array finale dei film per lo Showcase
   const movies: GroupedMovie[] = Object.values(groupedRecord).map(({ movie, subevents }) => {
     // Il film è considerato Sold Out se TUTTE le sue proiezioni future lo sono
-    const isMovieSoldOut = subevents.length > 0 && subevents.every(se => se.isSoldOut);
+    const isMovieSoldOut = subevents.length > 0 && subevents.every((se: any) => se.isSoldOut);
 
     return {
       id: parseInt(movie.tmdbId),
@@ -99,7 +103,7 @@ export default async function Home() {
       rating: movie.customRating || 'T',
       versionLanguage: movie.versionLanguage || 'ITA',
       subtitles: movie.subtitles || 'NESSUNO',
-
+      awards: (movie as any).awards || [],
     };
   });
 
@@ -109,9 +113,9 @@ export default async function Home() {
     if (a.isSoldOut && !b.isSoldOut) return 1;
 
     const getNextShowDate = (m: GroupedMovie) => {
-      const shows = m.isSoldOut ? m.subevents : m.subevents.filter(se => !se.isSoldOut);
+      const shows = m.isSoldOut ? m.subevents : m.subevents.filter((se: any) => !se.isSoldOut);
       if (shows.length === 0) return Infinity;
-      return Math.min(...shows.map(s => new Date(s.date).getTime()));
+      return Math.min(...shows.map((s: any) => new Date(s.date).getTime()));
     };
 
     return getNextShowDate(a) - getNextShowDate(b);
