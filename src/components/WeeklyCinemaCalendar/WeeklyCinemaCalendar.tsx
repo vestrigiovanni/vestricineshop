@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Ticket } from 'lucide-react';
 import styles from './WeeklyCinemaCalendar.module.css';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
