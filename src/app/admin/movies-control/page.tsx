@@ -126,7 +126,6 @@ export default function MoviesControlPage() {
       customCast: formState.customCast
         ? formState.customCast.split(',').map((s: string) => s.trim()).filter(Boolean)
         : undefined,
-      awardYear: formState.awardYear ? parseInt(formState.awardYear) : null,
     };
     try {
       const result = await upsertMovieOverride(id, payload);
