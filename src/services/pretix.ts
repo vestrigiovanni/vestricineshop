@@ -796,11 +796,15 @@ export async function listSubEvents(futureOnly = false, includeHiddenRooms = fal
 export async function getSubEvent(subEventId: number) {
   try {
     return await fetchPretix(`/subevents/${subEventId}/`);
-  } catch (error) {
-    console.error(`Error fetching sub-event ${subEventId}:`, error);
+  } catch (error: any) {
+    if (error.message?.includes('404')) {
+      console.warn(`[Pretix] Sub-event ${subEventId} not found (404).`);
+      return null;
+    }
     throw error;
   }
 }
+
 /**
  * Creates a new sub-event (screening) in Pretix.
  */
@@ -826,6 +830,7 @@ export async function createSubEvent(movieData: {
   rating?: string;
   logoPath?: string;
   backdropPath?: string;
+  awards?: any[];
 }) {
   try {
     const runtimeMinutes = movieData.runtime || 120;
@@ -869,6 +874,7 @@ export async function createSubEvent(movieData: {
       rating: movieData.rating || '',
       versionLanguage: movieData.versionLanguage || '',
       subtitles: movieData.subtitles || '',
+      awards: movieData.awards || [],
     });
 
     const payload: any = {
@@ -1044,7 +1050,11 @@ export async function getSubEventSeats(subeventId: number) {
     }
 
     return allSeats;
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message?.includes('404')) {
+      console.warn(`[Pretix] Seats for sub-event ${subeventId} not found (404).`);
+      return [];
+    }
     console.error(`Error fetching seats for sub-event ${subeventId}:`, error);
     return [];
   }

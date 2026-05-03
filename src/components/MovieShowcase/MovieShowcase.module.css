@@ -10,6 +10,7 @@
   min-height: 80vh;
   width: 100%;
   overflow: hidden;
+  background: #000;
   display: flex;
   align-items: center;
   padding-top: 80px;
@@ -251,10 +252,10 @@
 .uiHidden {
   opacity: 0 !important;
   visibility: hidden !important;
-  transform: translateY(25px) !important;
-  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
-              visibility 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transform: translateY(20px) !important;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
+              visibility 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .castList {

@@ -24,6 +24,7 @@ export interface MovieOverride {
   customRoomName?: string | null;
   customTrailerUrl?: string | null;
   customTrailerTitle?: string | null;
+  customTrailerKeys?: string[];
   isManualOverride?: boolean;
   isDraft?: boolean;
   updatedAt?: Date;
@@ -85,7 +86,7 @@ export async function saveOverride(tmdbId: string, override: Partial<MovieOverri
     const cleanOverride: any = {};
     const VALID_FIELDS = [
       'customTitle', 'customOverview', 'customRating', 'customPosterPath', 
-      'customBackdropPath', 'customLogoPath', 'customTrailerUrl', 'customTrailerTitle',
+      'customBackdropPath', 'customLogoPath', 'customTrailerUrl', 'customTrailerTitle', 'customTrailerKeys',
       'versionLanguage', 'subtitles', 'customRoomName', 'manualSoldOut',
       'isManualOverride', 'isDraft', 'customDirector', 'customCast',
       'releaseDate', 'runtime', 'mubiId'
@@ -233,6 +234,6 @@ export function saveMovieMetadata(tmdbId: string, metadata: any) {
 export function deleteMovieMetadata(tmdbId: string) {
   cacheMap.delete(`metadata_${tmdbId}`);
   cacheMap.delete(`tmdb_movie_details_${tmdbId}`);
-  cacheMap.delete(`tmdb_movie_details_${tmdbId}_smart_v3`);
-  cacheMap.delete(`tmdb_movie_details_${tmdbId}_smart_multi_v3`);
+  cacheMap.delete(`tmdb_movie_details_${tmdbId}_smart_v4`);
+  cacheMap.delete(`tmdb_movie_details_${tmdbId}_smart_multi_v4`);
 }

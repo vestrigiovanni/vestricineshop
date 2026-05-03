@@ -2,28 +2,30 @@
 
 import React, { useState, useEffect } from 'react';
 import styles from './AdminPanel.module.css';
-import { 
-  adminSearchMovies, 
-  adminGetMovieById, 
-  adminScheduleMovie, 
-  adminDeleteEvent, 
-  adminDeleteEventGroup, 
-  adminUpdateEventDate, 
-  adminListEvents, 
-  adminGetSeatingPlans, 
-  adminGetSmartSuggestion, 
-  adminCheckConflict, 
-  adminGetWeeklySlots, 
-  adminBulkScheduleMovie, 
-  adminFindNearestSlots, 
-  adminListQuotas, 
-  adminUpdateQuota, 
-  adminDeleteQuota, 
-  adminGetQuotaAvailability, 
+import {
+  adminSearchMovies,
+  adminGetMovieById,
+  adminScheduleMovie,
+  adminDeleteEvent,
+  adminDeleteEventGroup,
+  adminUpdateEventDate,
+  adminListEvents,
+  adminGetSeatingPlans,
+  adminGetSmartSuggestion,
+  adminCheckConflict,
+  adminGetWeeklySlots,
+  adminBulkScheduleMovie,
+  adminFindNearestSlots,
+  adminListQuotas,
+  adminUpdateQuota,
+  adminDeleteQuota,
+  adminGetQuotaAvailability,
   adminGetEmptyProjections,
   adminClearCache,
   adminGetOverrides,
-  adminSyncAllMovies
+  adminSyncAllMovies,
+  adminPrepareMetadata,
+  adminSyncNewlyCreatedEvents
 } from '@/actions/adminActions';
 import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb.utils';
 import Image from 'next/image';
@@ -64,7 +66,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     try {
       const plans = await adminGetSeatingPlans();
       setSeatingPlans(plans);
-      
+
       if (plans.length > 0) {
         setFormState(prev => ({ ...prev, roomId: plans[0].id.toString() }));
       }
@@ -82,7 +84,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     try {
       await adminClearCache();
       // Trigger the full database mirror (Pretix -> DB)
-      await adminSyncAllMovies(false); 
+      await adminSyncAllMovies(false);
       const updatedEvents = await adminListEvents();
       setEvents(updatedEvents);
       await initPlans();
@@ -106,12 +108,13 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [conflict, setConflict] = useState<string | null>(null);
   const [conflictEndTime, setConflictEndTime] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
-  
+
   const [weeklySlots, setWeeklySlots] = useState<{ date: string; label: string; isOccupied?: boolean; conflictWith?: string; isMorning?: boolean; isOptimized?: boolean }[]>([]);
   const [loadingWeeklySlots, setLoadingWeeklySlots] = useState(false);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [slotFilter, setSlotFilter] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
   const [loadingBulk, setLoadingBulk] = useState(false);
+  const [schedulingStatus, setSchedulingStatus] = useState<{ step: string; progress: number } | null>(null);
   const [expandedMovies, setExpandedMovies] = useState<Set<string>>(new Set());
   const [cleaningBuffer, setCleaningBuffer] = useState(0);
   const [nearestSuggestions, setNearestSuggestions] = useState<{ preSuggestion: string | null; postSuggestion: string | null }>({ preSuggestion: null, postSuggestion: null });
@@ -124,7 +127,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [emptyProjections, setEmptyProjections] = useState<any[]>([]);
   const [loadingCleaning, setLoadingCleaning] = useState(false);
   const [showRoomModal, setShowRoomModal] = useState(false);
-  
+
   const availableSeatingPlans = seatingPlans;
   const isColliding = (date1: string, date2: string) => {
     const runtime = selectedMovieRuntime || 120;
@@ -220,7 +223,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const selectMovieForScheduling = async (movie: MovieItem) => {
     setSelectedMovie(movie);
     const isItalian = movie.original_language === 'it';
-    
+
     // Get the first available room
     const defaultRoom = defaultSalaId || (availableSeatingPlans.length > 0 ? availableSeatingPlans[0].id.toString() : '');
 
@@ -397,27 +400,29 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     });
 
     setLoading(true);
+    setSchedulingStatus({ step: 'Inizializzazione...', progress: 5 });
+
     try {
-      if (selectedSlots.length > 0) {
-        setLoadingBulk(true);
-        const res = await adminBulkScheduleMovie({
-          id: selectedMovie.id.toString(),
-          title: formState.title,
-          overview: formState.overview,
-          posterPath: formState.posterPath,
-          language: formState.language,
-          subtitles: formState.subtitles,
-          versionLanguage: formState.versionLanguage
-        }, selectedSlots, parseInt(formState.roomId), cleaningBuffer);
-        const errorDetails = res.details && res.details.length > 0 
-          ? `\n\nDettagli errori:\n${res.details.join('\n')}` 
-          : '';
-        alert(`${res.summary}${errorDetails}`);
-      } else {
-        if (!formState.date) {
-          console.warn('[handleSchedule] ⚠️ Nessuna data selezionata, skip.');
-          return;
-        }
+      // --- STEP 1: PREPARE METADATA & AWARDS ---
+      setSchedulingStatus({ step: 'Estrazione premi da MUBI e dettagli TMDB...', progress: 15 });
+      const enrichedMetadata = await adminPrepareMetadata(selectedMovie.id.toString());
+
+      const slotsToProcess = selectedSlots.length > 0 ? selectedSlots : [formState.date];
+      const createdPretixIds: number[] = [];
+      let currentProgress = 20;
+      const progressStep = 70 / slotsToProcess.length;
+
+      // --- STEP 2: SEQUENTIAL SCHEDULING ---
+      for (let i = 0; i < slotsToProcess.length; i++) {
+        const fullDate = slotsToProcess[i];
+        const [datePart, timePart] = fullDate.includes('T') ? fullDate.split('T') : [fullDate, "00:00"];
+        const cleanTime = timePart.substring(0, 5);
+
+        setSchedulingStatus({
+          step: `Creazione spettacolo ${i + 1} di ${slotsToProcess.length}...`,
+          progress: Math.round(currentProgress)
+        });
+
         const result = await adminScheduleMovie({
           id: selectedMovie.id.toString(),
           title: formState.title,
@@ -426,10 +431,27 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           language: formState.language,
           subtitles: formState.subtitles,
           versionLanguage: formState.versionLanguage
-        }, rawDate, rawTime, parseInt(formState.roomId), !!conflict, cleaningBuffer);
-        console.log('[handleSchedule] ✅ Risposta server:', result);
-        alert(conflict ? 'Spettacolo programmato con successo (Override)!' : 'Spettacolo programmato con successo!');
+        }, datePart, cleanTime, parseInt(formState.roomId), !!conflict, cleaningBuffer, true, enrichedMetadata);
+
+        if (result.success && result.subeventId) {
+          createdPretixIds.push(result.subeventId);
+        }
+        currentProgress += progressStep;
       }
+
+      // --- STEP 3: SURGICAL SYNC ---
+      if (createdPretixIds.length > 0) {
+        setSchedulingStatus({ step: 'Sincronizzazione chirurgica del database...', progress: 95 });
+        await adminSyncNewlyCreatedEvents(createdPretixIds);
+      }
+
+      setSchedulingStatus({ step: 'Completato!', progress: 100 });
+      setTimeout(() => setSchedulingStatus(null), 1500);
+
+      alert(selectedSlots.length > 0
+        ? `Creati ${createdPretixIds.length} spettacoli con successo!`
+        : (conflict ? 'Spettacolo programmato con successo (Override)!' : 'Spettacolo programmato con successo!')
+      );
 
       const updatedEvents = await adminListEvents();
       setEvents(updatedEvents);
@@ -442,6 +464,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     } catch (error) {
       console.error('[handleSchedule] ❌ Errore:', error);
       alert('Errore durante la programmazione: ' + error);
+      setSchedulingStatus(null);
     } finally {
       setLoading(false);
       setLoadingBulk(false);
@@ -1049,7 +1072,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
 
       {/* MODAL SECTION: Moved outside grid flow to prevent layout breakage and ensure visibility */}
-      
+
       {/* 1. SCHEDULING MODAL */}
       {showModal && selectedMovie && (
         <div className={styles.modalOverlay}>
@@ -1545,12 +1568,44 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
       {/* 4. ROOM MANAGEMENT MODAL */}
       {showRoomModal && (
-        <RoomManagementModal 
+        <RoomManagementModal
           onClose={() => setShowRoomModal(false)}
           onUpdate={() => initPlans()}
         />
       )}
 
+
+      {/* 5. INTERACTIVE SCHEDULING PROGRESS OVERLAY */}
+      {schedulingStatus && (
+        <div className={styles.progressOverlay}>
+          <div className={styles.progressContainer}>
+            <div className={styles.progressIcon}>
+              <div className={styles.spinnerRing}></div>
+              <Calendar size={32} />
+            </div>
+
+            <div className={styles.progressInfo}>
+              <h3 className={styles.progressStep}>{schedulingStatus.step}</h3>
+              <p className={styles.progressDetail}>
+                {schedulingStatus.progress < 100
+                  ? 'Il sistema sta sincronizzando i dati con Pretix e il database locale...'
+                  : 'Operazione completata con successo!'}
+              </p>
+            </div>
+
+            <div className={styles.progressBarWrapper}>
+              <div
+                className={styles.progressBar}
+                style={{ width: `${schedulingStatus.progress}%` }}
+              ></div>
+            </div>
+
+            <div className={styles.progressPercentage}>
+              {schedulingStatus.progress}%
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -1,0 +1,7 @@
+
+--- DIAGNOSI COLONNE DB ---
+Chiavi trovate: pretixId, name, slug, dateFrom, seatingPlanId, roomName, isSoldOut, tmdbId, comment, metaLingua, metaSottotitoli, metaFormat, active, isHidden, updatedAt, availableSeats, dateTo, totalSeats, endTime, startTime, customTitle, customOverview, customRating, customPosterPath, customBackdropPath, customTrailerUrl, customTrailerTitle, versionLanguage, subtitles, customRoomName, manualSoldOut, isManualOverride, isDraft, customDirector, customCast, customLogoPath, releaseDate, runtime, mubiId, customTrailerKeys
+Valore customTrailerKeys: ["vR8O7y_D7Cg","vX_eE0jH4lI","fG2XpMIPPCo","D96h_lHk_70"]
+Valore trailerKeys: undefined
+Valore tmdbId: 7090
+---------------------------

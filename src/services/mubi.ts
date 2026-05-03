@@ -60,7 +60,7 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
       'vincitore', 'winner', 'palma', 'palme', 'grand prix', 'leone', 'lion', 
       'oscar', 'miglior', 'best', 'prix', 'jury', 'giuria', 'pardo', 'silver', 
       'argento', 'oro', 'golden', 'bear', 'orso', 'concha', 'shell', 'bafta', 
-      'telluride', 'official selection', 'selezione ufficiale'
+      'telluride', 'official selection', 'selezione ufficiale', 'premio', 'vinto', 'vinta'
     ];
 
     const festivalMapping = [
@@ -100,7 +100,7 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
           const winners = filteredEntries.filter((entry: any) => {
             if (typeof entry === 'string') {
               const lower = entry.toLowerCase();
-              return lower.includes('vincitore') || lower.includes('winner') || lower.includes('premi');
+              return lower.includes('vincitore') || lower.includes('winner') || lower.includes('premi') || lower.includes('vinto') || lower.includes('vinta');
             }
             return entry.winner;
           });

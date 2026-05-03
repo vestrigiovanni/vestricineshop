@@ -182,8 +182,30 @@ function isRangeFree(map: Uint8Array, startMs: number, endMs: number, dayStartMs
   return true;
 }
 
-export async function adminSearchMovies(query: string) {
-  return await searchMovies(query);
+export async function adminSearchMovies(query: string, lang: 'it' | 'en' | 'all' = 'all') {
+  if (lang === 'it') return await searchMovies(query, true, 'it-IT');
+  if (lang === 'en') return await searchMovies(query, true, 'en-US');
+
+  // lang === 'all' or default
+  const [itResults, enResults] = await Promise.all([
+    searchMovies(query, true, 'it-IT'),
+    searchMovies(query, true, 'en-US')
+  ]);
+
+  // Merge results by TMDB ID
+  const merged = new Map<number, any>();
+  
+  // Add IT results first to prioritize Italian metadata
+  itResults.forEach(m => merged.set(m.id, m));
+  
+  // Add EN results only if they don't already exist in the map
+  enResults.forEach(m => {
+    if (!merged.has(m.id)) {
+      merged.set(m.id, m);
+    }
+  });
+
+  return Array.from(merged.values());
 }
 
 export async function adminGetMovieById(id: string) {
@@ -211,6 +233,7 @@ export async function adminGetMovieById(id: string) {
               customPosterPath: existing?.customPosterPath || metadata.poster_path || '',
               customBackdropPath: existing?.customBackdropPath || metadata.backdrop_path || '',
               customLogoPath: existing?.customLogoPath || metadata.logo_path || '',
+              customTrailerUrl: existing?.customTrailerUrl || metadata.trailerUrl || '',
               customRating: existing?.customRating || metadata.rating || 'T',
               customDirector: existing?.customDirector || (Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || '')),
               customCast: existing?.customCast || (Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || '')),
@@ -224,6 +247,7 @@ export async function adminGetMovieById(id: string) {
               customPosterPath: metadata.poster_path || '',
               customBackdropPath: metadata.backdrop_path || '',
               customLogoPath: metadata.logo_path || '',
+              customTrailerUrl: metadata.trailerUrl || '',
               customRating: metadata.rating || 'T',
               customDirector: Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || ''),
               customCast: Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || ''),
@@ -480,7 +504,8 @@ export async function adminScheduleMovie(
   seatingPlanId: number,
   override: boolean = false,
   buffer: number = 0,
-  skipSync: boolean = false
+  skipSync: boolean = false,
+  enrichedMetadata?: any
 ) {
   // ── TRACCIAMENTO ESECUZIONE (visibile nei log Vercel) ──────────────────────
   console.log(`[adminScheduleMovie] ▶ START (TECNICA STRINGA CRUDA)`, {
@@ -493,11 +518,17 @@ export async function adminScheduleMovie(
   });
 
   // 1. Fetch full details from TMDB (for Director, Language, Runtime)
-  const details = await getMovieDetails(movieData.id);
+  // If enrichedMetadata is provided, we skip redundant API calls
+  const details = enrichedMetadata || await getMovieDetails(movieData.id);
   if (!details) throw new Error('Could not fetch movie details from TMDB');
 
-  const director = getDirector(details);
-  const cast = getCast(details);
+  const director = enrichedMetadata 
+    ? (Array.isArray(enrichedMetadata.director) ? enrichedMetadata.director.join(', ') : enrichedMetadata.director)
+    : getDirector(details);
+    
+  const cast = enrichedMetadata
+    ? (Array.isArray(enrichedMetadata.cast) ? enrichedMetadata.cast.join(', ') : enrichedMetadata.cast)
+    : getCast(details);
 
   // 2. Fetch Seating Plan Details to get exact category names
   const planDetail = await getSeatingPlanDetail(seatingPlanId);
@@ -606,7 +637,7 @@ export async function adminScheduleMovie(
 
 
 
-  const movieRating = await getEnhancedRating(details);
+  const movieRating = enrichedMetadata?.rating || await getEnhancedRating(details);
 
   // 6. Create the Sub-Event in Pretix with Mapping
   const subEvent = await createSubEvent({
@@ -626,11 +657,12 @@ export async function adminScheduleMovie(
     seatCategoryMapping: seatCategoryMapping,
     // Store additional rich metadata in comment for the Souvenir Ticket
     tagline: details.tagline || '',
-    genres: details.genres?.map(g => g.name).join(', ') || '',
+    genres: details.genres?.map((g: any) => g.name).join(', ') || '',
     year: details.release_date ? details.release_date.split('-')[0] : '',
     rating: movieRating,
-    logoPath: getMovieLogo(details) || '',
-    backdropPath: details.backdrop_path || '',
+    logoPath: enrichedMetadata?.logo_path || getMovieLogo(details) || '',
+    backdropPath: enrichedMetadata?.backdrop_path || details.backdrop_path || '',
+    awards: enrichedMetadata?.awards || [],
   });
 
   const subeventId = subEvent.id;
@@ -684,7 +716,7 @@ export async function adminScheduleMovie(
   // Alert logic: if IT was missing or all countries missing, we let the client know
   // Note: the check here is simple. If it's 'T' and we had a console warning in tmdb.ts, 
   // it's a fallback. For simplicity, we flag if IT was missing.
-  const isItMissing = !details.release_dates?.results?.some(r => r.iso_3166_1 === 'IT' && r.release_dates.length > 0);
+  const isItMissing = !details.release_dates?.results?.some((r: any) => r.iso_3166_1 === 'IT' && r.release_dates.length > 0);
 
   console.log(`[adminScheduleMovie] ✅ END – Subevent creato ID=${subeventId}, runtime=${runtimeMinutes}m`);
 
@@ -697,8 +729,42 @@ export async function adminScheduleMovie(
 }
 
 export async function adminDeleteEvent(subEventId: number) {
+  // 1. Get info before deletion to know if we need to clean up movie metadata later
+  const prisma = (await import('@/lib/prisma')).default;
+  const projection = await prisma.pretixSync.findUnique({
+    where: { pretixId: subEventId },
+    select: { tmdbId: true }
+  });
+
+  // 2. Delete from Pretix
   await deleteSubEvent(subEventId);
+
+  // 3. Delete from local database
+  try {
+    await prisma.pretixSync.delete({
+      where: { pretixId: subEventId }
+    });
+    console.log(`[adminDeleteEvent] ✅ Record deleted from database: ${subEventId}`);
+
+    // 4. Self-Cleaning: If this was the last projection for this movie, delete the override
+    if (projection?.tmdbId) {
+      const remainingCount = await prisma.pretixSync.count({
+        where: { tmdbId: projection.tmdbId }
+      });
+
+      if (remainingCount === 0) {
+        console.log(`[adminDeleteEvent] 🧹 Cleaning up unused movie metadata: ${projection.tmdbId}`);
+        await prisma.movieOverride.delete({
+          where: { tmdbId: projection.tmdbId }
+        }).catch(() => {}); // Ignore errors if already deleted
+      }
+    }
+  } catch (err) {
+    console.warn(`[adminDeleteEvent] ⚠️ Could not delete from DB (maybe already gone):`, subEventId);
+  }
+
   revalidatePath('/');
+  revalidatePath('/admin/movies-control');
   return { success: true };
 }
 
@@ -706,11 +772,23 @@ export async function adminDeleteEventGroup(subEventIds: number[]) {
   let successCount = 0;
   let errorCount = 0;
   const errors: string[] = [];
+  const deletedIds: number[] = [];
+  const tmdbIdsToCheck = new Set<string>();
+
+  const prisma = (await import('@/lib/prisma')).default;
 
   for (const id of subEventIds) {
     try {
+      // Get tmdbId before deletion
+      const proj = await prisma.pretixSync.findUnique({
+        where: { pretixId: id },
+        select: { tmdbId: true }
+      });
+      if (proj?.tmdbId) tmdbIdsToCheck.add(proj.tmdbId);
+
       await deleteSubEvent(id);
       successCount++;
+      deletedIds.push(id);
     } catch (e: any) {
       console.error(`Error deleting sub-event ${id}:`, e);
       errorCount++;
@@ -722,7 +800,31 @@ export async function adminDeleteEventGroup(subEventIds: number[]) {
     }
   }
 
+  // Bulk delete from DB
+  if (deletedIds.length > 0) {
+    try {
+      await prisma.pretixSync.deleteMany({
+        where: { pretixId: { in: deletedIds } }
+      });
+      console.log(`[adminDeleteEventGroup] ✅ ${deletedIds.length} records deleted from database.`);
+
+      // Self-Cleaning for movies
+      for (const tmdbId of tmdbIdsToCheck) {
+        const remainingCount = await prisma.pretixSync.count({
+          where: { tmdbId: tmdbId }
+        });
+        if (remainingCount === 0) {
+          console.log(`[adminDeleteEventGroup] 🧹 Cleaning up unused movie metadata: ${tmdbId}`);
+          await prisma.movieOverride.delete({ where: { tmdbId } }).catch(() => {});
+        }
+      }
+    } catch (dbErr) {
+      console.error(`[adminDeleteEventGroup] ❌ DB delete failed:`, dbErr);
+    }
+  }
+
   revalidatePath('/');
+  revalidatePath('/admin/movies-control');
   return {
     success: true,
     summary: `Eliminati ${successCount} spettacoli. Errori: ${errorCount}.`,
@@ -1406,4 +1508,45 @@ export async function adminSyncSoldOutStatus() {
     console.error('Error in adminSyncSoldOutStatus:', error);
     throw error;
   }
+}
+
+/**
+ * PRE-SCHEDULING: Fetch and cache full movie metadata (including awards)
+ */
+export async function adminPrepareMetadata(tmdbId: string) {
+  const { getEnrichedMovieMetadata } = await import('@/services/tmdb');
+  const { saveOverride } = await import('@/services/db.service');
+  
+  console.log(`[adminPrepareMetadata] 🚀 Preparing metadata for TMDB ID: ${tmdbId}`);
+  const metadata = await getEnrichedMovieMetadata(tmdbId);
+  
+  if (metadata) {
+    console.log(`[adminPrepareMetadata] 💾 Persisting enriched metadata to DB for ${tmdbId}`);
+    await saveOverride(tmdbId, {
+      customTitle: metadata.title,
+      customOverview: metadata.overview,
+      customPosterPath: metadata.poster_path || '',
+      customBackdropPath: metadata.backdrop_path || '',
+      customLogoPath: metadata.logo_path || '',
+      customTrailerUrl: metadata.trailerUrl || '',
+      customRating: metadata.rating || 'T',
+      customDirector: Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || ''),
+      customCast: Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || ''),
+      runtime: metadata.runtime,
+      releaseDate: metadata.release_date,
+      awards: metadata.awards || [],
+      isManualOverride: false,
+      isDraft: false
+    });
+  }
+  
+  return metadata;
+}
+
+export async function adminSyncNewlyCreatedEvents(pretixIds: number[]) {
+  const { syncNewlyCreatedEvents } = await import('@/services/sync.service');
+  await syncNewlyCreatedEvents(pretixIds);
+  revalidatePath('/');
+  revalidatePath('/admin/movies-control');
+  return { success: true };
 }

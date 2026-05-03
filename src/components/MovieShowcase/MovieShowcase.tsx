@@ -203,16 +203,10 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
             priority
             suppressHydrationWarning
           />
-          <CustomVideoPlayer 
-            videoId={activeMovie.trailerKey || null} 
-            videoIds={activeMovie.trailerKeys || []}
-            backdropUrl={getTMDBImageUrl(activeMovie.backdrop_path, 'original')}
-            isPlaying={isImmersiveMode} 
-            onClose={() => setIsImmersiveMode(false)} 
-          />
           <div className={isImmersiveMode ? `${styles.heroOverlayText} ${styles.uiHidden}` : styles.heroOverlayText} />
-          <div className={styles.heroOverlayBottom} />
+          <div className={isImmersiveMode ? `${styles.heroOverlayBottom} ${styles.uiHidden}` : styles.heroOverlayBottom} />
         </div>
+        
         
         <div 
           className={isImmersiveMode ? `${styles.heroContent} ${styles.animateIn} ${styles.uiHidden}` : `${styles.heroContent} ${styles.animateIn}`} 
@@ -252,7 +246,7 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                     <div className={styles.metaGroup}>
                       <span className={styles.metaLabel}>REGIA:</span>
                       <span className={styles.metaValue}>{activeMovie.director.toUpperCase()}</span>
-                      {isMounted && activeMovie.trailerKey && (
+                      {isMounted && (activeMovie.trailerKey || (activeMovie.trailerKeys && activeMovie.trailerKeys.length > 0)) && (
                         <button 
                           className={styles.trailerBtn} 
                           onClick={() => setIsImmersiveMode(true)}
@@ -340,6 +334,13 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
             </div>
           </div>
         </div>
+
+        <CustomVideoPlayer 
+          videoId={activeMovie.trailerKey || null} 
+          backdropUrl={getTMDBImageUrl(activeMovie.backdrop_path, 'original')}
+          isPlaying={isImmersiveMode} 
+          onClose={() => setIsImmersiveMode(false)} 
+        />
       </div>
 
       {/* Gallery Section */}

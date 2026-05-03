@@ -123,10 +123,11 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
       where: { tmdbId }
     }) as MovieOverride | null;
 
-    // OPTIMIZATION: Only hydrate if record is missing or force refresh is requested.
+    // OPTIMIZATION: Only hydrate if record is missing, is a stub, or force refresh is requested.
     // Avoid re-hydrating just because some fields (like logo or trailer) are null,
     // as those might simply be unavailable on TMDb/YouTube.
-    const needsHydration = options.forceMetadataRefresh || !existingMovie;
+    const isStub = existingMovie?.customTitle === 'Caricamento...';
+    const needsHydration = options.forceMetadataRefresh || !existingMovie || isStub;
 
 
     if (needsHydration) {
@@ -139,7 +140,7 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
         const tmdbData = await getEnrichedMovieMetadata(tmdbId);
         if (tmdbData) {
           console.log(`[SYNC_DEBUG] Data for ${tmdbId}: release_date=${tmdbData.release_date}, runtime=${tmdbData.runtime}`);
-          const trailerUrl = tmdbData.trailerKey ? `https://www.youtube.com/watch?v=${tmdbData.trailerKey}` : null;
+          const trailerUrl = tmdbData.trailerUrl || null;
 
           await prisma.movieOverride.upsert({
             where: { tmdbId: tmdbId },
@@ -153,6 +154,7 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
               customCast: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? (Array.isArray(tmdbData.cast) ? tmdbData.cast.join(', ') : tmdbData.cast) : (existingMovie?.customCast || (Array.isArray(tmdbData.cast) ? tmdbData.cast.join(', ') : tmdbData.cast)),
               customRating: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? (tmdbData.rating || 'T') : (existingMovie?.customRating || tmdbData.rating || 'T'),
               customTrailerUrl: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? trailerUrl : (existingMovie?.customTrailerUrl || trailerUrl),
+              customTrailerKeys: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? (tmdbData.trailerKeys || []) : ((existingMovie as any)?.customTrailerKeys?.length ? (existingMovie as any).customTrailerKeys : (tmdbData.trailerKeys || [])),
               releaseDate: tmdbData.release_date || existingMovie?.releaseDate,
               runtime: tmdbData.runtime || existingMovie?.runtime,
               versionLanguage: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) || existingMovie?.versionLanguage === 'Italiano' || existingMovie?.versionLanguage === 'Lingua Originale'
@@ -184,6 +186,7 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
               customCast: Array.isArray(tmdbData.cast) ? tmdbData.cast.join(', ') : tmdbData.cast,
               customRating: tmdbData.rating || 'T',
               customTrailerUrl: trailerUrl,
+              customTrailerKeys: tmdbData.trailerKeys || [],
               releaseDate: tmdbData.release_date,
               runtime: tmdbData.runtime,
               versionLanguage: tmdbData.original_language === 'it' ? 'ITA' : normalizeLanguageCode(tmdbData.original_language),
@@ -250,7 +253,10 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
     for (const proj of allSyncedProjections) {
       if (!proj.tmdbId) continue;
 
-      const override = await prisma.movieOverride.findUnique({ where: { tmdbId: proj.tmdbId } }) as any;
+      const override = await prisma.movieOverride.findUnique({ 
+        where: { tmdbId: proj.tmdbId },
+        include: { awards: true }
+      }) as any;
       if (override) {
         try {
           const commentObj = {
@@ -264,13 +270,17 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
             logoPath: override.customLogoPath || '',
             director: override.customDirector || '',
             cast: override.customCast || '',
-            hasOscar: override.hasOscar || false,
-            oscarDetails: override.oscarDetails || '',
-            hasCannes: override.hasCannes || false,
-            cannesDetails: override.cannesDetails || '',
-            hasVenice: override.hasVenice || false,
-            veniceDetails: override.veniceDetails || '',
-            awardYear: override.awardYear || null,
+            // Awards compatibility fields
+            hasOscar: override.awards?.some((a: any) => a.type === 'oscar') || false,
+            oscarDetails: override.awards?.find((a: any) => a.type === 'oscar')?.details || '',
+            hasCannes: override.awards?.some((a: any) => a.type === 'cannes') || false,
+            cannesDetails: override.awards?.find((a: any) => a.type === 'cannes')?.details || '',
+            hasVenice: override.awards?.some((a: any) => a.type === 'venice') || false,
+            veniceDetails: override.awards?.find((a: any) => a.type === 'venice')?.details || '',
+            awardYear: override.awards?.[0]?.year || null,
+            // Full awards array for future consumers
+            awards: override.awards || [],
+            trailerUrl: override.customTrailerUrl || '',
           };
 
           const newComment = JSON.stringify(commentObj);
@@ -387,18 +397,56 @@ export async function updateEventAvailability(subeventId: number, force: boolean
 
 
 
+// Memory lock for global surgical sync throttling
+let lastGlobalSurgicalSync = 0;
+const GLOBAL_SYNC_THROTTLE_MS = 60000; // 1 minute
+
 /**
  * BACKGROUND SYNC: Updates future subevents surgically with throttling.
  * This ensures that even without a manual purchase, the Sold Out status is updated.
  */
 export async function syncFutureSubeventsSurgically() {
+  const now = Date.now();
+  if (now - lastGlobalSurgicalSync < GLOBAL_SYNC_THROTTLE_MS) {
+    return; // Throttle: don't sync too often
+  }
+  lastGlobalSurgicalSync = now;
+
   try {
     console.log('[SYNC-FUTURE] Starting surgical background sync for future events...');
     
-    // 1. Get the list of future subevents
-    const rawSubEvents = await listSubEvents(true);
+    // 1. Get the list of future subevents (Skip cache to detect deletions)
+    const rawSubEvents = await listSubEvents(true, false, true);
     
-    // 2. Iterate and sync each one
+    // 2. STAGE 1: Cleanup (Mirroring)
+    // We remove any projection in the DB that is NOT in the current "active/future" list from Pretix.
+    // This effectively keeps the DB as a clean mirror of the current programming.
+    const currentPretixIds = rawSubEvents.map((se: any) => se.id);
+    const orphanedCleanup = await prisma.pretixSync.deleteMany({
+      where: {
+        pretixId: { notIn: currentPretixIds }
+      }
+    });
+    if (orphanedCleanup.count > 0) {
+      console.log(`[SYNC-FUTURE] 🧹 Cleaned up ${orphanedCleanup.count} projections (past or deleted).`);
+    }
+
+    // 3. STAGE 2: Cleanup unused Movie Metadata
+    // If a movie has no more projections (because they were deleted or became past), we remove it.
+    // Note: We only do this for non-draft movies.
+    const unusedMovies = await prisma.movieOverride.deleteMany({
+      where: {
+        isDraft: false,
+        projections: {
+          none: {}
+        }
+      }
+    });
+    if (unusedMovies.count > 0) {
+      console.log(`[SYNC-FUTURE] 🧹 Cleaned up ${unusedMovies.count} unused movie metadata records.`);
+    }
+
+    // 4. STAGE 3: Iterate and sync each one
     // syncSingleSubevent already has a 60s/5min throttle internally, 
     // so this won't DDoS Pretix if called frequently.
     let count = 0;
@@ -415,5 +463,79 @@ export async function syncFutureSubeventsSurgically() {
     console.log(`[SYNC-FUTURE] Finished surgical sync of ${count} future events.`);
   } catch (err) {
     console.error('[SYNC-FUTURE] Background sync failed:', err);
+  }
+}
+
+/**
+ * SURGICAL SYNC: Fast synchronization for specific sub-events.
+ * Used immediately after scheduling to avoid a full database refresh.
+ */
+export async function syncNewlyCreatedEvents(pretixIds: number[]) {
+  console.log(`[SYNC-SURGICAL] Starting surgical sync for ${pretixIds.length} events...`);
+  const { getSubEvent, getSeatingPlansMap } = await import('@/services/pretix');
+  const roomsMap = await getSeatingPlansMap();
+  
+  for (const id of pretixIds) {
+    try {
+      const se = await getSubEvent(id);
+      if (!se) continue;
+
+      let tmdbId: string | null = null;
+      if (se.comment) {
+        try {
+          const commentData = JSON.parse(se.comment);
+          tmdbId = commentData.tmdbId?.toString() || null;
+        } catch {
+          const tmdbIdMatch = se.comment.match(/TMDB_ID:(\d+)/);
+          tmdbId = tmdbIdMatch ? tmdbIdMatch[1] : null;
+        }
+      }
+
+      // Ensure MovieOverride stub exists
+      if (tmdbId) {
+        await prisma.movieOverride.upsert({
+          where: { tmdbId },
+          update: {},
+          create: { 
+            tmdbId,
+            customTitle: 'Caricamento...',
+            isManualOverride: false,
+            isDraft: false
+          }
+        });
+      }
+
+      const roomName = se.seating_plan ? (roomsMap[se.seating_plan] || 'Sala') : 'Sala';
+
+      const syncData = {
+        name: se.name?.it || se.name || 'Sconosciuto',
+        slug: se.slug,
+        dateFrom: new Date(se.date_from),
+        dateTo: se.date_to ? new Date(se.date_to) : null,
+        startTime: new Date(se.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }),
+        endTime: se.date_to ? new Date(se.date_to).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }) : null,
+        seatingPlanId: se.seating_plan,
+        roomName: roomName,
+        isSoldOut: false, // Default for new events
+        availableSeats: null,
+        totalSeats: null,
+        tmdbId: tmdbId,
+        comment: se.comment,
+        active: se.active,
+        metaLingua: se.meta_data?.lingua || null,
+        metaSottotitoli: se.meta_data?.sottotitoli || null,
+        metaFormat: se.meta_data?.format || null,
+      };
+
+      await prisma.pretixSync.upsert({
+        where: { pretixId: se.id },
+        update: syncData,
+        create: { pretixId: se.id, ...syncData }
+      });
+      
+      console.log(`[SYNC-SURGICAL] ✅ Synced ID: ${id}`);
+    } catch (err) {
+      console.error(`[SYNC-SURGICAL] ❌ Failed to sync ID ${id}:`, err);
+    }
   }
 }

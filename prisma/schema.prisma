@@ -7,68 +7,64 @@ datasource db {
 }
 
 model MovieOverride {
-  tmdbId             String   @id
+  tmdbId             String       @id
   customTitle        String?
   customOverview     String?
   customRating       String?
   customPosterPath   String?
   customBackdropPath String?
-  customLogoPath     String?
   customTrailerUrl   String?
   customTrailerTitle String?
   versionLanguage    String?
   subtitles          String?
   customRoomName     String?
-  manualSoldOut      Boolean  @default(false)
-  updatedAt          DateTime @updatedAt
-  isManualOverride   Boolean  @default(false)
-  isDraft            Boolean  @default(false)
+  manualSoldOut      Boolean      @default(false)
+  updatedAt          DateTime     @updatedAt
+  isManualOverride   Boolean      @default(false)
+  isDraft            Boolean      @default(false)
   customDirector     String?
   customCast         String?
+  customLogoPath     String?
   releaseDate        String?
   runtime            Int?
-  projections        PretixSync[]
-  
-  // New Awards Relation
-  awards             MovieAward[]
-  
-  // Metadata
   mubiId             String?
+  customTrailerKeys  String[]     @default([])
+  awards             MovieAward[]
+  projections        PretixSync[]
 }
 
 model MovieAward {
-  id          String   @id @default(cuid())
-  tmdbId      String
-  type        String   // 'oscar', 'cannes', 'venice', 'berlin', 'ssiff', 'bafta', 'telluride'
-  label       String   // "Academy Awards", "Festival de Cannes", etc.
-  details     String?
-  year        Int?
-  movie       MovieOverride @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
+  id      String        @id @default(cuid())
+  tmdbId  String
+  type    String
+  label   String
+  details String?
+  year    Int?
+  movie   MovieOverride @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
 
   @@index([tmdbId])
 }
 
 model PretixSync {
-  pretixId        Int      @id
+  pretixId        Int            @id
   name            String
   slug            String?
   dateFrom        DateTime
-  dateTo          DateTime?
-  startTime       String?
-  endTime         String?
   seatingPlanId   Int?
   roomName        String?
-  isSoldOut       Boolean  @default(false)
-  availableSeats  Int?
-  totalSeats      Int?
+  isSoldOut       Boolean        @default(false)
   tmdbId          String?
-  movie           MovieOverride? @relation(fields: [tmdbId], references: [tmdbId])
   comment         String?
   metaLingua      String?
   metaSottotitoli String?
   metaFormat      String?
-  active          Boolean  @default(true)
-  isHidden        Boolean  @default(false)
-  updatedAt       DateTime @updatedAt
+  active          Boolean        @default(true)
+  isHidden        Boolean        @default(false)
+  updatedAt       DateTime       @updatedAt
+  availableSeats  Int?
+  dateTo          DateTime?
+  totalSeats      Int?
+  endTime         String?
+  startTime       String?
+  movie           MovieOverride? @relation(fields: [tmdbId], references: [tmdbId])
 }
-

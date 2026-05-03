@@ -34,19 +34,19 @@ export interface MovieDetails extends MovieItem {
  * Searches for movies on TMDB based on a text query.
  * If query is empty, it returns popular movies.
  */
-export async function searchMovies(query: string = '', enrich: boolean = true): Promise<MovieItem[]> {
+export async function searchMovies(query: string = '', enrich: boolean = true, language: string = 'it-IT'): Promise<MovieItem[]> {
   try {
     const { getCachedTMDB, setCachedTMDB } = await import('./db.service');
-    const cacheKey = `search_${query || 'now_playing'}_${enrich ? 'en' : 'std'}`;
+    const cacheKey = `search_${query || 'now_playing'}_${enrich ? 'en' : 'std'}_${language}`;
     const cached = getCachedTMDB(cacheKey);
     if (cached) return cached;
 
-    const endpoint = query 
-      ? `/search/movie?query=${encodeURIComponent(query)}&language=it-IT&page=1`
-      : `/movie/now_playing?language=it-IT&page=1`; // Use now_playing for cinema feel instead of popular
-      
+    const endpoint = query
+      ? `/search/movie?query=${encodeURIComponent(query)}&language=${language}&page=1`
+      : `/movie/now_playing?language=${language}&page=1`; // Use now_playing for cinema feel instead of popular
+
     const url = `${TMDB_BASE_URL}${endpoint}${endpoint.includes('?') ? '&' : '?'}t=${Date.now()}`;
-    
+
     const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${TMDB_API_KEY}`,
@@ -57,15 +57,15 @@ export async function searchMovies(query: string = '', enrich: boolean = true): 
 
     let data;
     if (!response.ok) {
-      const retryUrl = url.includes('?') 
-        ? `${url}&api_key=${TMDB_API_KEY}` 
+      const retryUrl = url.includes('?')
+        ? `${url}&api_key=${TMDB_API_KEY}`
         : `${url}?api_key=${TMDB_API_KEY}`;
-        
+
       const responseRetry = await fetch(retryUrl, {
         headers: { 'accept': 'application/json' },
         cache: 'no-store'
       });
-      
+
       if (!responseRetry.ok) throw new Error('Failed to fetch from TMDB');
       data = await responseRetry.json();
     } else {
@@ -73,7 +73,7 @@ export async function searchMovies(query: string = '', enrich: boolean = true): 
     }
 
     const results: MovieItem[] = (data.results || []).filter((m: MovieItem) => !isNonLatin(m.title));
-    
+
     if (!enrich) {
       setCachedTMDB(cacheKey, results);
       return results;
@@ -121,21 +121,21 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
       console.log(`[TMDB DEBUG] Recupero dettagli per ID: ${id}`);
     }
     const url = `${TMDB_BASE_URL}/movie/${id}?language=it-IT&append_to_response=credits,images,release_dates&include_image_language=it,en,null&api_key=${TMDB_API_KEY}&t=${Date.now()}`;
-    
+
     const response = await fetch(url, {
       headers: { 'accept': 'application/json' },
       cache: 'no-store'
     });
-    
+
     if (!response.ok) return null;
     const details = await response.json();
-    
+
     // Standard Tecnico: Latinizzazione Obbligatoria
     if (isNonLatin(details.title)) {
       if (process.env.NODE_ENV !== 'production') {
         console.log(`[TMDB DEBUG] Titolo non latino rilevato per ID ${id} ("${details.title}"), scarto e cerco fallback...`);
       }
-      
+
       // Fallback 1: Versione Inglese
       const enUrl = `${TMDB_BASE_URL}/movie/${id}?language=en-US&api_key=${TMDB_API_KEY}`;
       try {
@@ -148,11 +148,11 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
               console.log(`[TMDB DEBUG] Titolo inglese recuperato come fallback: ${details.title}`);
             }
           } else {
-             // Se anche l'inglese è non latino (raro), usiamo il titolo italiano originale se è latino, 
-             // altrimenti scartiamo o mettiamo placeholder
-             if (process.env.NODE_ENV !== 'production') {
-               console.warn(`[TMDB WARNING] Fallback inglese non valido per ${id}, il film potrebbe avere problemi di visualizzazione.`);
-             }
+            // Se anche l'inglese è non latino (raro), usiamo il titolo italiano originale se è latino, 
+            // altrimenti scartiamo o mettiamo placeholder
+            if (process.env.NODE_ENV !== 'production') {
+              console.warn(`[TMDB WARNING] Fallback inglese non valido per ${id}, il film potrebbe avere problemi di visualizzazione.`);
+            }
           }
         }
       } catch (e) {
@@ -161,7 +161,7 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
         }
       }
     }
-    
+
     // FALLBACK: Se la trama in italiano manca, proviamo a recuperare quella in inglese
     if (!details.overview || details.overview.trim() === '') {
       if (process.env.NODE_ENV !== 'production') {
@@ -239,7 +239,7 @@ export function getCast(details: any, limit: number = 5): string[] {
     }
     return [];
   }
-  
+
   const cast = credits.cast;
   if (!cast || !Array.isArray(cast) || cast.length === 0) {
     if (process.env.NODE_ENV !== 'production') {
@@ -265,9 +265,10 @@ const trailersCache = new Map<string, string[]>();
  * 4. Teaser (IT then EN)
  */
 export async function getMovieTrailer(id: string): Promise<string | null> {
-  const cacheKey = `${id}_smart_v3`;
+  const cacheKey = `${id}_smart_v4`; // Bumped version for new logic
   if (trailerCache.has(cacheKey)) return trailerCache.get(cacheKey)!;
 
+  // We don't have originalLanguage here, but getMovieTrailers will now at least include the 'original' pool
   const trailers = await getMovieTrailers(id);
   const result = trailers.length > 0 ? trailers[0] : null;
   trailerCache.set(cacheKey, result);
@@ -276,14 +277,19 @@ export async function getMovieTrailer(id: string): Promise<string | null> {
 
 /**
  * Smart Multi-Fetch: Returns up to 5 prioritized trailer keys.
+ * logic: 
+ * - If Italian movie: IT Official > IT Trailer > EN Official > EN Trailer
+ * - If Foreign movie: Original Language > EN Official > EN Trailer > IT Official
  */
-export async function getMovieTrailers(id: string): Promise<string[]> {
-  const cacheKey = `${id}_smart_multi_v3`;
+export async function getMovieTrailers(id: string, originalLanguage?: string, preFetchedVideos?: Record<string, any[]>): Promise<string[]> {
+  const cacheKey = `${id}_smart_multi_v6_${originalLanguage || 'default'}`;
   if (trailersCache.has(cacheKey)) return trailersCache.get(cacheKey)!;
 
   try {
-    const multiLang = await getMultiLangVideos(id);
-    const allVideos = [...multiLang.it, ...multiLang.en];
+    const multiLang = preFetchedVideos || await getMultiLangVideos(id, originalLanguage);
+
+    // Combine all available videos from all fetched languages (it, en, original, etc.)
+    const allVideos: any[] = Object.values(multiLang).flat();
 
     // Score and Sort by priority
     const scored = allVideos.map(v => {
@@ -292,16 +298,30 @@ export async function getMovieTrailers(id: string): Promise<string[]> {
       if (v.type === 'Trailer') score += 1000;
       else if (v.type === 'Teaser') score += 500;
 
-      // Priority 2: Official
-      if (v.official) score += 300;
+      // Priority 2: Official (Bonus minimo per dare spazio a fallback non-ufficiali meno restrittivi)
+      if (v.official) score += 50;
 
-      // Priority 3: Language (IT > EN)
-      if (v.iso_639_1 === 'it') score += 100;
+      // Priority 3: Language matching User Rule
+      // Rules:
+      // - If Italian movie: IT is best
+      // - If Foreign movie: Original Language is best
+      const isItalianMovie = originalLanguage === 'it';
+
+      if (isItalianMovie) {
+        if (v.iso_639_1 === 'it') score += 200;
+        else if (v.iso_639_1 === 'en') score += 100;
+      } else {
+        // Foreign movie: Prioritize original language
+        if (originalLanguage && v.iso_639_1 === originalLanguage) score += 200;
+        else if (v.iso_639_1 === 'en') score += 100;
+        else if (v.iso_639_1 === 'it') score += 50; // IT as last resort for foreign films
+      }
 
       return { ...v, score };
     }).sort((a, b) => b.score - a.score);
 
-    const result = Array.from(new Set(scored.map(v => v.key))).slice(0, 5);
+    // Prendiamo i primi 12 per avere il massimo numero di fallback possibili
+    const result = Array.from(new Set(scored.map(v => v.key))).slice(0, 12);
     trailersCache.set(cacheKey, result);
     return result;
   } catch (error) {
@@ -316,14 +336,14 @@ export async function getMovieTrailers(id: string): Promise<string[]> {
  */
 export function getMovieLogo(details: MovieDetails): string | null {
   if (!details.images?.logos || details.images.logos.length === 0) return null;
-  
+
   const logos = details.images.logos;
   const itLogo = logos.find(l => l.iso_639_1 === 'it');
   if (itLogo) return itLogo.file_path;
-  
+
   const enLogo = logos.find(l => l.iso_639_1 === 'en');
   if (enLogo) return enLogo.file_path;
-  
+
   return logos[0].file_path;
 }
 
@@ -362,7 +382,7 @@ function mapForeignToItalianRating(country: string, cert: string): string {
     if (c === 'R') return '14+'; // Fix: R-Rated US maps to 14+ in Italy
     if (c === 'NC17' || c === 'X') return '18+';
   }
-  
+
   if (country === 'GB') {
     if (c === 'U') return 'T';
     if (c === 'PG') return '6+';
@@ -370,7 +390,7 @@ function mapForeignToItalianRating(country: string, cert: string): string {
     if (c === '15') return '14+';
     if (c === '18') return '18+';
   }
-  
+
   if (country === 'FR') {
     if (c === 'U') return 'T';
     if (c === '12' || c === '10') return '10+';
@@ -408,7 +428,7 @@ function getEuropeanConsensus(results: any[]): string | null {
 
       // Regola Marty Supreme: Se trovi 12, 14 o 15 in paesi core Europei -> 14+
       if (['12', '14', '15'].includes(cert)) return '14+';
-      
+
       // Se trovi 6 o 9 -> 10+
       if (['6', '9'].includes(cert)) return '10+';
     }
@@ -424,7 +444,7 @@ function scanGlobalRedFlags(results: any[]): string | null {
 
       // Extreme ratings (18, 19, 21, III, C)
       if (['18', '19', '21', 'III', 'C', 'NC17', 'X'].includes(cert)) return '18+';
-      
+
       // High-rigour ratings (16, 15) -> Map to 18+ for security on unrated titles
       // Ma solo se non abbiamo trovato un consenso europeo più morbido prima.
       if (['16', '15'].includes(cert)) return '18+';
@@ -446,7 +466,7 @@ export function getItalianRating(details: MovieDetails): string {
     // Privilegiamo release di type: 3 (Cinema)
     const theatrical = itData.release_dates.find(rd => rd.type === 3);
     const cert = theatrical ? theatrical.certification : itData.release_dates[0].certification;
-    
+
     if (cert && cert.trim() !== '') {
       return normalizeRating(cert);
     }
@@ -499,8 +519,8 @@ export function getItalianRating(details: MovieDetails): string {
   }
 
   // 5. Validazione finale e Protezione per Genere (Horror/Thriller)
-  const isDarkGenre = details.genres?.some(g => 
-    g.name.toLowerCase().includes('horror') || 
+  const isDarkGenre = details.genres?.some(g =>
+    g.name.toLowerCase().includes('horror') ||
     g.name.toLowerCase().includes('thriller')
   );
 
@@ -524,7 +544,7 @@ export function getItalianRating(details: MovieDetails): string {
 function translateUSRating(omdbRated: string): string {
   const r = omdbRated.toUpperCase().trim();
   if (r === 'N/A' || !r) return 'T';
-  
+
   // The normalization engine handles G, PG, PG-13, R, NC-17, TV-MA, etc.
   return normalizeRating(r);
 }
@@ -549,7 +569,7 @@ export async function getOMDbRating(imdbId: string): Promise<string | null> {
     const url = `http://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`;
     const response = await fetch(url, { next: { revalidate: 86400 } });
     if (!response.ok) return null;
-    
+
     const data = await response.json();
     return data.Rated || null;
   } catch (error) {
@@ -591,7 +611,7 @@ export async function getEnhancedRating(details: MovieDetails): Promise<string> 
   if (itData && itData.release_dates.length > 0) {
     const theatrical = itData.release_dates.find(rd => rd.type === 3);
     const cert = (theatrical ? theatrical.certification : itData.release_dates[0].certification)?.trim();
-    
+
     if (cert) {
       const normalized = normalizeRating(cert);
       if (process.env.NODE_ENV !== 'production') {
@@ -615,10 +635,10 @@ export async function getEnhancedRating(details: MovieDetails): Promise<string> 
   // 5. Sincronizzazione con OMDb (Fonte di Verità Internazionale - Solo se IT è mancante)
   if (imdbId) {
     const omdbRated = await getOMDbRating(imdbId);
-    
+
     if (omdbRated && omdbRated !== 'N/A') {
       const mappedRating = translateUSRating(omdbRated);
-      
+
       if (isDocumentary && mappedRating !== '18+') {
         // Skip intermediate OMDb ratings for documentaries
       } else if (isMoreRestrictive(currentRating, mappedRating)) {
@@ -663,33 +683,33 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
     if (!details) return null;
 
     // 3. Process all heavy metadata in parallel
-  const [rating, trailerKeys, multiLangVideos, mubiData] = await Promise.all([
-    getEnhancedRating(details),
-    getMovieTrailers(tmdbId),
-    getMultiLangVideos(tmdbId),
-    fetchMubiAwards(tmdbId, details.title, details.original_title, details.release_date?.split('-')[0])
-  ]);
+    const multiLangVideos = await getMultiLangVideos(tmdbId, details.original_language);
+    const [rating, trailerKeys, mubiData] = await Promise.all([
+      getEnhancedRating(details),
+      getMovieTrailers(tmdbId, details.original_language, multiLangVideos),
+      fetchMubiAwards(tmdbId, details.title, details.original_title, details.release_date?.split('-')[0])
+    ]);
 
-  const directors = getDirectors(details);
-  const cast = getCast(details, 5);
-  const logo_path = getMovieLogo(details);
-  const trailerKey = trailerKeys[0] || null;
+    const directors = getDirectors(details);
+    const cast = getCast(details, 5);
+    const logo_path = getMovieLogo(details);
+    const trailerKey = trailerKeys[0] || null;
 
-  // 4. Advanced Backdrop Logic (HD filtering, deterministic selection)
-  let backdrop_path = details.backdrop_path;
-  if (details.images?.backdrops && details.images.backdrops.length > 0) {
-    const allBackdrops = details.images.backdrops;
-    const noLangBackdrops = allBackdrops.filter((b: any) => !b.iso_639_1);
-    const highQualityPool = (noLangBackdrops.length > 0 ? noLangBackdrops : allBackdrops)
-      .filter((b: any) => b.width >= 1920)
-      .sort((a: any, b: any) => (b.vote_average || 0) - (a.vote_average || 0) || (b.vote_count || 0) - (a.vote_count || 0));
+    // 4. Advanced Backdrop Logic (HD filtering, deterministic selection)
+    let backdrop_path = details.backdrop_path;
+    if (details.images?.backdrops && details.images.backdrops.length > 0) {
+      const allBackdrops = details.images.backdrops;
+      const noLangBackdrops = allBackdrops.filter((b: any) => !b.iso_639_1);
+      const highQualityPool = (noLangBackdrops.length > 0 ? noLangBackdrops : allBackdrops)
+        .filter((b: any) => b.width >= 1920)
+        .sort((a: any, b: any) => (b.vote_average || 0) - (a.vote_average || 0) || (b.vote_count || 0) - (a.vote_count || 0));
 
-    const finalPool = highQualityPool.length > 0 ? highQualityPool : (noLangBackdrops.length > 0 ? noLangBackdrops : allBackdrops);
-    const backdropIndex = Number(tmdbId) % finalPool.length;
-    backdrop_path = finalPool[backdropIndex].file_path;
-  }
+      const finalPool = highQualityPool.length > 0 ? highQualityPool : (noLangBackdrops.length > 0 ? noLangBackdrops : allBackdrops);
+      const backdropIndex = Number(tmdbId) % finalPool.length;
+      backdrop_path = finalPool[backdropIndex].file_path;
+    }
 
-  // 5. Construct the final object
+    // 5. Construct the final object
     const result = {
       tmdbId,
       title: details.title,
@@ -704,14 +724,16 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
       director: directors,
       cast,
       trailerUrl: trailerKey ? `https://www.youtube.com/watch?v=${trailerKey}` : null,
+      trailerKey: trailerKey,
+      trailerKeys: trailerKeys,
       multiLangVideos,
       awards: mubiData?.awards || [],
       mubiId: mubiData?.mubiId || null,
       syncedAt: new Date().toISOString()
     };
 
-  // 6. Save to persistent cache
-  saveMovieMetadata(tmdbId, result);
+    // 6. Save to persistent cache
+    saveMovieMetadata(tmdbId, result);
 
     return result;
   } catch (error) {
@@ -721,9 +743,14 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
   }
 }
 
-export async function getMultiLangVideos(id: string) {
-  const languages = ['it-IT', 'en-US', 'null'];
-  const results: { it: any[]; en: any[]; original: any[] } = { it: [], en: [], original: [] };
+export async function getMultiLangVideos(id: string, originalLanguage?: string) {
+  const languages = ['it-IT', 'en-US'];
+  if (originalLanguage && !['it', 'en'].includes(originalLanguage)) {
+    languages.push(originalLanguage);
+  }
+  languages.push('null'); // Default/Original pool
+
+  const results: Record<string, any[]> = {};
 
   await Promise.all(languages.map(async (lang) => {
     const url = `${TMDB_BASE_URL}/movie/${id}/videos?api_key=${TMDB_API_KEY}${lang !== 'null' ? `&language=${lang}` : ''}`;
@@ -731,12 +758,14 @@ export async function getMultiLangVideos(id: string) {
       const response = await fetch(url, { cache: 'no-store' });
       if (response.ok) {
         const data = await response.json();
-        const filtered = (data.results || []).filter((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
+        const filtered = (data.results || []).filter((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser' || v.type === 'Clip' || v.type === 'Behind the Scenes' || v.type === 'Featurette'));
+
         if (lang === 'it-IT') results.it = filtered;
         else if (lang === 'en-US') results.en = filtered;
-        else results.original = filtered;
+        else if (lang === 'null') results.original = filtered;
+        else results[lang] = filtered;
       }
-    } catch (e) {}
+    } catch (e) { }
   }));
 
   return results;

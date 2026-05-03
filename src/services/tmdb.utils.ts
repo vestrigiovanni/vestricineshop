@@ -9,7 +9,7 @@ export interface MovieItem {
   original_title?: string;
   rating?: string;
   trailerKey?: string;
-  multiLangVideos?: { it: any[]; en: any[]; original: any[] };
+  multiLangVideos?: Record<string, any[]>;
   director?: string | string[];
   cast?: string[];
 }
