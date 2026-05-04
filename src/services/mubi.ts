@@ -63,6 +63,7 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
       { id: 'toronto', keywords: ['toronto', 'tiff'], label: 'Toronto International Film Festival' },
       { id: 'locarno', keywords: ['locarno', 'pardo'], label: 'Locarno International Film Festival' },
       { id: 'davids', keywords: ['david di donatello', 'david'], label: 'David di Donatello' },
+      { id: 'nastri', keywords: ['nastri d\'argento', 'sindacato nazionale giornalisti cinematografici', 'nastri'], label: 'Nastri d\'Argento' },
       { id: 'romacinemafest', keywords: ['rome film festival', 'roma cinema fest', 'festa del cinema di roma', 'romacinemafest', 'fondazione cinema per roma'], label: 'Festa del cinema di Roma' }
     ];
 

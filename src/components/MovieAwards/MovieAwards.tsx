@@ -38,6 +38,7 @@ const festivalConfigs: Record<string, AwardConfig> = {
   toronto: { src: '/logos/tiff.png', width: TORONTO_WIDTH, height: TORONTO_HEIGHT },
   locarno: { src: '/logos/locarno.png', width: DEFAULT_DIMENSION, height: DEFAULT_DIMENSION },
   davids: { src: '/logos/david.png', width: DEFAULT_DIMENSION, height: DEFAULT_DIMENSION },
+  nastri: { src: '/logos/nastri.png', width: DEFAULT_DIMENSION, height: DEFAULT_DIMENSION },
   romacinemafest: { src: '/logos/roma.png', width: DEFAULT_DIMENSION, height: DEFAULT_DIMENSION }
 };
 
