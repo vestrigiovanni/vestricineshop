@@ -142,28 +142,52 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
           console.log(`[SYNC_DEBUG] Data for ${tmdbId}: release_date=${tmdbData.release_date}, runtime=${tmdbData.runtime}`);
           const trailerUrl = tmdbData.trailerUrl || null;
 
+          const isManual = existingMovie?.isManualOverride || false;
+          const isStub = existingMovie?.customTitle === 'Caricamento...';
+          const force = options.forceMetadataRefresh;
+
+          // HELPER: Decide whether to keep existing DB value or use fresh TMDb data.
+          // Rule 1: If it's a Manual Override, always prefer the existing DB value.
+          // Rule 2: If it's a Stub ("Caricamento..."), always use the fresh TMDb data.
+          // Rule 3: If Force Refresh is requested, use TMDb data.
+          // Rule 4: Otherwise, keep the existing value (likely from a previous sync).
+          const pick = (existing: any, fresh: any) => {
+            if (isManual) return existing || fresh;
+            if (isStub) return fresh || existing;
+            if (force) return fresh || existing;
+            return existing || fresh;
+          };
+
           await prisma.movieOverride.upsert({
             where: { tmdbId: tmdbId },
             update: {
-              customTitle: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? tmdbData.title : (existingMovie?.customTitle || tmdbData.title),
-              customOverview: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? tmdbData.overview : (existingMovie?.customOverview || tmdbData.overview),
-              customPosterPath: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? tmdbData.poster_path : (existingMovie?.customPosterPath || tmdbData.poster_path),
-              customBackdropPath: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? tmdbData.backdrop_path : (existingMovie?.customBackdropPath || tmdbData.backdrop_path),
-              customLogoPath: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? tmdbData.logo_path : (existingMovie?.customLogoPath || tmdbData.logo_path),
-              customDirector: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? (Array.isArray(tmdbData.director) ? tmdbData.director.join(', ') : tmdbData.director) : (existingMovie?.customDirector || (Array.isArray(tmdbData.director) ? tmdbData.director.join(', ') : tmdbData.director)),
-              customCast: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? (Array.isArray(tmdbData.cast) ? tmdbData.cast.join(', ') : tmdbData.cast) : (existingMovie?.customCast || (Array.isArray(tmdbData.cast) ? tmdbData.cast.join(', ') : tmdbData.cast)),
-              customRating: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? (tmdbData.rating || 'T') : (existingMovie?.customRating || tmdbData.rating || 'T'),
-              customTrailerUrl: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? trailerUrl : (existingMovie?.customTrailerUrl || trailerUrl),
-              customTrailerKeys: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) ? (tmdbData.trailerKeys || []) : ((existingMovie as any)?.customTrailerKeys?.length ? (existingMovie as any).customTrailerKeys : (tmdbData.trailerKeys || [])),
+              customTitle: pick(existingMovie?.customTitle, tmdbData.title),
+              customOverview: pick(existingMovie?.customOverview, tmdbData.overview),
+              customPosterPath: pick(existingMovie?.customPosterPath, tmdbData.poster_path),
+              customBackdropPath: pick(existingMovie?.customBackdropPath, tmdbData.backdrop_path),
+              customLogoPath: pick(existingMovie?.customLogoPath, tmdbData.logo_path),
+              customDirector: pick(existingMovie?.customDirector, Array.isArray(tmdbData.director) ? tmdbData.director.join(', ') : tmdbData.director),
+              customCast: pick(existingMovie?.customCast, Array.isArray(tmdbData.cast) ? tmdbData.cast.join(', ') : tmdbData.cast),
+              customRating: pick(existingMovie?.customRating, tmdbData.rating || 'T'),
+              customTrailerUrl: pick(existingMovie?.customTrailerUrl, trailerUrl),
+              customTrailerKeys: (isManual && (existingMovie as any)?.customTrailerKeys?.length) 
+                ? (existingMovie as any).customTrailerKeys 
+                : (tmdbData.trailerKeys || (existingMovie as any)?.customTrailerKeys || []),
+              
               releaseDate: tmdbData.release_date || existingMovie?.releaseDate,
               runtime: tmdbData.runtime || existingMovie?.runtime,
-              versionLanguage: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) || existingMovie?.versionLanguage === 'Italiano' || existingMovie?.versionLanguage === 'Lingua Originale'
-                ? (tmdbData.original_language === 'it' ? 'ITA' : normalizeLanguageCode(tmdbData.original_language))
-                : (existingMovie?.versionLanguage || (tmdbData.original_language === 'it' ? 'ITA' : normalizeLanguageCode(tmdbData.original_language))),
 
-              subtitles: (options.forceMetadataRefresh && !existingMovie?.isManualOverride) || existingMovie?.subtitles === 'Nessuno' || existingMovie?.subtitles === 'Sottotitoli IT'
-                ? (tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA')
-                : (existingMovie?.subtitles || (tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA')),
+              versionLanguage: (isManual)
+                ? (existingMovie?.versionLanguage || (tmdbData.original_language === 'it' ? 'ITA' : normalizeLanguageCode(tmdbData.original_language)))
+                : (force || isStub || existingMovie?.versionLanguage === 'Italiano' || existingMovie?.versionLanguage === 'Lingua Originale'
+                    ? (tmdbData.original_language === 'it' ? 'ITA' : normalizeLanguageCode(tmdbData.original_language))
+                    : (existingMovie?.versionLanguage || (tmdbData.original_language === 'it' ? 'ITA' : normalizeLanguageCode(tmdbData.original_language)))),
+
+              subtitles: (isManual)
+                ? (existingMovie?.subtitles || (tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA'))
+                : (force || isStub || existingMovie?.subtitles === 'Nessuno' || existingMovie?.subtitles === 'Sottotitoli IT'
+                    ? (tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA')
+                    : (existingMovie?.subtitles || (tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA'))),
               awards: {
                 deleteMany: {},
                 create: (tmdbData.awards || []).map((a: any) => ({

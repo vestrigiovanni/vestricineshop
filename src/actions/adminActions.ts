@@ -220,15 +220,15 @@ export async function adminGetMovieById(id: string) {
         const prisma = (await import('@/lib/prisma')).default;
         const existing = await prisma.movieOverride.findUnique({ where: { tmdbId: id } }) as any;
 
-        // If record is missing or incomplete (missing releaseDate/runtime), update it
-        const needsUpdate = !existing || !existing.releaseDate || !existing.runtime;
+        const isStub = existing?.customTitle === 'Caricamento...';
+        const needsUpdate = !existing || !existing.releaseDate || !existing.runtime || isStub;
         
         if (needsUpdate) {
           console.log(`[adminGetMovieById] 🚀 Auto-populating DB for movie: ${id} (${metadata.title})`);
           await (prisma.movieOverride as any).upsert({
             where: { tmdbId: id },
             update: {
-              customTitle: existing?.customTitle || metadata.title,
+              customTitle: (existing?.customTitle && !isStub) ? existing.customTitle : metadata.title,
               customOverview: existing?.customOverview || metadata.overview,
               customPosterPath: existing?.customPosterPath || metadata.poster_path || '',
               customBackdropPath: existing?.customBackdropPath || metadata.backdrop_path || '',
@@ -1521,21 +1521,24 @@ export async function adminPrepareMetadata(tmdbId: string) {
   const metadata = await getEnrichedMovieMetadata(tmdbId);
   
   if (metadata) {
+    const prisma = (await import('@/lib/prisma')).default;
+    const existing = await prisma.movieOverride.findUnique({ where: { tmdbId } }) as any;
+    
     console.log(`[adminPrepareMetadata] 💾 Persisting enriched metadata to DB for ${tmdbId}`);
     await saveOverride(tmdbId, {
-      customTitle: metadata.title,
-      customOverview: metadata.overview,
-      customPosterPath: metadata.poster_path || '',
-      customBackdropPath: metadata.backdrop_path || '',
-      customLogoPath: metadata.logo_path || '',
-      customTrailerUrl: metadata.trailerUrl || '',
-      customRating: metadata.rating || 'T',
-      customDirector: Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || ''),
-      customCast: Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || ''),
+      customTitle: (existing?.customTitle && existing.customTitle !== 'Caricamento...') ? existing.customTitle : metadata.title,
+      customOverview: existing?.customOverview || metadata.overview,
+      customPosterPath: existing?.customPosterPath || metadata.poster_path || '',
+      customBackdropPath: existing?.customBackdropPath || metadata.backdrop_path || '',
+      customLogoPath: existing?.customLogoPath || metadata.logo_path || '',
+      customTrailerUrl: existing?.customTrailerUrl || metadata.trailerUrl || '',
+      customRating: existing?.customRating || metadata.rating || 'T',
+      customDirector: existing?.customDirector || (Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || '')),
+      customCast: existing?.customCast || (Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || '')),
       runtime: metadata.runtime,
       releaseDate: metadata.release_date,
       awards: metadata.awards || [],
-      isManualOverride: false,
+      isManualOverride: existing?.isManualOverride || false,
       isDraft: false
     });
   }

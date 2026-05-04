@@ -103,27 +103,30 @@ export async function saveOverride(tmdbId: string, override: Partial<MovieOverri
       }
     }
 
-    const awardData = override.awards || [];
+    const awardData = override.awards;
+    const updateData: any = { ...cleanOverride };
+
+    // Only update awards if explicitly provided in the override payload
+    if (awardData !== undefined) {
+      updateData.awards = {
+        deleteMany: {},
+        create: awardData.map(a => ({
+          type: a.type,
+          label: a.label,
+          details: a.details,
+          year: a.year
+        }))
+      };
+    }
 
     await prisma.movieOverride.upsert({
       where: { tmdbId },
-      update: {
-        ...cleanOverride,
-        awards: {
-          deleteMany: {},
-          create: awardData.map(a => ({
-            type: a.type,
-            label: a.label,
-            details: a.details,
-            year: a.year
-          }))
-        }
-      },
+      update: updateData,
       create: {
         tmdbId,
         ...cleanOverride,
         awards: {
-          create: awardData.map(a => ({
+          create: (awardData || []).map(a => ({
             type: a.type,
             label: a.label,
             details: a.details,

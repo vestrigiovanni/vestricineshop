@@ -13,7 +13,7 @@ export interface MubiAwardData {
 
 /**
  * Fetches and parses film awards from MUBI internal API (v3).
- * Now supports: Oscars, Cannes, Venice, Berlin, San Sebastián, BAFTA, Telluride.
+ * Now supports all major festivals by fetching the complete entry list.
  */
 export async function fetchMubiAwards(tmdbId: string, title: string, originalTitle?: string, year?: string): Promise<MubiAwardData | null> {
   try {
@@ -35,7 +35,6 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
       return titleMatch && yearMatch;
     });
 
-    // Fallback to title only if year doesn't match
     if (!bestMatch) {
       bestMatch = films.find((f: any) => 
         f.title.toLowerCase() === title.toLowerCase() || 
@@ -43,24 +42,14 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
       );
     }
 
-    // Ultimate fallback to first result
     if (!bestMatch) bestMatch = films[0];
 
-    const detailsUrl = `https://api.mubi.com/v3/films/${bestMatch.id}`;
-    const detailsResponse = await fetch(detailsUrl, {
-      headers: { 'Client': 'web', 'Client-Country': 'IT' }
-    });
-    if (!detailsResponse.ok) return null;
-    const filmData = await detailsResponse.json();
-
-    const events = filmData.industry_events || [];
-    if (events.length === 0) return { awards: [], mubiId: bestMatch.id.toString() };
-
+    const mubiId = bestMatch.id;
     const majorAwardKeywords = [
       'vincitore', 'winner', 'palma', 'palme', 'grand prix', 'leone', 'lion', 
       'oscar', 'miglior', 'best', 'prix', 'jury', 'giuria', 'pardo', 'silver', 
       'argento', 'oro', 'golden', 'bear', 'orso', 'concha', 'shell', 'bafta', 
-      'telluride', 'official selection', 'selezione ufficiale', 'premio', 'vinto', 'vinta'
+      'telluride', 'official selection', 'selezione ufficiale', 'premio', 'vinto', 'vinta', 'award'
     ];
 
     const festivalMapping = [
@@ -69,87 +58,83 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
       { id: 'venice', keywords: ['venice', 'venezia'], label: 'Mostra internazionale d\'arte cinematografica la biennale di venezia' },
       { id: 'berlin', keywords: ['berlinale', 'berlin'], label: 'Berlin International Film Festival' },
       { id: 'ssiff', keywords: ['san sebastián', 'san sebastian', 'ssiff'], label: 'San Sebastián International Film Festival' },
-      { id: 'bafta', keywords: ['bafta'], label: 'BAFTA Awards' },
-      { id: 'telluride', keywords: ['telluride'], label: 'Telluride Film Festival' }
+      { id: 'bafta', keywords: ['bafta', 'british academy'], label: 'BAFTA Awards' },
+      { id: 'telluride', keywords: ['telluride'], label: 'Telluride Film Festival' },
+      { id: 'toronto', keywords: ['toronto', 'tiff'], label: 'Toronto International Film Festival' },
+      { id: 'locarno', keywords: ['locarno', 'pardo'], label: 'Locarno International Film Festival' },
+      { id: 'davids', keywords: ['david di donatello', 'david'], label: 'David di Donatello' },
+      { id: 'romacinemafest', keywords: ['rome film festival', 'roma cinema fest', 'festa del cinema di roma', 'romacinemafest', 'fondazione cinema per roma'], label: 'Festa del cinema di Roma' }
     ];
 
-    const awardsByFestival: Record<string, { details: Set<string>, year: number | null }> = {};
+    const awardsByFestival: Record<string, { type: string, label: string, details: Set<string>, year: number | null }> = {};
 
-    events.forEach((e: any) => {
-      const festivalName = (e.name || '').toLowerCase();
-      const eventType = e.event_type;
-      
-      const match = festivalMapping.find(f => 
-        f.keywords.some(k => festivalName.includes(k)) || 
-        (f.eventType && eventType === f.eventType)
-      );
-
-      if (match) {
-        if (!awardsByFestival[match.id]) {
-          awardsByFestival[match.id] = { details: new Set(), year: e.year || null };
-        }
-        
-        const entries = e.entries || [];
-        const filteredEntries = entries.filter((entry: any) => {
-          const entryText = typeof entry === 'string' ? entry : (entry.award_name || '');
-          const entryName = entryText.toLowerCase();
-          return majorAwardKeywords.some(k => entryName.includes(k));
-        });
-
-        if (filteredEntries.length > 0) {
-          const winners = filteredEntries.filter((entry: any) => {
-            if (typeof entry === 'string') {
-              const lower = entry.toLowerCase();
-              return lower.includes('vincitore') || lower.includes('winner') || lower.includes('premi') || lower.includes('vinto') || lower.includes('vinta');
-            }
-            return entry.winner;
-          });
-          
-          const others = filteredEntries.filter((entry: any) => !winners.includes(entry));
-
-          if (winners.length > 0) {
-            const winnersText = winners.map((entry: any) => {
-              const text = typeof entry === 'string' ? entry : entry.award_name;
-              return text.split('|').pop()?.trim() || text;
-            }).join(', ');
-            awardsByFestival[match.id].details.add(winnersText);
-          }
-          
-          if (others.length > 0) {
-            const othersCount = others.length;
-            const highlights = others.slice(0, 2).map((entry: any) => {
-              const text = typeof entry === 'string' ? entry : entry.award_name;
-              return text.split('|').pop()?.trim() || text;
-            }).join(', ');
-            awardsByFestival[match.id].details.add(`${othersCount} candidature, tra cui: ${highlights}`);
-          }
-        } else if (
-          match.id !== 'oscar' && // Gli oscar hanno sempre entry specifiche se rilevanti
-          (entries.length > 0 || festivalName.includes('selezione ufficiale') || festivalName.includes('competition'))
-        ) {
-          // Se siamo in un festival di prestigio e c'è almeno un'entrata (anche solo l'anno),
-          // lo consideriamo Selezione Ufficiale
-          awardsByFestival[match.id].details.add('Selezione Ufficiale');
-        }
-      }
+    // Use the full industry_event_entries endpoint to get ALL awards
+    const awardsUrl = `https://api.mubi.com/v3/films/${mubiId}/industry_event_entries`;
+    const awardsResponse = await fetch(awardsUrl, {
+      headers: { 'Client': 'web', 'Client-Country': 'IT' },
+      cache: 'no-store'
     });
 
-    const resultAwards: any[] = [];
+    if (awardsResponse.ok) {
+      const allEntries = await awardsResponse.json();
+      if (Array.isArray(allEntries)) {
+        allEntries.forEach((entry: any) => {
+          const festival = entry.industry_event;
+          if (!festival) return;
+
+          const festivalName = (festival.name || '').toLowerCase();
+          const eventType = festival.type || 'generic';
+
+          const match = festivalMapping.find(f => 
+            f.keywords.some(k => festivalName.includes(k)) || 
+            (f.eventType && eventType === f.eventType)
+          );
+
+          if (match) {
+            if (!awardsByFestival[match.id]) {
+              awardsByFestival[match.id] = {
+                type: match.id,
+                label: match.label,
+                details: new Set<string>(),
+                year: entry.year || null
+              };
+            }
+
+            const isWinner = entry.status === 'won';
+            const awardText = entry.display_text || '';
+
+            if (isWinner || majorAwardKeywords.some(k => awardText.toLowerCase().includes(k))) {
+              const cleanedText = awardText.replace(/^.*?tra cui:\s*/i, '').trim();
+              if (cleanedText) awardsByFestival[match.id].details.add(cleanedText);
+            } else if (awardsByFestival[match.id].details.size === 0) {
+              // Add Official Selection only if we haven't found any specific award yet
+              awardsByFestival[match.id].details.add('Selezione Ufficiale');
+            }
+          }
+        });
+      }
+    }
+
+    const resultAwards: MubiAward[] = [];
     Object.entries(awardsByFestival).forEach(([type, info]) => {
-      const festivalInfo = festivalMapping.find(f => f.id === type);
+      // Remove "Selezione Ufficiale" if there are other more specific awards
+      if (info.details.size > 1 && info.details.has('Selezione Ufficiale')) {
+        info.details.delete('Selezione Ufficiale');
+      }
+
       if (info.details.size > 0) {
         resultAwards.push({
           type,
-          label: festivalInfo?.label || type,
+          label: info.label,
           details: Array.from(info.details).join(', '),
-          year: info.year
+          year: info.year || undefined
         });
       }
     });
 
     return {
       awards: resultAwards,
-      mubiId: bestMatch.id.toString()
+      mubiId: mubiId.toString()
     };
 
   } catch (error) {

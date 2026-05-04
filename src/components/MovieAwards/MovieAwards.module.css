@@ -1,11 +1,28 @@
 .verticalContainer {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem; /* Più uniti */
+  gap: 0.8rem; /* Più uniti */
   align-items: center;
   justify-content: center; /* Centrati verticalmente */
   height: 100%;
   z-index: 50;
+}
+
+.multiColumnContainer {
+  display: flex;
+  flex-direction: row;
+  gap: 2.5rem; /* Gap tra le due colonne */
+  align-items: center; /* Centra verticalmente le colonne tra loro */
+  justify-content: center;
+  height: 100%;
+  z-index: 50;
+}
+
+.awardColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem; /* Gap verticale tra i bollini */
+  align-items: center;
 }
 
 @keyframes fadeInDelay {
@@ -30,8 +47,9 @@
 
 .badge {
   cursor: pointer;
-  width: 95px; /* Leggermente più piccoli */
-  height: 95px;
+  /* Removimg fixed dimensions to allow dynamic sizes from component */
+  width: 100%; 
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -39,6 +57,8 @@
   background: transparent;
   border: none;
 }
+
+
 
 .badge:hover {
   transform: scale(1.15);
@@ -51,7 +71,6 @@
   height: 100%;
   transition: transform 0.6s cubic-bezier(0.2, 1, 0.3, 1);
   filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
-  mix-blend-mode: screen; /* Safety measure for black removal */
 }
 
 .tooltip {
@@ -158,14 +177,22 @@
     right: auto !important;
   }
   
-  .verticalContainer {
+  .verticalContainer, .multiColumnContainer {
     flex-direction: row;
+    flex-wrap: wrap;
     justify-content: center;
+    gap: 1.5rem;
+    height: auto;
+  }
+
+  .awardColumn {
+    flex-direction: row;
     gap: 1.5rem;
   }
 
   .badge {
-    width: 60px;
-    height: 60px;
+    width: 60px !important;
+    height: 60px !important;
   }
+
 }
