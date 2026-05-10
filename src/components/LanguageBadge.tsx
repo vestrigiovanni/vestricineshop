@@ -7,24 +7,39 @@ import { getFullLanguageName } from '@/constants/languages';
 interface LanguageBadgeProps {
   language?: string;
   subtitles?: string;
+  version?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   showLabel?: boolean;
-
 }
 
 export default function LanguageBadge({ 
   language, 
   subtitles, 
+  version,
   size = 'md',
   showLabel = true
 }: LanguageBadgeProps) {
   const hasSubtitles = subtitles && subtitles !== 'NESSUNO' && subtitles !== 'Nessuno';
 
+  const getShortLang = (lang: string) => {
+    const l = lang.toLowerCase();
+    if (l === 'italiano') return 'ITA';
+    if (l === 'francese') return 'FRA';
+    if (l === 'inglese') return 'ING';
+    if (l === 'lingua originale') return 'V.O.';
+    return lang.toUpperCase();
+  };
+
   return (
     <div className={`${styles.badgeContainer} ${styles[size]}`}>
       {language && (
         <div className={styles.langBadge} title={getFullLanguageName(language)}>
-          {language.toUpperCase()}
+          {getShortLang(language)}
+        </div>
+      )}
+      {version && version !== 'Versione Originale' && version !== '' && (
+        <div className={styles.versionBadge} title={`Versione: ${version}`}>
+          {version.toUpperCase()}
         </div>
       )}
       {hasSubtitles && (
@@ -32,7 +47,7 @@ export default function LanguageBadge({
 
           <Languages size={size === 'xs' ? 8 : (size === 'sm' ? 10 : 14)} className={styles.icon} />
 
-          <span>{showLabel ? `SUB ${subtitles.toUpperCase()}` : subtitles.toUpperCase()}</span>
+          <span>{showLabel ? `SUB ${getShortLang(subtitles)}` : getShortLang(subtitles)}</span>
         </div>
       )}
     </div>

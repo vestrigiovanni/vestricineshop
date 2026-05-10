@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import styles from './MovieShowcase.module.css';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import { getMovieTags, TagInfo } from '@/utils/languageUtils';
 import { useAutoScroll } from '@/context/AutoScrollContext';
-import { Video } from 'lucide-react';
+import { Video, ChevronLeft, ChevronRight } from 'lucide-react';
 import useSWR from 'swr';
 import RatingBadge from '../RatingBadge';
 import { useTrailer } from '@/context/TrailerContext';
@@ -62,6 +62,10 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
   const [timerKey, setTimerKey] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
   
   const { openTrailer } = useTrailer();
   const { isAutoScrollEnabled, disableAutoScroll } = useAutoScroll();
@@ -122,6 +126,44 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
     setIsMounted(true);
     setIsHydrated(true);
   }, []);
+
+  const checkScroll = useCallback(() => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setShowLeftArrow(scrollLeft > 10);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(checkScroll, 500); // Initial check after render
+    return () => clearTimeout(timer);
+  }, [checkScroll, sortedMovies]);
+
+  useEffect(() => {
+    const current = scrollRef.current;
+    if (current) {
+      current.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+    }
+    return () => {
+      if (current) {
+        current.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+      }
+    };
+  }, [checkScroll]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const { clientWidth } = scrollRef.current;
+      const scrollAmount = clientWidth * 0.8;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
 
   // Filter movies that are NOT sold out for auto-scroll logic, preserving sorted order
@@ -317,6 +359,7 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                       <LanguageBadge 
                         language={activeMovie.versionLanguage} 
                         subtitles={activeMovie.subtitles} 
+                        version={activeMovie.format}
                         size="sm" 
                         showLabel={false}
                       />
@@ -343,54 +386,73 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
         />
       </div>
 
-      {/* Gallery Section */}
       <div className={styles.galleryList}>
         <h2 className={styles.galleryTitle}>In Programmazione</h2>
-        <div className={styles.galleryScroll}>
-          {sortedMovies.map((movie, index) => (
-            <div 
-              key={movie.id} 
-              className={[
-                styles.cardWrapper, 
-                movie.id === activeMovie.id ? styles.active : '', 
-                movie.isSoldOut ? styles.soldOutCard : ''
-              ].filter(Boolean).join(' ')}
-              onClick={() => handleMovieSelect(movie.id)}
-            >
-              <div className={styles.imageContainer}>
-                {movie.poster_path ? (
-                  <Image 
-                    src={getTMDBImageUrl(movie.poster_path, 'w342')!} 
-                    alt={movie.title}
-                    fill
-                    sizes="(max-width: 768px) 140px, 200px"
-                    style={{ objectFit: 'cover' }}
-                    className={styles.cardImage}
-                    priority={isHydrated && index < 2}
-                    suppressHydrationWarning
-                  />
-                ) : (
-                  <div style={{ padding: '1rem', background: '#333', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-                    {movie.title}
-                  </div>
-                )}
-                {movie.isSoldOut && (
-                  <div className={styles.soldOutBanner}>
-                    <span>SOLD OUT</span>
-                  </div>
-                )}
+        
+        <div className={styles.carouselContainer}>
+          <div className={styles.galleryScroll} ref={scrollRef}>
+            {sortedMovies.map((movie, index) => (
+              <div 
+                key={movie.id} 
+                className={[
+                  styles.cardWrapper, 
+                  movie.id === activeMovie.id ? styles.active : '', 
+                  movie.isSoldOut ? styles.soldOutCard : ''
+                ].filter(Boolean).join(' ')}
+                onClick={() => handleMovieSelect(movie.id)}
+              >
+                <div className={styles.imageContainer}>
+                  {movie.poster_path ? (
+                    <Image 
+                      src={getTMDBImageUrl(movie.poster_path, 'w342')!} 
+                      alt={movie.title}
+                      fill
+                      sizes="(max-width: 768px) 140px, 200px"
+                      style={{ objectFit: 'cover' }}
+                      className={styles.cardImage}
+                      priority={isHydrated && index < 2}
+                      suppressHydrationWarning
+                    />
+                  ) : (
+                    <div style={{ padding: '1rem', background: '#333', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                      {movie.title}
+                    </div>
+                  )}
+                  {movie.isSoldOut && (
+                    <div className={styles.soldOutBanner}>
+                      <span>SOLD OUT</span>
+                    </div>
+                  )}
 
-                {/* LanguageBadge removed from poster as requested */}
-
-
-                {movie.rating && (
-                  <div className={styles.ratingBadgeOverlay}>
-                    <RatingBadge rating={movie.rating} size="sm" />
-                  </div>
-                )}
+                  {movie.rating && (
+                    <div className={styles.ratingBadgeOverlay}>
+                      <RatingBadge rating={movie.rating} size="sm" />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {showLeftArrow && (
+            <button 
+              className={`${styles.navButton} ${styles.navLeft}`} 
+              onClick={() => scroll('left')}
+              aria-label="Scorri a sinistra"
+            >
+              <ChevronLeft size={24} strokeWidth={1.5} />
+            </button>
+          )}
+
+          {showRightArrow && (
+            <button 
+              className={`${styles.navButton} ${styles.navRight}`} 
+              onClick={() => scroll('right')}
+              aria-label="Scorri a destra"
+            >
+              <ChevronRight size={24} strokeWidth={1.5} />
+            </button>
+          )}
         </div>
       </div>
 

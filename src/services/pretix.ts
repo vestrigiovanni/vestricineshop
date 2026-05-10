@@ -318,10 +318,16 @@ export async function fetchPretix(endpoint: string, options: RequestInit = {}, s
         }
 
         if (!response.ok) {
-          const errorText = await response.text();
           const status = response.status;
-          console.error(`Pretix API error [${status}] at ${endpoint}:`, errorText);
-          throw new Error(`Pretix API failed: ${status}`);
+          let errorDetails;
+          try {
+            errorDetails = await response.json();
+          } catch (e) {
+            errorDetails = await response.text();
+          }
+          
+          console.error(`[Pretix API Error ${status}] at ${endpoint}:`, JSON.stringify(errorDetails, null, 2));
+          throw new Error(`Pretix API failed: ${status} - ${typeof errorDetails === 'string' ? errorDetails : JSON.stringify(errorDetails)}`);
         }
 
         if (response.status === 204) return null;
@@ -877,18 +883,23 @@ export async function createSubEvent(movieData: {
       awards: movieData.awards || [],
     });
 
+    // Fallback logic for language and version
+    const displayLanguage = movieData.language || 'Italiano';
+    const displayVersion = movieData.versionLanguage || (movieData.language === 'Italiano' ? 'Versione Originale' : 'Versione Originale Sottotitolata');
+    const displaySubtitles = movieData.subtitles || (displayLanguage === 'Italiano' ? 'Nessuno' : 'Italiano');
+
     const payload: any = {
       name: { it: movieData.title },
       active: true,
       is_public: true,
       date_from: dateFrom,
-      date_to: dateTo, // Must be a valid ISO string — null causes 500 on Pretix Cloud
+      date_to: dateTo, 
       frontpage_text: { it: movieData.title + ' - VESTRI CINEMA' },
       comment: commentPayload,
       seating_plan: Number(movieData.seatingPlanId),
       meta_data: {
-        lingua: movieData.versionLanguage || '',
-        sottotitoli: movieData.subtitles || ''
+        ...(displayLanguage && { lingua: displayLanguage }),
+        ...(displaySubtitles && { sottotitoli: displaySubtitles })
       }
     };
 
@@ -1107,72 +1118,105 @@ export async function syncSoldOutStatus() {
 
 /**
  * Fetches order positions for shows occurring on a specific date.
- * Uses /orderpositions/ with subevent date filters.
- */
-/**
- * Fetches order positions for shows occurring on a specific date.
- * SURGICAL FIX: First gets subevent IDs for the date, then filters orderpositions.
+ * CRITICAL BUG FIX: Pretix's ?subevent=A&subevent=B behaves as AND not OR.
+ * We query each subevent individually (up to 3 concurrent) and merge results.
  */
 export async function getTicketsByDate(dateStr: string) {
   try {
-    // 1. Get SubEvents for this specific day to get their IDs
-    // Pretix filters for /subevents/ are date_from_after and date_from_before
-    const subEventsData = await fetchPretix(`/subevents/?date_from_after=${dateStr}T00:00:00Z&date_from_before=${dateStr}T23:59:59Z`, {}, true);
-    const subEventIds = (subEventsData.results || []).map((se: any) => se.id);
+    // 1. Get SubEvents for this specific day to get their IDs.
+    // CRITICAL: Pretix stores date_from in UTC, but the cinema operates on Europe/Rome (+02:00 CEST).
+    // To find shows on "dateStr" in Italian local time, we query the UTC window that covers
+    // the full Italian day: midnight Rome (+02:00) to 23:59:59 Rome (+02:00).
+    const afterParam  = encodeURIComponent(`${dateStr}T00:00:00+02:00`);
+    const beforeParam = encodeURIComponent(`${dateStr}T23:59:59+02:00`);
+
+    const subEventsData = await fetchPretix(
+      `/subevents/?date_from_after=${afterParam}&date_from_before=${beforeParam}&ordering=date_from&limit=100`,
+      {}, true
+    );
+    const subEvents: any[] = subEventsData?.results || [];
+    const subEventIds = subEvents.map((se: any) => se.id);
+
+    // Build a quick lookup map: subeventId -> full subevent object (includes comment/metadata)
+    const subEventMap = new Map<number, any>();
+    subEvents.forEach((se: any) => subEventMap.set(se.id, se));
 
     if (subEventIds.length === 0) {
-      console.log(`[TicketRecovery] No subevents found for ${dateStr}`);
+      console.log(`[TicketRecovery] No subevents found for ${dateStr} (Rome TZ)`);
       return [];
     }
 
-    // 2. Fetch order positions filtered by these subevent IDs
-    // We use multiple 'subevent=ID' parameters as comma-separated lists are not supported for this filter.
-    const subeventParams = subEventIds.map((id: number) => `subevent=${id}`).join('&');
-    let endpoint = `/orderpositions/?${subeventParams}&order__status=p&expand=subevent&expand=item&expand=order`; 
-    const allPositions: any[] = [];
+    console.log(`[TicketRecovery] Found ${subEventIds.length} subevents for ${dateStr}:`, subEventIds);
 
-    while (endpoint) {
-      const data = await fetchPretix(endpoint, {}, true);
-      
-      if (data?.results) {
-        data.results.forEach((pos: any) => {
-          const itemObj = pos.item;
-          pos.item_name = itemObj?.name?.it || itemObj?.name?.en || 'Film Sconosciuto';
-          pos.order_code = pos.order?.code || pos.order; 
-          
-          const subevent = pos.subevent;
-          pos.show_time = subevent?.date_from ? new Date(subevent.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '??:??';
-          
-          // Customer info: Check position first (attendee), then fallback to order
-          pos.customer_name = pos.attendee_name || pos.order?.email || 'Acquirente';
-          pos.customer_email = pos.attendee_email || pos.order?.email || '';
-          pos.seat_name = pos.seat?.name || '';
-          
-          allPositions.push(pos);
-        });
-      }
+    // Helper: enrich a raw orderposition with display fields
+    const enrichPosition = (pos: any, subeventId: number) => {
+      const itemObj = pos.item;
+      pos.item_name = (typeof itemObj === 'object')
+        ? (itemObj?.name?.it || itemObj?.name?.en || 'Film Sconosciuto')
+        : (pos.item_name || 'Film Sconosciuto');
 
-      if (data?.next) {
-        try {
-          const nextUrl = new URL(data.next);
-          endpoint = nextUrl.pathname.replace(
-            `/api/v1/organizers/${PRETIX_ORGANIZER}/events/${PRETIX_EVENT}`,
-            ''
-          ) + nextUrl.search;
-        } catch {
+      pos.order_code = (typeof pos.order === 'object') ? (pos.order?.code || '') : (pos.order || '');
+
+      // Use subEventMap for show_time — more reliable than expand=subevent on multi-filter queries
+      const seData = subEventMap.get(subeventId);
+      pos.show_time      = seData?.date_from
+        ? new Date(seData.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })
+        : '??:??';
+      pos._date_from_raw = seData?.date_from || ''; // for sorting
+
+      // Customer info: attendee fields first, then order fallback
+      const orderObj = typeof pos.order === 'object' ? pos.order : null;
+      pos.customer_name  = pos.attendee_name  || orderObj?.name  || orderObj?.email || 'Acquirente';
+      pos.customer_email = pos.attendee_email || orderObj?.email || '';
+      pos.seat_name      = pos.seat?.name || '';
+
+      // Enrich with subevent metadata (comment = JSON blob with film data)
+      let parsedMeta: any = {};
+      try { if (seData?.comment) parsedMeta = JSON.parse(seData.comment); } catch { /* no-op */ }
+      pos.subevent_meta = parsedMeta; // tmdbId, posterPath, backdropPath, runtime, director, cast…
+      pos.subevent_name = seData?.name?.it || seData?.name || pos.item_name;
+      pos.subevent      = seData;     // Keep full subevent object for downstream use
+
+      return pos;
+    };
+
+    // Fetch all positions for a single subevent, handling pagination
+    const fetchForSubevent = async (subeventId: number): Promise<any[]> => {
+      const positions: any[] = [];
+      let endpoint = `/orderpositions/?subevent=${subeventId}&order__status=p&expand=item&expand=order&limit=50`;
+
+      while (endpoint) {
+        const data = await fetchPretix(endpoint, {}, true);
+        if (data?.results) {
+          data.results.forEach((pos: any) => positions.push(enrichPosition(pos, subeventId)));
+        }
+        if (data?.next) {
+          try {
+            const nextUrl = new URL(data.next);
+            endpoint = nextUrl.pathname.replace(
+              `/api/v1/organizers/${PRETIX_ORGANIZER}/events/${PRETIX_EVENT}`,
+              ''
+            ) + nextUrl.search;
+          } catch {
+            endpoint = '';
+          }
+        } else {
           endpoint = '';
         }
-      } else {
-        endpoint = '';
       }
-    }
 
-    // Sort by show time
-    return allPositions.sort((a, b) => {
-      const timeA = a.subevent?.date_from || '';
-      const timeB = b.subevent?.date_from || '';
-      return timeA.localeCompare(timeB);
-    });
+      console.log(`[TicketRecovery] subevent ${subeventId}: ${positions.length} biglietti`);
+      return positions;
+    };
+
+    // Run all subevent queries with concurrency limit of 3 (avoids rate-limit)
+    const allPositions = (await limitConcurrency(
+      subEventIds.map((id: number) => () => fetchForSubevent(id)),
+      3
+    )).flat();
+
+    // Sort ascending by actual show time
+    return allPositions.sort((a, b) => (a._date_from_raw || '').localeCompare(b._date_from_raw || ''));
   } catch (error) {
     console.error(`Error fetching tickets for date ${dateStr}:`, error);
     return [];

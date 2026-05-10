@@ -74,8 +74,9 @@ export default function MovieCard({ movie }: MovieCardProps) {
               <div className={styles.badgeWrapper}>
                 <RatingBadge rating={movie.rating || 'T'} size="xs" />
                 <LanguageBadge 
-                  language={movie.versionLanguage || 'ITA'} 
-                  subtitles={movie.subtitles || 'NESSUNO'} 
+                  language={movie.versionLanguage} 
+                  subtitles={movie.subtitles} 
+                  version={movie.format}
                   size="xs"
                 />
               </div>

@@ -1,80 +1,127 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   TicketRecovery.module.css
+   Modal panel + print styles for Pretix PDF / Souvenir / Cassa ticket types
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* ── Modal Overlay ──────────────────────────────────────────────────────────── */
 .modalOverlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 1.5rem;
+  animation: fadeIn 0.18s ease;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Modal Content ──────────────────────────────────────────────────────────── */
 .modalContent {
-  background: #111115;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  background: #0d0d12;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
   width: 100%;
-  max-width: 1100px;
-  max-height: 90vh;
+  max-width: 1160px;
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.7),
+              0 0 0 1px rgba(139, 92, 246, 0.08);
+  animation: slideUp 0.22s ease;
 }
 
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────────── */
 .modalHeader {
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 1.5rem;
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .headerLeft h2 {
   margin: 0;
-  font-size: 1.5rem;
-  background: linear-gradient(to right, #fff, #a78bfa);
+  font-size: 1.35rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   white-space: nowrap;
 }
 
+.todayBadge {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+/* ── Date Navigation ─────────────────────────────────────────────────────────── */
 .dateNavigation {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.5rem 1rem;
-  border-radius: 50px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
 }
 
 .navBtn {
-  color: rgba(255, 255, 255, 0.5);
-  transition: all 0.2s;
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.18s, transform 0.18s;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 6px;
+  padding: 0.1rem;
 }
 
-.navBtn:hover {
-  color: #fff;
-  transform: scale(1.1);
+.navBtn:hover:not(:disabled) {
+  color: #a78bfa;
+  transform: scale(1.12);
+}
+
+.navBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .currentDate {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   color: #fff;
   font-weight: 600;
-  min-width: 220px;
+  font-size: 0.9rem;
+  min-width: 240px;
   justify-content: center;
 }
 
@@ -83,34 +130,43 @@
 }
 
 .closeBtn {
-  color: rgba(255, 255, 255, 0.5);
-  transition: color 0.2s;
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.18s, transform 0.18s;
+  border-radius: 8px;
+  padding: 0.25rem;
+  flex-shrink: 0;
 }
 
 .closeBtn:hover {
   color: #fff;
+  transform: scale(1.1);
 }
 
+/* ── Toolbar ─────────────────────────────────────────────────────────────────── */
 .modalActions {
-  padding: 1rem 2rem;
-  background: rgba(255, 255, 255, 0.02);
+  padding: 0.875rem 1.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .searchWrapper {
   position: relative;
   flex: 1;
+  min-width: 180px;
 }
 
 .searchIcon {
   position: absolute;
-  left: 12px;
+  left: 11px;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
 }
 
 .searchInput {
@@ -118,44 +174,120 @@
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  padding: 0.6rem 1rem 0.6rem 2.5rem;
+  padding: 0.55rem 1rem 0.55rem 2.25rem;
   color: #fff;
+  font-size: 0.875rem;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.18s, background 0.18s;
 }
 
 .searchInput:focus {
   border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.06);
 }
 
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Print Mode Selector ─────────────────────────────────────────────────────── */
+.printModeSelector {
+  display: flex;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.25rem;
+}
+
+.modeBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+.modeBtn:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.modeActive {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+}
+
+/* ── Batch Button ────────────────────────────────────────────────────────────── */
 .batchBtn {
   background: #8b5cf6;
   color: #fff;
-  padding: 0.6rem 1.2rem;
+  padding: 0.55rem 1.1rem;
   border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  transition: all 0.2s;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: all 0.18s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .batchBtn:hover:not(:disabled) {
   background: #7c3aed;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
 }
 
 .batchBtn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
+/* ── Info Bar ────────────────────────────────────────────────────────────────── */
+.infoBar {
+  padding: 0.5rem 1.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.01);
+  flex-shrink: 0;
+}
+
+.infoText {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.infoText strong {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Table Wrapper ───────────────────────────────────────────────────────────── */
 .tableWrapper {
   flex: 1;
   overflow-y: auto;
-  padding: 0 2rem 2rem;
+  padding: 0 1.75rem 1.75rem;
 }
 
+.tableWrapper::-webkit-scrollbar {
+  width: 5px;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────────── */
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -163,104 +295,655 @@
 }
 
 .table th {
-  padding: 1rem;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.85rem;
+  padding: 0.875rem 0.75rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
+  position: sticky;
+  top: 0;
+  background: #0d0d12;
+  z-index: 1;
 }
 
 .table td {
-  padding: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 0.95rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+/* ── Group Row ──────────────────────────────────────────────────────────────── */
+.groupRow td {
+  background: rgba(139, 92, 246, 0.07);
+  border-top: 2px solid rgba(139, 92, 246, 0.15);
+  border-bottom: 0;
+  padding: 0.5rem 0.75rem;
+}
+
+.groupLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #a78bfa;
+  letter-spacing: 0.03em;
+}
+
+/* ── Ticket Row ─────────────────────────────────────────────────────────────── */
+.ticketRow {
+  transition: background 0.15s;
+}
+
+.ticketRow:hover {
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .timeCell {
-  font-weight: 700;
+  font-weight: 800;
   color: #8b5cf6;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .movieCell {
   font-weight: 600;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.subLabel {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 0.1rem;
 }
 
 .seatBadge {
-  background: rgba(244, 63, 94, 0.1);
-  color: #f43f5e;
-  padding: 0.2rem 0.6rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  background: rgba(244, 63, 94, 0.12);
+  color: #fb7185;
+  padding: 0.2rem 0.55rem;
+  border-radius: 5px;
+  font-size: 0.78rem;
   font-weight: 700;
   border: 1px solid rgba(244, 63, 94, 0.2);
+  white-space: nowrap;
+}
+
+.noSeat {
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .customerInfo {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.05rem;
 }
 
 .customerName {
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.88rem;
 }
 
 .customerEmail {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.38);
 }
 
 .code {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  font-family: monospace;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 0.2rem 0.45rem;
+  border-radius: 5px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
   color: #a78bfa;
+  letter-spacing: 0.04em;
 }
 
+/* ── Row Actions ────────────────────────────────────────────────────────────── */
 .rowActions {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   justify-content: flex-end;
+  align-items: center;
 }
 
-.rowActions button, .rowActions a {
-  color: rgba(255, 255, 255, 0.5);
-  transition: all 0.2s;
+.actionBtn {
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.18s, transform 0.18s;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0.4rem;
+  border-radius: 7px;
 }
 
-.rowActions button:hover, .rowActions a:hover {
+.actionBtn:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.07);
+  transform: scale(1.08);
+}
+
+.actionBtnPrint {
+  color: #a78bfa;
+}
+
+.actionBtnPrint:hover {
   color: #fff;
-  transform: scale(1.1);
+  background: rgba(139, 92, 246, 0.25) !important;
 }
 
-.empty {
-  text-align: center;
-  padding: 3rem !important;
+/* ── Empty State ────────────────────────────────────────────────────────────── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 5rem 2rem;
   color: rgba(255, 255, 255, 0.3);
+  text-align: center;
 }
 
+.emptyState p {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.emptyHint {
+  font-size: 0.83rem !important;
+  font-weight: 400 !important;
+  color: rgba(255, 255, 255, 0.2) !important;
+  line-height: 1.6;
+}
+
+/* ── Loader ─────────────────────────────────────────────────────────────────── */
 .loaderCenter {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 5rem;
-  gap: 1rem;
+  padding: 5rem 2rem;
+  gap: 0.75rem;
   color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
+
+.loaderSub {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.25) !important;
+  margin: 0;
 }
 
 .spin {
-  animation: spin 1s linear infinite;
+  animation: spin 0.9s linear infinite;
 }
 
 @keyframes spin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Print-only wrapper (hidden on screen) ──────────────────────────────────── */
+.printOnlyWrapper {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+@media print {
+  /* Hide everything except the print wrapper */
+  body > *:not(.printOnlyWrapper) {
+    display: none !important;
+  }
+
+  .printOnlyWrapper {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    z-index: auto !important;
+    display: block !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   THERMAL TICKET (57mm Cassa)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.thermalPrint {
+  width: 57mm;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 9pt;
+  color: #000;
+  background: #fff;
+  padding: 4mm;
+  box-sizing: border-box;
+}
+
+.thermalHeader {
+  font-size: 13pt;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0.12em;
+  margin-bottom: 2mm;
+}
+
+.thermalHr {
+  border: none;
+  border-top: 1px dashed #000;
+  margin: 2mm 0;
+}
+
+.thermalTitle {
+  text-align: center;
+  margin: 3mm 0;
+}
+
+.thermalLogo {
+  max-width: 46mm;
+  max-height: 15mm;
+  object-fit: contain;
+}
+
+.thermalMovieName {
+  font-size: 11pt;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+.thermalQrArea {
+  text-align: center;
+  margin: 3mm 0;
+}
+
+.thermalQrPlaceholder {
+  font-size: 7pt;
+  color: #555;
+  margin-bottom: 1mm;
+}
+
+.thermalOrderCode {
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.thermalRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 2mm;
+  margin: 1mm 0;
+  font-size: 8.5pt;
+}
+
+.thermalLabel {
+  color: #555;
+  font-weight: 600;
+}
+
+.thermalValue {
+  font-weight: 700;
+  text-align: right;
+  max-width: 35mm;
+  word-break: break-word;
+}
+
+.thermalValueBig {
+  font-size: 11pt;
+  font-weight: 900;
+}
+
+.thermalFooter {
+  text-align: center;
+  font-size: 7.5pt;
+  color: #555;
+  margin-top: 2mm;
+}
+
+.thermalFooterDate {
+  font-size: 7pt;
+  color: #888;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SOUVENIR TICKET (A5 landscape)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.souvenirPrint {
+  width: 210mm;
+  height: 148mm;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: 'Inter', 'Helvetica Neue', sans-serif;
+}
+
+.souvenirBackdrop {
+  position: absolute;
+  inset: 0;
+}
+
+.souvenirBackdrop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+}
+
+.souvenirGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.6) 100%);
+}
+
+.souvenirContent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8mm 12mm;
+}
+
+.souvenirTop {
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+}
+
+.souvenirDirector {
+  font-size: 7pt;
+  letter-spacing: 0.15em;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase;
+}
+
+.souvenirLogo {
+  max-width: 80mm;
+  max-height: 22mm;
+  object-fit: contain;
+}
+
+.souvenirTitle {
+  font-size: 20pt;
+  font-weight: 900;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.souvenirTagline {
+  font-size: 8pt;
+  font-style: italic;
+  color: rgba(255,255,255,0.55);
+}
+
+.souvenirSeats {
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+}
+
+.souvenirRoom {
+  font-size: 7pt;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+}
+
+.souvenirSeatRow {
+  display: flex;
+  align-items: center;
+  gap: 5mm;
+}
+
+.souvenirSeatItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5mm;
+}
+
+.souvenirSeatLabel {
+  font-size: 6.5pt;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.1em;
+}
+
+.souvenirSeatValue {
+  font-size: 20pt;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.souvenirSeatDot {
+  font-size: 16pt;
+  color: rgba(255,255,255,0.3);
+}
+
+.souvenirBottom {
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+}
+
+.souvenirDateLine {
+  font-size: 7.5pt;
+  color: rgba(255,255,255,0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.souvenirOrderCode {
+  font-size: 8pt;
+  font-family: 'Courier New', monospace;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.1em;
+}
+
+.souvenirBrand {
+  font-size: 7pt;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+}
+
+.souvenirQr {
+  position: absolute;
+  right: 10mm;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2mm;
+}
+
+.souvenirQrPlaceholder {
+  width: 30mm;
+  height: 30mm;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7pt;
+  color: rgba(255,255,255,0.4);
+  border-radius: 2mm;
+}
+
+.souvenirQrCode {
+  font-family: 'Courier New', monospace;
+  font-size: 6.5pt;
+  color: rgba(255,255,255,0.45);
+  text-align: center;
+  letter-spacing: 0.08em;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SOUVENIR PREVIEW MODAL
+   Full-screen overlay for previewing and generating souvenir PDF tickets
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.souvenirModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000; /* Above the main ticket recovery modal */
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.18s ease;
+}
+
+.souvenirModalPanel {
+  background: #0a0a0f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 960px;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8),
+              0 0 0 1px rgba(139, 92, 246, 0.1);
+  animation: slideUp 0.22s ease;
+}
+
+/* ── Souvenir Modal Header ── */
+.souvenirModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.souvenirModalTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.souvenirModalTitle em {
+  font-style: normal;
+  background: linear-gradient(135deg, #a78bfa, #60a5fa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.souvenirOrderBadge {
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #a78bfa;
+  padding: 0.15rem 0.55rem;
+  border-radius: 6px;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  margin-left: 0.25rem;
+}
+
+.souvenirModalActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.souvenirActionBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.18s;
+  cursor: pointer;
+}
+
+.souvenirActionBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.souvenirActionBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.souvenirActionBtnPrimary {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 3px 10px rgba(124, 58, 237, 0.3);
+}
+
+.souvenirActionBtnPrimary:hover:not(:disabled) {
+  box-shadow: 0 5px 16px rgba(124, 58, 237, 0.45) !important;
+  transform: translateY(-1px);
+}
+
+.souvenirCloseBtn {
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.18s, transform 0.18s;
+  padding: 0.35rem;
+  border-radius: 8px;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.souvenirCloseBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ── Souvenir Ticket Container ── */
+.souvenirTicketContainer {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: #050508;
+  min-height: 200px;
+}
+
+.souvenirTicketContainer::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.souvenirTicketContainer::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+/* ── Souvenir Modal Footer ── */
+.souvenirModalFooter {
+  padding: 0.6rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.01);
 }

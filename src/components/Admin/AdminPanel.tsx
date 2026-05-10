@@ -223,6 +223,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const selectMovieForScheduling = async (movie: MovieItem) => {
     setSelectedMovie(movie);
     const isItalian = movie.original_language === 'it';
+    const translatedLang = getLanguageName(movie.original_language);
 
     // Get the first available room
     const defaultRoom = defaultSalaId || (availableSeatingPlans.length > 0 ? availableSeatingPlans[0].id.toString() : '');
@@ -236,9 +237,9 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       posterPath: movieOverride?.customPosterPath || movie.poster_path || '',
       date: getDefaultProjectionDate(),
       roomId: defaultRoom,
-      language: getLanguageName(movie.original_language),
+      language: movieOverride?.versionLanguage || (isItalian ? 'Italiano' : translatedLang),
       subtitles: movieOverride?.subtitles || (isItalian ? 'Nessuno' : 'Italiano'),
-      versionLanguage: movieOverride?.versionLanguage || 'Lingua Originale'
+      versionLanguage: movieOverride?.customVersion || (isItalian ? 'Versione Originale' : 'Versione Originale Sottotitolata')
     });
     setConflict(null);
     setConflictEndTime(null);
@@ -286,10 +287,11 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     };
 
     setSelectedMovie(movie);
-    const replicaLang = metadata.language || 'Italiano';
+    const replicaLang = metadata.language || (movie.original_language === 'it' ? 'Italiano' : getLanguageName(movie.original_language));
     const replicaSubtitles = metadata.subtitles
       ? metadata.subtitles
-      : replicaLang === 'Italiano' ? 'Nessuno' : 'Italiano';
+      : (replicaLang === 'Italiano' ? 'Nessuno' : 'Italiano');
+    const replicaVersion = metadata.versionLanguage || (movie.original_language === 'it' ? 'Versione Originale' : 'Versione Originale Sottotitolata');
 
     setFormState({
       title: movie.title,
@@ -298,8 +300,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       date: getDefaultProjectionDate(),
       roomId: event.seating_plan?.toString() || (availableSeatingPlans.length > 0 ? availableSeatingPlans[0].id.toString() : ''),
       language: replicaLang,
-      subtitles: metadata.subtitles || replicaSubtitles,
-      versionLanguage: metadata.versionLanguage || 'Lingua Originale'
+      subtitles: replicaSubtitles,
+      versionLanguage: replicaVersion
     });
     setShowModal(true);
 
@@ -1217,32 +1219,36 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                       </div>
 
                       <div className={styles.formGroup}>
-                        <label className={styles.modalLabel}>Versione (Lingua)</label>
-                        <select
-                          value={formState.versionLanguage}
-                          onChange={(e) => setFormState({ ...formState, versionLanguage: e.target.value })}
+                        <label className={styles.modalLabel}>Lingua</label>
+                        <input
+                          type="text"
+                          value={formState.language}
+                          onChange={(e) => setFormState({ ...formState, language: e.target.value })}
                           className={styles.modalInput}
-                        >
-
-                          <option value="Lingua Originale">Lingua Originale</option>
-                          <option value="English Version">English Version</option>
-                          <option value="Versione Originale">Versione Originale</option>
-                        </select>
+                          placeholder="es. Francese"
+                        />
                       </div>
 
                       <div className={styles.formGroup}>
                         <label className={styles.modalLabel}>Sottotitoli</label>
-                        <select
+                        <input
+                          type="text"
                           value={formState.subtitles}
                           onChange={(e) => setFormState({ ...formState, subtitles: e.target.value })}
                           className={styles.modalInput}
-                        >
-                          <option value="Nessuno">Nessuno</option>
-                          <option value="Italiano">Sottotitoli in Italiano</option>
-                          <option value="Sub ITA">Sub ITA</option>
-                          <option value="English">Sub English</option>
-                          <option value="Sub ENG">Sub ENG</option>
-                        </select>
+                          placeholder="es. Italiano"
+                        />
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label className={styles.modalLabel}>Versione</label>
+                        <input
+                          type="text"
+                          value={formState.versionLanguage}
+                          onChange={(e) => setFormState({ ...formState, versionLanguage: e.target.value })}
+                          className={styles.modalInput}
+                          placeholder="es. V.O.S."
+                        />
                       </div>
 
                       <div className={styles.formGroup}>

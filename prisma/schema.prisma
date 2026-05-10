@@ -17,6 +17,7 @@ model MovieOverride {
   customTrailerTitle String?
   versionLanguage    String?
   subtitles          String?
+  customVersion      String?
   customRoomName     String?
   manualSoldOut      Boolean      @default(false)
   updatedAt          DateTime     @updatedAt

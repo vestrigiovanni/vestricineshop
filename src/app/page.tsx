@@ -123,8 +123,9 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
       trailerKey: extractYouTubeId(movie.customTrailerUrl || '') || (Array.isArray(m.customTrailerKeys) ? m.customTrailerKeys[0] : ''),
       trailerKeys: Array.isArray(m.customTrailerKeys) ? m.customTrailerKeys : (typeof m.customTrailerKeys === 'string' ? JSON.parse(m.customTrailerKeys) : []),
       rating: movie.customRating || 'T',
-      versionLanguage: movie.versionLanguage || 'ITA',
-      subtitles: movie.subtitles || 'NESSUNO',
+      versionLanguage: movie.versionLanguage || '',
+      subtitles: movie.subtitles || '',
+      format: (movie as any).customVersion || '',
       awards: (movie as any).awards || [],
     };
   });
@@ -152,11 +153,11 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
     roomName: p.movie?.customRoomName || p.roomName || 'Sala',
     active: p.active,
     meta_data: {
-      lingua: p.metaLingua,
-      sottotitoli: p.metaSottotitoli,
-      format: p.metaFormat,
-      versionLanguage: p.movie?.versionLanguage || 'ITA',
-      subtitles: p.movie?.subtitles || 'NESSUNO',
+      lingua: p.metaLingua || p.movie?.versionLanguage || '',
+      sottotitoli: p.metaSottotitoli || p.movie?.subtitles || '',
+      format: p.metaFormat || p.movie?.customVersion || '',
+      versionLanguage: p.metaLingua || p.movie?.versionLanguage || '',
+      subtitles: p.metaSottotitoli || p.movie?.subtitles || '',
       rating: p.movie?.customRating || 'T'
     }
 

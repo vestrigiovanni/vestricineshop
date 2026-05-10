@@ -5,6 +5,7 @@ import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import { revalidatePath } from 'next/cache';
 import { MovieOverride } from './db.service';
 import { normalizeLanguageCode } from '@/constants/languages';
+import { getLanguageName } from '@/services/tmdb.utils';
 
 
 export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boolean; skipPush?: boolean } = {}) {
@@ -213,8 +214,8 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
               customTrailerKeys: tmdbData.trailerKeys || [],
               releaseDate: tmdbData.release_date,
               runtime: tmdbData.runtime,
-              versionLanguage: tmdbData.original_language === 'it' ? 'ITA' : normalizeLanguageCode(tmdbData.original_language),
-              subtitles: tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA',
+              versionLanguage: tmdbData.original_language === 'it' ? 'Italiano' : getLanguageName(tmdbData.original_language),
+              subtitles: tmdbData.original_language === 'it' ? 'Nessuno' : 'Italiano',
               isManualOverride: false,
               isDraft: false,
               awards: {

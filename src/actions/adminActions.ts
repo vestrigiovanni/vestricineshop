@@ -1330,6 +1330,9 @@ export async function upsertMovieOverride(tmdbId: string, override: any) {
       ...override, 
       customDirector: Array.isArray(override.customDirector) ? override.customDirector.join(', ') : override.customDirector,
       customCast: Array.isArray(override.customCast) ? override.customCast.join(', ') : override.customCast,
+      versionLanguage: override.language,
+      subtitles: override.subtitles,
+      customVersion: override.versionLanguage,
       isManualOverride: true,
       isDraft: false
     });
@@ -1361,8 +1364,9 @@ export async function upsertMovieOverride(tmdbId: string, override: any) {
         tmdbId: tmdbId,
         rating: override.customRating || 'T',
         runtime: override.runtime || 120,
-        versionLanguage: override.versionLanguage || 'ITA',
+        versionLanguage: override.language || 'ITA',
         subtitles: override.subtitles || 'NESSUNO',
+        customVersion: override.versionLanguage || '',
         posterPath: override.customPosterPath || '',
         backdropPath: override.customBackdropPath || '',
         logoPath: override.customLogoPath || '',
@@ -1374,8 +1378,8 @@ export async function upsertMovieOverride(tmdbId: string, override: any) {
         await updateSubEvent(proj.pretixId, {
           comment: JSON.stringify(commentObj),
           meta_data: {
-            lingua: override.versionLanguage || 'ITA',
-            sottotitoli: override.subtitles || 'NESSUNO'
+            ...(override.language && { lingua: override.language }),
+            ...(override.subtitles && { sottotitoli: override.subtitles })
           }
         });
       }

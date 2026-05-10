@@ -21,6 +21,7 @@ export interface MovieOverride {
   manualSoldOut?: boolean;
   versionLanguage?: string | null;
   subtitles?: string | null;
+  customVersion?: string | null;
   customRoomName?: string | null;
   customTrailerUrl?: string | null;
   customTrailerTitle?: string | null;
@@ -87,7 +88,7 @@ export async function saveOverride(tmdbId: string, override: Partial<MovieOverri
     const VALID_FIELDS = [
       'customTitle', 'customOverview', 'customRating', 'customPosterPath', 
       'customBackdropPath', 'customLogoPath', 'customTrailerUrl', 'customTrailerTitle', 'customTrailerKeys',
-      'versionLanguage', 'subtitles', 'customRoomName', 'manualSoldOut',
+      'versionLanguage', 'subtitles', 'customVersion', 'customRoomName', 'manualSoldOut',
       'isManualOverride', 'isDraft', 'customDirector', 'customCast',
       'releaseDate', 'runtime', 'mubiId'
     ];

@@ -242,8 +242,9 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
                                 className={styles.calendarBadge} 
                               />
                               <LanguageBadge 
-                                language={se.meta_data?.versionLanguage || 'ITA'} 
-                                subtitles={se.meta_data?.subtitles || 'NESSUNO'} 
+                                language={se.meta_data?.lingua} 
+                                subtitles={se.meta_data?.sottotitoli} 
+                                version={se.meta_data?.format}
                                 size="xs" 
                                 showLabel={false}
                               />
