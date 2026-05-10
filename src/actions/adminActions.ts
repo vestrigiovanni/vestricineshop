@@ -282,6 +282,7 @@ export async function adminGetMovieById(id: string) {
           director: existing.customDirector ? existing.customDirector.split(', ') : [],
           cast: existing.customCast ? existing.customCast.split(', ') : [],
           release_date: existing.releaseDate || '',
+          original_language: existing.versionLanguage || 'it', // Fallback to 'it' if unknown
           runtime: existing.runtime || 0,
           id: id // for compatibility
         };
@@ -1330,9 +1331,9 @@ export async function upsertMovieOverride(tmdbId: string, override: any) {
       ...override, 
       customDirector: Array.isArray(override.customDirector) ? override.customDirector.join(', ') : override.customDirector,
       customCast: Array.isArray(override.customCast) ? override.customCast.join(', ') : override.customCast,
-      versionLanguage: override.language,
+      versionLanguage: override.versionLanguage,
       subtitles: override.subtitles,
-      customVersion: override.versionLanguage,
+      customVersion: override.customVersion,
       isManualOverride: true,
       isDraft: false
     });
@@ -1364,9 +1365,9 @@ export async function upsertMovieOverride(tmdbId: string, override: any) {
         tmdbId: tmdbId,
         rating: override.customRating || 'T',
         runtime: override.runtime || 120,
-        versionLanguage: override.language || 'ITA',
+        versionLanguage: override.versionLanguage || 'ITA',
         subtitles: override.subtitles || 'NESSUNO',
-        customVersion: override.versionLanguage || '',
+        customVersion: override.customVersion || '',
         posterPath: override.customPosterPath || '',
         backdropPath: override.customBackdropPath || '',
         logoPath: override.customLogoPath || '',

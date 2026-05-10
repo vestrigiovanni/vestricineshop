@@ -23,7 +23,7 @@ import ImagePickerModal from './ImagePickerModal';
 import TrailerPickerModal from './TrailerPickerModal';
 import VisualControlCenter from './VisualControlCenter';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
-import { LANGUAGE_MAP, SUBTITLE_OPTIONS } from '@/constants/languages';
+import { LANGUAGE_MAP, SUBTITLE_OPTIONS, normalizeLanguageCode } from '@/constants/languages';
 import RatingBadge from '@/components/RatingBadge';
 
 
@@ -79,8 +79,8 @@ export default function MoviesControlPage() {
     setFormState({
       customTitle: override.customTitle ?? (movie.title || ''),
       customOverview: override.customOverview ?? (movie.overview || ''),
-      versionLanguage: override.versionLanguage || 'ITA',
-      subtitles: override.subtitles || 'NESSUNO',
+      versionLanguage: override.versionLanguage || normalizeLanguageCode(movie.original_language),
+      subtitles: override.subtitles || (movie.original_language === 'it' ? 'NESSUNO' : 'ITA'),
 
       customPosterPath: override.customPosterPath ?? (movie.poster_path || ''),
       customBackdropPath: override.customBackdropPath ?? (movie.backdrop_path || ''),
@@ -163,7 +163,7 @@ export default function MoviesControlPage() {
     const id = editingMovie.id?.toString() || editingMovie.tmdbId;
     await adminClearMovieMetadata(id);
     const freshMovie = await adminGetMovieById(id);
-    if (freshMovie) setEditingMovie(freshMovie);
+    if (freshMovie) openEditor(freshMovie);
     setLoading(false);
   };
 

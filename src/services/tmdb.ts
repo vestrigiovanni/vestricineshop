@@ -714,6 +714,7 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
       tmdbId,
       title: details.title,
       original_title: details.original_title,
+      original_language: details.original_language,
       overview: details.overview,
       poster_path: details.poster_path,
       backdrop_path,
