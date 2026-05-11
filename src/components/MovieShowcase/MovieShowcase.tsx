@@ -357,9 +357,9 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                     <div className={styles.showtimeLabels}>
                       <RatingBadge rating={activeMovie.rating || 'T'} size="xs" />
                       <LanguageBadge 
-                        language={activeMovie.versionLanguage} 
-                        subtitles={activeMovie.subtitles} 
-                        version={activeMovie.format}
+                        language={se.language || activeMovie.versionLanguage} 
+                        subtitles={se.subtitles || activeMovie.subtitles} 
+                        version={se.format || activeMovie.format}
                         size="sm" 
                         showLabel={false}
                       />
