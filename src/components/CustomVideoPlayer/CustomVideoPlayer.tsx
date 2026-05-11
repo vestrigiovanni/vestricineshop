@@ -27,6 +27,7 @@ export default function CustomVideoPlayer({ videoId, backdropUrl, isPlaying, onC
   const [mounted, setMounted] = useState(false);
   const [apiReady, setApiReady] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [videoReady, setVideoReady] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -43,7 +44,17 @@ export default function CustomVideoPlayer({ videoId, backdropUrl, isPlaying, onC
   };
 
   useEffect(() => {
-    if (!isPlaying || !mounted || !apiReady || !videoId) return;
+    if (!isPlaying) {
+      setVideoReady(false);
+      return;
+    }
+
+    if (!mounted || !apiReady || !videoId) return;
+
+    // Safety reveal after 5 seconds if YouTube API fails to report PLAYING state
+    const safetyTimer = setTimeout(() => {
+      setVideoReady(true);
+    }, 5000);
 
     const initPlayer = () => {
       if (!playerWrapperRef.current) return;
@@ -83,14 +94,23 @@ export default function CustomVideoPlayer({ videoId, backdropUrl, isPlaying, onC
                 }
               }, 1000);
             }
+          },
+          onStateChange: (event: any) => {
+            // When the video actually starts playing, we reveal it
+            // 1 is the numeric value for window.YT.PlayerState.PLAYING
+            if (event.data === 1) {
+              // Give it a tiny bit of buffer to ensure the first frames are rendered
+              setTimeout(() => setVideoReady(true), 300);
+            }
           }
         }
       });
     };
 
-    const timer = setTimeout(initPlayer, 400);
+    initPlayer();
+    
     return () => {
-      clearTimeout(timer);
+      clearTimeout(safetyTimer);
       if (playerRef.current) {
         try { playerRef.current.destroy(); } catch (e) { }
         playerRef.current = null;
@@ -140,12 +160,9 @@ export default function CustomVideoPlayer({ videoId, backdropUrl, isPlaying, onC
         onLoad={handleScriptLoad}
       />
       <div className={styles.videoWrapper}>
-        {backdropUrl && (
-          <div
-            className={styles.kenBurnsBackdrop}
-            style={{ backgroundImage: `url(${backdropUrl})` }}
-          />
-        )}
+        <div 
+          className={`${styles.blackVeil} ${videoReady ? styles.veilHidden : ''}`} 
+        />
         <div 
           ref={playerWrapperRef} 
           className={styles.iframeWrapper} 

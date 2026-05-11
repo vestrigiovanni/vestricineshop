@@ -516,18 +516,49 @@ export async function syncNewlyCreatedEvents(pretixIds: number[]) {
         }
       }
 
-      // Ensure MovieOverride stub exists
+      // Ensure MovieOverride exists and is hydrated
       if (tmdbId) {
-        await prisma.movieOverride.upsert({
-          where: { tmdbId },
-          update: {},
-          create: { 
-            tmdbId,
-            customTitle: 'Caricamento...',
-            isManualOverride: false,
-            isDraft: false
+        const existingMovie = await prisma.movieOverride.findUnique({ where: { tmdbId } });
+        const isStub = existingMovie?.customTitle === 'Caricamento...';
+        
+        if (!existingMovie || isStub) {
+          console.log(`[SYNC-SURGICAL] 🚀 Hydrating metadata for TMDB ID: ${tmdbId}`);
+          try {
+            const tmdbData = await getEnrichedMovieMetadata(tmdbId);
+            if (tmdbData) {
+              await prisma.movieOverride.upsert({
+                where: { tmdbId },
+                update: {
+                  customTitle: isStub ? tmdbData.title : (existingMovie?.customTitle || tmdbData.title),
+                  customOverview: existingMovie?.customOverview || tmdbData.overview,
+                  customPosterPath: existingMovie?.customPosterPath || tmdbData.poster_path,
+                  customBackdropPath: existingMovie?.customBackdropPath || tmdbData.backdrop_path,
+                  customDirector: existingMovie?.customDirector || (Array.isArray(tmdbData.director) ? tmdbData.director.join(', ') : tmdbData.director),
+                  customCast: existingMovie?.customCast || (Array.isArray(tmdbData.cast) ? tmdbData.cast.join(', ') : tmdbData.cast),
+                  customRating: existingMovie?.customRating || tmdbData.rating || 'T',
+                  releaseDate: existingMovie?.releaseDate || tmdbData.release_date,
+                  runtime: existingMovie?.runtime || tmdbData.runtime,
+                },
+                create: {
+                  tmdbId,
+                  customTitle: tmdbData.title,
+                  customOverview: tmdbData.overview,
+                  customPosterPath: tmdbData.poster_path || '',
+                  customBackdropPath: tmdbData.backdrop_path || '',
+                  customDirector: Array.isArray(tmdbData.director) ? tmdbData.director.join(', ') : (tmdbData.director || ''),
+                  customCast: Array.isArray(tmdbData.cast) ? tmdbData.cast.join(', ') : (tmdbData.cast || ''),
+                  customRating: tmdbData.rating || 'T',
+                  isManualOverride: false,
+                  isDraft: false,
+                  releaseDate: tmdbData.release_date,
+                  runtime: tmdbData.runtime
+                }
+              });
+            }
+          } catch (hydrErr) {
+            console.error(`[SYNC-SURGICAL] ⚠️ Hydration failed for ${tmdbId}:`, hydrErr);
           }
-        });
+        }
       }
 
       const roomName = se.seating_plan ? (roomsMap[se.seating_plan] || 'Sala') : 'Sala';

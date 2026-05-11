@@ -1519,36 +1519,46 @@ export async function adminSyncSoldOutStatus() {
  * PRE-SCHEDULING: Fetch and cache full movie metadata (including awards)
  */
 export async function adminPrepareMetadata(tmdbId: string) {
-  const { getEnrichedMovieMetadata } = await import('@/services/tmdb');
-  const { saveOverride } = await import('@/services/db.service');
-  
-  console.log(`[adminPrepareMetadata] 🚀 Preparing metadata for TMDB ID: ${tmdbId}`);
-  const metadata = await getEnrichedMovieMetadata(tmdbId);
-  
-  if (metadata) {
-    const prisma = (await import('@/lib/prisma')).default;
-    const existing = await prisma.movieOverride.findUnique({ where: { tmdbId } }) as any;
+  try {
+    const { getEnrichedMovieMetadata } = await import('@/services/tmdb');
+    const { saveOverride } = await import('@/services/db.service');
     
-    console.log(`[adminPrepareMetadata] 💾 Persisting enriched metadata to DB for ${tmdbId}`);
-    await saveOverride(tmdbId, {
-      customTitle: (existing?.customTitle && existing.customTitle !== 'Caricamento...') ? existing.customTitle : metadata.title,
-      customOverview: existing?.customOverview || metadata.overview,
-      customPosterPath: existing?.customPosterPath || metadata.poster_path || '',
-      customBackdropPath: existing?.customBackdropPath || metadata.backdrop_path || '',
-      customLogoPath: existing?.customLogoPath || metadata.logo_path || '',
-      customTrailerUrl: existing?.customTrailerUrl || metadata.trailerUrl || '',
-      customRating: existing?.customRating || metadata.rating || 'T',
-      customDirector: existing?.customDirector || (Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || '')),
-      customCast: existing?.customCast || (Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || '')),
-      runtime: metadata.runtime,
-      releaseDate: metadata.release_date,
-      awards: metadata.awards || [],
-      isManualOverride: existing?.isManualOverride || false,
-      isDraft: false
-    });
+    console.log(`[adminPrepareMetadata] 🚀 Preparing metadata for TMDB ID: ${tmdbId}`);
+    const metadata = await getEnrichedMovieMetadata(tmdbId);
+    
+    if (metadata) {
+      const prisma = (await import('@/lib/prisma')).default;
+      const existing = await prisma.movieOverride.findUnique({ where: { tmdbId } }) as any;
+      
+      const isStub = existing?.customTitle === 'Caricamento...';
+      console.log(`[adminPrepareMetadata] 💾 Persisting enriched metadata to DB for ${tmdbId} (Existing: ${!!existing}, isStub: ${isStub})`);
+      
+      await saveOverride(tmdbId, {
+        customTitle: (existing?.customTitle && !isStub) ? existing.customTitle : metadata.title,
+        customOverview: existing?.customOverview || metadata.overview,
+        customPosterPath: existing?.customPosterPath || metadata.poster_path || '',
+        customBackdropPath: existing?.customBackdropPath || metadata.backdrop_path || '',
+        customLogoPath: existing?.customLogoPath || metadata.logo_path || '',
+        customTrailerUrl: existing?.customTrailerUrl || metadata.trailerUrl || '',
+        customRating: existing?.customRating || metadata.rating || 'T',
+        customDirector: existing?.customDirector || (Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || '')),
+        customCast: existing?.customCast || (Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || '')),
+        runtime: metadata.runtime,
+        releaseDate: metadata.release_date,
+        awards: metadata.awards || [],
+        isManualOverride: existing?.isManualOverride || false,
+        isDraft: false
+      });
+      
+      return metadata;
+    } else {
+      console.warn(`[adminPrepareMetadata] ⚠️ No metadata found for TMDB ID: ${tmdbId}`);
+    }
+  } catch (error) {
+    console.error(`[adminPrepareMetadata] ❌ Error preparing metadata for ${tmdbId}:`, error);
   }
   
-  return metadata;
+  return null;
 }
 
 export async function adminSyncNewlyCreatedEvents(pretixIds: number[]) {
