@@ -49,7 +49,8 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
       'vincitore', 'winner', 'palma', 'palme', 'grand prix', 'leone', 'lion', 
       'oscar', 'miglior', 'best', 'prix', 'jury', 'giuria', 'pardo', 'silver', 
       'argento', 'oro', 'golden', 'bear', 'orso', 'concha', 'shell', 'bafta', 
-      'telluride', 'official selection', 'selezione ufficiale', 'premio', 'vinto', 'vinta', 'award'
+      'telluride', 'official selection', 'selezione ufficiale', 'premio', 'vinto', 'vinta', 'award',
+      'orizzonti', 'volpi', 'leoncino', 'pasinetti', 'fipresci', 'queer lion', 'opera prima'
     ];
 
     const festivalMapping = [
@@ -104,7 +105,7 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
             const isWinner = entry.status === 'won';
             const awardText = entry.display_text || '';
 
-            if (isWinner || majorAwardKeywords.some(k => awardText.toLowerCase().includes(k))) {
+            if (isWinner || majorAwardKeywords.some((k: string) => awardText.toLowerCase().includes(k))) {
               const cleanedText = awardText.replace(/^.*?tra cui:\s*/i, '').trim();
               if (cleanedText) awardsByFestival[match.id].details.add(cleanedText);
             } else if (awardsByFestival[match.id].details.size === 0) {
@@ -142,4 +143,21 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
     console.error(`[MUBI] Error fetching awards for ${title}:`, error);
     return null;
   }
+}
+
+/**
+ * MANUAL OVERRIDES: For very new films (like Familia) not yet on MUBI.
+ */
+export function getManualAwards(tmdbId: string): MubiAward[] | null {
+  const overrides: Record<string, MubiAward[]> = {
+    "1313006": [ // Familia (2024)
+      {
+        type: 'venice',
+        label: "Mostra internazionale d'arte cinematografica la biennale di venezia",
+        details: "Vincitore Premio Orizzonti per il miglior attore (Francesco Gheghi), Selezione Ufficiale",
+        year: 2024
+      }
+    ]
+  };
+  return overrides[tmdbId] || null;
 }

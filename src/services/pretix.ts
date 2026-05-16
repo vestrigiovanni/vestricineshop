@@ -426,9 +426,9 @@ export async function getSeatingPlansMap() {
 /**
  * Fetches a single seating plan detail directly from Pretix.
  */
-export async function getSeatingPlanDetail(planId: number) {
+export async function getSeatingPlanDetail(planId: number, skipCache = false) {
   try {
-    const data = await fetchPretix(`/organizers/${PRETIX_ORGANIZER}/seatingplans/${planId}/`);
+    const data = await fetchPretix(`/organizers/${PRETIX_ORGANIZER}/seatingplans/${planId}/`, {}, skipCache);
     return data;
   } catch (error) {
     console.error(`Error fetching seating plan ${planId}:`, error);
@@ -993,6 +993,8 @@ export async function createCassaOrder(params: {
     email: 'cassa@vestricinema.it',
     locale: 'it',
     status: 'p', // paid — ticket gratuito, valido immediatamente
+    payment_provider: 'free',
+    payment_date: new Date().toISOString(),
     positions: seats.map((s) => ({
       item: s.itemId || ITEM_INTERO_ID,
       seat: s.guid,

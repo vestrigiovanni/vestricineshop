@@ -475,20 +475,27 @@ function calculateCapacitiesFromLayout(layout: any) {
   let intero = 0;
   let vip = 0;
 
+  const checkVip = (categoryName: string) => {
+    const name = (categoryName || '').toUpperCase();
+    return name.includes('VIP') || name.includes('POLTRONA');
+  };
+
+  // 1. Handle zones structure (Classic)
   layout?.zones?.forEach((zone: any) => {
     zone.rows?.forEach((row: any) => {
       row.seats?.forEach((seat: any) => {
-        const isVip = seat.category && (
-          seat.category.toUpperCase().includes('VIP') ||
-          seat.category.toUpperCase().includes('POLTRONA')
-        );
-        if (isVip) {
-          vip++;
-        } else {
-          intero++;
-        }
+        if (checkVip(seat.category)) vip++;
+        else intero++;
       });
     });
+  });
+
+  // 2. Handle flat objects structure (New Editor / Graphical)
+  layout?.objects?.forEach((obj: any) => {
+    if (obj.type === 'seat' || obj.category) {
+      if (checkVip(obj.category)) vip++;
+      else intero++;
+    }
   });
 
   return { intero, vip };
@@ -532,7 +539,7 @@ export async function adminScheduleMovie(
     : getCast(details);
 
   // 2. Fetch Seating Plan Details to get exact category names
-  const planDetail = await getSeatingPlanDetail(seatingPlanId);
+  const planDetail = await getSeatingPlanDetail(seatingPlanId, true);
   if (!planDetail) throw new Error(`Could not fetch seating plan detail for ID ${seatingPlanId}`);
 
   // 3. Build Seat Category Mapping ONLY from categories that have actual seats in the layout.
@@ -541,12 +548,21 @@ export async function adminScheduleMovie(
   //
   // Step A: collect categories from actual seat objects (zones/rows/seats format)
   const categoriesWithSeats = new Set<string>();
+  
+  // A1: Zones/Rows structure
   planDetail.layout?.zones?.forEach((zone: any) => {
     zone.rows?.forEach((row: any) => {
       row.seats?.forEach((seat: any) => {
         if (seat.category) categoriesWithSeats.add(seat.category);
       });
     });
+  });
+
+  // A2: Flat objects structure
+  planDetail.layout?.objects?.forEach((obj: any) => {
+    if ((obj.type === 'seat' || !obj.type) && obj.category) {
+      categoriesWithSeats.add(obj.category);
+    }
   });
 
   // Step B: if Step A found nothing (Pretix graphical layout uses a different format),

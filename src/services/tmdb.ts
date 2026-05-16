@@ -3,7 +3,7 @@ const TMDB_API_KEY = '00ea09c7fb5bf89b064f6001a2de3122';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 import { MovieItem, isNonLatin } from './tmdb.utils';
-import { fetchMubiAwards } from './mubi';
+import { fetchMubiAwards, getManualAwards } from './mubi';
 export * from './tmdb.utils';
 
 export interface MovieDetails extends MovieItem {
@@ -670,6 +670,11 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
   // 1. Try to get from persistent cache
   const cached = getMovieMetadata(tmdbId);
   if (cached) {
+    // Standard Tecnico: Hot-Swap Awards (applica gli override anche se in cache)
+    const manualAwards = getManualAwards(tmdbId);
+    if (manualAwards) {
+      return { ...cached, awards: manualAwards };
+    }
     return cached;
   }
 
@@ -689,6 +694,9 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
       getMovieTrailers(tmdbId, details.original_language, multiLangVideos),
       fetchMubiAwards(tmdbId, details.title, details.original_title, details.release_date?.split('-')[0])
     ]);
+
+    const manualAwards = getManualAwards(tmdbId);
+    const finalAwards = manualAwards || mubiData?.awards || [];
 
     const directors = getDirectors(details);
     const cast = getCast(details, 5);
@@ -728,7 +736,7 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
       trailerKey: trailerKey,
       trailerKeys: trailerKeys,
       multiLangVideos,
-      awards: mubiData?.awards || [],
+      awards: finalAwards,
       mubiId: mubiData?.mubiId || null,
       syncedAt: new Date().toISOString()
     };

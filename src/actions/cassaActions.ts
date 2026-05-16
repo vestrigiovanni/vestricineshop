@@ -266,17 +266,25 @@ export interface CassaSeat {
   row: string;
   seat: string;
   isVip: boolean;
+  itemId?: number;   // ID del prodotto Pretix associato (es. ITEM_INTERO_ID)
   isBlocked: boolean; // already sold / blocked by Pretix
 }
 
 export async function cassaGetSeats(subeventId: number): Promise<CassaSeat[]> {
   const seats = await getSubEventSeats(subeventId);
   return seats.map((s: any) => {
-    const isVip =
-      s.product === ITEM_VIP_ID ||
-      s.item === ITEM_VIP_ID ||
-      (typeof s.seat_guid === 'string' && s.seat_guid.toUpperCase().includes('VIP')) ||
-      (typeof s.category === 'string' && (s.category.toUpperCase().includes('VIP') || s.category.toUpperCase().includes('POLTRONA')));
+    // Il prodotto assegnato da Pretix è la nostra "Source of Truth".
+    // Se Pretix dice che è un VIP (tramite la seat_category_mapping), allora lo è.
+    const pretixItemId = s.item || s.product;
+    
+    let isVip = pretixItemId === ITEM_VIP_ID;
+
+    // Fallback stringa (solo se il mapping è assente o ambiguo)
+    if (!isVip && !pretixItemId) {
+      isVip = 
+        (typeof s.seat_guid === 'string' && s.seat_guid.toUpperCase().includes('VIP')) ||
+        (typeof s.category === 'string' && (s.category.toUpperCase().includes('VIP') || s.category.toUpperCase().includes('POLTRONA')));
+    }
 
     // 1. Try to use Pretix dedicated fields (row_name, seat_number)
     // 2. Fallback to extracting from name if fields are empty
@@ -296,6 +304,7 @@ export async function cassaGetSeats(subeventId: number): Promise<CassaSeat[]> {
       row,
       seat,
       isVip,
+      itemId: pretixItemId,
       isBlocked: s.available === false || s.is_available === false || !!s.blocked || !!s.orderposition,
     };
   });
@@ -319,7 +328,8 @@ export async function cassaExecuteSale(params: {
     name: string;
     row: string;
     seat: string;
-    isVip?: boolean; // Se true, usa ITEM_VIP_ID — previene overlap tra quota Intero e quota VIP
+    isVip?: boolean;
+    itemId?: number;
   }[];
   movieTitle: string;
   screening: string;
@@ -336,12 +346,12 @@ export async function cassaExecuteSale(params: {
   rating?: string;
 }): Promise<CassaOrderResult> {
   // 1. Create order on Pretix (price always 0.00)
-  // FIX OVERLAP: usa ITEM_VIP_ID per i posti VIP e ITEM_INTERO_ID per il resto
+  // FIX OVERLAP: usa itemId se presente, altrimenti fallback su isVip
   const order = await createCassaOrder({
     subeventId: params.subeventId,
     seats: params.seats.map(s => ({
       guid: s.guid,
-      itemId: s.isVip ? ITEM_VIP_ID : ITEM_INTERO_ID,
+      itemId: s.itemId || (s.isVip ? ITEM_VIP_ID : ITEM_INTERO_ID),
     })),
   });
 

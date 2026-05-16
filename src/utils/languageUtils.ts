@@ -1,7 +1,4 @@
-/**
- * Utility for mapping language codes and generating display tags.
- * Now optimized for the ISO 639-2/3 (3-letter) codified system.
- */
+import { getFullLanguageName } from '@/constants/languages';
 
 export interface TagInfo {
   code: string;
@@ -15,32 +12,31 @@ export interface TagInfo {
 export function getMovieTags(language: string = '', subtitles: string = '', format: string = ''): TagInfo[] {
   const tags: TagInfo[] = [];
 
-  // Normalize language: if it's "Italiano" -> ITA, if it's "Inglese" -> ENG, etc.
-  // But ideally they are already ITA, ENG, etc. from the new sync logic.
+  // Normalize language
   let langCode = language.toUpperCase().trim();
   if (langCode === 'ITALIANO' || langCode === 'LINGUA ITALIANA') langCode = 'ITA';
-  if (langCode === 'INGLESE' || langCode === 'ENGLISH' || langCode === 'ORIGINALE') langCode = 'ENG';
+  if (langCode === 'INGLESE' || langCode === 'ENGLISH') langCode = 'ENG';
   
   // Subtitles normalization
   let subCode = subtitles.toUpperCase().trim();
   if (subCode === 'NESSUNO' || subCode === 'NO' || subCode === '-') subCode = '';
-  if (subCode === 'ITALIANO' || subCode === 'SOTTOTITOLI ITA') subCode = 'SUB ITA';
-  if (subCode.length === 3 && subCode !== 'SUB') subCode = `SUB ${subCode}`;
+  if (subCode === 'ITALIANO' || subCode === 'SOTTOTITOLI ITA') subCode = 'ITA';
+  if (subCode.startsWith('SUB ')) subCode = subCode.replace('SUB ', '');
 
   const is3d = format.toUpperCase().includes('3D');
 
-  // Audio Language Tag
+  // Audio Language Tag - FULL NAME
   if (langCode && langCode !== 'NULL') {
     tags.push({ 
-      code: langCode.substring(0, 3), 
+      code: getFullLanguageName(langCode).toUpperCase(), 
       type: 'language' 
     });
   }
 
-  // Subtitle Tag
+  // Subtitle Tag - ABBREVIATION
   if (subCode && subCode !== 'NULL') {
     tags.push({ 
-      code: subCode.startsWith('SUB') ? subCode : `SUB ${subCode.substring(0, 3)}`, 
+      code: `SUB ${subCode.substring(0, 3)}`, 
       type: 'subtitle' 
     });
   }
@@ -56,7 +52,8 @@ export function getMovieTags(language: string = '', subtitles: string = '', form
 export function getLanguageCode(lang: string): string {
   if (!lang) return '';
   const val = lang.toUpperCase().trim();
-  if (val === 'ITALIANO') return 'ITA';
-  if (val === 'INGLESE' || val === 'ENGLISH') return 'ENG';
-  return val.substring(0, 3);
+  if (val === 'ITALIANO' || val === 'ITA') return 'ITALIANO';
+  if (val === 'INGLESE' || val === 'ENGLISH' || val === 'ENG') return 'INGLESE';
+  return getFullLanguageName(val).toUpperCase();
 }
+

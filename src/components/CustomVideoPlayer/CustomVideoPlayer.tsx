@@ -79,6 +79,8 @@ export default function CustomVideoPlayer({ videoId, backdropUrl, isPlaying, onC
           iv_load_policy: 3,
           enablejsapi: 1,
           playsinline: 1,
+          loop: 1,
+          playlist: videoId,
           origin: typeof window !== 'undefined' ? window.location.origin : ''
         },
         host: 'https://www.youtube-nocookie.com',
@@ -96,11 +98,12 @@ export default function CustomVideoPlayer({ videoId, backdropUrl, isPlaying, onC
             }
           },
           onStateChange: (event: any) => {
-            // When the video actually starts playing, we reveal it
-            // 1 is the numeric value for window.YT.PlayerState.PLAYING
+            // 1: PLAYING, 0: ENDED
             if (event.data === 1) {
-              // Give it a tiny bit of buffer to ensure the first frames are rendered
               setTimeout(() => setVideoReady(true), 300);
+            } else if (event.data === 0) {
+              // Forziamo il loop se il parametro loop non bastasse
+              event.target.playVideo();
             }
           }
         }

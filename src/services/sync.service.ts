@@ -179,16 +179,16 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
               runtime: tmdbData.runtime || existingMovie?.runtime,
 
               versionLanguage: (isManual)
-                ? (existingMovie?.versionLanguage || (tmdbData.original_language === 'it' ? 'ITA' : normalizeLanguageCode(tmdbData.original_language)))
-                : (force || isStub || existingMovie?.versionLanguage === 'Italiano' || existingMovie?.versionLanguage === 'Lingua Originale'
-                    ? (tmdbData.original_language === 'it' ? 'ITA' : normalizeLanguageCode(tmdbData.original_language))
-                    : (existingMovie?.versionLanguage || (tmdbData.original_language === 'it' ? 'ITA' : normalizeLanguageCode(tmdbData.original_language)))),
+                ? (existingMovie?.versionLanguage || (tmdbData.original_language === 'it' ? 'Italiano' : getLanguageName(tmdbData.original_language)))
+                : (force || isStub || !existingMovie?.versionLanguage || existingMovie?.versionLanguage === 'Italiano' || existingMovie?.versionLanguage === 'Originale' || existingMovie?.versionLanguage === 'Lingua Originale'
+                    ? (tmdbData.original_language === 'it' ? 'Italiano' : getLanguageName(tmdbData.original_language))
+                    : existingMovie.versionLanguage),
 
               subtitles: (isManual)
-                ? (existingMovie?.subtitles || (tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA'))
-                : (force || isStub || existingMovie?.subtitles === 'Nessuno' || existingMovie?.subtitles === 'Sottotitoli IT'
-                    ? (tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA')
-                    : (existingMovie?.subtitles || (tmdbData.original_language === 'it' ? 'NESSUNO' : 'ITA'))),
+                ? (existingMovie?.subtitles || (tmdbData.original_language === 'it' ? 'Nessuno' : 'Italiano'))
+                : (force || isStub || !existingMovie?.subtitles || existingMovie?.subtitles === 'Nessuno' || existingMovie?.subtitles === 'Sottotitoli IT'
+                    ? (tmdbData.original_language === 'it' ? 'Nessuno' : 'Italiano')
+                    : existingMovie.subtitles),
               awards: {
                 deleteMany: {},
                 create: (tmdbData.awards || []).map((a: any) => ({

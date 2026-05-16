@@ -434,10 +434,11 @@ export default function MoviesControlPage() {
                       onChange={e => setFormState(f => ({ ...f, versionLanguage: e.target.value }))}
                       className={styles.input}
                     >
-                      <option value="ITA">ITA (Italiano)</option>
+                      <option value="ITALIANO">ITALIANO</option>
                       {Object.entries(LANGUAGE_MAP).filter(([k]) => k !== 'it').map(([k, v]) => (
-                        <option key={k} value={v}>{v} ({k.toUpperCase()})</option>
+                        <option key={k} value={v}>{v}</option>
                       ))}
+
 
                     </select>
                   </div>

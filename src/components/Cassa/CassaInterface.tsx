@@ -280,7 +280,14 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     try {
       const orderResult = await cassaExecuteSale({
         subeventId: selectedScreening.subeventId,
-        seats: selectedSeats.map(s => ({ guid: s.guid, name: s.name, row: s.row, seat: s.seat, isVip: s.isVip })),
+        seats: selectedSeats.map(s => ({ 
+          guid: s.guid, 
+          name: s.name, 
+          row: s.row, 
+          seat: s.seat, 
+          isVip: s.isVip,
+          itemId: s.itemId 
+        })),
         movieTitle: selectedScreening.movieTitle,
         screening: formatScreeningLabel(selectedScreening.dateFrom),
         roomName: selectedScreening.roomName,
