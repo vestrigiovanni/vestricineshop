@@ -874,7 +874,28 @@ export async function adminUpdateEventDate(subEventId: number, newDate: string) 
       date_to: dateTo
     });
 
+    // Aggiorniamo chirurgicamente anche il database locale PretixSync in modo che il sito rifletta subito la modifica
+    try {
+      const prisma = (await import('@/lib/prisma')).default;
+      const dateFromObj = new Date(dateFrom);
+      const dateToObj = new Date(dateTo);
+      await prisma.pretixSync.update({
+        where: { pretixId: subEventId },
+        data: {
+          dateFrom: dateFromObj,
+          dateTo: dateToObj,
+          startTime: dateFromObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }),
+          endTime: dateToObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })
+        }
+      });
+      console.log(`[adminUpdateEventDate] ✅ Database record updated surgically for subevent ID ${subEventId}`);
+    } catch (dbErr) {
+      console.error('[adminUpdateEventDate] ⚠️ Failed to update database record surgically:', dbErr);
+    }
+
     revalidatePath('/');
+    revalidatePath('/admin/movies-control');
+    revalidatePath('/[slug]', 'layout');
     return { success: true };
   } catch (error: any) {
     console.error('Error in adminUpdateEventDate:', error);
