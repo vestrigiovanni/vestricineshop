@@ -111,12 +111,31 @@ const TicketPDF = React.forwardRef<HTMLDivElement, TicketPDFProps>(function Tick
     // We fetch movie details to get the original language and then handle tagline logic
     fetch(`https://api.themoviedb.org/3/movie/${data.tmdbId}?append_to_response=images&include_image_language=it,en,null&api_key=00ea09c7fb5bf89b064f6001a2de3122`)
       .then(res => res.json())
-      .then(json => {
+      .then(async (json) => {
         // 1. Logo Handling
-        const logos = json.images?.logos || [];
+        let logos = json.images?.logos || [];
         const itLogo = logos.find((l: any) => l.iso_639_1 === 'it');
+        
+        if (!itLogo) {
+          // Se manca il logo italiano, facciamo una chiamata sussidiaria all'endpoint dedicato alle immagini per raccogliere tutti i loghi (inclusi quelli inglesi)
+          try {
+            const imagesRes = await fetch(
+              `https://api.themoviedb.org/3/movie/${data.tmdbId}/images?api_key=00ea09c7fb5bf89b064f6001a2de3122`
+            );
+            if (imagesRes.ok) {
+              const imagesData = await imagesRes.json();
+              if (imagesData.logos && imagesData.logos.length > 0) {
+                logos = imagesData.logos;
+              }
+            }
+          } catch (e) {
+            console.warn('[TicketPDF] TMDB images fetch failed', e);
+          }
+        }
+        
+        const finalItLogo = logos.find((l: any) => l.iso_639_1 === 'it');
         const enLogo = logos.find((l: any) => l.iso_639_1 === 'en');
-        const finalLogo = itLogo?.file_path || enLogo?.file_path || logos[0]?.file_path;
+        const finalLogo = finalItLogo?.file_path || enLogo?.file_path || logos[0]?.file_path;
         if (finalLogo) setFetchedLogo(finalLogo);
 
         // 2. Tagline Logic (MANDATORY)

@@ -884,9 +884,9 @@ export async function createSubEvent(movieData: {
     });
 
     // Fallback logic for language and version
-    const displayLanguage = movieData.language || 'Italiano';
-    const displayVersion = movieData.versionLanguage || (movieData.language === 'Italiano' ? 'Versione Originale' : 'Versione Originale Sottotitolata');
-    const displaySubtitles = movieData.subtitles || (displayLanguage === 'Italiano' ? 'Nessuno' : 'Italiano');
+    const displayLanguage = movieData.language?.trim() || 'Italiano';
+    const displayVersion = movieData.versionLanguage?.trim() || (displayLanguage === 'Italiano' ? 'Versione Originale' : 'Versione Originale Sottotitolata');
+    const displaySubtitles = movieData.subtitles?.trim() || (displayLanguage === 'Italiano' ? 'Nessuno' : 'Italiano');
 
     const payload: any = {
       name: { it: movieData.title },

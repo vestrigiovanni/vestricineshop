@@ -139,6 +139,26 @@ function getRomeDayStartMs(d: Date): number {
 }
 
 /**
+ * HELPER: Checks if a slot [startMs, endMs] is within the cinema's opening hours
+ * for the day defined by dayStartMs.
+ */
+function isWithinOpeningHours(startMs: number, endMs: number, dayStartMs: number): boolean {
+  const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
+  
+  if (dayStartMs < transitionDateMs) {
+    // OLD LOGIC: 08:00 to last show starting by 23:30
+    const minStartMs = dayStartMs + 8 * 60 * 60 * 1000;
+    const maxStartMs = dayStartMs + (23 * 60 + 30) * 60 * 1000;
+    return startMs >= minStartMs && startMs <= maxStartMs;
+  } else {
+    // NEW LOGIC: first show starts from 10:00, last show must finish by 01:00 of next day
+    const minStartMs = dayStartMs + 10 * 60 * 60 * 1000;
+    const maxEndMs = dayStartMs + 25 * 60 * 60 * 1000;
+    return startMs >= minStartMs && endMs <= maxEndMs;
+  }
+}
+
+/**
  * HELPER: Generates a minute-by-minute occupancy map for a specific day.
  * Array of 1440 entries (0 = free, 1 = occupied).
  *
@@ -636,7 +656,41 @@ export async function adminScheduleMovie(
   const dayStartMs = getRomeDayStartMs(startDate);
   const dayMap = getDayOccupancyMap(blockedIntervals, startDate);
 
-  const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs);
+  // Enforce opening hours for non-overridden requests
+  if (!override) {
+    const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
+    if (dayStartMs >= transitionDateMs) {
+      const minStartMs = dayStartMs + 10 * 60 * 60 * 1000; // 10:00
+      const maxEndMs = dayStartMs + 25 * 60 * 60 * 1000;   // 01:00 (giorno dopo)
+      
+      if (sNew < minStartMs) {
+        const msg = `Orario non consentito: dal 9 Giugno il primo spettacolo non può iniziare prima delle 10:00.`;
+        console.log(`[adminScheduleMovie] ⛔ ${msg}`);
+        throw new Error(msg);
+      }
+      if (eNew > maxEndMs) {
+        const msg = `Orario non consentito: dal 9 Giugno l'ultimo spettacolo deve terminare entro l'01:00 (il film terminerebbe alle ${formatInTimeZone(new Date(eNew), TIMEZONE, 'HH:mm')}).`;
+        console.log(`[adminScheduleMovie] ⛔ ${msg}`);
+        throw new Error(msg);
+      }
+    } else {
+      const minStartMs = dayStartMs + 8 * 60 * 60 * 1000; // 08:00
+      const maxStartMs = dayStartMs + (23 * 60 + 30) * 60 * 1000; // 23:30
+      if (sNew < minStartMs) {
+        const msg = `Orario non consentito: prima del 9 Giugno il primo spettacolo non può iniziare prima delle 08:00.`;
+        console.log(`[adminScheduleMovie] ⛔ ${msg}`);
+        throw new Error(msg);
+      }
+      if (sNew > maxStartMs) {
+        const msg = `Orario non consentito: prima del 9 Giugno l'ultimo spettacolo non può iniziare dopo le 23:30.`;
+        console.log(`[adminScheduleMovie] ⛔ ${msg}`);
+        throw new Error(msg);
+      }
+    }
+  }
+
+  const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs) ||
+                      blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start);
 
   console.log(`[adminScheduleMovie] 🔍 Conflict check →`, { hasConflict, override });
 
@@ -950,9 +1004,35 @@ export async function adminGetSmartSuggestion(tmdbId: string, seatingPlanId: num
     const dRef = new Date(sNew);
     // CRITICAL: timezone-aware Rome midnight for bitmap anchor
     const dayStartMs = getRomeDayStartMs(dRef);
-    const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
 
-    const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs);
+    // Enforce opening hour constraints for smart suggestions
+    const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
+    let minStartMs = dayStartMs + 8 * 60 * 60 * 1000;
+    let maxLimitMs = dayStartMs + (23 * 60 + 30) * 60 * 1000; // max start time for old logic
+    let isNewLogic = false;
+
+    if (dayStartMs >= transitionDateMs) {
+      minStartMs = dayStartMs + 10 * 60 * 60 * 1000;
+      maxLimitMs = dayStartMs + 25 * 60 * 60 * 1000; // max end time for new logic
+      isNewLogic = true;
+    }
+
+    if (sNew < minStartMs) {
+      // Too early, jump to opening time
+      currentPointer = minStartMs;
+      continue;
+    }
+
+    if (isNewLogic ? (eNew > maxLimitMs) : (sNew > maxLimitMs)) {
+      // Too late, jump to next day's opening time
+      currentPointer = dayStartMs + 24 * 60 * 60 * 1000 + (isNewLogic ? 10 : 8) * 60 * 60 * 1000;
+      continue;
+    }
+
+    const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
+    const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs) ||
+                        blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start);
+
     if (!hasConflict) {
       return formatManualISO(new Date(sNew));
     }
@@ -984,9 +1064,52 @@ export async function adminCheckConflict(date: string, tmdbId: string, seatingPl
 
   // CRITICAL: timezone-aware Rome midnight for bitmap anchor
   const dayStartMs = getRomeDayStartMs(sDate);
-  const dayMap = getDayOccupancyMap(blockedIntervals, sDate);
 
-  const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs);
+  // Enforce opening hour constraints for conflicts
+  const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
+  if (dayStartMs >= transitionDateMs) {
+    const minStartMs = dayStartMs + 10 * 60 * 60 * 1000;
+    const maxEndMs = dayStartMs + 25 * 60 * 60 * 1000;
+    if (sNew < minStartMs) {
+      return {
+        hasConflict: true,
+        movieTitle: "Orario apertura (il cinema apre alle 10:00)",
+        conflictEndTime: "10:00",
+        runtime
+      };
+    }
+    if (eNew > maxEndMs) {
+      return {
+        hasConflict: true,
+        movieTitle: "Orario chiusura (il film deve terminare entro l'01:00)",
+        conflictEndTime: "01:00",
+        runtime
+      };
+    }
+  } else {
+    const minStartMs = dayStartMs + 8 * 60 * 60 * 1000;
+    const maxStartMs = dayStartMs + (23 * 60 + 30) * 60 * 1000;
+    if (sNew < minStartMs) {
+      return {
+        hasConflict: true,
+        movieTitle: "Orario apertura (il cinema apre alle 08:00)",
+        conflictEndTime: "08:00",
+        runtime
+      };
+    }
+    if (sNew > maxStartMs) {
+      return {
+        hasConflict: true,
+        movieTitle: "Orario limite (l'ultimo film deve iniziare entro le 23:30)",
+        conflictEndTime: "23:30",
+        runtime
+      };
+    }
+  }
+
+  const dayMap = getDayOccupancyMap(blockedIntervals, sDate);
+  const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs) ||
+                      blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start);
 
   if (hasConflict) {
     const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
@@ -1032,7 +1155,9 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
     // CRITICAL: timezone-aware Rome midnight
     const dayStartMs = getRomeDayStartMs(dRef);
     const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
-    if (isRangeFree(dayMap, sNew, eNew, dayStartMs)) {
+    if (isWithinOpeningHours(sNew, eNew, dayStartMs) && 
+        isRangeFree(dayMap, sNew, eNew, dayStartMs) &&
+        !blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start)) {
       preSuggestion = formatInTimeZone(new Date(sNew), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
       break;
     }
@@ -1051,7 +1176,9 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
     // CRITICAL: timezone-aware Rome midnight
     const dayStartMs = getRomeDayStartMs(dRef);
     const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
-    if (isRangeFree(dayMap, sNew, eNew, dayStartMs)) {
+    if (isWithinOpeningHours(sNew, eNew, dayStartMs) && 
+        isRangeFree(dayMap, sNew, eNew, dayStartMs) &&
+        !blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start)) {
       postSuggestion = formatInTimeZone(new Date(sNew), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
       break;
     }
@@ -1125,9 +1252,19 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
     const approxDayMs = nowMs + d * 24 * 60 * 60 * 1000;
     const dayStartMs = getRomeDayStartMs(new Date(approxDayMs)); // 00:00 in Rome
 
-    // Timeline boundary in Rome time: 08:00 = +8h, 23:30 = +23.5h
-    const timelineStartMs = dayStartMs + 8 * 60 * 60 * 1000;
-    const timelineEndMs = dayStartMs + (23 * 60 + 30) * 60 * 1000;
+    const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
+    let timelineStartMs: number;
+    let timelineEndMs: number;
+
+    if (dayStartMs < transitionDateMs) {
+      // Timeline boundary in Rome time (Old logic): 08:00 = +8h, 23:30 = +23.5h
+      timelineStartMs = dayStartMs + 8 * 60 * 60 * 1000;
+      timelineEndMs = dayStartMs + (23 * 60 + 30) * 60 * 1000;
+    } else {
+      // New logic: first film starting from 10:00, last film must finish by 01:00 of next morning
+      timelineStartMs = dayStartMs + 10 * 60 * 60 * 1000;
+      timelineEndMs = dayStartMs + 25 * 60 * 60 * 1000 - runtimeWithBufferMs;
+    }
 
     let currentPointer = timelineStartMs;
 
@@ -1140,7 +1277,8 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
 
       // Skip slots in the past
       if (sNew > nowMs) {
-        const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs);
+        const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs) ||
+                            blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start);
 
         if (!hasConflict) {
           // Build the display label in Rome timezone (correct even on UTC Vercel)
@@ -1398,28 +1536,46 @@ export async function upsertMovieOverride(tmdbId: string, override: any) {
 
       console.log(`[upsertMovieOverride] 🚀 Instant-pushing updated metadata to ${syncedProjections.length} Pretix sub-events...`);
       
-      const commentObj = {
-        tmdbId: tmdbId,
-        rating: override.customRating || 'T',
-        runtime: override.runtime || 120,
-        versionLanguage: override.versionLanguage || 'ITA',
-        subtitles: override.subtitles || 'NESSUNO',
-        customVersion: override.customVersion || '',
-        posterPath: override.customPosterPath || '',
-        backdropPath: override.customBackdropPath || '',
-        logoPath: override.customLogoPath || '',
-        director: override.customDirector || '',
-        cast: override.customCast || '',
-      };
+      const fullOverride = await prisma.movieOverride.findUnique({
+        where: { tmdbId: tmdbId },
+        include: { awards: true }
+      }) as any;
 
-      for (const proj of syncedProjections) {
-        await updateSubEvent(proj.pretixId, {
-          comment: JSON.stringify(commentObj),
-          meta_data: {
-            ...(override.language && { lingua: override.language }),
-            ...(override.subtitles && { sottotitoli: override.subtitles })
-          }
-        });
+      if (fullOverride) {
+        const commentObj = {
+          tmdbId: tmdbId,
+          rating: fullOverride.customRating || 'T',
+          runtime: fullOverride.runtime || 120,
+          versionLanguage: fullOverride.versionLanguage?.trim() || 'ITA',
+          subtitles: fullOverride.subtitles?.trim() || 'NESSUNO',
+          customVersion: fullOverride.customVersion || '',
+          posterPath: fullOverride.customPosterPath || '',
+          backdropPath: fullOverride.customBackdropPath || '',
+          logoPath: fullOverride.customLogoPath || '',
+          director: fullOverride.customDirector || '',
+          cast: fullOverride.customCast || '',
+          // Awards compatibility fields
+          hasOscar: fullOverride.awards?.some((a: any) => a.type === 'oscar') || false,
+          oscarDetails: fullOverride.awards?.find((a: any) => a.type === 'oscar')?.details || '',
+          hasCannes: fullOverride.awards?.some((a: any) => a.type === 'cannes') || false,
+          cannesDetails: fullOverride.awards?.find((a: any) => a.type === 'cannes')?.details || '',
+          hasVenice: fullOverride.awards?.some((a: any) => a.type === 'venice') || false,
+          veniceDetails: fullOverride.awards?.find((a: any) => a.type === 'venice')?.details || '',
+          awardYear: fullOverride.awards?.[0]?.year || null,
+          // Full awards array for future consumers
+          awards: fullOverride.awards || [],
+          trailerUrl: fullOverride.customTrailerUrl || '',
+        };
+
+        for (const proj of syncedProjections) {
+          await updateSubEvent(proj.pretixId, {
+            comment: JSON.stringify(commentObj),
+            meta_data: {
+              lingua: fullOverride.versionLanguage?.trim() || 'ITA',
+              sottotitoli: fullOverride.subtitles?.trim() || 'NESSUNO'
+            }
+          });
+        }
       }
     } catch (pushErr) {
       console.error(`[upsertMovieOverride] ⚠️ Failed to push immediate update to Pretix for ${tmdbId}:`, pushErr);

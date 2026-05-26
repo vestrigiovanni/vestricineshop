@@ -11,7 +11,7 @@ interface VisualAssetCardProps {
   value: string;
   onChange: (value: string) => void;
   onPickClick?: () => void;
-  type: 'poster' | 'backdrop' | 'trailer';
+  type: 'poster' | 'backdrop' | 'trailer' | 'logo';
   tmdbFallback?: string;
 }
 

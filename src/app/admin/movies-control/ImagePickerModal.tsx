@@ -10,7 +10,7 @@ const getTMDBImageUrl = (path: string, size: string = 'w500') =>
 
 interface ImagePickerModalProps {
   movieId: string;
-  type: 'poster' | 'backdrop';
+  type: 'poster' | 'backdrop' | 'logo';
   onSelect: (path: string) => void;
   onClose: () => void;
 }
@@ -29,7 +29,13 @@ export default function ImagePickerModal({ movieId, type, onSelect, onClose }: I
         const res = await fetch(`/api/tmdb/images/${movieId}`);
         if (!res.ok) throw new Error('Errore nel caricamento immagini');
         const data = await res.json();
-        setImages(type === 'poster' ? data.posters : data.backdrops);
+        if (type === 'poster') {
+          setImages(data.posters || []);
+        } else if (type === 'backdrop') {
+          setImages(data.backdrops || []);
+        } else {
+          setImages(data.logos || []);
+        }
       } catch (e: any) {
         setError(e.message || 'Errore sconosciuto');
       } finally {
@@ -50,7 +56,7 @@ export default function ImagePickerModal({ movieId, type, onSelect, onClose }: I
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <h2>Seleziona {type === 'poster' ? 'Poster' : 'Backdrop'}</h2>
+          <h2>Seleziona {type === 'poster' ? 'Poster' : type === 'backdrop' ? 'Backdrop' : 'Logo'}</h2>
           <button onClick={onClose} className={styles.closeBtn}><X size={24} /></button>
         </div>
 
@@ -63,7 +69,7 @@ export default function ImagePickerModal({ movieId, type, onSelect, onClose }: I
           ) : error ? (
             <div className={styles.empty}>⚠️ {error}</div>
           ) : images.length === 0 ? (
-            <div className={styles.empty}>Nessuna immagine trovata su TMDB per questa categoria.</div>
+            <div className={styles.empty}>Nessun logo o immagine trovato su TMDB per questa categoria.</div>
           ) : (
             <div className={type === 'poster' ? styles.posterGrid : styles.backdropGrid}>
               {images.map((img) => (
@@ -78,7 +84,7 @@ export default function ImagePickerModal({ movieId, type, onSelect, onClose }: I
                       alt="TMDB Image"
                       fill
                       sizes="(max-width: 768px) 100vw, 33vw"
-                      style={{ objectFit: 'cover' }}
+                      style={type === 'logo' ? { objectFit: 'contain', padding: '12px', background: 'rgba(255,255,255,0.03)' } : { objectFit: 'cover' }}
                     />
                     {selectedPath === img.file_path && (
                       <div className={styles.checkOverlay}>

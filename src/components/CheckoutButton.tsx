@@ -160,10 +160,29 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
                 resolvedBackdropPath = details.backdrop_path;
               }
               if (!resolvedLogoPath) {
-                const logos = details.images?.logos || [];
+                let logos = details.images?.logos || [];
                 const itLogo = logos.find((l: any) => l.iso_639_1 === 'it');
+                
+                if (!itLogo) {
+                  // Se manca il logo italiano, facciamo una chiamata sussidiaria all'endpoint dedicato alle immagini per raccogliere tutti i loghi (inclusi quelli inglesi)
+                  try {
+                    const imagesRes = await fetch(
+                      `https://api.themoviedb.org/3/movie/${resolvedTmdbId}/images?api_key=00ea09c7fb5bf89b064f6001a2de3122`
+                    );
+                    if (imagesRes.ok) {
+                      const imagesData = await imagesRes.json();
+                      if (imagesData.logos && imagesData.logos.length > 0) {
+                        logos = imagesData.logos;
+                      }
+                    }
+                  } catch (e) {
+                    console.warn('[CheckoutButton] TMDB images fetch failed', e);
+                  }
+                }
+                
+                const finalItLogo = logos.find((l: any) => l.iso_639_1 === 'it');
                 const enLogo = logos.find((l: any) => l.iso_639_1 === 'en');
-                const bestLogo = itLogo?.file_path || enLogo?.file_path || logos[0]?.file_path;
+                const bestLogo = finalItLogo?.file_path || enLogo?.file_path || logos[0]?.file_path;
                 if (bestLogo) resolvedLogoPath = bestLogo;
               }
             }

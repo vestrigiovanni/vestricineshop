@@ -130,6 +130,40 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
     if (!response.ok) return null;
     const details = await response.json();
 
+    // Recupero loghi aggiuntivi se manca quello italiano (TMDB quirk con append_to_response)
+    const hasItalianLogo = details.images?.logos?.some((l: any) => l.iso_639_1 === 'it');
+    if (!hasItalianLogo) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[TMDB DEBUG] Logo italiano mancante per ID ${id}, recupero tutti i loghi dall'endpoint dedicato...`);
+      }
+      const imagesUrl = `${TMDB_BASE_URL}/movie/${id}/images?api_key=${TMDB_API_KEY}`;
+      try {
+        const imagesResponse = await fetch(imagesUrl, {
+          headers: { 'accept': 'application/json' },
+          cache: 'no-store'
+        });
+        if (imagesResponse.ok) {
+          const imagesData = await imagesResponse.json();
+          if (imagesData.logos && imagesData.logos.length > 0) {
+            if (!details.images) {
+              details.images = { logos: [] };
+            }
+            if (!details.images.logos) {
+              details.images.logos = [];
+            }
+            const existingPaths = new Set(details.images.logos.map((l: any) => l.file_path));
+            const newLogos = (imagesData.logos || []).filter((l: any) => !existingPaths.has(l.file_path));
+            details.images.logos = [...details.images.logos, ...newLogos];
+            if (process.env.NODE_ENV !== 'production') {
+              console.log(`[TMDB DEBUG] Recuperati ${newLogos.length} loghi aggiuntivi (inclusi inglese) per ID ${id}`);
+            }
+          }
+        }
+      } catch (e) {
+        console.error(`[TMDB ERROR] Impossibile recuperare loghi aggiuntivi per ${id}:`, e);
+      }
+    }
+
     // Standard Tecnico: Latinizzazione Obbligatoria
     if (isNonLatin(details.title)) {
       if (process.env.NODE_ENV !== 'production') {

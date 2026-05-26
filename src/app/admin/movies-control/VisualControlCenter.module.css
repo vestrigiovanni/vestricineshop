@@ -385,6 +385,19 @@
 .assetPreview.poster { aspect-ratio: 2/3; }
 .assetPreview.backdrop { aspect-ratio: 16/9; }
 .assetPreview.trailer { aspect-ratio: 16/9; }
+.assetPreview.logo {
+  aspect-ratio: 16/9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px;
+}
+.assetPreview.logo img {
+  object-fit: contain !important;
+  max-width: 100%;
+  max-height: 100%;
+}
 
 .assetPreview:hover {
   border-color: rgba(212, 175, 55, 0.5);

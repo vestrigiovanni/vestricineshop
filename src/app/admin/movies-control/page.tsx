@@ -54,7 +54,7 @@ export default function MoviesControlPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [formState, setFormState] = useState({ ...EMPTY_FORM });
   const [pickerState, setPickerState] = useState<{
-    isOpen: boolean; type: 'poster' | 'backdrop' | 'trailer';
+    isOpen: boolean; type: 'poster' | 'backdrop' | 'trailer' | 'logo';
   }>({ isOpen: false, type: 'poster' });
   const [isPending, startTransition] = useTransition();
   const [isVisualCenterOpen, setIsVisualCenterOpen] = useState(false);
@@ -172,6 +172,8 @@ export default function MoviesControlPage() {
       setFormState(f => ({ ...f, customPosterPath: path }));
     } else if (pickerState.type === 'backdrop') {
       setFormState(f => ({ ...f, customBackdropPath: path }));
+    } else if (pickerState.type === 'logo') {
+      setFormState(f => ({ ...f, customLogoPath: path }));
     } else {
       setFormState(f => ({ ...f, customTrailerUrl: path }));
     }
@@ -597,6 +599,14 @@ export default function MoviesControlPage() {
                       className={styles.input}
                       placeholder="/logo.png oppure URL completo"
                     />
+                    <button
+                      type="button"
+                      className={styles.btnPick}
+                      onClick={() => setPickerState({ isOpen: true, type: 'logo' })}
+                      title="Scegli da TMDB"
+                    >
+                      <ImageIcon size={16} />
+                    </button>
                   </div>
                 </div>
 
@@ -724,7 +734,7 @@ export default function MoviesControlPage() {
       {pickerState.isOpen && editingMovie && pickerState.type !== 'trailer' && (
         <ImagePickerModal
           movieId={editingMovie.id?.toString() || editingMovie.tmdbId}
-          type={pickerState.type as 'poster' | 'backdrop'}
+          type={pickerState.type as 'poster' | 'backdrop' | 'logo'}
           onSelect={handleImageSelect}
           onClose={() => setPickerState(s => ({ ...s, isOpen: false }))}
         />

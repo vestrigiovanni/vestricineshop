@@ -35,7 +35,7 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
   const [pendingDeltas, setPendingDeltas] = useState<Record<string, any>>({});
   const [pickerState, setPickerState] = useState<{
     isOpen: boolean; 
-    type: 'poster' | 'backdrop' | 'trailer';
+    type: 'poster' | 'backdrop' | 'trailer' | 'logo';
     movieId: string | null;
   }>({ isOpen: false, type: 'poster', movieId: null });
 
@@ -123,12 +123,13 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
     if (!pickerState.movieId) return;
     const field = pickerState.type === 'poster' ? 'customPosterPath' : 
                   pickerState.type === 'backdrop' ? 'customBackdropPath' : 
+                  pickerState.type === 'logo' ? 'customLogoPath' :
                   'customTrailerUrl';
     handleUpdate(pickerState.movieId, field, path);
     setPickerState(s => ({ ...s, isOpen: false }));
   };
 
-  const openPicker = (movieId: string, type: 'poster' | 'backdrop' | 'trailer') => {
+  const openPicker = (movieId: string, type: 'poster' | 'backdrop' | 'trailer' | 'logo') => {
     setPickerState({ isOpen: true, type, movieId });
   };
 
@@ -219,6 +220,7 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
                   <th className={styles.movieCol}>FILM</th>
                   <th>POSTER</th>
                   <th>BACKDROP</th>
+                  <th>LOGO</th>
                   <th>TRAILER</th>
                   <th>INFO TRAILER</th>
                   <th className={styles.actionCol}>STATO</th>
@@ -264,6 +266,16 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
                           tmdbFallback={movie.tmdbData?.backdrop_path}
                           onChange={(val) => handleUpdate(movie.tmdbId, 'customBackdropPath', val)}
                           onPickClick={() => openPicker(movie.tmdbId, 'backdrop')}
+                        />
+                      </td>
+                      <td>
+                        <VisualAssetCard
+                          label="Logo"
+                          type="logo"
+                          value={movie.override.customLogoPath || ''}
+                          tmdbFallback={movie.tmdbData?.logo_path}
+                          onChange={(val) => handleUpdate(movie.tmdbId, 'customLogoPath', val)}
+                          onPickClick={() => openPicker(movie.tmdbId, 'logo')}
                         />
                       </td>
                       <td>
@@ -323,7 +335,7 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
       {pickerState.isOpen && pickerState.movieId && pickerState.type !== 'trailer' && (
         <ImagePickerModal
           movieId={pickerState.movieId}
-          type={pickerState.type as 'poster' | 'backdrop'}
+          type={pickerState.type as 'poster' | 'backdrop' | 'logo'}
           onSelect={handleImageSelect}
           onClose={() => setPickerState(s => ({ ...s, isOpen: false }))}
         />
