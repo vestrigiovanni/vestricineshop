@@ -1551,7 +1551,7 @@ export async function upsertMovieOverride(tmdbId: string, override: any) {
           customVersion: fullOverride.customVersion || '',
           posterPath: fullOverride.customPosterPath || '',
           backdropPath: fullOverride.customBackdropPath || '',
-          logoPath: fullOverride.customLogoPath || '',
+          logoPath: fullOverride.customLogoPath === 'none' ? '' : (fullOverride.customLogoPath || ''),
           director: fullOverride.customDirector || '',
           cast: fullOverride.customCast || '',
           // Awards compatibility fields

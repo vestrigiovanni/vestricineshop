@@ -113,7 +113,7 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
       overview: movie.customOverview || '',
       poster_path: movie.customPosterPath || '',
       backdrop_path: movie.customBackdropPath || '',
-      logo_path: (movie as any).customLogoPath || '',
+      logo_path: (movie as any).customLogoPath === 'none' ? '' : ((movie as any).customLogoPath || ''),
       release_date: (movie as any).releaseDate || '',
       director: movie.customDirector || '',
       runtime: (movie as any).runtime || null,

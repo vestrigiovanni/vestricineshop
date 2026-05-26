@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import styles from './Footer.module.css';
 import AdminOverlay from './Admin/AdminOverlay';
+import { loginAdmin, checkAdminSession } from '@/actions/authActions';
 
 export default function Footer() {
   const [mounted, setMounted] = useState(false);
@@ -15,21 +16,31 @@ export default function Footer() {
     setMounted(true);
   }, []);
 
-  const handleAdminClick = (e: React.MouseEvent) => {
+  const handleAdminClick = async (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsModalOpen(true);
+    const hasSession = await checkAdminSession();
+    if (hasSession) {
+      setIsAdminAuthenticated(true);
+    } else {
+      setIsModalOpen(true);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
-    if (password === '121212') {
-      setIsAdminAuthenticated(true);
-      setIsModalOpen(false);
-      setPassword('');
-    } else {
-      setError('Password non corretta.');
+    try {
+      const res = await loginAdmin(password);
+      if (res.success) {
+        setIsAdminAuthenticated(true);
+        setIsModalOpen(false);
+        setPassword('');
+      } else {
+        setError(res.error || 'Password non corretta.');
+      }
+    } catch (err) {
+      setError('Errore durante la verifica della password.');
     }
   };
 

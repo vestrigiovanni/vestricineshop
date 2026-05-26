@@ -292,7 +292,7 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
             subtitles: override.subtitles?.trim() || 'NESSUNO',
             posterPath: override.customPosterPath || '',
             backdropPath: override.customBackdropPath || '',
-            logoPath: override.customLogoPath || '',
+            logoPath: override.customLogoPath === 'none' ? '' : (override.customLogoPath || ''),
             director: override.customDirector || '',
             cast: override.customCast || '',
             // Awards compatibility fields

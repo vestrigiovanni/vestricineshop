@@ -583,13 +583,17 @@ export default function MoviesControlPage() {
                   <div className={styles.mediaInputRow}>
                     {formState.customLogoPath && (
                       <div className={styles.thumbBackdrop} style={{ height: '50px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}>
-                        <img
-                          src={formState.customLogoPath.startsWith('/')
-                            ? getTMDBImageUrl(formState.customLogoPath, 'w300')!
-                            : formState.customLogoPath}
-                          alt="Logo"
-                          style={{ maxHeight: '100%', objectFit: 'contain' }}
-                        />
+                        {formState.customLogoPath === 'none' ? (
+                          <span style={{ color: '#ff453a', fontSize: '0.8rem', fontWeight: 'bold' }}>Logo Nascosto (Testo Attivo)</span>
+                        ) : (
+                          <img
+                            src={formState.customLogoPath.startsWith('/')
+                              ? getTMDBImageUrl(formState.customLogoPath, 'w300')!
+                              : formState.customLogoPath}
+                            alt="Logo"
+                            style={{ maxHeight: '100%', objectFit: 'contain' }}
+                          />
+                        )}
                       </div>
                     )}
                     <input
