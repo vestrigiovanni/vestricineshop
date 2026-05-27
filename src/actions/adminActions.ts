@@ -142,7 +142,7 @@ function getRomeDayStartMs(d: Date): number {
  * HELPER: Checks if a slot [startMs, endMs] is within the cinema's opening hours
  * for the day defined by dayStartMs.
  */
-function isWithinOpeningHours(startMs: number, endMs: number, dayStartMs: number): boolean {
+function isWithinOpeningHours(startMs: number, endMs: number, dayStartMs: number, runtimeMs?: number): boolean {
   const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
   
   if (dayStartMs < transitionDateMs) {
@@ -152,9 +152,11 @@ function isWithinOpeningHours(startMs: number, endMs: number, dayStartMs: number
     return startMs >= minStartMs && startMs <= maxStartMs;
   } else {
     // NEW LOGIC: first show starts from 10:00, last show must finish by 01:00 of next day
+    // Note: The movie itself must end by 01:00 (maxEndMs). The cleaning buffer can go past 01:00.
     const minStartMs = dayStartMs + 10 * 60 * 60 * 1000;
     const maxEndMs = dayStartMs + 25 * 60 * 60 * 1000;
-    return startMs >= minStartMs && endMs <= maxEndMs;
+    const movieEndMs = runtimeMs ? (startMs + runtimeMs) : (endMs - 10 * 60000);
+    return startMs >= minStartMs && movieEndMs <= maxEndMs;
   }
 }
 
@@ -1023,7 +1025,8 @@ export async function adminGetSmartSuggestion(tmdbId: string, seatingPlanId: num
       continue;
     }
 
-    if (isNewLogic ? (eNew > maxLimitMs) : (sNew > maxLimitMs)) {
+    const movieEndMs = sNew + (runtime * 60000);
+    if (isNewLogic ? (movieEndMs > maxLimitMs) : (sNew > maxLimitMs)) {
       // Too late, jump to next day's opening time
       currentPointer = dayStartMs + 24 * 60 * 60 * 1000 + (isNewLogic ? 10 : 8) * 60 * 60 * 1000;
       continue;
@@ -1078,7 +1081,8 @@ export async function adminCheckConflict(date: string, tmdbId: string, seatingPl
         runtime
       };
     }
-    if (eNew > maxEndMs) {
+    const movieEndMs = sNew + (runtime * 60000);
+    if (movieEndMs > maxEndMs) {
       return {
         hasConflict: true,
         movieTitle: "Orario chiusura (il film deve terminare entro l'01:00)",
@@ -1155,7 +1159,7 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
     // CRITICAL: timezone-aware Rome midnight
     const dayStartMs = getRomeDayStartMs(dRef);
     const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
-    if (isWithinOpeningHours(sNew, eNew, dayStartMs) && 
+    if (isWithinOpeningHours(sNew, eNew, dayStartMs, runtime * 60000) && 
         isRangeFree(dayMap, sNew, eNew, dayStartMs) &&
         !blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start)) {
       preSuggestion = formatInTimeZone(new Date(sNew), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
@@ -1176,7 +1180,7 @@ export async function adminFindNearestSlots(date: string, tmdbId: string, seatin
     // CRITICAL: timezone-aware Rome midnight
     const dayStartMs = getRomeDayStartMs(dRef);
     const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
-    if (isWithinOpeningHours(sNew, eNew, dayStartMs) && 
+    if (isWithinOpeningHours(sNew, eNew, dayStartMs, runtime * 60000) && 
         isRangeFree(dayMap, sNew, eNew, dayStartMs) &&
         !blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start)) {
       postSuggestion = formatInTimeZone(new Date(sNew), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
@@ -1244,7 +1248,7 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
   console.log(`[adminGetWeeklySlots] Film: ${tmdbId} | Runtime: ${runtime}m | Sala: ${seatingPlanId}`);
 
   const blockedIntervals = await getBlockedIntervals(seatingPlanId);
-  const suggestions: { date: string; label: string; isOccupied: boolean; isMorning?: boolean; runtime: number }[] = [];
+  const suggestions: { date: string; label: string; isOccupied: boolean; isMorning?: boolean; isOptimized?: boolean; runtime: number }[] = [];
   const nowMs = Date.now();
 
   for (let d = 0; d < daysCount; d++) {
@@ -1261,9 +1265,9 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
       timelineStartMs = dayStartMs + 8 * 60 * 60 * 1000;
       timelineEndMs = dayStartMs + (23 * 60 + 30) * 60 * 1000;
     } else {
-      // New logic: first film starting from 10:00, last film must finish by 01:00 of next morning
+      // New logic: first film starting from 10:00, last film must finish by 01:00 of next morning (without cleaning buffer)
       timelineStartMs = dayStartMs + 10 * 60 * 60 * 1000;
-      timelineEndMs = dayStartMs + 25 * 60 * 60 * 1000 - runtimeWithBufferMs;
+      timelineEndMs = dayStartMs + 25 * 60 * 60 * 1000 - (runtime * 60000);
     }
 
     let currentPointer = timelineStartMs;
@@ -1289,11 +1293,17 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
             label: romeHHmm,
             isOccupied: false,
             isMorning: h >= 5 && h < 13,
+            isOptimized: false,
             runtime
           });
         }
       }
       currentPointer += SCAN_STEP_MS;
+    }
+
+    if (daySlots.length > 0) {
+      // Mark the absolute last slot of the day as optimized
+      daySlots[daySlots.length - 1].isOptimized = true;
     }
 
     // Filter slots to show one every 30 minutes to provide a dense but readable grid
@@ -1304,7 +1314,7 @@ export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number,
     daySlots.forEach(s => {
       const [h, m] = s.label.split(':').map(Number);
       const intervalKey = `${h}:${m < 30 ? '00' : '30'}`;
-      if (!seenIntervals.has(intervalKey)) {
+      if (!seenIntervals.has(intervalKey) || s.isOptimized) {
         groupedSlots.push(s);
         seenIntervals.add(intervalKey);
       }
