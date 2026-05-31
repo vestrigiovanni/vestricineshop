@@ -1706,12 +1706,37 @@ export async function adminGetVisualControlData() {
 }
 
 export async function adminSyncSoldOutStatus() {
-  const { syncSoldOutStatus } = await import('@/services/pretix');
   try {
+    const { updateEventAvailability } = await import('@/services/sync.service');
+    const { syncSoldOutStatus } = await import('@/services/pretix');
+
+    console.log('[ADMIN-SYNC] Avvio sincronizzazione forzata di tutti gli eventi futuri da Pretix...');
+    
+    // 1. Recupera la lista di tutti gli eventi futuri da Pretix (futureOnly = true, skipCache = true)
+    const rawSubEvents = await listSubEvents(true, false, true);
+    console.log(`[ADMIN-SYNC] Trovati ${rawSubEvents.length} eventi futuri su Pretix da sincronizzare.`);
+
+    // 2. Sincronizzazione chirurgica forzata per ogni evento futuro
+    let count = 0;
+    for (const se of rawSubEvents) {
+      await updateEventAvailability(se.id, true); // force = true per interrogare live le API di Pretix!
+      count++;
+      
+      // Pausa di cortesia ogni 5 richieste per mitigare rischi di rate-limiting 429
+      if (count % 5 === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+
+    // 3. Esegui il controllo globale dello stato sold-out dei film
     await syncSoldOutStatus();
+
     revalidatePath('/');
     revalidatePath('/admin');
-    return { success: true };
+    revalidatePath('/admin/movies-control');
+
+    console.log(`[ADMIN-SYNC] Sincronizzazione completata con successo! Aggiornati ${count} eventi.`);
+    return { success: true, count };
   } catch (error) {
     console.error('Error in adminSyncSoldOutStatus:', error);
     throw error;

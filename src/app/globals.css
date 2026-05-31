@@ -175,18 +175,12 @@ h6 {
     padding-bottom: env(safe-area-inset-bottom); /* iOS Safe Area */
   }
 
-  /* Universal Touch Target Optimization */
-  button, 
-  a, 
-  input, 
-  select,
-  .clickable {
-    min-height: 48px;
-    min-width: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
+  /* NOTE: a former "Universal Touch Target" rule forced min-height:48px,
+     min-width:44px and display:inline-flex on EVERY button/a/input/select.
+     It distorted sized icon buttons (the 36px circular trailer button became
+     a 44x48 oval, the "Più" pill grew to 48px tall) and overrode element
+     layout, diverging from the polished desktop design. Removed so mobile
+     inherits the same component sizing as desktop. */
 
   /* Previene lo zoom automatico su iOS Safari per tutti gli input */
   input,

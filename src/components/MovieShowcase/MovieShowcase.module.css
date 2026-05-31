@@ -538,23 +538,62 @@
 }
 
 @media (max-width: 768px) {
+  .hero {
+    min-height: 88vh;
+    min-height: 88svh;
+    padding-top: 56px;
+    padding-bottom: 32px;
+    justify-content: center;
+  }
+
   .heroOverlayText {
     background: linear-gradient(
       0deg,
       rgba(15, 17, 21, 1) 0%,
-      rgba(15, 17, 21, 0.8) 50%,
-      rgba(15, 17, 21, 0.3) 100%
+      rgba(15, 17, 21, 0.85) 58%,
+      rgba(15, 17, 21, 0.35) 100%
     );
   }
-  
+
   .heroContent {
-    padding-top: 40%;
+    /* Was 40% — created a large dead gap above the title and pushed the
+       showtimes CTA off-screen. A smaller offset keeps text clear of the
+       backdrop focal point while surfacing the content. */
+    padding-top: 18%;
+  }
+
+  .heroLayout {
+    gap: 1.5rem;
+  }
+
+  /* On desktop `flex: 0 1 700px` sets a 700px WIDTH. In the mobile column
+     layout that basis becomes a forced 700px HEIGHT, leaving a large empty
+     gap under the overview. Reset to content height, keep full width. */
+  .heroContentMain {
+    flex: 0 1 auto;
+    width: 100%;
   }
 
   .title {
     font-size: 2.5rem;
   }
-  
+
+  .meta {
+    flex-wrap: wrap; /* Ritorna a capo su mobile per leggibilità */
+    gap: 0.8rem;
+    font-size: 0.8rem;
+    white-space: normal;
+    margin-bottom: 1.25rem;
+  }
+
+  .overviewContainer {
+    margin-bottom: 1.25rem;
+  }
+
+  .showtimesSection {
+    margin-top: 1.5rem;
+  }
+
   .cardWrapper {
     min-width: 140px;
   }
@@ -563,11 +602,10 @@
     display: none;
   }
 
-  .meta {
-    flex-wrap: wrap; /* Ritorna a capo su mobile per leggibilità */
-    gap: 0.8rem;
-    font-size: 0.8rem;
-    white-space: normal;
+  /* The -100px overlap is a desktop effect; on mobile it collides with the
+     showtimes CTA now that the hero is shorter. Sit the gallery below it. */
+  .galleryList {
+    margin-top: 0;
   }
 }
 

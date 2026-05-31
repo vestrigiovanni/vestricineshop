@@ -406,9 +406,15 @@
   }
 }
 
-/* Hide scroller on desktop */
-.mobileScrollerWrapper {
-  display: none;
+/* Hide scroller on desktop only.
+   NOTE: scoped to min-width:768px so it does NOT override the
+   `display:block` set inside the @media(max-width:767px) block above
+   (equal specificity + later source order would otherwise win and
+   hide the mobile date picker entirely). */
+@media (min-width: 768px) {
+  .mobileScrollerWrapper {
+    display: none;
+  }
 }
 
 /* ── Sold Out Status ── */
