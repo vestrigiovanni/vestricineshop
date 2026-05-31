@@ -267,8 +267,8 @@
 
 @media (max-width: 767px) {
   .calendarContainer {
-    padding: 2rem 0; /* Remove horizontal padding to let scroller hit edges */
-    margin: 2rem 0;
+    padding: 1.5rem 0 1rem 0; /* Remove horizontal padding to let scroller hit edges, reduce top/bottom */
+    margin: 0.5rem 0 1rem 0; /* Reduced top/bottom margin */
     width: 100%;
   }
 

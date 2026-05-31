@@ -110,6 +110,10 @@
 }
 
 @media (max-width: 768px) {
+  .main {
+    padding-bottom: 1.5rem;
+  }
+
   .hero {
     height: 70vh;
     align-items: flex-end;

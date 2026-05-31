@@ -606,6 +606,7 @@
      showtimes CTA now that the hero is shorter. Sit the gallery below it. */
   .galleryList {
     margin-top: 0;
+    padding-bottom: 1rem;
   }
 }
 
