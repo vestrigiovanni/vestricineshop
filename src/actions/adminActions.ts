@@ -320,7 +320,12 @@ export async function adminGetMovieById(id: string) {
 
 
 export async function adminListEvents() {
-  return await listSubEvents(true, false, true);
+  try {
+    return await listSubEvents(true, false, true);
+  } catch (error) {
+    console.error('[adminListEvents] ❌ Errore nel caricamento eventi:', error);
+    return [];
+  }
 }
 
 /**
@@ -537,268 +542,270 @@ export async function adminScheduleMovie(
   skipSync: boolean = false,
   enrichedMetadata?: any
 ) {
-  // ── TRACCIAMENTO ESECUZIONE (visibile nei log Vercel) ──────────────────────
-  console.log(`[adminScheduleMovie] ▶ START (TECNICA STRINGA CRUDA)`, {
-    movieTitle: movieData.title,
-    dateStr,
-    timeStr,
-    seatingPlanId,
-    override,
-    serverTime: new Date().toISOString()
-  });
+  try {
+    // ── TRACCIAMENTO ESECUZIONE (visibile nei log Vercel) ──────────────────────
+    console.log(`[adminScheduleMovie] ▶ START (TECNICA STRINGA CRUDA)`, {
+      movieTitle: movieData.title,
+      dateStr,
+      timeStr,
+      seatingPlanId,
+      override,
+      serverTime: new Date().toISOString()
+    });
 
-  // 1. Fetch full details from TMDB (for Director, Language, Runtime)
-  // If enrichedMetadata is provided, we skip redundant API calls
-  const details = enrichedMetadata || await getMovieDetails(movieData.id);
-  if (!details) throw new Error('Could not fetch movie details from TMDB');
+    // 1. Fetch full details from TMDB (for Director, Language, Runtime)
+    // If enrichedMetadata is provided, we skip redundant API calls
+    const details = enrichedMetadata || await getMovieDetails(movieData.id);
+    if (!details) throw new Error('Could not fetch movie details from TMDB');
 
-  const director = enrichedMetadata 
-    ? (Array.isArray(enrichedMetadata.director) ? enrichedMetadata.director.join(', ') : enrichedMetadata.director)
-    : getDirector(details);
+    const director = enrichedMetadata 
+      ? (Array.isArray(enrichedMetadata.director) ? enrichedMetadata.director.join(', ') : enrichedMetadata.director)
+      : getDirector(details);
+      
+    const cast = enrichedMetadata
+      ? (Array.isArray(enrichedMetadata.cast) ? enrichedMetadata.cast.join(', ') : enrichedMetadata.cast)
+      : getCast(details);
+
+    // 2. Fetch Seating Plan Details to get exact category names
+    const planDetail = await getSeatingPlanDetail(seatingPlanId, true);
+    if (!planDetail) throw new Error(`Could not fetch seating plan detail for ID ${seatingPlanId}`);
+
+    // 3. Build Seat Category Mapping ONLY from categories that have actual seats in the layout.
+    // CRITICAL: Pretix returns 500 if seat_category_mapping references a category (e.g. "VIP")
+    // for which no seat exists in the seating plan (common for newly created rooms with all-INTERO layouts).
+    //
+    // Step A: collect categories from actual seat objects (zones/rows/seats format)
+    const categoriesWithSeats = new Set<string>();
     
-  const cast = enrichedMetadata
-    ? (Array.isArray(enrichedMetadata.cast) ? enrichedMetadata.cast.join(', ') : enrichedMetadata.cast)
-    : getCast(details);
-
-  // 2. Fetch Seating Plan Details to get exact category names
-  const planDetail = await getSeatingPlanDetail(seatingPlanId, true);
-  if (!planDetail) throw new Error(`Could not fetch seating plan detail for ID ${seatingPlanId}`);
-
-  // 3. Build Seat Category Mapping ONLY from categories that have actual seats in the layout.
-  // CRITICAL: Pretix returns 500 if seat_category_mapping references a category (e.g. "VIP")
-  // for which no seat exists in the seating plan (common for newly created rooms with all-INTERO layouts).
-  //
-  // Step A: collect categories from actual seat objects (zones/rows/seats format)
-  const categoriesWithSeats = new Set<string>();
-  
-  // A1: Zones/Rows structure
-  planDetail.layout?.zones?.forEach((zone: any) => {
-    zone.rows?.forEach((row: any) => {
-      row.seats?.forEach((seat: any) => {
-        if (seat.category) categoriesWithSeats.add(seat.category);
+    // A1: Zones/Rows structure
+    planDetail.layout?.zones?.forEach((zone: any) => {
+      zone.rows?.forEach((row: any) => {
+        row.seats?.forEach((seat: any) => {
+          if (seat.category) categoriesWithSeats.add(seat.category);
+        });
       });
     });
-  });
 
-  // A2: Flat objects structure
-  planDetail.layout?.objects?.forEach((obj: any) => {
-    if ((obj.type === 'seat' || !obj.type) && obj.category) {
-      categoriesWithSeats.add(obj.category);
-    }
-  });
-
-  // Step B: if Step A found nothing (Pretix graphical layout uses a different format),
-  // fall back to the declared layout categories but cross-check with actual capacity counts
-  // to avoid including VIP when there are no VIP seats.
-  if (categoriesWithSeats.size === 0) {
-    const { intero: capIntero, vip: capVip } = calculateCapacitiesFromLayout(planDetail.layout);
-    const layoutCategories: any[] = planDetail.layout?.categories || [];
-    layoutCategories.forEach((c: any) => {
-      const isVipCategory = (c.name || '').toUpperCase().includes('VIP') || (c.name || '').toUpperCase().includes('POLTRONA');
-      if (isVipCategory && capVip > 0) categoriesWithSeats.add(c.name);
-      if (!isVipCategory && capIntero > 0) categoriesWithSeats.add(c.name);
+    // A2: Flat objects structure
+    planDetail.layout?.objects?.forEach((obj: any) => {
+      if ((obj.type === 'seat' || !obj.type) && obj.category) {
+        categoriesWithSeats.add(obj.category);
+      }
     });
-  }
 
-  // DEBUG: log sample seat GUIDs to detect collision issues
-  const sampleGuids = planDetail.layout?.zones?.[0]?.rows?.[0]?.seats?.slice(0, 3).map((s: any) => s.seat_guid) || [];
-  console.log(`[adminScheduleMovie] 🔑 GUID posti sala ${seatingPlanId} (campione):`, sampleGuids);
-  console.log(`[adminScheduleMovie] 📊 Categorie CON POSTI nel layout:`, [...categoriesWithSeats]);
-
-  const seatCategoryMapping: Record<string, number> = {};
-
-  categoriesWithSeats.forEach((name: string) => {
-    if (name.toUpperCase().includes('VIP') || name.toUpperCase().includes('POLTRONA')) {
-      seatCategoryMapping[name] = ITEM_VIP_ID;
-    } else {
-      seatCategoryMapping[name] = ITEM_INTERO_ID;
+    // Step B: if Step A found nothing (Pretix graphical layout uses a different format),
+    // fall back to the declared layout categories but cross-check with actual capacity counts
+    // to avoid including VIP when there are no VIP seats.
+    if (categoriesWithSeats.size === 0) {
+      const { intero: capIntero, vip: capVip } = calculateCapacitiesFromLayout(planDetail.layout);
+      const layoutCategories: any[] = planDetail.layout?.categories || [];
+      layoutCategories.forEach((c: any) => {
+        const isVipCategory = (c.name || '').toUpperCase().includes('VIP') || (c.name || '').toUpperCase().includes('POLTRONA');
+        if (isVipCategory && capVip > 0) categoriesWithSeats.add(c.name);
+        if (!isVipCategory && capIntero > 0) categoriesWithSeats.add(c.name);
+      });
     }
-  });
 
-  // Final fallback: if still empty, default to INTERO only
-  if (Object.keys(seatCategoryMapping).length === 0) {
-    seatCategoryMapping['INTERO'] = ITEM_INTERO_ID;
-  }
+    // DEBUG: log sample seat GUIDs to detect collision issues
+    const sampleGuids = planDetail.layout?.zones?.[0]?.rows?.[0]?.seats?.slice(0, 3).map((s: any) => s.seat_guid) || [];
+    console.log(`[adminScheduleMovie] 🔑 GUID posti sala ${seatingPlanId} (campione):`, sampleGuids);
+    console.log(`[adminScheduleMovie] 📊 Categorie CON POSTI nel layout:`, [...categoriesWithSeats]);
 
-  console.log(`[adminScheduleMovie] 🗺️ Mapping categorie generato:`, seatCategoryMapping);
+    const seatCategoryMapping: Record<string, number> = {};
 
-  // 4. Calculate Capacities DYNAMICALLY from the layout
-  const { intero: calculatedIntero, vip: calculatedVip } = calculateCapacitiesFromLayout(planDetail.layout);
-
-  let interoSize = calculatedIntero;
-  let vipSize = calculatedVip;
-
-
-
-  // Final safety check
-  if (interoSize === 0 && vipSize === 0) {
-    interoSize = 1000; // Emergency fallback
-  }
-
-  // 5. Algorithm No-Overlap Check (Nuclear Bit-Map Logic)
-  const runtimeMinutes = (details.runtime || 120);
-  const CLEANING_BUFFER_NEW = 10 * 60000;
-
-  // Per i calcoli interni della bitmap, usiamo STILL toDate ma solo per posizionarci
-  // NON lo usiamo per la stringa finale Pretix.
-  const dateInput = `${dateStr}T${timeStr}`;
-  const startDate = toDate(dateInput, { timeZone: TIMEZONE });
-  const sNew = startDate.getTime();
-  const eNew = sNew + (runtimeMinutes * 60000) + CLEANING_BUFFER_NEW;
-
-  console.log(`[adminScheduleMovie] ⏱ Calcolo occupazione`, {
-    runtimeMinutes,
-    startISO: startDate.toISOString(),
-    override
-  });
-
-  const blockedIntervals = await getBlockedIntervals(seatingPlanId);
-
-  // CRITICAL: use timezone-aware Rome midnight for the bitmap anchor
-  const dayStartMs = getRomeDayStartMs(startDate);
-  const dayMap = getDayOccupancyMap(blockedIntervals, startDate);
-
-  // Enforce opening hours for non-overridden requests
-  if (!override) {
-    const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
-    if (dayStartMs >= transitionDateMs) {
-      const minStartMs = dayStartMs + 10 * 60 * 60 * 1000; // 10:00
-      const maxEndMs = dayStartMs + 25 * 60 * 60 * 1000;   // 01:00 (giorno dopo)
-      
-      if (sNew < minStartMs) {
-        const msg = `Orario non consentito: dal 9 Giugno il primo spettacolo non può iniziare prima delle 10:00.`;
-        console.log(`[adminScheduleMovie] ⛔ ${msg}`);
-        throw new Error(msg);
+    categoriesWithSeats.forEach((name: string) => {
+      if (name.toUpperCase().includes('VIP') || name.toUpperCase().includes('POLTRONA')) {
+        seatCategoryMapping[name] = ITEM_VIP_ID;
+      } else {
+        seatCategoryMapping[name] = ITEM_INTERO_ID;
       }
-      if (eNew > maxEndMs) {
-        const msg = `Orario non consentito: dal 9 Giugno l'ultimo spettacolo deve terminare entro l'01:00 (il film terminerebbe alle ${formatInTimeZone(new Date(eNew), TIMEZONE, 'HH:mm')}).`;
-        console.log(`[adminScheduleMovie] ⛔ ${msg}`);
-        throw new Error(msg);
-      }
-    } else {
-      const minStartMs = dayStartMs + 8 * 60 * 60 * 1000; // 08:00
-      const maxStartMs = dayStartMs + (23 * 60 + 30) * 60 * 1000; // 23:30
-      if (sNew < minStartMs) {
-        const msg = `Orario non consentito: prima del 9 Giugno il primo spettacolo non può iniziare prima delle 08:00.`;
-        console.log(`[adminScheduleMovie] ⛔ ${msg}`);
-        throw new Error(msg);
-      }
-      if (sNew > maxStartMs) {
-        const msg = `Orario non consentito: prima del 9 Giugno l'ultimo spettacolo non può iniziare dopo le 23:30.`;
-        console.log(`[adminScheduleMovie] ⛔ ${msg}`);
-        throw new Error(msg);
+    });
+
+    // Final fallback: if still empty, default to INTERO only
+    if (Object.keys(seatCategoryMapping).length === 0) {
+      seatCategoryMapping['INTERO'] = ITEM_INTERO_ID;
+    }
+
+    console.log(`[adminScheduleMovie] 🗺️ Mapping categorie generato:`, seatCategoryMapping);
+
+    // 4. Calculate Capacities DYNAMICALLY from the layout
+    const { intero: calculatedIntero, vip: calculatedVip } = calculateCapacitiesFromLayout(planDetail.layout);
+
+    let interoSize = calculatedIntero;
+    let vipSize = calculatedVip;
+
+    // Final safety check
+    if (interoSize === 0 && vipSize === 0) {
+      interoSize = 1000; // Emergency fallback
+    }
+
+    // 5. Algorithm No-Overlap Check (Nuclear Bit-Map Logic)
+    const runtimeMinutes = (details.runtime || 120);
+    const CLEANING_BUFFER_NEW = 10 * 60000;
+
+    // Per i calcoli interni della bitmap, usiamo STILL toDate ma solo per posizionarci
+    // NON lo usiamo per la stringa finale Pretix.
+    const dateInput = `${dateStr}T${timeStr}`;
+    const startDate = toDate(dateInput, { timeZone: TIMEZONE });
+    const sNew = startDate.getTime();
+    const eNew = sNew + (runtimeMinutes * 60000) + CLEANING_BUFFER_NEW;
+
+    console.log(`[adminScheduleMovie] ⏱ Calcolo occupazione`, {
+      runtimeMinutes,
+      startISO: startDate.toISOString(),
+      override
+    });
+
+    const blockedIntervals = await getBlockedIntervals(seatingPlanId);
+
+    // CRITICAL: use timezone-aware Rome midnight for the bitmap anchor
+    const dayStartMs = getRomeDayStartMs(startDate);
+    const dayMap = getDayOccupancyMap(blockedIntervals, startDate);
+
+    // Enforce opening hours for non-overridden requests
+    if (!override) {
+      const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
+      if (dayStartMs >= transitionDateMs) {
+        const minStartMs = dayStartMs + 10 * 60 * 60 * 1000; // 10:00
+        const maxEndMs = dayStartMs + 25 * 60 * 60 * 1000;   // 01:00 (giorno dopo)
+        
+        if (sNew < minStartMs) {
+          const msg = `Orario non consentito: dal 9 Giugno il primo spettacolo non può iniziare prima delle 10:00.`;
+          console.log(`[adminScheduleMovie] ⛔ ${msg}`);
+          throw new Error(msg);
+        }
+        if (eNew > maxEndMs) {
+          const msg = `Orario non consentito: dal 9 Giugno l'ultimo spettacolo deve terminare entro l'01:00 (il film terminerebbe alle ${formatInTimeZone(new Date(eNew), TIMEZONE, 'HH:mm')}).`;
+          console.log(`[adminScheduleMovie] ⛔ ${msg}`);
+          throw new Error(msg);
+        }
+      } else {
+        const minStartMs = dayStartMs + 8 * 60 * 60 * 1000; // 08:00
+        const maxStartMs = dayStartMs + (23 * 60 + 30) * 60 * 1000; // 23:30
+        if (sNew < minStartMs) {
+          const msg = `Orario non consentito: prima del 9 Giugno il primo spettacolo non può iniziare prima delle 08:00.`;
+          console.log(`[adminScheduleMovie] ⛔ ${msg}`);
+          throw new Error(msg);
+        }
+        if (sNew > maxStartMs) {
+          const msg = `Orario non consentito: prima del 9 Giugno l'ultimo spettacolo non può iniziare dopo le 23:30.`;
+          console.log(`[adminScheduleMovie] ⛔ ${msg}`);
+          throw new Error(msg);
+        }
       }
     }
-  }
 
-  const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs) ||
-                      blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start);
+    const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs) ||
+                        blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start);
 
-  console.log(`[adminScheduleMovie] 🔍 Conflict check →`, { hasConflict, override });
+    console.log(`[adminScheduleMovie] 🔍 Conflict check →`, { hasConflict, override });
 
-  if (hasConflict && !override) {
-    const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
-    const msg = `Conflitto rilevato: l'orario scelto si sovrappone alla proiezione di "${conflict?.title || 'un altro film'}" (incluse pulizie sala).`;
-    console.log(`[adminScheduleMovie] ⛔ ${msg}`);
-    throw new Error(msg);
-  }
-
-  // override === true: ignora il conflitto e procedi comunque
-  if (hasConflict && override) {
-    console.log(`[adminScheduleMovie] ⚠️ Override attivo: procedo con il salvataggio nonostante il conflitto.`);
-  }
-
-
-
-  const movieRating = enrichedMetadata?.rating || await getEnhancedRating(details);
-
-  // 6. Create the Sub-Event in Pretix with Mapping
-  const subEvent = await createSubEvent({
-    title: movieData.title,
-    date: dateStr,
-    time: timeStr,
-    tmdbId: movieData.id,
-    overview: movieData.overview,
-    posterPath: movieData.posterPath,
-    runtime: runtimeMinutes,
-    director: director,
-    cast: Array.isArray(cast) ? cast.join(', ') : (cast || ""),
-    language: movieData.language,
-    subtitles: movieData.subtitles,
-    versionLanguage: movieData.versionLanguage,
-    seatingPlanId: seatingPlanId,
-    seatCategoryMapping: seatCategoryMapping,
-    // Store additional rich metadata in comment for the Souvenir Ticket
-    tagline: details.tagline || '',
-    genres: details.genres?.map((g: any) => g.name).join(', ') || '',
-    year: details.release_date ? details.release_date.split('-')[0] : '',
-    rating: movieRating,
-    logoPath: enrichedMetadata?.logo_path || getMovieLogo(details) || '',
-    backdropPath: enrichedMetadata?.backdrop_path || details.backdrop_path || '',
-    awards: enrichedMetadata?.awards || [],
-  });
-
-  const subeventId = subEvent.id;
-
-  // --- PARALLEL CONFIGURATION (Standard Tecnico) ---
-  // Parallelize Pretix setup to reduce scheduling time per show
-  const setupTasks: Promise<any>[] = [];
-
-  // 6. Price Overrides
-  setupTasks.push(setSubEventPriceOverrides(subeventId, [
-    { item: ITEM_INTERO_ID, price: "0.00" },
-    { item: ITEM_VIP_ID, price: "0.00" }
-  ]));
-
-  // 7. Quota Intero
-  if (interoSize > 0) {
-    setupTasks.push(createQuota(
-      subeventId,
-      'Quota Intero',
-      interoSize,
-      [ITEM_INTERO_ID]
-    ));
-  }
-
-  // 8. Quota Poltrona
-  if (vipSize > 0) {
-    setupTasks.push(createQuota(
-      subeventId,
-      'Quota Poltrona',
-      vipSize,
-      [ITEM_VIP_ID]
-    ));
-  }
-
-  await Promise.all(setupTasks);
-
-  // --- ATOMIC SYNC (Standard Tecnico) ---
-  // Ensure the database is updated immediately after creation
-  if (!skipSync) {
-    try {
-      const { syncPretixToDatabase } = await import('@/services/sync.service');
-      await syncPretixToDatabase({ skipPush: true });
-    } catch (syncErr) {
-      console.error('[adminScheduleMovie] ⚠️ Background sync failed:', syncErr);
+    if (hasConflict && !override) {
+      const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
+      const msg = `Conflitto rilevato: l'orario scelto si sovrappone alla proiezione di "${conflict?.title || 'un altro film'}" (incluse pulizie sala).`;
+      console.log(`[adminScheduleMovie] ⛔ ${msg}`);
+      throw new Error(msg);
     }
+
+    // override === true: ignora il conflitto e procedi comunque
+    if (hasConflict && override) {
+      console.log(`[adminScheduleMovie] ⚠️ Override attivo: procedo con il salvataggio nonostante il conflitto.`);
+    }
+
+    const movieRating = enrichedMetadata?.rating || await getEnhancedRating(details);
+
+    // 6. Create the Sub-Event in Pretix with Mapping
+    const subEvent = await createSubEvent({
+      title: movieData.title,
+      date: dateStr,
+      time: timeStr,
+      tmdbId: movieData.id,
+      overview: movieData.overview,
+      posterPath: movieData.posterPath,
+      runtime: runtimeMinutes,
+      director: director,
+      cast: Array.isArray(cast) ? cast.join(', ') : (cast || ""),
+      language: movieData.language,
+      subtitles: movieData.subtitles,
+      versionLanguage: movieData.versionLanguage,
+      seatingPlanId: seatingPlanId,
+      seatCategoryMapping: seatCategoryMapping,
+      // Store additional rich metadata in comment for the Souvenir Ticket
+      tagline: details.tagline || '',
+      genres: details.genres?.map((g: any) => g.name).join(', ') || '',
+      year: details.release_date ? details.release_date.split('-')[0] : '',
+      rating: movieRating,
+      logoPath: enrichedMetadata?.logo_path || getMovieLogo(details) || '',
+      backdropPath: enrichedMetadata?.backdrop_path || details.backdrop_path || '',
+      awards: enrichedMetadata?.awards || [],
+    });
+
+    const subeventId = subEvent.id;
+
+    // --- PARALLEL CONFIGURATION (Standard Tecnico) ---
+    // Parallelize Pretix setup to reduce scheduling time per show
+    const setupTasks: Promise<any>[] = [];
+
+    // 6. Price Overrides
+    setupTasks.push(setSubEventPriceOverrides(subeventId, [
+      { item: ITEM_INTERO_ID, price: "0.00" },
+      { item: ITEM_VIP_ID, price: "0.00" }
+    ]));
+
+    // 7. Quota Intero
+    if (interoSize > 0) {
+      setupTasks.push(createQuota(
+        subeventId,
+        'Quota Intero',
+        interoSize,
+        [ITEM_INTERO_ID]
+      ));
+    }
+
+    // 8. Quota Poltrona
+    if (vipSize > 0) {
+      setupTasks.push(createQuota(
+        subeventId,
+        'Quota Poltrona',
+        vipSize,
+        [ITEM_VIP_ID]
+      ));
+    }
+
+    await Promise.all(setupTasks);
+
+    // --- ATOMIC SYNC (Standard Tecnico) ---
+    // Ensure the database is updated immediately after creation
+    if (!skipSync) {
+      try {
+        const { syncPretixToDatabase } = await import('@/services/sync.service');
+        await syncPretixToDatabase({ skipPush: true });
+      } catch (syncErr) {
+        console.error('[adminScheduleMovie] ⚠️ Background sync failed:', syncErr);
+      }
+    }
+
+    revalidatePath('/');
+    revalidatePath('/admin/movies-control');
+
+    // Alert logic: if IT was missing or all countries missing, we let the client know
+    const isItMissing = !details.release_dates?.results?.some((r: any) => r.iso_3166_1 === 'IT' && r.release_dates.length > 0);
+
+    console.log(`[adminScheduleMovie] ✅ END – Subevent creato ID=${subeventId}, runtime=${runtimeMinutes}m`);
+
+    return { 
+      success: true, 
+      subeventId: subeventId, 
+      runtimeMinutes,
+      ratingWarning: isItMissing ? `Attenzione: Classificazione IT mancante. Usato fallback internazionale o 'T'.` : null
+    };
+  } catch (error: any) {
+    console.error('[adminScheduleMovie] ❌ Errore critico:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
   }
-
-  revalidatePath('/');
-  revalidatePath('/admin/movies-control');
-
-  // Alert logic: if IT was missing or all countries missing, we let the client know
-  // Note: the check here is simple. If it's 'T' and we had a console warning in tmdb.ts, 
-  // it's a fallback. For simplicity, we flag if IT was missing.
-  const isItMissing = !details.release_dates?.results?.some((r: any) => r.iso_3166_1 === 'IT' && r.release_dates.length > 0);
-
-  console.log(`[adminScheduleMovie] ✅ END – Subevent creato ID=${subeventId}, runtime=${runtimeMinutes}m`);
-
-  return { 
-    success: true, 
-    subeventId: subeventId, 
-    runtimeMinutes,
-    ratingWarning: isItMissing ? `Attenzione: Classificazione IT mancante. Usato fallback internazionale o 'T'.` : null
-  };
 }
 
 export async function adminDeleteEvent(subEventId: number) {
@@ -1606,11 +1613,16 @@ export async function upsertMovieOverride(tmdbId: string, override: any) {
  * BIG BANG: Total Database Population
  */
 export async function adminSyncAllMovies(forceRefresh: boolean = false): Promise<any> {
-  const { syncPretixToDatabase } = await import('@/services/sync.service');
-  const result = await syncPretixToDatabase({ forceMetadataRefresh: forceRefresh });
-  revalidatePath('/');
-  revalidatePath('/admin/movies-control');
-  return result;
+  try {
+    const { syncPretixToDatabase } = await import('@/services/sync.service');
+    const result = await syncPretixToDatabase({ forceMetadataRefresh: forceRefresh });
+    revalidatePath('/');
+    revalidatePath('/admin/movies-control');
+    return { success: true, result };
+  } catch (error: any) {
+    console.error('[adminSyncAllMovies] ❌ Errore sincronizzazione totale:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 /**
@@ -1790,9 +1802,14 @@ export async function adminPrepareMetadata(tmdbId: string) {
 }
 
 export async function adminSyncNewlyCreatedEvents(pretixIds: number[]) {
-  const { syncNewlyCreatedEvents } = await import('@/services/sync.service');
-  await syncNewlyCreatedEvents(pretixIds);
-  revalidatePath('/');
-  revalidatePath('/admin/movies-control');
-  return { success: true };
+  try {
+    const { syncNewlyCreatedEvents } = await import('@/services/sync.service');
+    await syncNewlyCreatedEvents(pretixIds);
+    revalidatePath('/');
+    revalidatePath('/admin/movies-control');
+    return { success: true };
+  } catch (error: any) {
+    console.error('[adminSyncNewlyCreatedEvents] ❌ Errore sincronizzazione:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
 }

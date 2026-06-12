@@ -84,14 +84,17 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     try {
       await adminClearCache();
       // Trigger the full database mirror (Pretix -> DB)
-      await adminSyncAllMovies(false);
+      const syncRes = await adminSyncAllMovies(false);
+      if (!syncRes.success) {
+        throw new Error(syncRes.error || 'Errore durante la sincronizzazione.');
+      }
       const updatedEvents = await adminListEvents();
       setEvents(updatedEvents);
       await initPlans();
       alert('Sincronizzazione completata! Il database è ora speculare a Pretix.');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sync error:', error);
-      alert('Errore durante la sincronizzazione.');
+      alert('Errore durante la sincronizzazione: ' + (error?.message || error));
     } finally {
       setIsSyncing(false);
     }
@@ -435,7 +438,11 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           versionLanguage: formState.versionLanguage
         }, datePart, cleanTime, parseInt(formState.roomId), !!conflict, cleaningBuffer, true, enrichedMetadata);
 
-        if (result.success && result.subeventId) {
+        if (!result.success) {
+          throw new Error(result.error || 'Errore durante la creazione dello spettacolo.');
+        }
+
+        if (result.subeventId) {
           createdPretixIds.push(result.subeventId);
         }
         currentProgress += progressStep;
@@ -444,7 +451,10 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       // --- STEP 3: SURGICAL SYNC ---
       if (createdPretixIds.length > 0) {
         setSchedulingStatus({ step: 'Sincronizzazione chirurgica del database...', progress: 95 });
-        await adminSyncNewlyCreatedEvents(createdPretixIds);
+        const syncResult = await adminSyncNewlyCreatedEvents(createdPretixIds);
+        if (!syncResult.success) {
+          throw new Error(syncResult.error || 'Errore durante la sincronizzazione con il database.');
+        }
       }
 
       setSchedulingStatus({ step: 'Completato!', progress: 100 });
