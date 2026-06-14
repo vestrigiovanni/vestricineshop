@@ -69,3 +69,32 @@ model PretixSync {
   startTime       String?
   movie           MovieOverride? @relation(fields: [tmdbId], references: [tmdbId])
 }
+
+model CatalogFilm {
+  id           Int       @id @default(autoincrement())
+  sourceKey    String    @unique // chiave naturale normalizzata "titolo|anno" per upsert ripetibile
+
+  // --- Dal CSV ---
+  title        String
+  year         Int?
+  durationMin  Int?
+  director     String?
+
+  // --- Abbinati da TMDB (snapshot all'import) ---
+  tmdbId       String?
+  tmdbTitle    String?
+  tmdbYear     Int?
+  posterPath   String?
+  genres       String[]  @default([])
+  runtime      Int?
+
+  // --- Qualità / verifica ---
+  verifyStatus String    @default("pending") // pending | ok | suspect | missing | fixed
+  enrichedAt   DateTime?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([tmdbId])
+  @@index([verifyStatus])
+}
