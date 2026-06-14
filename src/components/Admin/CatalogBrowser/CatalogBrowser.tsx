@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import styles from './CatalogBrowser.module.css';
 import { catalogList, catalogGetFacets, catalogStats, catalogRandom, type CatalogListParams } from '@/actions/catalogActions';
@@ -37,21 +37,26 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
 
   const [filters, setFilters] = useState<CatalogListParams>({ sort: 'listOrder' });
 
-  const load = useCallback(async (reset: boolean) => {
+  const reqRef = useRef(0);
+
+  const loadPage = useCallback(async (pageNumber: number) => {
+    const id = ++reqRef.current;
     setLoading(true);
     try {
-      const nextPage = reset ? 1 : page + 1;
-      const res = await catalogList({ ...filters, page: nextPage, pageSize: 60 });
-      setFilms((prev) => (reset ? res.films : [...prev, ...res.films]) as CatalogFilmRow[]);
-      setPage(nextPage);
+      const res = await catalogList({ ...filters, page: pageNumber, pageSize: 60 });
+      if (reqRef.current !== id) return; // risposta obsoleta: scarta
+      setFilms((prev) => (pageNumber === 1 ? res.films : [...prev, ...res.films]) as CatalogFilmRow[]);
+      setPage(pageNumber);
       setHasMore(res.hasMore);
+    } catch (err) {
+      if (reqRef.current === id) console.error('[CatalogBrowser] caricamento catalogo fallito', err);
     } finally {
-      setLoading(false);
+      if (reqRef.current === id) setLoading(false);
     }
-  }, [filters, page]);
+  }, [filters]);
 
-  // ricarica da capo quando cambiano i filtri
-  useEffect(() => { load(true); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [filters]);
+  // ricarica da capo quando cambiano i filtri (loadPage cambia identità quando cambia `filters`)
+  useEffect(() => { loadPage(1); }, [loadPage]);
 
   useEffect(() => {
     catalogGetFacets().then(setFacets);
@@ -61,8 +66,12 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
   const setFilter = (patch: Partial<CatalogListParams>) => setFilters((f) => ({ ...f, ...patch }));
 
   const handleSurprise = async () => {
-    const film = await catalogRandom(filters);
-    if (film) setPreview(film as unknown as CatalogFilmRow);
+    try {
+      const film = await catalogRandom(filters);
+      if (film) setPreview({ ...film, scheduledCount: 0 });
+    } catch (err) {
+      console.error('[CatalogBrowser] sorprendimi fallito', err);
+    }
   };
 
   return (
@@ -136,7 +145,7 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
 
         {hasMore && (
           <div className={styles.loadMore}>
-            <button onClick={() => load(false)} disabled={loading}>
+            <button onClick={() => loadPage(page + 1)} disabled={loading}>
               {loading ? 'Carico…' : 'Carica altri'}
             </button>
           </div>
@@ -148,7 +157,7 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
           film={preview}
           onClose={() => setPreview(null)}
           onSchedule={(tmdbId: string) => { onSelectFilm(tmdbId); onClose(); }}
-          onFixed={() => { setPreview(null); load(true); }}
+          onFixed={() => { setPreview(null); loadPage(1); }}
         />
       )}
     </div>
