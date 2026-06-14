@@ -35,9 +35,10 @@ export type CatalogFilmRow = {
 interface Props {
   onSelectFilm: (tmdbId: string) => void;
   onClose: () => void;
+  lastScheduledFilm?: { tmdbId: string; count: number } | null;
 }
 
-export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
+export default function CatalogBrowser({ onSelectFilm, onClose, lastScheduledFilm }: Props) {
   const [films, setFilms] = useState<CatalogFilmRow[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -77,6 +78,19 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
   // ricarica da capo quando cambiano i filtri (loadPage cambia identità quando cambia `filters`)
   useEffect(() => { loadPage(1); }, [loadPage]);
 
+  // Incrementa localmente lo scheduledCount del film programmato senza ricaricare la lista intera
+  useEffect(() => {
+    if (lastScheduledFilm) {
+      setFilms((prev) =>
+        prev.map((f) =>
+          f.tmdbId === lastScheduledFilm.tmdbId
+            ? { ...f, scheduledCount: f.scheduledCount + lastScheduledFilm.count }
+            : f
+        )
+      );
+    }
+  }, [lastScheduledFilm]);
+
   const refreshFacetsAndStats = useCallback(() => {
     catalogGetFacets().then(setFacets);
     catalogStats().then(setStats);
@@ -99,7 +113,7 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
     }
   };
 
-  const handleSchedule = (tmdbId: string) => { onSelectFilm(tmdbId); onClose(); };
+  const handleSchedule = (tmdbId: string) => { onSelectFilm(tmdbId); };
 
   const handleConfirm = async (film: CatalogFilmRow) => {
     try {
@@ -306,7 +320,7 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
         <CatalogPreview
           film={preview}
           onClose={() => setPreview(null)}
-          onSchedule={(tmdbId: string) => { onSelectFilm(tmdbId); onClose(); }}
+          onSchedule={(tmdbId: string) => { onSelectFilm(tmdbId); setPreview(null); }}
           onFixed={() => { setPreview(null); refreshFacetsAndStats(); loadPage(1); }}
         />
       )}

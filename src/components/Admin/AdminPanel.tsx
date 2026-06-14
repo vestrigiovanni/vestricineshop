@@ -105,6 +105,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
   const [showModal, setShowModal] = useState(false);
   const [showCatalog, setShowCatalog] = useState(false);
+  const [lastScheduledFilm, setLastScheduledFilm] = useState<{ tmdbId: string; count: number } | null>(null);
   const [quotasState, setQuotasState] = useState<Record<number, any[]>>({});
   const [availabilityState, setAvailabilityState] = useState<Record<number, any>>({});
   const [loadingQuotas, setLoadingQuotas] = useState<Record<number, boolean>>({});
@@ -272,7 +273,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   };
 
   const handleSelectFromCatalog = async (tmdbId: string) => {
-    setShowCatalog(false);
     const movie = await adminGetMovieById(tmdbId);
     if (movie) {
       // adminGetMovieById può non includere `id`: lo forziamo dal tmdbId noto,
@@ -493,6 +493,15 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
       const updatedEvents = await adminListEvents();
       setEvents(updatedEvents);
+
+      // Aggiorna lo stato per informare il CatalogBrowser (se aperto) del film programmato
+      if (selectedMovie?.id) {
+        const scheduledCount = selectedSlots.length > 0 ? selectedSlots.length : 1;
+        setLastScheduledFilm({
+          tmdbId: selectedMovie.id.toString(),
+          count: scheduledCount,
+        });
+      }
 
       // Reset form and close modal
       setSelectedMovie(null);
@@ -878,7 +887,10 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                 type="button"
                 className={styles.btnActionIcon}
                 title="Programma dal catalogo"
-                onClick={() => setShowCatalog(true)}
+                onClick={() => {
+                  setLastScheduledFilm(null);
+                  setShowCatalog(true);
+                }}
               >
                 <BookOpen size={18} />
               </button>
@@ -1663,6 +1675,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         <CatalogBrowser
           onSelectFilm={handleSelectFromCatalog}
           onClose={() => setShowCatalog(false)}
+          lastScheduledFilm={lastScheduledFilm}
         />
       )}
 
