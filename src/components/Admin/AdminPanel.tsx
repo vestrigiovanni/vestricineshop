@@ -29,9 +29,10 @@ import {
 } from '@/actions/adminActions';
 import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb.utils';
 import Image from 'next/image';
-import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw, Settings } from 'lucide-react';
+import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw, Settings, BookOpen } from 'lucide-react';
 import dynamic from 'next/dynamic';
 const TicketRecoveryButton = dynamic(() => import('./TicketRecovery'), { ssr: false });
+const CatalogBrowser = dynamic(() => import('./CatalogBrowser/CatalogBrowser'), { ssr: false });
 import RoomManagementModal from './RoomManagementModal';
 
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
@@ -102,6 +103,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
 
   const [showModal, setShowModal] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(false);
   const [quotasState, setQuotasState] = useState<Record<number, any[]>>({});
   const [availabilityState, setAvailabilityState] = useState<Record<number, any>>({});
   const [loadingQuotas, setLoadingQuotas] = useState<Record<number, boolean>>({});
@@ -265,6 +267,14 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       console.error('Failed to get slots for new movie', e);
     } finally {
       setLoadingWeeklySlots(false);
+    }
+  };
+
+  const handleSelectFromCatalog = async (tmdbId: string) => {
+    setShowCatalog(false);
+    const movie = await adminGetMovieById(tmdbId);
+    if (movie) {
+      await selectMovieForScheduling(movie as MovieItem);
     }
   };
 
@@ -847,6 +857,14 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
             <a href="/admin/movies-control" target="_blank" rel="noopener noreferrer" className={styles.btnActionIcon} title="Gestisci Overrides">
               <Settings size={18} />
             </a>
+            <button
+              type="button"
+              className={styles.btnActionIcon}
+              title="Programma dal catalogo"
+              onClick={() => setShowCatalog(true)}
+            >
+              <BookOpen size={18} />
+            </button>
           </div>
 
           <form onSubmit={handleSearch} className={styles.searchBar}>
@@ -1621,6 +1639,13 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {showCatalog && (
+        <CatalogBrowser
+          onSelectFilm={handleSelectFromCatalog}
+          onClose={() => setShowCatalog(false)}
+        />
       )}
 
     </div>
