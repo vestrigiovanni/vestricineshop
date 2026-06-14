@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(10, 10, 14, 0.92);
+  background: rgba(10, 10, 14, 0.96);
   backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
@@ -14,10 +14,22 @@
   gap: 1rem;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
 }
 .header h2 { font-size: 1.1rem; margin: 0; }
 .stats { font-size: 0.8rem; opacity: 0.7; }
+.importBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.importBtn:disabled { opacity: 0.6; cursor: default; }
 .closeBtn { margin-left: auto; background: none; border: none; color: inherit; cursor: pointer; }
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -38,47 +50,115 @@
 .toolbar input[type="text"] { min-width: 220px; }
 .toggle { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; cursor: pointer; }
 .surprise {
-  margin-left: auto;
   background: linear-gradient(135deg, #7c3aed, #db2777);
   border: none; color: #fff; border-radius: 8px;
   padding: 0.5rem 0.9rem; font-weight: 600; cursor: pointer;
 }
-.grid {
+.addBox {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  margin-left: auto;
+  padding-left: 0.6rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+.addBox input[type="text"] {
+  width: 120px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff; border-radius: 8px; padding: 0.45rem 0.6rem; font-size: 0.85rem;
+}
+.addBtn {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  background: rgba(34, 197, 94, 0.18);
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  color: #fff; border-radius: 8px; padding: 0.45rem 0.7rem; font-size: 0.8rem; cursor: pointer;
+}
+.addBtn:disabled { opacity: 0.6; cursor: default; }
+
+.listMeta { padding: 0.5rem 1.5rem 0; font-size: 0.75rem; opacity: 0.55; }
+
+.list {
   flex: 1;
   overflow-y: auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 1rem;
-  padding: 1.2rem 1.5rem;
-  align-content: start;
+  padding: 0.6rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
-.card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 10px;
-  overflow: hidden;
+  padding: 0.5rem 0.7rem;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.row:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.18); }
+.rowClickable {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex: 1;
+  min-width: 0;
   cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.12s ease;
-  position: relative;
 }
-.card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.3); }
-.poster { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block; background: #1a1a22; }
-.noPoster {
-  width: 100%; aspect-ratio: 2 / 3; display: flex; align-items: center; justify-content: center;
-  font-size: 0.75rem; opacity: 0.5; text-align: center; padding: 0.5rem;
+.rowPoster {
+  width: 46px;
+  height: 69px;
+  object-fit: cover;
+  border-radius: 5px;
+  flex-shrink: 0;
+  background: #1a1a22;
 }
-.cardBody { padding: 0.5rem 0.6rem; }
-.cardTitle { font-size: 0.82rem; font-weight: 600; line-height: 1.2; }
-.cardMeta { font-size: 0.72rem; opacity: 0.6; }
-.badges { position: absolute; top: 6px; left: 6px; display: flex; flex-direction: column; gap: 4px; }
-.badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
+.rowPosterEmpty {
+  width: 46px; height: 69px; border-radius: 5px; flex-shrink: 0;
+  background: #1a1a22; display: flex; align-items: center; justify-content: center;
+  opacity: 0.4; font-size: 1.2rem;
+}
+.rowMain { min-width: 0; flex: 1; }
+.rowTitle {
+  font-size: 0.95rem; font-weight: 600; line-height: 1.25;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem;
+}
+.rowYear { opacity: 0.6; font-weight: 400; }
+.rowMeta { font-size: 0.8rem; opacity: 0.65; margin-top: 2px; }
+.rowSub { font-size: 0.72rem; opacity: 0.45; margin-top: 1px; font-style: italic; }
+
+.badge { font-size: 0.65rem; padding: 2px 7px; border-radius: 999px; font-weight: 700; white-space: nowrap; }
 .badgeWarn { background: #b45309; color: #fff; }
+.badgeMissing { background: #7f1d1d; color: #fff; }
 .badgeScheduled { background: #15803d; color: #fff; }
-.loadMore {
-  grid-column: 1 / -1; display: flex; justify-content: center; padding: 1rem;
+
+.rowActions { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+.btnConfirm {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: rgba(34, 197, 94, 0.18); border: 1px solid rgba(34, 197, 94, 0.55);
+  color: #fff; border-radius: 8px; padding: 0.45rem 0.7rem; font-size: 0.8rem; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
 }
+.btnConfirm:hover { background: rgba(34, 197, 94, 0.3); }
+.btnSchedule {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  border: none; color: #fff; border-radius: 8px; padding: 0.45rem 0.75rem;
+  font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btnGhost {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff; border-radius: 8px; padding: 0.45rem 0.7rem; font-size: 0.8rem; cursor: pointer; white-space: nowrap;
+}
+.btnDanger {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5; border-radius: 8px; padding: 0.45rem 0.55rem; cursor: pointer;
+}
+.btnDanger:hover { background: rgba(239, 68, 68, 0.25); color: #fff; }
+
+.loadMore { display: flex; justify-content: center; padding: 1rem; }
 .loadMore button {
   background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff; border-radius: 8px; padding: 0.5rem 1.2rem; cursor: pointer;
 }
-.empty { grid-column: 1 / -1; text-align: center; opacity: 0.6; padding: 3rem; }
+.empty { text-align: center; opacity: 0.6; padding: 3rem; }

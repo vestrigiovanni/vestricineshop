@@ -204,13 +204,18 @@ h6 {
   background: #2185d0;
   color: #fff !important;
   font-weight: 700;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
+  font-size: 0.8rem;
+  letter-spacing: 0.2px;
+  height: 42px;
+  padding: 0 1.1rem;
+  border-radius: 0.5rem;
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  box-shadow: 0 4px 12px rgba(33, 133, 208, 0.3);
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(33, 133, 208, 0.25);
   border: none;
   cursor: pointer;
 }
@@ -218,7 +223,7 @@ h6 {
 .pretix-button:hover {
   background: #1678c2;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(33, 133, 208, 0.4);
+  box-shadow: 0 5px 14px rgba(33, 133, 208, 0.35);
 }
 
 .pretix-button:active {

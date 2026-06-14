@@ -1,9 +1,20 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Calendar, Eye, Trash2, Plus, Check } from 'lucide-react';
 import styles from './CatalogBrowser.module.css';
-import { catalogList, catalogGetFacets, catalogStats, catalogRandom, type CatalogListParams } from '@/actions/catalogActions';
+import {
+  catalogList,
+  catalogGetFacets,
+  catalogStats,
+  catalogRandomMany,
+  catalogSeed,
+  catalogEnrich,
+  catalogDelete,
+  catalogAddByTmdbId,
+  catalogMarkVerified,
+  type CatalogListParams,
+} from '@/actions/catalogActions';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import CatalogPreview from './CatalogPreview';
 
@@ -30,10 +41,16 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
   const [films, setFilms] = useState<CatalogFilmRow[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [facets, setFacets] = useState<{ genres: string[]; directors: string[]; decades: number[] }>({ genres: [], directors: [], decades: [] });
   const [stats, setStats] = useState<{ total: number; ok: number; suspect: number; missing: number } | null>(null);
   const [preview, setPreview] = useState<CatalogFilmRow | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [addId, setAddId] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [surprise, setSurprise] = useState(false);
 
   const [filters, setFilters] = useState<CatalogListParams>({ sort: 'listOrder' });
 
@@ -41,6 +58,7 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
 
   const loadPage = useCallback(async (pageNumber: number) => {
     const id = ++reqRef.current;
+    setSurprise(false);
     setLoading(true);
     try {
       const res = await catalogList({ ...filters, page: pageNumber, pageSize: 60 });
@@ -48,6 +66,7 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
       setFilms((prev) => (pageNumber === 1 ? res.films : [...prev, ...res.films]) as CatalogFilmRow[]);
       setPage(pageNumber);
       setHasMore(res.hasMore);
+      setTotal(res.total);
     } catch (err) {
       if (reqRef.current === id) console.error('[CatalogBrowser] caricamento catalogo fallito', err);
     } finally {
@@ -58,19 +77,97 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
   // ricarica da capo quando cambiano i filtri (loadPage cambia identità quando cambia `filters`)
   useEffect(() => { loadPage(1); }, [loadPage]);
 
-  useEffect(() => {
+  const refreshFacetsAndStats = useCallback(() => {
     catalogGetFacets().then(setFacets);
     catalogStats().then(setStats);
   }, []);
+
+  useEffect(() => { refreshFacetsAndStats(); }, [refreshFacetsAndStats]);
 
   const setFilter = (patch: Partial<CatalogListParams>) => setFilters((f) => ({ ...f, ...patch }));
 
   const handleSurprise = async () => {
     try {
-      const film = await catalogRandom(filters);
-      if (film) setPreview({ ...film, scheduledCount: 0 });
+      reqRef.current++; // invalida eventuali caricamenti in corso
+      const picks = await catalogRandomMany(filters, 20);
+      setFilms(picks as CatalogFilmRow[]);
+      setTotal(picks.length);
+      setHasMore(false);
+      setSurprise(true);
     } catch (err) {
       console.error('[CatalogBrowser] sorprendimi fallito', err);
+    }
+  };
+
+  const handleSchedule = (tmdbId: string) => { onSelectFilm(tmdbId); onClose(); };
+
+  const handleConfirm = async (film: CatalogFilmRow) => {
+    try {
+      await catalogMarkVerified(film.id);
+      setFilms((prev) => prev.map((f) => (f.id === film.id ? { ...f, verifyStatus: 'fixed' } : f)));
+      refreshFacetsAndStats();
+    } catch (err) {
+      console.error('[CatalogBrowser] conferma fallita', err);
+      window.alert('Errore durante la conferma (vedi console).');
+    }
+  };
+
+  const handleDelete = async (film: CatalogFilmRow) => {
+    if (!window.confirm(`Eliminare «${film.title}» dal catalogo?`)) return;
+    try {
+      await catalogDelete(film.id);
+      setFilms((prev) => prev.filter((f) => f.id !== film.id));
+      setTotal((t) => Math.max(0, t - 1));
+      refreshFacetsAndStats();
+    } catch (err) {
+      console.error('[CatalogBrowser] eliminazione fallita', err);
+      window.alert('Errore durante l’eliminazione (vedi console).');
+    }
+  };
+
+  const handleAddById = async () => {
+    const id = addId.trim();
+    if (!id || adding) return;
+    setAdding(true);
+    try {
+      const res = await catalogAddByTmdbId(id);
+      setAddId('');
+      window.alert(`Aggiunto al catalogo: «${res.title}».`);
+      refreshFacetsAndStats();
+      loadPage(1);
+    } catch (err) {
+      console.error('[CatalogBrowser] aggiunta per id fallita', err);
+      window.alert('ID TMDB non valido o film non trovato.');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (importing) return;
+    setImporting(true);
+    try {
+      setImportMsg('Lettura CSV…');
+      const seed = await catalogSeed();
+      setImportMsg(`CSV letto: ${seed.total} film (${seed.created} nuovi). Abbinamento TMDB…`);
+
+      let ok = 0, suspect = 0, missing = 0, processed = 0;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const res = await catalogEnrich(50);
+        ok += res.ok; suspect += res.suspect; missing += res.missing; processed += res.processed;
+        setImportMsg(`Abbinamento TMDB: ${processed} fatti · ${ok} ok · ${suspect} da verificare · ${missing} non trovati · ${res.remaining} rimasti…`);
+        if (res.remaining === 0 || res.processed === 0) break;
+      }
+
+      setImportMsg(`Import completato: ${ok} ok · ${suspect} da verificare · ${missing} non trovati.`);
+      refreshFacetsAndStats();
+      loadPage(1);
+    } catch (err) {
+      console.error('[CatalogBrowser] import fallito', err);
+      setImportMsg('Errore durante l’import (vedi console).');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -83,6 +180,15 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
             {stats.total} film · {stats.ok} ok · {stats.suspect} da verificare · {stats.missing} non trovati
           </span>
         )}
+        {importMsg && <span className={styles.stats}>{importMsg}</span>}
+        <button
+          className={styles.importBtn}
+          onClick={handleImport}
+          disabled={importing}
+          title="Legge scratch/catalogo.csv e abbina i film a TMDB"
+        >
+          {importing ? '⏳ Import in corso…' : '⚙️ Importa/aggiorna catalogo'}
+        </button>
         <button className={styles.closeBtn} onClick={onClose} aria-label="Chiudi"><X size={22} /></button>
       </div>
 
@@ -117,25 +223,69 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
           <input type="checkbox" onChange={(e) => setFilter({ onlyUnverified: e.target.checked || undefined })} />
           Solo da verificare
         </label>
-        <button className={styles.surprise} onClick={handleSurprise}>🎲 Sorprendimi</button>
+        <button className={styles.surprise} onClick={handleSurprise}>🎲 Sorprendimi (20 a caso)</button>
+        <div className={styles.addBox}>
+          <input
+            type="text"
+            placeholder="ID TMDB…"
+            value={addId}
+            onChange={(e) => setAddId(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleAddById(); }}
+          />
+          <button className={styles.addBtn} onClick={handleAddById} disabled={adding}>
+            <Plus size={15} /> {adding ? 'Aggiungo…' : 'Aggiungi'}
+          </button>
+        </div>
       </div>
 
-      <div className={styles.grid}>
+      <div className={styles.listMeta}>
+        {surprise ? `🎲 ${total} film a caso (riclicca "Sorprendimi" per altri)` : `${total} risultati`}{loading ? ' · carico…' : ''}
+      </div>
+
+      <div className={styles.list}>
         {films.map((f) => {
-          const poster = getTMDBImageUrl(f.posterPath, 'w342');
-          const suspect = f.verifyStatus === 'suspect' || f.verifyStatus === 'missing';
+          const poster = getTMDBImageUrl(f.posterPath, 'w92');
+          const genres = f.genres.slice(0, 3).join(' · ');
           return (
-            <div key={f.id} className={styles.card} onClick={() => setPreview(f)}>
-              <div className={styles.badges}>
-                {suspect && <span className={`${styles.badge} ${styles.badgeWarn}`}>⚠️ verifica</span>}
-                {f.scheduledCount > 0 && <span className={`${styles.badge} ${styles.badgeScheduled}`}>✅ ×{f.scheduledCount}</span>}
+            <div key={f.id} className={styles.row}>
+              <div className={styles.rowClickable} onClick={() => setPreview(f)}>
+                {poster
+                  ? <img className={styles.rowPoster} src={poster} alt={f.title} loading="lazy" />
+                  : <div className={styles.rowPosterEmpty}>?</div>}
+                <div className={styles.rowMain}>
+                  <div className={styles.rowTitle}>
+                    {f.title}{f.year ? <span className={styles.rowYear}> ({f.year})</span> : ''}
+                    {f.verifyStatus === 'suspect' && <span className={`${styles.badge} ${styles.badgeWarn}`}>⚠️ da verificare</span>}
+                    {f.verifyStatus === 'missing' && <span className={`${styles.badge} ${styles.badgeMissing}`}>⛔ non trovato</span>}
+                    {f.scheduledCount > 0 && <span className={`${styles.badge} ${styles.badgeScheduled}`}>✅ già programmato ×{f.scheduledCount}</span>}
+                  </div>
+                  <div className={styles.rowMeta}>
+                    {f.director || 'Regia n/d'}
+                    {f.durationMin ? ` · ${f.durationMin} min` : ''}
+                    {genres ? ` · ${genres}` : ''}
+                  </div>
+                  {f.tmdbTitle && f.tmdbTitle !== f.title && (
+                    <div className={styles.rowSub}>TMDB: {f.tmdbTitle}</div>
+                  )}
+                </div>
               </div>
-              {poster
-                ? <img className={styles.poster} src={poster} alt={f.title} loading="lazy" />
-                : <div className={styles.noPoster}>{f.title}</div>}
-              <div className={styles.cardBody}>
-                <div className={styles.cardTitle}>{f.title}</div>
-                <div className={styles.cardMeta}>{f.year ?? '—'}{f.director ? ` · ${f.director}` : ''}</div>
+              <div className={styles.rowActions}>
+                {f.verifyStatus === 'suspect' && f.tmdbId && (
+                  <button className={styles.btnConfirm} onClick={() => handleConfirm(f)} title="Conferma: l'abbinamento è corretto">
+                    <Check size={15} /> Conferma
+                  </button>
+                )}
+                {f.tmdbId && (
+                  <button className={styles.btnSchedule} onClick={() => handleSchedule(f.tmdbId!)} title="Programma questo film">
+                    <Calendar size={15} /> Programma
+                  </button>
+                )}
+                <button className={styles.btnGhost} onClick={() => setPreview(f)} title="Anteprima / correggi">
+                  <Eye size={15} /> Anteprima
+                </button>
+                <button className={styles.btnDanger} onClick={() => handleDelete(f)} title="Elimina dal catalogo">
+                  <Trash2 size={15} />
+                </button>
               </div>
             </div>
           );
@@ -157,7 +307,7 @@ export default function CatalogBrowser({ onSelectFilm, onClose }: Props) {
           film={preview}
           onClose={() => setPreview(null)}
           onSchedule={(tmdbId: string) => { onSelectFilm(tmdbId); onClose(); }}
-          onFixed={() => { setPreview(null); loadPage(1); }}
+          onFixed={() => { setPreview(null); refreshFacetsAndStats(); loadPage(1); }}
         />
       )}
     </div>

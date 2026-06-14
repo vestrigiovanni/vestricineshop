@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { X, Edit3, Calendar } from 'lucide-react';
+import { X, Edit3, Calendar, Check } from 'lucide-react';
 import styles from './CatalogBrowser.module.css';
 import { adminGetMovieById } from '@/actions/adminActions';
-import { catalogSearchTmdb, catalogFixTmdbId } from '@/actions/catalogActions';
+import { catalogSearchTmdb, catalogFixTmdbId, catalogMarkVerified } from '@/actions/catalogActions';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import type { CatalogFilmRow } from './CatalogBrowser';
 
@@ -48,6 +48,19 @@ export default function CatalogPreview({ film, onClose, onSchedule, onFixed }: P
     }
   };
 
+  const [confirming, setConfirming] = useState(false);
+  const needsVerify = film.verifyStatus === 'suspect' || film.verifyStatus === 'missing';
+
+  const confirmCorrect = async () => {
+    setConfirming(true);
+    try {
+      await catalogMarkVerified(film.id);
+      onFixed();
+    } finally {
+      setConfirming(false);
+    }
+  };
+
   return (
     <div className={styles.overlay} style={{ zIndex: 1100, background: 'rgba(0,0,0,0.85)' }}>
       <div className={styles.header}>
@@ -80,7 +93,24 @@ export default function CatalogPreview({ film, onClose, onSchedule, onFixed }: P
             </>
           )}
 
+          {needsVerify && (
+            <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#fbbf24' }}>
+              {film.tmdbId
+                ? 'Questo film è “da verificare”: controlla che poster e dati qui sopra siano il film giusto, poi conferma o correggi.'
+                : 'Nessun abbinamento TMDB trovato: cerca il film giusto qui sotto per collegarlo.'}
+            </p>
+          )}
+
           <div style={{ display: 'flex', gap: '0.6rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+            {needsVerify && film.tmdbId && (
+              <button
+                style={{ background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.6)', color: '#fff', borderRadius: 8, padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 600 }}
+                disabled={confirming}
+                onClick={confirmCorrect}
+              >
+                <Check size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} /> {confirming ? 'Confermo…' : 'Conferma: è corretto'}
+              </button>
+            )}
             {film.tmdbId && (
               <button className={styles.surprise} style={{ margin: 0 }} onClick={() => onSchedule(film.tmdbId!)}>
                 <Calendar size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Programma
@@ -101,7 +131,7 @@ export default function CatalogPreview({ film, onClose, onSchedule, onFixed }: P
                   type="text"
                   value={fixQuery}
                   onChange={(e) => setFixQuery(e.target.value)}
-                  placeholder="Cerca su TMDB il film giusto…"
+                  placeholder="Cerca per titolo o incolla un ID TMDB (es. 676819)…"
                   style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', borderRadius: 8, padding: '0.45rem 0.6rem' }}
                 />
                 <button onClick={runFixSearch} className={styles.surprise} style={{ margin: 0 }}>Cerca</button>

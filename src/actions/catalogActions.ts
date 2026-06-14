@@ -1,8 +1,9 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { searchMovies, getMovieDetails } from '@/services/tmdb';
+import { searchMovies, getMovieDetails, getDirectors } from '@/services/tmdb';
 import { seedCatalogFromCsv, enrichPendingFilms } from '@/services/catalogImport';
+import { normalizeText } from '@/services/catalogMatch';
 import type { Prisma } from '@prisma/client';
 
 export interface CatalogListParams {
@@ -110,9 +111,45 @@ export async function catalogRandom(params: CatalogListParams = {}) {
   return film ?? null;
 }
 
+/**
+ * Restituisce fino a `count` film casuali (distinti) tra quelli filtrati,
+ * con scheduledCount, in ordine mescolato. Diversi a ogni chiamata.
+ */
+export async function catalogRandomMany(params: CatalogListParams = {}, count = 20) {
+  const where = await buildWhere({ ...params, hideScheduled: params.hideScheduled ?? true });
+  const ids = (await prisma.catalogFilm.findMany({ where, select: { id: true } })).map((f) => f.id);
+  // shuffle (Fisher–Yates) e prendi i primi `count`
+  for (let i = ids.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
+  const pickIds = ids.slice(0, count);
+  if (pickIds.length === 0) return [];
+
+  const films = await prisma.catalogFilm.findMany({ where: { id: { in: pickIds } } });
+  const tmdbIds = films.map((f) => f.tmdbId).filter(Boolean) as string[];
+  const grouped = tmdbIds.length
+    ? await prisma.pretixSync.groupBy({ by: ['tmdbId'], where: { tmdbId: { in: tmdbIds } }, _count: { _all: true } })
+    : [];
+  const countMap = new Map(grouped.map((g) => [g.tmdbId, g._count._all]));
+  const byId = new Map(films.map((f) => [f.id, f]));
+
+  return pickIds
+    .map((id) => byId.get(id))
+    .filter((f): f is NonNullable<typeof f> => Boolean(f))
+    .map((f) => ({ ...f, scheduledCount: f.tmdbId ? countMap.get(f.tmdbId) ?? 0 : 0 }));
+}
+
 export async function catalogSearchTmdb(query: string) {
-  if (!query.trim()) return [];
-  return searchMovies(query, false, 'it-IT');
+  const q = query.trim();
+  if (!q) return [];
+  // Se è un id TMDB numerico, recupera direttamente quel film (utile quando la
+  // ricerca per titolo non trova l'associazione giusta).
+  if (/^\d+$/.test(q)) {
+    const details = await getMovieDetails(q);
+    return details ? [details] : [];
+  }
+  return searchMovies(q, false, 'it-IT');
 }
 
 export async function catalogFixTmdbId(catalogId: number, newTmdbId: string) {
@@ -142,4 +179,66 @@ export async function catalogSeed() {
 
 export async function catalogEnrich(limit = 40) {
   return enrichPendingFilms(limit);
+}
+
+// --- Gestione manuale del catalogo ---
+
+/** Esiste già un film in catalogo con questo tmdbId? */
+export async function catalogExists(tmdbId: string): Promise<boolean> {
+  const count = await prisma.catalogFilm.count({ where: { tmdbId } });
+  return count > 0;
+}
+
+/**
+ * Conferma manualmente che l'abbinamento TMDB corrente del film è corretto.
+ * Toglie il film dallo stato "da verificare" marcandolo come confermato ("fixed").
+ */
+export async function catalogMarkVerified(catalogId: number) {
+  await prisma.catalogFilm.update({
+    where: { id: catalogId },
+    data: { verifyStatus: 'fixed', enrichedAt: new Date() },
+  });
+  return { ok: true };
+}
+
+/** Elimina un film dal catalogo. */
+export async function catalogDelete(catalogId: number) {
+  await prisma.catalogFilm.delete({ where: { id: catalogId } });
+  return { ok: true };
+}
+
+/**
+ * Aggiunge (o aggiorna) un film nel catalogo a partire da un id TMDB.
+ * Lo marca come "fixed" (inserito/confermato manualmente).
+ */
+export async function catalogAddByTmdbId(tmdbId: string) {
+  const details = await getMovieDetails(tmdbId);
+  if (!details) throw new Error('Film TMDB non trovato per questo id.');
+
+  const title = details.title || details.original_title || `TMDB ${tmdbId}`;
+  const year = details.release_date ? parseInt(details.release_date.slice(0, 4), 10) : null;
+  const directors = getDirectors(details);
+  const sourceKey = `${normalizeText(title)}|${year ?? ''}`;
+
+  const data = {
+    title,
+    year: Number.isFinite(year as number) ? year : null,
+    durationMin: details.runtime ?? null,
+    director: directors[0] ?? null,
+    tmdbId,
+    tmdbTitle: details.title,
+    tmdbYear: Number.isFinite(year as number) ? year : null,
+    posterPath: details.poster_path ?? null,
+    genres: (details.genres ?? []).map((g) => g.name),
+    runtime: details.runtime ?? null,
+    verifyStatus: 'fixed',
+    enrichedAt: new Date(),
+  };
+
+  const film = await prisma.catalogFilm.upsert({
+    where: { sourceKey },
+    update: data,
+    create: { sourceKey, ...data },
+  });
+  return { ok: true, id: film.id, title: film.title };
 }

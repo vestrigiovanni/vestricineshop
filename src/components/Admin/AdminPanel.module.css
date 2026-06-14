@@ -18,12 +18,80 @@
 .topBar {
   grid-column: 1 / -1;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: 0 0 1rem 0;
+  flex-wrap: wrap;
+  padding: 0 0 1.25rem 0;
   border-bottom: 1px solid #e2e8f0;
   margin-bottom: 1rem;
+}
+
+/* Grouped action cluster on the right of the top bar */
+.topBarActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Unified toolbar buttons — consistent height, shape and spacing.
+   Colour is applied via the variant classes below. */
+.toolBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 42px;
+  padding: 0 1.1rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  line-height: 1.1;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.toolBtn:hover {
+  transform: translateY(-1px);
+}
+
+.toolBtnGreen {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+}
+
+.toolBtnGreen:hover {
+  background: linear-gradient(135deg, #15803d, #166534);
+  box-shadow: 0 5px 14px rgba(22, 163, 74, 0.35);
+}
+
+.toolBtnDark {
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
+}
+
+.toolBtnDark:hover {
+  background: #1e293b;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.3);
+}
+
+.toolBtnRed {
+  background: #e50914;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(229, 9, 20, 0.25);
+}
+
+.toolBtnRed:hover {
+  background: #c20710;
+  box-shadow: 0 5px 14px rgba(229, 9, 20, 0.35);
 }
 
 .btnCassaLauncher {
@@ -134,8 +202,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid #f1f5f9;
+}
+
+/* Icon-button cluster kept together on the right of a section header */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Vertical, equal-width action stack for the programming panel header */
+.programmingActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: stretch;
+  min-width: 168px;
 }
 
 .title {
@@ -942,11 +1027,12 @@
 .btnExternalLink {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.5rem;
   background: #f1f5f9;
   color: #475569;
-  padding: 0.4rem 0.8rem;
-  border-radius: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.45rem;
   font-size: 0.75rem;
   font-weight: 600;
   border: 1px solid #e2e8f0;
@@ -1026,11 +1112,23 @@
     gap: 0.5rem;
   }
 
+  .topBarActions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .toolBtn,
   .btnCassaLauncher,
   .btnDisplayLauncher {
     margin-right: 0;
     justify-content: center;
     width: 100%;
+  }
+
+  .topBarActions :global(.pretix-button) {
+    width: 100%;
+    justify-content: center;
   }
 
   .movieRowMain {

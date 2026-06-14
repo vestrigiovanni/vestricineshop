@@ -28,6 +28,7 @@ import {
   adminSyncNewlyCreatedEvents
 } from '@/actions/adminActions';
 import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb.utils';
+import { catalogExists, catalogAddByTmdbId } from '@/actions/catalogActions';
 import Image from 'next/image';
 import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw, Settings, BookOpen } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -274,7 +275,9 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     setShowCatalog(false);
     const movie = await adminGetMovieById(tmdbId);
     if (movie) {
-      await selectMovieForScheduling(movie as MovieItem);
+      // adminGetMovieById può non includere `id`: lo forziamo dal tmdbId noto,
+      // così selectMovieForScheduling (che usa movie.id) funziona sempre.
+      await selectMovieForScheduling({ ...(movie as any), id: Number(tmdbId) } as MovieItem);
     }
   };
 
@@ -474,6 +477,19 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         ? `Creati ${createdPretixIds.length} spettacoli con successo!`
         : (conflict ? 'Spettacolo programmato con successo (Override)!' : 'Spettacolo programmato con successo!')
       );
+
+      // Chiedi se aggiungere il film alla lista "film da proporre" (catalogo)
+      if (selectedMovie?.id) {
+        try {
+          const tmdbId = selectedMovie.id.toString();
+          const already = await catalogExists(tmdbId);
+          if (!already && window.confirm(`Vuoi aggiungere «${formState.title || selectedMovie.title}» alla lista dei film da proporre (catalogo)?`)) {
+            await catalogAddByTmdbId(tmdbId);
+          }
+        } catch (e) {
+          console.error('[handleSchedule] aggiunta al catalogo fallita', e);
+        }
+      }
 
       const updatedEvents = await adminListEvents();
       setEvents(updatedEvents);
@@ -808,45 +824,45 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           </select>
         </div>
 
-        <button
-          onClick={() => setShowRoomModal(true)}
-          className={styles.btnCassaLauncher}
-          style={{ backgroundColor: '#222', color: 'white', border: '1px solid #444', marginRight: '1rem' }}
-        >
-          <Settings size={18} />
-          <span>GESTISCI SALE</span>
-        </button>
+        <div className={styles.topBarActions}>
+          <button
+            onClick={() => setShowRoomModal(true)}
+            className={`${styles.toolBtn} ${styles.toolBtnDark}`}
+          >
+            <Settings size={18} />
+            <span>GESTISCI SALE</span>
+          </button>
 
-        <a
-          href="/admin/cassa"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.btnCassaLauncher}
-        >
-          <ShoppingBag size={18} />
-          APRI CASSA
-        </a>
+          <a
+            href="/admin/cassa"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${styles.toolBtn} ${styles.toolBtnGreen}`}
+          >
+            <ShoppingBag size={18} />
+            APRI CASSA
+          </a>
 
-        <TicketRecoveryButton />
+          <TicketRecoveryButton />
 
-        <button
-          onClick={() => setShowDisplayModal(true)}
-          className={styles.btnDisplayLauncher}
-        >
-          <Monitor size={18} />
-          INFO ON SCREEN
-        </button>
+          <button
+            onClick={() => setShowDisplayModal(true)}
+            className={`${styles.toolBtn} ${styles.toolBtnDark}`}
+          >
+            <Monitor size={18} />
+            INFO ON SCREEN
+          </button>
 
-        <a
-          href="/admin/movies-control"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.btnDisplayLauncher}
-          style={{ backgroundColor: '#e50914', color: 'white', border: 'none' }}
-        >
-          <Settings size={18} />
-          TORRE DI CONTROLLO
-        </a>
+          <a
+            href="/admin/movies-control"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${styles.toolBtn} ${styles.toolBtnRed}`}
+          >
+            <Settings size={18} />
+            TORRE DI CONTROLLO
+          </a>
+        </div>
       </div>
 
       {/* LEFT COLUMN: SEARCH & SCHEDULE */}
@@ -854,17 +870,19 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.title}>Cerca Film (TMDB)</h2>
-            <a href="/admin/movies-control" target="_blank" rel="noopener noreferrer" className={styles.btnActionIcon} title="Gestisci Overrides">
-              <Settings size={18} />
-            </a>
-            <button
-              type="button"
-              className={styles.btnActionIcon}
-              title="Programma dal catalogo"
-              onClick={() => setShowCatalog(true)}
-            >
-              <BookOpen size={18} />
-            </button>
+            <div className={styles.headerActions}>
+              <a href="/admin/movies-control" target="_blank" rel="noopener noreferrer" className={styles.btnActionIcon} title="Gestisci Overrides">
+                <Settings size={18} />
+              </a>
+              <button
+                type="button"
+                className={styles.btnActionIcon}
+                title="Programma dal catalogo"
+                onClick={() => setShowCatalog(true)}
+              >
+                <BookOpen size={18} />
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleSearch} className={styles.searchBar}>
@@ -917,7 +935,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.title}>Programmazione Attuale (Pretix)</h2>
-          <div className="flex flex-col gap-2 items-end">
+          <div className={styles.programmingActions}>
             <button
               onClick={handleOpenCleaningModal}
               className={styles.btnExternalLink}
