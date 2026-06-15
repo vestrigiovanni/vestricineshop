@@ -171,9 +171,9 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
               customCast: pick(existingMovie?.customCast, Array.isArray(tmdbData.cast) ? tmdbData.cast.join(', ') : tmdbData.cast),
               customRating: pick(existingMovie?.customRating, tmdbData.rating || 'T'),
               customTrailerUrl: pick(existingMovie?.customTrailerUrl, trailerUrl),
-              customTrailerKeys: (isManual && (existingMovie as any)?.customTrailerKeys?.length) 
-                ? (existingMovie as any).customTrailerKeys 
-                : (tmdbData.trailerKeys || (existingMovie as any)?.customTrailerKeys || []),
+              customTrailerKeys: (isManual && (existingMovie as any)?.customTrailerKeys?.length)
+                ? (existingMovie as any).customTrailerKeys
+                : ((tmdbData.trailerKeys?.length) ? tmdbData.trailerKeys : ((existingMovie as any)?.customTrailerKeys || [])),
               
               releaseDate: tmdbData.release_date || existingMovie?.releaseDate,
               runtime: tmdbData.runtime || existingMovie?.runtime,

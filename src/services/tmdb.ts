@@ -315,8 +315,22 @@ export async function getMovieTrailer(id: string): Promise<string | null> {
  * - If Italian movie: IT Official > IT Trailer > EN Official > EN Trailer
  * - If Foreign movie: Original Language > EN Official > EN Trailer > IT Official
  */
+/**
+ * Lingue a scrittura NON latina, considerate "troppo distanti" dallo spettatore italiano.
+ * Filosofia del cinema: i film si proiettano in lingua originale (sottotitolati in IT),
+ * quindi anche il trailer segue la lingua originale — MA per queste lingue il trailer
+ * parlato risulterebbe straniante, perciò si preferisce il trailer in italiano.
+ * Le lingue occidentali a scrittura latina (en, fr, es, de, pt, sv, hu, tr, pl...) restano in originale.
+ */
+const DISTANT_ORIGINAL_LANGUAGES = new Set([
+  'ja', 'zh', 'cn', 'ko', 'ar', 'ru', 'hi', 'th', 'he', 'iw', 'fa', 'el',
+  'uk', 'bg', 'sr', 'mk', 'be', 'ka', 'hy', 'am', 'ti', 'bn', 'ta', 'te',
+  'ml', 'kn', 'pa', 'ur', 'my', 'km', 'lo', 'si', 'ne', 'mn', 'ps', 'dv',
+  'yi', 'bo', 'ug', 'ky', 'tg', 'kk',
+]);
+
 export async function getMovieTrailers(id: string, originalLanguage?: string, preFetchedVideos?: Record<string, any[]>): Promise<string[]> {
-  const cacheKey = `${id}_smart_multi_v6_${originalLanguage || 'default'}`;
+  const cacheKey = `${id}_smart_multi_v7_${originalLanguage || 'default'}`;
   if (trailersCache.has(cacheKey)) return trailersCache.get(cacheKey)!;
 
   try {
@@ -337,15 +351,23 @@ export async function getMovieTrailers(id: string, originalLanguage?: string, pr
 
       // Priority 3: Language matching User Rule
       // Rules:
-      // - If Italian movie: IT is best
-      // - If Foreign movie: Original Language is best
+      // - Film italiano: IT è il migliore (poi EN).
+      // - Film straniero in lingua occidentale (latina): lingua originale è la migliore (poi EN, poi IT).
+      // - Film in lingua "distante" (scrittura non latina, es. giapponese): IT è il migliore
+      //   (poi EN, poi lingua originale come ultima risorsa), per non risultare straniante.
       const isItalianMovie = originalLanguage === 'it';
+      const isDistantMovie = !isItalianMovie && !!originalLanguage && DISTANT_ORIGINAL_LANGUAGES.has(originalLanguage);
 
       if (isItalianMovie) {
         if (v.iso_639_1 === 'it') score += 200;
         else if (v.iso_639_1 === 'en') score += 100;
+      } else if (isDistantMovie) {
+        // Lingua originale troppo distante: preferisci IT, poi EN, poi originale.
+        if (v.iso_639_1 === 'it') score += 200;
+        else if (v.iso_639_1 === 'en') score += 100;
+        else if (originalLanguage && v.iso_639_1 === originalLanguage) score += 50;
       } else {
-        // Foreign movie: Prioritize original language
+        // Film straniero in lingua occidentale: priorità alla lingua originale.
         if (originalLanguage && v.iso_639_1 === originalLanguage) score += 200;
         else if (v.iso_639_1 === 'en') score += 100;
         else if (v.iso_639_1 === 'it') score += 50; // IT as last resort for foreign films

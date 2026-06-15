@@ -243,7 +243,9 @@ export async function adminGetMovieById(id: string) {
         const existing = await prisma.movieOverride.findUnique({ where: { tmdbId: id } }) as any;
 
         const isStub = existing?.customTitle === 'Caricamento...';
-        const needsUpdate = !existing || !existing.releaseDate || !existing.runtime || isStub;
+        // Sana anche i film già presenti ma senza trailer estratto (es. programmati prima del fix)
+        const missingTrailer = existing && !existing.customTrailerUrl && !(existing.customTrailerKeys?.length) && (metadata.trailerKeys?.length);
+        const needsUpdate = !existing || !existing.releaseDate || !existing.runtime || isStub || missingTrailer;
         
         if (needsUpdate) {
           console.log(`[adminGetMovieById] 🚀 Auto-populating DB for movie: ${id} (${metadata.title})`);
@@ -256,6 +258,7 @@ export async function adminGetMovieById(id: string) {
               customBackdropPath: existing?.customBackdropPath || metadata.backdrop_path || '',
               customLogoPath: existing?.customLogoPath || metadata.logo_path || '',
               customTrailerUrl: existing?.customTrailerUrl || metadata.trailerUrl || '',
+              customTrailerKeys: (existing?.customTrailerKeys?.length) ? existing.customTrailerKeys : (metadata.trailerKeys || []),
               customRating: existing?.customRating || metadata.rating || 'T',
               customDirector: existing?.customDirector || (Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || '')),
               customCast: existing?.customCast || (Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || '')),
@@ -270,6 +273,7 @@ export async function adminGetMovieById(id: string) {
               customBackdropPath: metadata.backdrop_path || '',
               customLogoPath: metadata.logo_path || '',
               customTrailerUrl: metadata.trailerUrl || '',
+              customTrailerKeys: metadata.trailerKeys || [],
               customRating: metadata.rating || 'T',
               customDirector: Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || ''),
               customCast: Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || ''),
