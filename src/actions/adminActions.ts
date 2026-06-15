@@ -1813,3 +1813,66 @@ export async function adminSyncNewlyCreatedEvents(pretixIds: number[]) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
+
+/**
+ * Refreshes MUBI awards for a single movie and persists them to the DB.
+ * Safe to call on existing movies — does NOT overwrite other overrides.
+ */
+export async function adminRefreshMovieAwards(tmdbId: string) {
+  try {
+    const { deleteMovieMetadata, saveOverride } = await import('@/services/db.service');
+    const { fetchMubiAwards, getManualAwards } = await import('@/services/mubi');
+    const { getMovieDetails } = await import('@/services/tmdb');
+
+    deleteMovieMetadata(tmdbId);
+
+    const details = await getMovieDetails(tmdbId);
+    if (!details) return { success: false, error: 'Film non trovato su TMDB' };
+
+    const year = details.release_date?.split('-')[0];
+    const mubiData = await fetchMubiAwards(tmdbId, details.title, details.original_title, year);
+    const manualAwards = getManualAwards(tmdbId);
+    const finalAwards = manualAwards || mubiData?.awards || [];
+
+    await saveOverride(tmdbId, {
+      awards: finalAwards,
+      mubiId: mubiData?.mubiId || undefined
+    });
+
+    revalidatePath('/');
+    return { success: true, count: finalAwards.length };
+  } catch (error: any) {
+    console.error(`[adminRefreshMovieAwards] ❌ Error for ${tmdbId}:`, error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * Refreshes MUBI awards for ALL currently scheduled movies.
+ */
+export async function adminRefreshAllAwards() {
+  try {
+    const prisma = (await import('@/lib/prisma')).default;
+    const projections = await prisma.pretixSync.findMany({
+      where: { dateFrom: { gte: new Date() }, tmdbId: { not: null } },
+      select: { tmdbId: true },
+      distinct: ['tmdbId']
+    });
+
+    let updated = 0;
+    let failed = 0;
+    for (const { tmdbId } of projections) {
+      if (!tmdbId) continue;
+      const result = await adminRefreshMovieAwards(tmdbId);
+      if (result.success) updated++;
+      else failed++;
+    }
+
+    revalidatePath('/');
+    revalidatePath('/admin/movies-control');
+    return { success: true, updated, failed };
+  } catch (error: any) {
+    console.error('[adminRefreshAllAwards] ❌ Error:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}

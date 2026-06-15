@@ -52,6 +52,7 @@ export default function CatalogBrowser({ onSelectFilm, onClose, lastScheduledFil
   const [addId, setAddId] = useState('');
   const [adding, setAdding] = useState(false);
   const [surprise, setSurprise] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
 
   const [filters, setFilters] = useState<CatalogListParams>({ sort: 'listOrder' });
 
@@ -97,6 +98,16 @@ export default function CatalogBrowser({ onSelectFilm, onClose, lastScheduledFil
   }, []);
 
   useEffect(() => { refreshFacetsAndStats(); }, [refreshFacetsAndStats]);
+
+  // Debounce della ricerca testuale: aggiorna i filtri (→ ricarica) solo quando
+  // smetti di digitare per 350ms, evitando una chiamata al server a ogni tasto.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const next = searchInput.trim() || undefined;
+      setFilters((f) => (f.search === next ? f : { ...f, search: next }));
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const setFilter = (patch: Partial<CatalogListParams>) => setFilters((f) => ({ ...f, ...patch }));
 
@@ -210,7 +221,8 @@ export default function CatalogBrowser({ onSelectFilm, onClose, lastScheduledFil
         <input
           type="text"
           placeholder="Cerca titolo o regista…"
-          onChange={(e) => setFilter({ search: e.target.value || undefined })}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
         />
         <select onChange={(e) => setFilter({ genre: e.target.value || undefined })} defaultValue="">
           <option value="">Tutti i generi</option>

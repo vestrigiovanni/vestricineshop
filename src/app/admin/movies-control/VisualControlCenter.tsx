@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, Sparkles, Filter, Search, Film, Save, Loader2, CheckCircle2, RefreshCw, Globe } from 'lucide-react';
 import styles from './VisualControlCenter.module.css';
 import VisualAssetCard from './VisualAssetCard';
-import { upsertMovieOverride, adminGetVisualControlData } from '@/actions/adminActions';
+import { upsertMovieOverride, adminGetVisualControlData, adminRefreshMovieAwards, adminRefreshAllAwards } from '@/actions/adminActions';
 import ImagePickerModal from './ImagePickerModal';
 import TrailerPickerModal from './TrailerPickerModal';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
@@ -32,6 +32,8 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [populating, setPopulating] = useState(false);
+  const [refreshingAwards, setRefreshingAwards] = useState<string | null>(null); // tmdbId or 'all'
+  const [awardResults, setAwardResults] = useState<Record<string, number>>({}); // tmdbId -> count
   const [pendingDeltas, setPendingDeltas] = useState<Record<string, any>>({});
   const [pickerState, setPickerState] = useState<{
     isOpen: boolean; 
@@ -154,6 +156,37 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
     }
   };
 
+  const handleRefreshAwards = async (tmdbId: string, title: string) => {
+    setRefreshingAwards(tmdbId);
+    try {
+      const result = await adminRefreshMovieAwards(tmdbId);
+      if (result.success) {
+        setAwardResults(prev => ({ ...prev, [tmdbId]: result.count ?? 0 }));
+        setTimeout(() => setAwardResults(prev => { const n = { ...prev }; delete n[tmdbId]; return n; }), 4000);
+      } else {
+        alert(`Errore sync premi "${title}": ${result.error}`);
+      }
+    } finally {
+      setRefreshingAwards(null);
+    }
+  };
+
+  const handleRefreshAllAwards = async () => {
+    if (!confirm('Sincronizzare i premi MUBI per tutti i film in programma? Potrebbe richiedere qualche minuto.')) return;
+    setRefreshingAwards('all');
+    try {
+      const result = await adminRefreshAllAwards();
+      if (result.success) {
+        alert(`Premi aggiornati: ${result.updated} film OK, ${result.failed} errori.`);
+        loadHydratedData();
+      } else {
+        alert('Errore: ' + result.error);
+      }
+    } finally {
+      setRefreshingAwards(null);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -174,6 +207,15 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
             >
               <Sparkles size={16} className={populating ? styles.spin : ''} />
               <span className={styles.btnLabel}>{populating ? 'Popolamento...' : 'Popola Database Ora'}</span>
+            </button>
+            <button
+              onClick={handleRefreshAllAwards}
+              className={`${styles.refreshBtn} ${styles.populatingBtn}`}
+              disabled={!!refreshingAwards || loading}
+              title="Sincronizza premi MUBI per tutti i film"
+            >
+              <span style={{ fontSize: 14 }}>🏆</span>
+              <span className={styles.btnLabel}>{refreshingAwards === 'all' ? 'Sync premi...' : 'Sync tutti i premi'}</span>
             </button>
             <button onClick={loadHydratedData} className={styles.refreshBtn} disabled={loading}>
               <RefreshCw size={16} className={loading ? styles.spin : ''} />
@@ -316,6 +358,20 @@ export default function VisualControlCenter({ isOpen, onClose, onRefresh }: Visu
                           {isSaving ? <Loader2 size={16} className={styles.spin} /> : isSaved ? <CheckCircle2 size={16} /> : <Film size={16} />}
                           <span>{isSaving ? 'Salvataggio...' : isSaved ? 'Salvato' : 'In Linea'}</span>
                         </div>
+                        <button
+                          className={styles.refreshBtn}
+                          style={{ marginTop: 6, fontSize: 11, padding: '3px 7px', width: '100%' }}
+                          disabled={refreshingAwards === movie.tmdbId || refreshingAwards === 'all'}
+                          onClick={() => handleRefreshAwards(movie.tmdbId, movie.title)}
+                          title="Sincronizza premi da MUBI"
+                        >
+                          {refreshingAwards === movie.tmdbId
+                            ? <Loader2 size={11} className={styles.spin} />
+                            : <span>🏆</span>}
+                          {awardResults[movie.tmdbId] !== undefined
+                            ? ` ${awardResults[movie.tmdbId]} premi`
+                            : ' Sync premi'}
+                        </button>
                       </td>
                     </tr>
                   );
