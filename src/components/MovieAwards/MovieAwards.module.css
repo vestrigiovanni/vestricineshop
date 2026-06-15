@@ -158,6 +158,52 @@
   font-style: italic;
 }
 
+/* Award groups: each keeps a visible status label (Vincitore / Candidatura). */
+.prestigeWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.awardWin,
+.awardNomination {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.awardStatus {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.awardWin .awardStatus {
+  color: #E5A11E;
+}
+
+.awardNomination .awardStatus {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.awardWin .awardItems {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #fff;
+  font-family: var(--font-outfit), sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.awardNomination .awardItems {
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: var(--font-outfit), sans-serif;
+}
+
 .awardDecoration {
   display: none;
 }

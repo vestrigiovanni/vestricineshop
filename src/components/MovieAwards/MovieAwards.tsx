@@ -129,18 +129,29 @@ const AwardBadge = ({ type, label, details, year, index = 0, isMounted = false }
                 <div className={styles.awardDecoration} />
                 {details && (() => {
                   // Wins and nominations are separated by ' · ' (e.g. "Vincitore: … · Candidatura: …").
-                  // Fall back to comma splitting for legacy/manual entries without the separator.
-                  const segments = details.includes(' · ') ? details.split(' · ') : details.split(',');
+                  // Each group keeps its own status label so a prize is never shown
+                  // without making clear whether it was won or just nominated.
+                  const groups = details.split(' · ');
                   return (
                     <div className={styles.prestigeWrapper}>
-                      <p className={styles.prestigeText}>
-                        {segments[0]}
-                      </p>
-                      {segments.length > 1 && (
-                        <p className={styles.subDetails}>
-                          {segments.slice(1).join(details.includes(' · ') ? ' · ' : ', ')}
-                        </p>
-                      )}
+                      {groups.map((group, gi) => {
+                        const match = group.match(/^(Vincitore|Candidatura):\s*(.*)$/i);
+                        if (match) {
+                          const isWin = /vincitore/i.test(match[1]);
+                          return (
+                            <div key={gi} className={isWin ? styles.awardWin : styles.awardNomination}>
+                              <span className={styles.awardStatus}>{isWin ? 'Vincitore' : 'Candidatura'}</span>
+                              <span className={styles.awardItems}>{match[2]}</span>
+                            </div>
+                          );
+                        }
+                        // Fallback for legacy / "Selezione Ufficiale" entries without a status prefix.
+                        return (
+                          <p key={gi} className={gi === 0 ? styles.prestigeText : styles.subDetails}>
+                            {group}
+                          </p>
+                        );
+                      })}
                     </div>
                   );
                 })()}

@@ -76,6 +76,31 @@ function italianizeAward(raw: string): string {
 }
 
 /**
+ * Ranks an award by prestige so the most important prizes are listed first
+ * (e.g. Grand Prix before Premio FIPRESCI). Higher score = more important.
+ */
+function awardPrestige(text: string): number {
+  const t = (text || '').toLowerCase();
+  // Top prizes (Palme/Lion/Bear/Best Film)
+  if (/palma|palme|leone d'oro|golden lion|orso d'oro|golden bear/.test(t)) return 100;
+  if (/\bmiglior film\b/.test(t) && !/lingua|internazional|britannic|europe|non in lingua/.test(t)) return 98;
+  // Grand Prix (second-highest competitive prize)
+  if (/grand prix|gran premio/.test(t)) return 90;
+  // Best International / Foreign / national-scope film prizes
+  if (/lingua straniera|film internazional|foreign|non in lingua inglese|film britannico|film europeo/.test(t)) return 85;
+  if (/regia|regist|director/.test(t)) return 80;
+  if (/attric|attore|interpretazione|actor|actress|performance/.test(t)) return 70;
+  if (/sceneggiatura|screenplay/.test(t)) return 60;
+  // Generic jury prize (below the named competitive prizes above)
+  if (/giuria|jury/.test(t)) return 55;
+  if (/fotografia|cinematograph/.test(t)) return 45;
+  if (/montaggio|editing|scenografia|costum|sonoro|sound|colonna sonora|score|effetti|trucco/.test(t)) return 40;
+  // Critics' / parallel-section prizes (FIPRESCI, etc.) rank lowest
+  if (/fipresci|critic|critica/.test(t)) return 20;
+  return 30;
+}
+
+/**
  * Fetches and parses film awards from MUBI internal API (v3).
  * Now supports all major festivals by fetching the complete entry list.
  */
@@ -218,8 +243,10 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
 
     const resultAwards: MubiAward[] = [];
     Object.values(awardsByFestival).forEach((info) => {
-      const won = Array.from(info.won);
-      const nominated = Array.from(info.nominated);
+      // Order each group by prestige so the most important prize comes first
+      // (e.g. Grand Prix before Premio FIPRESCI).
+      const won = Array.from(info.won).sort((a, b) => awardPrestige(b) - awardPrestige(a));
+      const nominated = Array.from(info.nominated).sort((a, b) => awardPrestige(b) - awardPrestige(a));
 
       // Build a human-readable string that clearly separates wins from nominations.
       // Use ' · ' between the two groups and ', ' within each group.
