@@ -12,6 +12,70 @@ export interface MubiAwardData {
 }
 
 /**
+ * Translates/normalizes an award category to a uniform Italian label.
+ * MUBI returns mixed Italian/English text (e.g. "Oscar al miglior film in lingua
+ * straniera" alongside "Best Sound"); this harmonizes everything to Italian.
+ */
+function italianizeAward(raw: string): string {
+  let t = (raw || '').trim();
+  // Strip redundant "Oscar al/alla/allo/agli/ai/alle/all'" prefix for uniformity.
+  // Articles are ordered longest-first so e.g. "alla" matches before "al".
+  t = t.replace(/^oscar\s+(?:all['’]|alle|alla|allo|agli|ai|al)\s*/i, '').replace(/^oscar\s+/i, '').trim();
+
+  const key = t
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+  const map: Record<string, string> = {
+    'best sound': 'Miglior sonoro',
+    'sound': 'Miglior sonoro',
+    'best picture': 'Miglior film',
+    'best film': 'Miglior film',
+    'best director': 'Miglior regia',
+    'best cinematography': 'Miglior fotografia',
+    'best editing': 'Miglior montaggio',
+    'best film editing': 'Miglior montaggio',
+    'best production design': 'Miglior scenografia',
+    'best costume': 'Migliori costumi',
+    'best costume design': 'Migliori costumi',
+    'best original score': 'Miglior colonna sonora',
+    'best music score': 'Miglior colonna sonora',
+    'best original music': 'Miglior colonna sonora',
+    'best supporting actress': 'Miglior attrice non protagonista',
+    'best supporting actor': 'Miglior attore non protagonista',
+    'best actress': 'Miglior attrice',
+    'best actor': 'Miglior attore',
+    'best lead performance': 'Miglior interpretazione',
+    'best adapted screenplay': 'Miglior sceneggiatura non originale',
+    'best screenplay adapted': 'Miglior sceneggiatura non originale',
+    'best original screenplay': 'Miglior sceneggiatura originale',
+    'best screenplay': 'Miglior sceneggiatura',
+    'best international film': 'Miglior film internazionale',
+    'best international feature': 'Miglior film internazionale',
+    'best international feature film': 'Miglior film internazionale',
+    'best foreign language film': 'Miglior film internazionale',
+    'best foreign film': 'Miglior film internazionale',
+    'best non english language film': 'Miglior film non in lingua inglese',
+    'film not in the english language': 'Miglior film non in lingua inglese',
+    'best film not in the english language': 'Miglior film non in lingua inglese',
+    'best british film': 'Miglior film britannico',
+    'best european film': 'Miglior film europeo',
+    'best documentary': 'Miglior documentario',
+    'best animated feature': "Miglior film d'animazione",
+    'best visual effects': 'Migliori effetti speciali',
+    'best makeup': 'Miglior trucco e acconciatura',
+    'best makeup and hairstyling': 'Miglior trucco e acconciatura',
+  };
+
+  if (map[key]) return map[key];
+  // Keep original casing, just ensure the first letter is capitalized.
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+/**
  * Fetches and parses film awards from MUBI internal API (v3).
  * Now supports all major festivals by fetching the complete entry list.
  */
@@ -27,22 +91,48 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
     const films = searchData.films || [];
     if (films.length === 0) return null;
 
-    // Find the best match: by title match and optionally by year
-    let bestMatch = films.find((f: any) => {
-      const titleMatch = f.title.toLowerCase() === title.toLowerCase() || 
-                        (originalTitle && f.original_title?.toLowerCase() === originalTitle.toLowerCase());
-      const yearMatch = year ? (f.year?.toString() === year) : true;
-      return titleMatch && yearMatch;
+    // Normalize titles for robust comparison (case, accents, punctuation insensitive).
+    const norm = (s?: string) => (s || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+
+    const nTitle = norm(title);
+    const nOriginal = norm(originalTitle);
+
+    // CRITICAL: only accept films whose title (or original title) actually matches.
+    // Never fall back to films[0] — that produced awards for a completely different
+    // film when the real one wasn't on MUBI (e.g. "Mia" → "Mia madre").
+    const titleMatches = films.filter((f: any) => {
+      const ft = norm(f.title);
+      const fo = norm(f.original_title);
+      return ft === nTitle || ft === nOriginal || (nOriginal && fo === nOriginal) || fo === nTitle;
     });
 
-    if (!bestMatch) {
-      bestMatch = films.find((f: any) => 
-        f.title.toLowerCase() === title.toLowerCase() || 
-        (originalTitle && f.original_title?.toLowerCase() === originalTitle.toLowerCase())
-      );
+    // Year sanity check: if we know the release year, reject matches that are off
+    // by more than one year (handles festival-vs-release year differences).
+    const yearOk = (f: any) => {
+      if (!year || !f.year) return true;
+      return Math.abs(Number(f.year) - Number(year)) <= 1;
+    };
+    const candidates = titleMatches.filter(yearOk);
+
+    let bestMatch: any = null;
+    if (year) {
+      bestMatch = candidates.find((f: any) => f.year?.toString() === year) || candidates[0] || null;
+    } else {
+      bestMatch = candidates[0] || null;
     }
 
-    if (!bestMatch) bestMatch = films[0];
+    // No confident match → return empty awards rather than wrong ones.
+    if (!bestMatch) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[MUBI] Nessun match affidabile per "${title}" (${year || 'anno n/d'}), premi non assegnati.`);
+      }
+      return { awards: [], mubiId: undefined };
+    }
 
     const mubiId = bestMatch.id;
 
@@ -108,7 +198,8 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
 
           const bucket = awardsByFestival[match.id];
           const status = (entry.status || '').toLowerCase();
-          const cleanedText = (entry.display_text || '').replace(/^.*?tra cui:\s*/i, '').trim();
+          const rawText = (entry.display_text || '').replace(/^.*?tra cui:\s*/i, '').trim();
+          const cleanedText = rawText ? italianizeAward(rawText) : '';
 
           if (status === 'won') {
             // Authoritative win from MUBI
