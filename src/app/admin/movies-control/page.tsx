@@ -9,14 +9,16 @@ import {
   adminGetMovieById,
   adminClearMovieMetadata,
   adminSyncSoldOutStatus,
-  adminSyncAllMovies
+  adminSyncAllMovies,
+  adminRefreshMovieAwards,
+  adminRefreshAllAwards
 } from '@/actions/adminActions';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import Image from 'next/image';
 import {
   Save, Trash2, Edit3, X, Info, Globe, Languages,
   Image as ImageIcon, RefreshCw, Play, CheckCircle2, Film,
-  AlertTriangle, Loader2, ChevronRight, Star, Sparkles, LayoutGrid
+  AlertTriangle, Loader2, ChevronRight, Star, Sparkles, LayoutGrid, Award
 } from 'lucide-react';
 import styles from './MoviesControl.module.css';
 import ImagePickerModal from './ImagePickerModal';
@@ -58,6 +60,8 @@ export default function MoviesControlPage() {
   }>({ isOpen: false, type: 'poster' });
   const [isPending, startTransition] = useTransition();
   const [isVisualCenterOpen, setIsVisualCenterOpen] = useState(false);
+  const [refreshingAwards, setRefreshingAwards] = useState(false);
+  const [currentAwards, setCurrentAwards] = useState<any[]>([]);
 
   const loadData = useCallback(async () => {
     const [ovData, progData] = await Promise.all([
@@ -76,6 +80,7 @@ export default function MoviesControlPage() {
     const override = overrides[movie.id?.toString() || movie.tmdbId] || {};
     setEditingMovie(movie);
     setSaveSuccess(false);
+    setCurrentAwards(override.awards?.length ? override.awards : (movie.awards || []));
     setFormState({
       customTitle: override.customTitle ?? (movie.title || ''),
       customOverview: override.customOverview ?? (movie.overview || ''),
@@ -179,6 +184,45 @@ export default function MoviesControlPage() {
     }
   };
 
+  const handleRefreshAwards = async () => {
+    if (!editingMovie) return;
+    const id = editingMovie.id?.toString() || editingMovie.tmdbId;
+    setRefreshingAwards(true);
+    try {
+      const result = await adminRefreshMovieAwards(id);
+      if (result.success) {
+        // Re-fetch the movie to get the freshly persisted awards
+        const fresh = await adminGetMovieById(id);
+        setCurrentAwards(fresh?.awards || []);
+        await loadData();
+      } else {
+        alert(`Errore aggiornamento premi: ${result.error}`);
+      }
+    } catch (err: any) {
+      alert(`Errore aggiornamento premi: ${err?.message || 'Errore sconosciuto'}`);
+    } finally {
+      setRefreshingAwards(false);
+    }
+  };
+
+  const handleRefreshAllAwards = async () => {
+    if (!confirm('Controllare e aggiornare i premi MUBI per TUTTI i film in programma? Può richiedere qualche minuto.')) return;
+    setSyncing(true);
+    try {
+      const result = await adminRefreshAllAwards();
+      if (result.success) {
+        alert(`Premi aggiornati: ${result.updated} film OK${result.failed ? `, ${result.failed} errori` : ''}.`);
+        await loadData();
+      } else {
+        alert(`Errore: ${result.error}`);
+      }
+    } catch (err: any) {
+      alert(`Errore: ${err?.message || 'Errore sconosciuto'}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSyncSoldOut = async () => {
     if (!confirm('Controllare tutte le quote su Pretix e aggiornare gli stati Sold Out?')) return;
     setSyncing(true);
@@ -230,6 +274,15 @@ export default function MoviesControlPage() {
           >
             <RefreshCw size={16} className={syncing ? styles.spin : ''} />
             {syncing ? 'Sincronizzazione…' : 'Sync Sold Out'}
+          </button>
+          <button
+            onClick={handleRefreshAllAwards}
+            className={styles.btnSync}
+            disabled={syncing}
+            title="Controlla e aggiorna i premi MUBI di tutti i film"
+          >
+            <Award size={16} className={syncing ? styles.spin : ''} />
+            {syncing ? 'Aggiornamento…' : 'Aggiorna Premi'}
           </button>
           <button
             onClick={async () => {
@@ -662,13 +715,54 @@ export default function MoviesControlPage() {
                 <div className={styles.formRow}>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>MUBI ID / Slug</label>
-                    <input 
-                      type="text" 
-                      value={formState.mubiId} 
-                      onChange={e => setFormState(f => ({ ...f, mubiId: e.target.value }))} 
-                      className={styles.input} 
+                    <input
+                      type="text"
+                      value={formState.mubiId}
+                      onChange={e => setFormState(f => ({ ...f, mubiId: e.target.value }))}
+                      className={styles.input}
                       placeholder="ID per sync manuale"
                     />
+                  </div>
+                </div>
+
+                {/* Awards / Premi */}
+                <div className={styles.formGroup} style={{ marginTop: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
+                    <label className={styles.label} style={{ margin: 0 }}>
+                      <Award size={12} /> Premi &amp; Festival ({currentAwards.length})
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleRefreshAwards}
+                      className={styles.btnSync}
+                      disabled={refreshingAwards}
+                      title="Ricarica i premi da MUBI per questo film"
+                      style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                    >
+                      {refreshingAwards
+                        ? <Loader2 size={14} className={styles.spin} />
+                        : <Award size={14} />}
+                      {refreshingAwards ? 'Aggiornamento…' : 'Aggiorna Premi'}
+                    </button>
+                  </div>
+                  <div style={{ backgroundColor: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                    {currentAwards.length === 0 ? (
+                      <p style={{ opacity: 0.6, fontSize: '0.85rem', margin: 0 }}>
+                        Nessun premio salvato. Clicca "Aggiorna Premi" per estrarli da MUBI.
+                      </p>
+                    ) : (
+                      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {currentAwards.map((a: any, i: number) => (
+                          <li key={`${a.type}-${i}`} style={{ fontSize: '0.85rem', lineHeight: 1.4 }}>
+                            <strong style={{ textTransform: 'capitalize' }}>{a.label || a.type}</strong>
+                            {a.year ? <span style={{ opacity: 0.6 }}> · {a.year}</span> : ''}
+                            {a.details && (
+                              <div style={{ opacity: 0.8, fontSize: '0.8rem' }}>{a.details}</div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
 
