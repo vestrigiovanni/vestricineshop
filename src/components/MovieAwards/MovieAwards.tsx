@@ -127,18 +127,23 @@ const AwardBadge = ({ type, label, details, year, index = 0, isMounted = false }
               </div>
               <div className={styles.tooltipContent}>
                 <div className={styles.awardDecoration} />
-                {details && (
-                  <div className={styles.prestigeWrapper}>
-                    <p className={styles.prestigeText}>
-                      {details.split(',')[0]}
-                    </p>
-                    {details.includes(',') && (
-                      <p className={styles.subDetails}>
-                        {details.split(',').slice(1).join(', ')}
+                {details && (() => {
+                  // Wins and nominations are separated by ' · ' (e.g. "Vincitore: … · Candidatura: …").
+                  // Fall back to comma splitting for legacy/manual entries without the separator.
+                  const segments = details.includes(' · ') ? details.split(' · ') : details.split(',');
+                  return (
+                    <div className={styles.prestigeWrapper}>
+                      <p className={styles.prestigeText}>
+                        {segments[0]}
                       </p>
-                    )}
-                  </div>
-                )}
+                      {segments.length > 1 && (
+                        <p className={styles.subDetails}>
+                          {segments.slice(1).join(details.includes(' · ') ? ' · ' : ', ')}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </motion.div>

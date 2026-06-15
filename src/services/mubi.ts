@@ -45,13 +45,6 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
     if (!bestMatch) bestMatch = films[0];
 
     const mubiId = bestMatch.id;
-    const majorAwardKeywords = [
-      'vincitore', 'winner', 'palma', 'palme', 'grand prix', 'leone', 'lion', 
-      'oscar', 'miglior', 'best', 'prix', 'jury', 'giuria', 'pardo', 'silver', 
-      'argento', 'oro', 'golden', 'bear', 'orso', 'concha', 'shell', 'bafta', 
-      'telluride', 'official selection', 'selezione ufficiale', 'premio', 'vinto', 'vinta', 'award',
-      'orizzonti', 'volpi', 'leoncino', 'pasinetti', 'fipresci', 'queer lion', 'opera prima'
-    ];
 
     const festivalMapping = [
       { id: 'oscar', keywords: ['academy award', 'oscar'], label: 'Academy Awards', eventType: 'academy_award' },
@@ -68,7 +61,15 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
       { id: 'romacinemafest', keywords: ['rome film festival', 'roma cinema fest', 'festa del cinema di roma', 'romacinemafest', 'fondazione cinema per roma'], label: 'Festa del cinema di Roma' }
     ];
 
-    const awardsByFestival: Record<string, { type: string, label: string, details: Set<string>, year: number | null }> = {};
+    // Track wins and nominations separately so the UI can distinguish them.
+    const awardsByFestival: Record<string, {
+      type: string,
+      label: string,
+      won: Set<string>,
+      nominated: Set<string>,
+      selection: boolean,
+      year: number | null
+    }> = {};
 
     // Use the full industry_event_entries endpoint to get ALL awards
     const awardsUrl = `https://api.mubi.com/v3/films/${mubiId}/industry_event_entries`;
@@ -87,48 +88,60 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
           const festivalName = (festival.name || '').toLowerCase();
           const eventType = festival.type || 'generic';
 
-          const match = festivalMapping.find(f => 
-            f.keywords.some(k => festivalName.includes(k)) || 
+          const match = festivalMapping.find(f =>
+            f.keywords.some(k => festivalName.includes(k)) ||
             (f.eventType && eventType === f.eventType)
           );
 
-          if (match) {
-            if (!awardsByFestival[match.id]) {
-              awardsByFestival[match.id] = {
-                type: match.id,
-                label: match.label,
-                details: new Set<string>(),
-                year: entry.year || null
-              };
-            }
+          if (!match) return;
 
-            const isWinner = entry.status === 'won';
-            const awardText = entry.display_text || '';
+          if (!awardsByFestival[match.id]) {
+            awardsByFestival[match.id] = {
+              type: match.id,
+              label: match.label,
+              won: new Set<string>(),
+              nominated: new Set<string>(),
+              selection: false,
+              year: entry.year || null
+            };
+          }
 
-            if (isWinner || majorAwardKeywords.some((k: string) => awardText.toLowerCase().includes(k))) {
-              const cleanedText = awardText.replace(/^.*?tra cui:\s*/i, '').trim();
-              if (cleanedText) awardsByFestival[match.id].details.add(cleanedText);
-            } else if (awardsByFestival[match.id].details.size === 0) {
-              // Add Official Selection only if we haven't found any specific award yet
-              awardsByFestival[match.id].details.add('Selezione Ufficiale');
-            }
+          const bucket = awardsByFestival[match.id];
+          const status = (entry.status || '').toLowerCase();
+          const cleanedText = (entry.display_text || '').replace(/^.*?tra cui:\s*/i, '').trim();
+
+          if (status === 'won') {
+            // Authoritative win from MUBI
+            if (cleanedText) bucket.won.add(cleanedText);
+            else bucket.selection = true;
+          } else if (status === 'screening' || !cleanedText) {
+            // Pure festival presence with no specific prize
+            bucket.selection = true;
+          } else {
+            // nominated, shortlisted, second_place, ... → it's a nomination, not a win
+            bucket.nominated.add(cleanedText);
           }
         });
       }
     }
 
     const resultAwards: MubiAward[] = [];
-    Object.entries(awardsByFestival).forEach(([type, info]) => {
-      // Remove "Selezione Ufficiale" if there are other more specific awards
-      if (info.details.size > 1 && info.details.has('Selezione Ufficiale')) {
-        info.details.delete('Selezione Ufficiale');
-      }
+    Object.values(awardsByFestival).forEach((info) => {
+      const won = Array.from(info.won);
+      const nominated = Array.from(info.nominated);
 
-      if (info.details.size > 0) {
+      // Build a human-readable string that clearly separates wins from nominations.
+      // Use ' · ' between the two groups and ', ' within each group.
+      const parts: string[] = [];
+      if (won.length) parts.push(`Vincitore: ${won.join(', ')}`);
+      if (nominated.length) parts.push(`Candidatura: ${nominated.join(', ')}`);
+      if (!parts.length && info.selection) parts.push('Selezione Ufficiale');
+
+      if (parts.length) {
         resultAwards.push({
-          type,
+          type: info.type,
           label: info.label,
-          details: Array.from(info.details).join(', '),
+          details: parts.join(' · '),
           year: info.year || undefined
         });
       }
@@ -154,7 +167,7 @@ export function getManualAwards(tmdbId: string): MubiAward[] | null {
       {
         type: 'venice',
         label: "Mostra internazionale d'arte cinematografica la biennale di venezia",
-        details: "Vincitore Premio Orizzonti per il miglior attore (Francesco Gheghi), Selezione Ufficiale",
+        details: "Vincitore: Premio Orizzonti per il miglior attore (Francesco Gheghi)",
         year: 2024
       }
     ]
