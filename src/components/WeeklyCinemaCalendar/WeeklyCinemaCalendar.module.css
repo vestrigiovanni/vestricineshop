@@ -1,7 +1,7 @@
 .calendarContainer {
   width: 100vw;
-  margin: 4rem calc(-50vw + 50%);
-  padding: 4rem 0.75rem;
+  margin: 0.5rem calc(-50vw + 50%);
+  padding: 1.5rem 0.75rem;
   background-color: var(--background);
   color: #ffffff;
   border-top: 1px solid rgba(255, 255, 255, 0.05);

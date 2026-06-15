@@ -108,12 +108,162 @@ export async function searchMovies(query: string = '', enrich: boolean = true, l
 }
 
 /**
+ * Standard Tecnico: Latinizzazione Obbligatoria dei nomi (cast & crew).
+ * TMDB restituisce i nomi nella lingua richiesta (it-IT), quindi attori e registi
+ * asiatici/coreani/cirillici arrivano in scrittura nativa (es. 是枝裕和).
+ * Qui sostituiamo questi nomi con la versione romanizzata, che TMDB espone:
+ *   1) nei credits in inglese (`/movie/{id}/credits?language=en-US`)
+ *   2) come fallback finale, negli alias latini del profilo persona (`also_known_as`)
+ * Muta `details.credits` in-place (cast & crew condividono i riferimenti agli oggetti).
+ */
+async function latinizeCreditNames(details: any, id: string): Promise<void> {
+  if (!details?.credits) return;
+
+  const people: { id: number; name: string }[] = [
+    ...(details.credits.cast || []),
+    ...(details.credits.crew || []),
+  ];
+  const nonLatin = people.filter(p => p?.name && isNonLatin(p.name));
+  if (nonLatin.length === 0) return;
+
+  // Fallback 1: credits in inglese (i nomi asiatici tornano romanizzati)
+  try {
+    const enUrl = `${TMDB_BASE_URL}/movie/${id}/credits?language=en-US&api_key=${TMDB_API_KEY}`;
+    const enResponse = await fetch(enUrl, { headers: { 'accept': 'application/json' }, cache: 'no-store' });
+    if (enResponse.ok) {
+      const enCredits = await enResponse.json();
+      const nameById = new Map<number, string>();
+      for (const p of [...(enCredits.cast || []), ...(enCredits.crew || [])]) {
+        if (p?.id != null && p.name && !isNonLatin(p.name)) nameById.set(p.id, p.name);
+      }
+      for (const p of nonLatin) {
+        const enName = nameById.get(p.id);
+        if (enName) p.name = enName;
+      }
+    }
+  } catch (e) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(`[TMDB ERROR] Latinizzazione credits EN fallita per ${id}:`, e);
+    }
+  }
+
+  // Fallback 2: per i residui (rari), cerca un alias latino sul profilo persona.
+  const residual = nonLatin.filter(p => isNonLatin(p.name)).slice(0, 12);
+  await Promise.all(residual.map(async (p) => {
+    try {
+      const personUrl = `${TMDB_BASE_URL}/person/${p.id}?language=en-US&api_key=${TMDB_API_KEY}`;
+      const res = await fetch(personUrl, { headers: { 'accept': 'application/json' }, cache: 'no-store' });
+      if (!res.ok) return;
+      const person = await res.json();
+      if (person.name && !isNonLatin(person.name)) {
+        p.name = person.name;
+        return;
+      }
+      const latinAlias = (person.also_known_as || []).find((a: string) => a && !isNonLatin(a));
+      if (latinAlias) p.name = latinAlias;
+    } catch {
+      /* best effort: se fallisce, manteniamo il nome nativo */
+    }
+  }));
+}
+
+/**
+ * Costruisce una mappa "nome nativo -> nome romanizzato" per un film, allineando
+ * i credits in it-IT (scrittura nativa) con quelli in en-US (romanizzati) tramite l'id persona.
+ * Usata per ri-latinizzare i nomi già salvati nel DB senza perdere eventuali tocchi manuali.
+ */
+async function buildNativeToLatinMap(id: string): Promise<Map<string, string> | null> {
+  try {
+    const [itRes, enRes] = await Promise.all([
+      fetch(`${TMDB_BASE_URL}/movie/${id}/credits?language=it-IT&api_key=${TMDB_API_KEY}`, { headers: { 'accept': 'application/json' }, cache: 'no-store' }),
+      fetch(`${TMDB_BASE_URL}/movie/${id}/credits?language=en-US&api_key=${TMDB_API_KEY}`, { headers: { 'accept': 'application/json' }, cache: 'no-store' }),
+    ]);
+    if (!itRes.ok || !enRes.ok) return null;
+    const itCredits = await itRes.json();
+    const enCredits = await enRes.json();
+
+    const latinById = new Map<number, string>();
+    for (const p of [...(enCredits.cast || []), ...(enCredits.crew || [])]) {
+      if (p?.id != null && p.name && !isNonLatin(p.name)) latinById.set(p.id, p.name);
+    }
+
+    const map = new Map<string, string>();
+    for (const p of [...(itCredits.cast || []), ...(itCredits.crew || [])]) {
+      if (p?.id == null || !p.name || !isNonLatin(p.name)) continue;
+      const latin = latinById.get(p.id);
+      if (latin) map.set(p.name.trim(), latin);
+    }
+    return map;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Riscrive una stringa di nomi separati da virgola, sostituendo solo i token in
+ * scrittura non latina con la versione romanizzata presente nella mappa.
+ * I token già latini (incluse eventuali modifiche manuali) restano intatti.
+ */
+function latinizeTokens(value: string, map: Map<string, string>): string {
+  return value
+    .split(',')
+    .map(raw => {
+      const token = raw.trim();
+      if (!token || !isNonLatin(token)) return token;
+      return map.get(token) || token;
+    })
+    .filter(Boolean)
+    .join(', ');
+}
+
+/**
+ * Scorre gli override già salvati nel DB e ri-latinizza i nomi di regista/cast
+ * rimasti in scrittura nativa. Non tocca i nomi già latini né i film "puliti".
+ * Best effort: i nomi che TMDB non riesce a romanizzare restano invariati.
+ */
+export async function relatinizeStoredNames(): Promise<{ scanned: number; updated: number; changes: { tmdbId: string; director?: string; cast?: string }[] }> {
+  const { default: prisma } = await import('@/lib/prisma');
+  const overrides = await prisma.movieOverride.findMany({
+    select: { tmdbId: true, customDirector: true, customCast: true },
+  });
+
+  let updated = 0;
+  const changes: { tmdbId: string; director?: string; cast?: string }[] = [];
+
+  for (const o of overrides) {
+    const dirNeeds = !!o.customDirector && isNonLatin(o.customDirector);
+    const castNeeds = !!o.customCast && isNonLatin(o.customCast);
+    if (!dirNeeds && !castNeeds) continue;
+
+    const map = await buildNativeToLatinMap(o.tmdbId);
+    if (!map || map.size === 0) continue;
+
+    const newDir = dirNeeds ? latinizeTokens(o.customDirector!, map) : o.customDirector;
+    const newCast = castNeeds ? latinizeTokens(o.customCast!, map) : o.customCast;
+
+    if (newDir !== o.customDirector || newCast !== o.customCast) {
+      await prisma.movieOverride.update({
+        where: { tmdbId: o.tmdbId },
+        data: { customDirector: newDir, customCast: newCast },
+      });
+      updated++;
+      const change: { tmdbId: string; director?: string; cast?: string } = { tmdbId: o.tmdbId };
+      if (newDir !== o.customDirector) change.director = newDir ?? '';
+      if (newCast !== o.customCast) change.cast = newCast ?? '';
+      changes.push(change);
+    }
+  }
+
+  return { scanned: overrides.length, updated, changes };
+}
+
+/**
  * Gets rich metadata for a specific movie by its TMDB ID.
  */
 export async function getMovieDetails(id: string): Promise<MovieDetails | null> {
   try {
     const { getCachedTMDB, setCachedTMDB } = await import('./db.service');
-    const cacheKey = `movie_details_${id}`;
+    const cacheKey = `movie_details_v2_${id}`; // v2: latinizzazione nomi cast & crew
     const cached = getCachedTMDB(cacheKey);
     if (cached) return cached;
 
@@ -195,6 +345,9 @@ export async function getMovieDetails(id: string): Promise<MovieDetails | null> 
         }
       }
     }
+
+    // Standard Tecnico: Latinizzazione Obbligatoria dei nomi di cast & crew
+    await latinizeCreditNames(details, id);
 
     // FALLBACK: Se la trama in italiano manca, proviamo a recuperare quella in inglese
     if (!details.overview || details.overview.trim() === '') {

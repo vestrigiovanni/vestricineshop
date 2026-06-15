@@ -77,7 +77,11 @@ export default function MoviesControlPage() {
 
 
   const openEditor = (movie: any) => {
-    const override = overrides[movie.id?.toString() || movie.tmdbId] || {};
+    const movieId = movie.id?.toString() || movie.tmdbId;
+    const override = overrides[movieId] || {};
+    // Sala reale dalla programmazione Pretix (non il default hardcoded)
+    const programmed = programmedMovies.find((p) => p.tmdbId === movieId);
+    const pretixRoomName = programmed?.projections?.find((pr: any) => pr.roomName)?.roomName;
     setEditingMovie(movie);
     setSaveSuccess(false);
     setCurrentAwards(override.awards?.length ? override.awards : (movie.awards || []));
@@ -92,7 +96,7 @@ export default function MoviesControlPage() {
       customLogoPath: override.customLogoPath ?? (movie.logo_path || ''),
       customDirector: override.customDirector ?? (Array.isArray(movie.director) ? movie.director.join(', ') : (movie.director || '')),
       customCast: override.customCast ?? (Array.isArray(movie.cast) ? movie.cast.join(', ') : (movie.cast || '')),
-      customRoomName: override.customRoomName || 'SALA CA GRANDA',
+      customRoomName: override.customRoomName || pretixRoomName || 'SALA CA GRANDA',
       customRating: override.customRating ?? (movie.rating || ''),
       manualSoldOut: override.manualSoldOut || false,
       customTrailerUrl: override.customTrailerUrl ?? (movie.trailerKey ? `https://www.youtube.com/watch?v=${movie.trailerKey}` : ''),
