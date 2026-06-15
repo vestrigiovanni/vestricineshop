@@ -1588,12 +1588,29 @@ export async function upsertMovieOverride(tmdbId: string, override: any) {
           trailerUrl: fullOverride.customTrailerUrl || '',
         };
 
+        const linguaValue = fullOverride.versionLanguage?.trim() || 'ITA';
+        const sottotitoliValue = fullOverride.subtitles?.trim() || 'NESSUNO';
+
         for (const proj of syncedProjections) {
           await updateSubEvent(proj.pretixId, {
             comment: JSON.stringify(commentObj),
             meta_data: {
-              lingua: fullOverride.versionLanguage?.trim() || 'ITA',
-              sottotitoli: fullOverride.subtitles?.trim() || 'NESSUNO'
+              lingua: linguaValue,
+              sottotitoli: sottotitoliValue
+            }
+          });
+        }
+
+        // Aggiorna anche le righe locali PretixSync: la homepage legge la lingua
+        // per-proiezione da metaLingua/metaSottotitoli, non dall'override. Senza
+        // questo update la home continuerebbe a mostrare la vecchia lingua fino
+        // al prossimo sync completo da Pretix.
+        if (syncedProjections.length > 0) {
+          await prisma.pretixSync.updateMany({
+            where: { tmdbId: tmdbId },
+            data: {
+              metaLingua: linguaValue,
+              metaSottotitoli: sottotitoliValue
             }
           });
         }
