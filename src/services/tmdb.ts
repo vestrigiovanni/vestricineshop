@@ -10,6 +10,7 @@ export interface MovieDetails extends MovieItem {
   runtime: number;
   imdb_id: string | null;
   tagline?: string;
+  vote_average?: number;
   genres: { id: number; name: string }[];
   release_dates?: {
     results: {
@@ -938,6 +939,8 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
       logo_path,
       tagline: details.tagline || '',
       extraBackdrops: pickExtraBackdrops(details.images?.backdrops || [], backdrop_path),
+      genres: (details.genres || []).map(g => g.name).filter(Boolean),
+      voteAverage: details.vote_average || null,
       rating,
       release_date: details.release_date,
       runtime: details.runtime,

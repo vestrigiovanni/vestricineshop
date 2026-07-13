@@ -129,6 +129,8 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
       awards: (movie as any).awards || [],
       tagline: ((movie as any).tagline || '').trim(),
       extraBackdrops: Array.isArray((movie as any).extraBackdrops) ? (movie as any).extraBackdrops : [],
+      genres: Array.isArray((movie as any).genres) ? (movie as any).genres : [],
+      voteAverage: typeof (movie as any).voteAverage === 'number' ? (movie as any).voteAverage : null,
     };
   });
 

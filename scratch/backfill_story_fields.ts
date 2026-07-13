@@ -12,7 +12,9 @@ async function main() {
   for (const m of movies) {
     const needsTagline = !m.tagline;
     const needsBackdrops = m.extraBackdrops.length === 0;
-    if (!needsTagline && !needsBackdrops) {
+    const needsGenres = m.genres.length === 0;
+    const needsVote = m.voteAverage == null;
+    if (!needsTagline && !needsBackdrops && !needsGenres && !needsVote) {
       console.log(`- ${m.customTitle} (${m.tmdbId}): già completo, salto.`);
       continue;
     }
@@ -23,17 +25,23 @@ async function main() {
       continue;
     }
 
-    const data: { tagline?: string | null; extraBackdrops?: string[] } = {};
+    const data: { tagline?: string | null; extraBackdrops?: string[]; genres?: string[]; voteAverage?: number | null } = {};
     if (needsTagline) data.tagline = details.tagline || null;
     if (needsBackdrops) {
       data.extraBackdrops = pickExtraBackdrops(details.images?.backdrops || [], m.customBackdropPath);
     }
+    if (needsGenres) data.genres = (details.genres || []).map(g => g.name).filter(Boolean);
+    if (needsVote) data.voteAverage = details.vote_average || null;
 
     await prisma.movieOverride.update({ where: { tmdbId: m.tmdbId }, data });
     updated++;
-    const t = needsTagline ? (data.tagline ? `"${data.tagline}"` : 'assente su TMDB') : 'già presente';
-    const b = needsBackdrops ? `${data.extraBackdrops!.length} trovati` : 'già presenti';
-    console.log(`- ${m.customTitle} (${m.tmdbId}): tagline=${t}, extraBackdrops=${b}`);
+    const parts = [
+      needsTagline ? `tagline=${data.tagline ? `"${data.tagline}"` : 'assente'}` : null,
+      needsBackdrops ? `backdrops=${data.extraBackdrops!.length}` : null,
+      needsGenres ? `generi=[${data.genres!.join(', ')}]` : null,
+      needsVote ? `voto=${data.voteAverage ?? 'n/d'}` : null,
+    ].filter(Boolean).join(', ');
+    console.log(`- ${m.customTitle} (${m.tmdbId}): ${parts}`);
   }
   console.log(`Fatto: ${updated} film aggiornati su ${movies.length}.`);
 }

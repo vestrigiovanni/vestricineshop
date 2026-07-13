@@ -32,6 +32,8 @@ model MovieOverride {
   customTrailerKeys  String[]     @default([])
   tagline            String?
   extraBackdrops     String[]     @default([])
+  genres             String[]     @default([])
+  voteAverage        Float?
   awards             MovieAward[]
   projections        PretixSync[]
 }

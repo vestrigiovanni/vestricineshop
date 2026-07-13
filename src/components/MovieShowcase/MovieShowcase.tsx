@@ -42,6 +42,8 @@ export interface GroupedMovie {
   awards?: any[];
   tagline?: string;
   extraBackdrops?: string[];
+  genres?: string[];
+  voteAverage?: number | null;
 }
 
 interface MovieShowcaseProps {

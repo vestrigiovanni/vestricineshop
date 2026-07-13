@@ -178,6 +178,10 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
               extraBackdrops: (isManual && (existingMovie as any)?.extraBackdrops?.length)
                 ? (existingMovie as any).extraBackdrops
                 : ((tmdbData.extraBackdrops?.length) ? tmdbData.extraBackdrops : ((existingMovie as any)?.extraBackdrops || [])),
+              genres: (isManual && (existingMovie as any)?.genres?.length)
+                ? (existingMovie as any).genres
+                : ((tmdbData.genres?.length) ? tmdbData.genres : ((existingMovie as any)?.genres || [])),
+              voteAverage: pick(existingMovie?.voteAverage, tmdbData.voteAverage),
 
               releaseDate: tmdbData.release_date || existingMovie?.releaseDate,
               runtime: tmdbData.runtime || existingMovie?.runtime,
@@ -218,6 +222,8 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
               customTrailerKeys: tmdbData.trailerKeys || [],
               tagline: tmdbData.tagline || null,
               extraBackdrops: tmdbData.extraBackdrops || [],
+              genres: tmdbData.genres || [],
+              voteAverage: tmdbData.voteAverage || null,
               releaseDate: tmdbData.release_date,
               runtime: tmdbData.runtime,
               versionLanguage: tmdbData.original_language === 'it' ? 'Italiano' : getLanguageName(tmdbData.original_language),
@@ -549,6 +555,10 @@ export async function syncNewlyCreatedEvents(pretixIds: number[]) {
                   extraBackdrops: (existingMovie?.extraBackdrops?.length)
                     ? existingMovie.extraBackdrops
                     : (tmdbData.extraBackdrops || []),
+                  genres: (existingMovie?.genres?.length)
+                    ? existingMovie.genres
+                    : (tmdbData.genres || []),
+                  voteAverage: existingMovie?.voteAverage || tmdbData.voteAverage || null,
                 },
                 create: {
                   tmdbId,
@@ -565,7 +575,9 @@ export async function syncNewlyCreatedEvents(pretixIds: number[]) {
                   releaseDate: tmdbData.release_date,
                   runtime: tmdbData.runtime,
                   tagline: tmdbData.tagline || null,
-                  extraBackdrops: tmdbData.extraBackdrops || []
+                  extraBackdrops: tmdbData.extraBackdrops || [],
+                  genres: tmdbData.genres || [],
+                  voteAverage: tmdbData.voteAverage || null
                 }
               });
             }
