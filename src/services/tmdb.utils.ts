@@ -84,3 +84,37 @@ export function getTMDBImageUrl(path: string | null | undefined, size: string = 
   if (path.startsWith('http')) return path;
   return `https://image.tmdb.org/t/p/${size}${path}`;
 }
+
+export interface TMDBBackdrop {
+  file_path: string;
+  iso_639_1: string | null;
+  width?: number;
+  vote_average?: number;
+  vote_count?: number;
+}
+
+/**
+ * Sceglie i backdrop "extra" per lo scrollytelling della home:
+ * esclude quello principale già in uso nella hero, preferisce le immagini
+ * senza testo (iso_639_1 nullo, più cinematografiche) e ordina per voto.
+ */
+export function pickExtraBackdrops(
+  backdrops: TMDBBackdrop[],
+  mainBackdropPath: string | null | undefined,
+  max: number = 3
+): string[] {
+  const byScore = (a: TMDBBackdrop, b: TMDBBackdrop) =>
+    (b.vote_average || 0) - (a.vote_average || 0) || (b.vote_count || 0) - (a.vote_count || 0);
+
+  const seen = new Set<string>();
+  const candidates = backdrops.filter(b => {
+    if (!b.file_path || b.file_path === mainBackdropPath || seen.has(b.file_path)) return false;
+    seen.add(b.file_path);
+    return true;
+  });
+
+  const noLang = candidates.filter(b => !b.iso_639_1).sort(byScore);
+  const withLang = candidates.filter(b => b.iso_639_1).sort(byScore);
+
+  return [...noLang, ...withLang].slice(0, max).map(b => b.file_path);
+}
