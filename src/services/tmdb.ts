@@ -2,7 +2,7 @@ import { normalizeRating } from '@/utils/ratingUtils';
 const TMDB_API_KEY = '00ea09c7fb5bf89b064f6001a2de3122';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-import { MovieItem, isNonLatin } from './tmdb.utils';
+import { MovieItem, isNonLatin, pickExtraBackdrops } from './tmdb.utils';
 import { fetchMubiAwards, getManualAwards } from './mubi';
 export * from './tmdb.utils';
 
@@ -936,6 +936,8 @@ export async function getEnrichedMovieMetadata(tmdbId: string): Promise<any> {
       poster_path: details.poster_path,
       backdrop_path,
       logo_path,
+      tagline: details.tagline || '',
+      extraBackdrops: pickExtraBackdrops(details.images?.backdrops || [], backdrop_path),
       rating,
       release_date: details.release_date,
       runtime: details.runtime,
