@@ -213,6 +213,19 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
     disableAutoScroll();
   };
 
+  // Selezione film richiesta dallo scrollytelling (CinematicStory) in fondo alla pagina.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const movieId = Number((e as CustomEvent).detail?.movieId);
+      if (Number.isNaN(movieId)) return;
+      setActiveMovieId(movieId);
+      setTimerKey(prev => prev + 1);
+      disableAutoScroll();
+    };
+    window.addEventListener('vestri:select-movie', handler);
+    return () => window.removeEventListener('vestri:select-movie', handler);
+  }, [disableAutoScroll]);
+
   if (liveMovies.length === 0) {
     return (
       <div className={styles.showcase} style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

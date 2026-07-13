@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
-import WeeklyCinemaCalendar from '@/components/WeeklyCinemaCalendar/WeeklyCinemaCalendar';
+import CinematicStory from '@/components/CinematicStory/CinematicStory';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
 import styles from './page.module.css';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -127,6 +127,8 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
       subtitles: movie.subtitles || '',
       format: (movie as any).customVersion || '',
       awards: (movie as any).awards || [],
+      tagline: ((movie as any).tagline || '').trim(),
+      extraBackdrops: Array.isArray((movie as any).extraBackdrops) ? (movie as any).extraBackdrops : [],
     };
   });
 
@@ -181,7 +183,7 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
         movies={movies}
         initialAvailability={availabilityMap}
       />
-      <WeeklyCinemaCalendar subEvents={enrichedSubEvents as any} />
+      <CinematicStory movies={movies} subEvents={enrichedSubEvents as any} />
     </main>
   );
 }
