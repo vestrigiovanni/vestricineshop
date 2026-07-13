@@ -32,6 +32,8 @@ export interface MovieOverride {
   releaseDate?: string | null;
   runtime?: number | null;
   mubiId?: string | null;
+  tagline?: string | null;
+  extraBackdrops?: string[];
   awards?: MovieAward[];
 }
 
@@ -90,7 +92,7 @@ export async function saveOverride(tmdbId: string, override: Partial<MovieOverri
       'customBackdropPath', 'customLogoPath', 'customTrailerUrl', 'customTrailerTitle', 'customTrailerKeys',
       'versionLanguage', 'subtitles', 'customVersion', 'customRoomName', 'manualSoldOut',
       'isManualOverride', 'isDraft', 'customDirector', 'customCast',
-      'releaseDate', 'runtime', 'mubiId'
+      'releaseDate', 'runtime', 'mubiId', 'tagline', 'extraBackdrops'
     ];
 
     for (const [key, value] of Object.entries(override)) {
@@ -187,6 +189,8 @@ export async function syncAllMoviesFromPretix() {
               customRating: metadata.rating || 'T',
               customDirector: Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || ''),
               customCast: Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || ''),
+              tagline: metadata.tagline || null,
+              extraBackdrops: metadata.extraBackdrops || [],
               isManualOverride: false,
               isDraft: false
             }

@@ -174,7 +174,11 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
               customTrailerKeys: (isManual && (existingMovie as any)?.customTrailerKeys?.length)
                 ? (existingMovie as any).customTrailerKeys
                 : ((tmdbData.trailerKeys?.length) ? tmdbData.trailerKeys : ((existingMovie as any)?.customTrailerKeys || [])),
-              
+              tagline: pick(existingMovie?.tagline, tmdbData.tagline),
+              extraBackdrops: (isManual && (existingMovie as any)?.extraBackdrops?.length)
+                ? (existingMovie as any).extraBackdrops
+                : ((tmdbData.extraBackdrops?.length) ? tmdbData.extraBackdrops : ((existingMovie as any)?.extraBackdrops || [])),
+
               releaseDate: tmdbData.release_date || existingMovie?.releaseDate,
               runtime: tmdbData.runtime || existingMovie?.runtime,
 
@@ -212,6 +216,8 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
               customRating: tmdbData.rating || 'T',
               customTrailerUrl: trailerUrl,
               customTrailerKeys: tmdbData.trailerKeys || [],
+              tagline: tmdbData.tagline || null,
+              extraBackdrops: tmdbData.extraBackdrops || [],
               releaseDate: tmdbData.release_date,
               runtime: tmdbData.runtime,
               versionLanguage: tmdbData.original_language === 'it' ? 'Italiano' : getLanguageName(tmdbData.original_language),
@@ -539,6 +545,10 @@ export async function syncNewlyCreatedEvents(pretixIds: number[]) {
                   customRating: existingMovie?.customRating || tmdbData.rating || 'T',
                   releaseDate: existingMovie?.releaseDate || tmdbData.release_date,
                   runtime: existingMovie?.runtime || tmdbData.runtime,
+                  tagline: existingMovie?.tagline || tmdbData.tagline || null,
+                  extraBackdrops: (existingMovie?.extraBackdrops?.length)
+                    ? existingMovie.extraBackdrops
+                    : (tmdbData.extraBackdrops || []),
                 },
                 create: {
                   tmdbId,
@@ -553,7 +563,9 @@ export async function syncNewlyCreatedEvents(pretixIds: number[]) {
                   isManualOverride: false,
                   isDraft: false,
                   releaseDate: tmdbData.release_date,
-                  runtime: tmdbData.runtime
+                  runtime: tmdbData.runtime,
+                  tagline: tmdbData.tagline || null,
+                  extraBackdrops: tmdbData.extraBackdrops || []
                 }
               });
             }
