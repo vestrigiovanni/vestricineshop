@@ -6,6 +6,54 @@
   overflow-x: clip;
 }
 
+/* --- Elementi condivisi --- */
+.chapterKicker {
+  color: var(--text-muted);
+  font-family: var(--font-apple);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.movieMeta {
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--font-apple);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+
+/* --- Capitolo intro --- */
+.introChapter {
+  min-height: 55vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  padding: 5rem 1.5rem;
+  text-align: center;
+}
+
+.introTitle {
+  margin: 0;
+  font-family: var(--font-apple);
+  font-size: clamp(2.4rem, 7vw, 5.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.55) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.introSub {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+}
+
 /* --- Capitolo slogan --- */
 .taglineChapter {
   min-height: 70vh;
@@ -39,6 +87,30 @@
   font-size: 0.95rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
+}
+
+/* --- Capitolo citazione (trama) --- */
+.quoteChapter {
+  min-height: 55vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4rem;
+  padding: 5rem 1.5rem;
+  text-align: center;
+}
+
+.quoteText {
+  margin: 0;
+  max-width: 800px;
+  font-family: var(--font-apple);
+  font-size: clamp(1.4rem, 3.5vw, 2.4rem);
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
 }
 
 /* --- Strisce backdrop + logo --- */
@@ -86,6 +158,27 @@
   justify-content: flex-end;
 }
 
+.stripeInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.7rem;
+  max-width: 60%;
+}
+
+.stripeInfoFlip {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.stripeDirector {
+  font-family: var(--font-apple);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.8);
+}
+
 .stripeLogo {
   width: clamp(160px, 26vw, 340px);
   height: auto;
@@ -98,6 +191,187 @@
   font-weight: 700;
   color: var(--foreground);
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.85);
+}
+
+/* --- Statistiche della programmazione --- */
+.statsChapter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3rem;
+  padding: 6rem 1.5rem;
+  text-align: center;
+}
+
+.statsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(1.5rem, 4vw, 4rem);
+  max-width: 1100px;
+}
+
+.statTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 130px;
+}
+
+.statValue {
+  font-family: var(--font-apple);
+  font-size: clamp(2.6rem, 6vw, 4.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.6) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+/* --- Muro di loghi --- */
+.logoWall {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(1rem, 3vw, 2.5rem);
+  align-items: center;
+  justify-items: center;
+  padding: 5rem clamp(1.5rem, 8vw, 7rem);
+}
+
+.logoCell {
+  border: none;
+  background: none;
+  padding: 1rem;
+  cursor: pointer;
+  transition: var(--transition-snappy);
+}
+
+.logoCell:hover {
+  transform: scale(1.06);
+}
+
+.logoImg {
+  width: clamp(110px, 16vw, 220px);
+  height: auto;
+  max-height: 90px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 14px rgba(0, 0, 0, 0.5));
+  opacity: 0.9;
+}
+
+/* --- Premi e riconoscimenti --- */
+.awardsChapter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 6rem 1.5rem;
+}
+
+.awardsTitle {
+  margin: 0 0 2.5rem;
+  font-family: var(--font-apple);
+  font-size: clamp(1.9rem, 5vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.55) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.awardsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(1rem, 2.5vw, 2rem);
+  max-width: 1200px;
+}
+
+.awardCard {
+  display: flex;
+  gap: 1.2rem;
+  align-items: stretch;
+  width: min(360px, 100%);
+  padding: 1.2rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  cursor: pointer;
+  transition: var(--transition-snappy);
+}
+
+.awardCard:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.awardPoster {
+  position: relative;
+  flex-shrink: 0;
+  width: 88px;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.awardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.awardFilmTitle {
+  margin: 0;
+  font-family: var(--font-apple);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.awardList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.awardItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.awardItemType {
+  color: var(--primary-hover);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.awardItemLabel {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.awardMore {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-style: italic;
 }
 
 /* --- Capitolo calendario --- */
@@ -137,6 +411,55 @@
   width: 100%;
 }
 
+/* --- Nastro di poster in scorrimento continuo --- */
+.marqueeChapter {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 5rem 0;
+  overflow: hidden;
+}
+
+.marqueeViewport {
+  overflow: hidden;
+}
+
+.marqueeTrack {
+  display: flex;
+  width: max-content;
+  animation: marqueeScroll 45s linear infinite;
+}
+
+.marqueeReverse {
+  animation-direction: reverse;
+}
+
+.marqueeStatic {
+  animation: none;
+  width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.marqueeItem {
+  position: relative;
+  width: clamp(120px, 16vw, 190px);
+  aspect-ratio: 2 / 3;
+  margin-right: 14px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: var(--surface);
+}
+
+@keyframes marqueeScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 /* --- Chiusura --- */
 .outro {
   min-height: 50vh;
@@ -160,9 +483,50 @@
 
 /* --- Mobile --- */
 @media (max-width: 768px) {
+  .introChapter,
+  .quoteChapter {
+    min-height: 45vh;
+    padding: 3.5rem 1.25rem;
+  }
+
   .taglineChapter {
     min-height: 55vh;
     padding: 4rem 1.25rem;
+  }
+
+  .statsChapter {
+    padding: 4rem 1rem;
+    gap: 2rem;
+  }
+
+  .statsGrid {
+    gap: 1.8rem 2.2rem;
+  }
+
+  .statTile {
+    min-width: 100px;
+  }
+
+  .logoWall {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 3.5rem 1.5rem;
+  }
+
+  .stripeInfo {
+    max-width: 75%;
+    gap: 0.5rem;
+  }
+
+  .awardsChapter {
+    padding: 4rem 1rem;
+  }
+
+  .awardCard {
+    width: 100%;
+  }
+
+  .marqueeChapter {
+    padding: 3.5rem 0;
   }
 
   .stripe {
