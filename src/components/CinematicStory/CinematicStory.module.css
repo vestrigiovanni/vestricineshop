@@ -1,0 +1,187 @@
+/* === CinematicStory: scrollytelling stile Apple sotto la home === */
+
+.story {
+  position: relative;
+  background: var(--background);
+  overflow-x: clip;
+}
+
+/* --- Capitolo slogan --- */
+.taglineChapter {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 6rem 1.5rem;
+  text-align: center;
+}
+
+.taglineText {
+  margin: 0;
+  max-width: 900px;
+  font-family: var(--font-apple);
+  font-size: clamp(2rem, 6vw, 4.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.55) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  cursor: pointer;
+}
+
+.taglineMovie {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+/* --- Strisce backdrop + logo --- */
+.stripes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stripe {
+  position: relative;
+  height: clamp(320px, 55vh, 560px);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* Bleed verticale extra per il travel del parallax (±8%) */
+.stripeBg {
+  position: absolute;
+  inset: -12% 0;
+}
+
+.stripeShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(5, 5, 7, 0.72) 0%,
+    rgba(5, 5, 7, 0.05) 40%,
+    rgba(5, 5, 7, 0.05) 60%,
+    rgba(5, 5, 7, 0.72) 100%
+  );
+}
+
+.stripeContent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 8%;
+}
+
+.stripeFlip {
+  justify-content: flex-end;
+}
+
+.stripeLogo {
+  width: clamp(160px, 26vw, 340px);
+  height: auto;
+  filter: drop-shadow(0 4px 24px rgba(0, 0, 0, 0.65));
+}
+
+.stripeTitle {
+  font-family: var(--font-apple);
+  font-size: clamp(1.6rem, 4vw, 3rem);
+  font-weight: 700;
+  color: var(--foreground);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.85);
+}
+
+/* --- Capitolo calendario --- */
+.calendarChapter {
+  padding: 3rem 0 1rem;
+}
+
+/* --- Mosaico poster --- */
+.mosaic {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(10px, 2vw, 24px);
+  align-items: start;
+  padding: 6rem clamp(1rem, 6vw, 5rem);
+}
+
+.mosaicColumn {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 2vw, 24px);
+}
+
+.mosaicColumn:nth-child(2) {
+  margin-top: 3.5rem;
+}
+
+.mosaicPoster {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border: none;
+  padding: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface);
+  cursor: pointer;
+  display: block;
+  width: 100%;
+}
+
+/* --- Chiusura --- */
+.outro {
+  min-height: 50vh;
+  display: grid;
+  place-items: center;
+  padding: 5rem 1.5rem;
+}
+
+.outroText {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-apple);
+  font-size: clamp(1.8rem, 5vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.55) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* --- Mobile --- */
+@media (max-width: 768px) {
+  .taglineChapter {
+    min-height: 55vh;
+    padding: 4rem 1.25rem;
+  }
+
+  .stripe {
+    height: clamp(220px, 38vh, 320px);
+  }
+
+  .stripeContent {
+    padding: 0 6%;
+  }
+
+  .mosaic {
+    padding: 3.5rem 1rem;
+  }
+
+  .mosaicColumn:nth-child(2) {
+    margin-top: 2rem;
+  }
+
+  .outro {
+    min-height: 40vh;
+  }
+}

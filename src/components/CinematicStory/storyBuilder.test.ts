@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildStory } from './storyBuilder';
+import { buildStory, StoryChapter } from './storyBuilder';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
+
+type TaglineChapter = Extract<StoryChapter, { kind: 'tagline' }>;
+type StripesChapter = Extract<StoryChapter, { kind: 'stripes' }>;
+type MosaicChapter = Extract<StoryChapter, { kind: 'mosaic' }>;
 
 const mk = (id: number, opts: Partial<GroupedMovie> = {}): GroupedMovie => ({
   id,
@@ -27,7 +31,10 @@ describe('buildStory', () => {
     const chapters = buildStory(movies);
     expect(kinds(chapters)).toEqual(['tagline', 'stripes', 'calendar', 'tagline', 'mosaic', 'outro']);
 
-    const [t1, stripes, , t2, mosaic] = chapters as any[];
+    const t1 = chapters[0] as TaglineChapter;
+    const stripes = chapters[1] as StripesChapter;
+    const t2 = chapters[3] as TaglineChapter;
+    const mosaic = chapters[4] as MosaicChapter;
     expect(t1.movie.id).toBe(1);
     expect(stripes.movies).toHaveLength(3);
     expect(stripes.movies.map((m: GroupedMovie) => m.id)).not.toContain(1);
@@ -48,7 +55,7 @@ describe('buildStory', () => {
 
   it('il mosaico esclude i film senza poster e richiede almeno 3 poster', () => {
     const conMosaico = buildStory([mk(1), mk(2), mk(3), mk(4, { poster_path: null })]);
-    const mosaic = conMosaico.find(c => c.kind === 'mosaic') as any;
+    const mosaic = conMosaico.find(c => c.kind === 'mosaic') as MosaicChapter;
     expect(mosaic.movies).toHaveLength(3);
 
     const senzaMosaico = buildStory([mk(1), mk(2, { poster_path: null }), mk(3, { poster_path: null })]);
@@ -58,7 +65,7 @@ describe('buildStory', () => {
   it('film senza alcun backdrop non entrano nelle strisce', () => {
     const movies = [mk(1), mk(2, { backdrop_path: null, extraBackdrops: [] }), mk(3)];
     const chapters = buildStory(movies);
-    const stripes = chapters.find(c => c.kind === 'stripes') as any;
+    const stripes = chapters.find(c => c.kind === 'stripes') as StripesChapter;
     expect(stripes.movies.map((m: GroupedMovie) => m.id)).toEqual([3]);
   });
 });
