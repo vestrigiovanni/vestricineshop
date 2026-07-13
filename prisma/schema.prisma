@@ -30,6 +30,8 @@ model MovieOverride {
   runtime            Int?
   mubiId             String?
   customTrailerKeys  String[]     @default([])
+  tagline            String?
+  extraBackdrops     String[]     @default([])
   awards             MovieAward[]
   projections        PretixSync[]
 }
