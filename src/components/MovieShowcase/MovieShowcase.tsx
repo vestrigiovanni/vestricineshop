@@ -40,6 +40,8 @@ export interface GroupedMovie {
   format?: string;
   subevents: any[];
   awards?: any[];
+  tagline?: string;
+  extraBackdrops?: string[];
 }
 
 interface MovieShowcaseProps {
