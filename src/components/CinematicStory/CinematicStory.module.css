@@ -291,28 +291,23 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: clamp(1rem, 2.5vw, 2rem);
+  align-items: flex-start;
+  gap: clamp(2rem, 5vw, 4.5rem);
   max-width: 1200px;
 }
 
+/* Nessuna card: solo loghi e metadati, direttamente sul nero della pagina */
 .awardCard {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  width: min(340px, 100%);
-  padding: 1.8rem 1.4rem;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
+  gap: 0.9rem;
+  width: min(360px, 100%);
+  padding: 1rem 0.5rem;
+  border: none;
+  background: none;
   cursor: pointer;
   text-align: center;
-  transition: var(--transition-snappy);
-}
-
-.awardCard:hover {
-  background: rgba(255, 255, 255, 0.06);
-  transform: translateY(-4px);
 }
 
 /* I loghi dei festival sono i protagonisti della card */
@@ -327,7 +322,7 @@
 }
 
 .awardLogoImg {
-  height: clamp(72px, 9vw, 96px);
+  height: clamp(84px, 11vw, 116px);
   width: auto;
   filter:
     drop-shadow(0 6px 22px rgba(0, 0, 0, 0.55))

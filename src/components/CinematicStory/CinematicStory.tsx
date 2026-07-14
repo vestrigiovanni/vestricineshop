@@ -321,6 +321,7 @@ function AwardsChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
                 ))}
               </div>
               <h3 className={styles.awardFilmTitle}>{m.title}</h3>
+              {movieMeta(m) && <span className={styles.movieMeta}>{movieMeta(m)}</span>}
               <ul className={styles.awardList}>
                 {shown.map((a, j) => (
                   <li key={j}>
