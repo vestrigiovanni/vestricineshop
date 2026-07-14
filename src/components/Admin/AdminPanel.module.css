@@ -94,6 +94,17 @@
   box-shadow: 0 5px 14px rgba(229, 9, 20, 0.35);
 }
 
+.toolBtnPurple {
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+.toolBtnPurple:hover {
+  background: linear-gradient(135deg, #6d28d9, #be185d);
+  box-shadow: 0 5px 14px rgba(124, 58, 237, 0.4);
+}
+
 .btnCassaLauncher {
   display: flex;
   align-items: center;

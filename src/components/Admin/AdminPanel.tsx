@@ -30,7 +30,7 @@ import {
 import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb.utils';
 import { catalogExists, catalogAddByTmdbId } from '@/actions/catalogActions';
 import Image from 'next/image';
-import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw, Settings, BookOpen } from 'lucide-react';
+import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw, Settings, BookOpen, Wand2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 const TicketRecoveryButton = dynamic(() => import('./TicketRecovery'), { ssr: false });
 const CatalogBrowser = dynamic(() => import('./CatalogBrowser/CatalogBrowser'), { ssr: false });
@@ -834,6 +834,17 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         </div>
 
         <div className={styles.topBarActions}>
+          <a
+            href="/admin/planner"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${styles.toolBtn} ${styles.toolBtnPurple}`}
+            title="Scegli i film dal catalogo e lascia che il planner costruisca la programmazione come un vero cinema"
+          >
+            <Wand2 size={18} />
+            <span>PLANNER AUTO</span>
+          </a>
+
           <button
             onClick={() => setShowRoomModal(true)}
             className={`${styles.toolBtn} ${styles.toolBtnDark}`}

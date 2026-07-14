@@ -1871,6 +1871,232 @@ export async function adminRefreshMovieAwards(tmdbId: string) {
 /**
  * Refreshes MUBI awards for ALL currently scheduled movies.
  */
+// ═══════════════════════════════════════════════════════════════════════════
+// PLANNER AUTOMATICO: genera una programmazione "da vero cinema" per un
+// insieme di film scelti dal catalogo. Distribuisce le repliche su più giorni,
+// varia le fasce orarie (matinée / pomeriggio / prima serata / seconda serata),
+// concentra gli spettacoli nel weekend, garantisce a ogni film almeno una
+// prima serata e aggiunge un jitter casuale agli orari così che ogni
+// generazione produca orari sempre diversi. Rispetta gli orari di apertura
+// e gli spettacoli già esistenti in sala (incluse le pulizie).
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type AutoPlanShow = {
+  tmdbId: string;
+  title: string;
+  overview: string;
+  posterPath: string;
+  language: string;
+  subtitles: string;
+  versionLanguage: string;
+  runtime: number;
+  date: string;   // ISO Europe/Rome (stesso formato degli slot settimanali)
+  startMs: number;
+  endLabel: string; // 'HH:mm' fine film (senza pulizie)
+  band: 'Matinée' | 'Pomeriggio' | 'Prima serata' | 'Seconda serata';
+};
+
+export type AutoPlanIntensity = 'soft' | 'normal' | 'festival';
+
+// Ancore orarie per fascia: [orario base, fascia]. Il jitter ±30' le rende
+// sempre diverse; il fit-scan le sposta se la sala è occupata.
+const AUTO_PLAN_ANCHORS: Record<AutoPlanIntensity, { weekday: string[]; weekend: string[] }> = {
+  soft:     { weekday: ['18:00', '21:15'],                            weekend: ['16:00', '18:30', '21:15'] },
+  normal:   { weekday: ['15:30', '18:00', '21:00'],                   weekend: ['11:00', '15:30', '18:00', '21:00'] },
+  festival: { weekday: ['15:00', '17:30', '20:00', '22:15'],          weekend: ['10:45', '14:30', '17:00', '19:30', '21:45'] },
+};
+
+function autoPlanBandOf(startMs: number): AutoPlanShow['band'] {
+  const h = parseInt(formatInTimeZone(new Date(startMs), TIMEZONE, 'HH'), 10);
+  const m = parseInt(formatInTimeZone(new Date(startMs), TIMEZONE, 'mm'), 10);
+  const mins = h * 60 + m;
+  if (mins < 13 * 60) return 'Matinée';
+  if (mins < 18 * 60 + 30) return 'Pomeriggio';
+  if (mins < 21 * 60 + 50) return 'Prima serata';
+  return 'Seconda serata';
+}
+
+export async function adminGenerateAutoPlan(
+  tmdbIds: string[],
+  options: { seatingPlanId: number; startDate: string; days: number; intensity: AutoPlanIntensity }
+): Promise<{ success: boolean; error?: string; plan: AutoPlanShow[]; warnings: string[]; summary: { tmdbId: string; title: string; count: number }[] }> {
+  try {
+    const { seatingPlanId, startDate, intensity } = options;
+    const days = Math.min(Math.max(options.days, 1), 30);
+    const ids = [...new Set(tmdbIds)].slice(0, 40);
+    if (ids.length === 0) throw new Error('Nessun film selezionato.');
+
+    // 1. Dettagli TMDB + override esistenti (per titolo/poster/lingua corretti)
+    const { getLanguageName } = await import('@/services/tmdb.utils');
+    const [detailsList, overrides] = await Promise.all([
+      Promise.all(ids.map((id) => getMovieDetails(id).catch(() => null))),
+      adminGetOverrides(),
+    ]);
+
+    type PlanFilm = {
+      tmdbId: string; title: string; overview: string; posterPath: string;
+      language: string; subtitles: string; versionLanguage: string; runtime: number;
+      target: number; placed: number; lastDay: number; bandsUsed: Set<string>; hasPrime: boolean;
+    };
+
+    const films: PlanFilm[] = [];
+    const warnings: string[] = [];
+
+    ids.forEach((tmdbId, i) => {
+      const d = detailsList[i];
+      if (!d) { warnings.push(`Film TMDB ${tmdbId}: dettagli non trovati, escluso dal piano.`); return; }
+      const ov = (overrides as any)[tmdbId];
+      const isItalian = d.original_language === 'it';
+      films.push({
+        tmdbId,
+        title: ov?.customTitle || d.title,
+        overview: ov?.customOverview || d.overview || '',
+        posterPath: ov?.customPosterPath || d.poster_path || '',
+        language: ov?.versionLanguage || (isItalian ? 'Italiano' : getLanguageName(d.original_language)),
+        subtitles: ov?.subtitles || (isItalian ? 'Nessuno' : 'Italiano'),
+        versionLanguage: ov?.customVersion || (isItalian ? 'Versione Originale' : 'Versione Originale Sottotitolata'),
+        runtime: d.runtime || 120,
+        target: 0, placed: 0, lastDay: -99, bandsUsed: new Set(), hasPrime: false,
+      });
+    });
+    if (films.length === 0) throw new Error('Nessun film valido tra quelli selezionati.');
+
+    // 2. Occupazione esistente della sala (già comprensiva di pulizie +15')
+    const blocked = await getBlockedIntervals(seatingPlanId);
+    // Le proiezioni piazzate dal piano vengono aggiunte qui man mano (fine + 15'
+    // di pulizie, come gli eventi reali) così i controlli in fase di creazione
+    // Pretix troveranno esattamente gli stessi vincoli.
+    const occupied = blocked.map((b: any) => ({ start: b.start, end: b.end }));
+    const nowMs = Date.now();
+
+    // 3. Slot candidati per ogni giorno (ancora + fascia), in ordine cronologico
+    const baseNoonMs = toDate(`${startDate}T12:00:00`, { timeZone: TIMEZONE }).getTime();
+    type Slot = { dayIdx: number; dayStartMs: number; anchorMs: number };
+    const slots: Slot[] = [];
+
+    for (let dIdx = 0; dIdx < days; dIdx++) {
+      const dayStartMs = getRomeDayStartMs(new Date(baseNoonMs + dIdx * 86400000));
+      // 1=lun … 7=dom: venerdì/sabato/domenica sono giorni "pieni"
+      const isoDay = parseInt(formatInTimeZone(new Date(dayStartMs + 12 * 3600000), TIMEZONE, 'i'), 10);
+      const anchors = isoDay >= 5 ? AUTO_PLAN_ANCHORS[intensity].weekend : AUTO_PLAN_ANCHORS[intensity].weekday;
+      for (const a of anchors) {
+        const [h, m] = a.split(':').map(Number);
+        const anchorMs = dayStartMs + (h * 60 + m) * 60000;
+        if (anchorMs > nowMs + 30 * 60000) slots.push({ dayIdx: dIdx, dayStartMs, anchorMs });
+      }
+    }
+    slots.sort((a, b) => a.anchorMs - b.anchorMs);
+    if (slots.length === 0) throw new Error('Nessuno slot disponibile nel periodo scelto (è tutto nel passato?).');
+
+    // 4. Obiettivo repliche per film: equo, con resto distribuito a caso
+    const maxReplicas = Math.min(Math.max(2, days), 5);
+    const shuffled = [...films];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const base = Math.floor(slots.length / shuffled.length);
+    const rem = slots.length % shuffled.length;
+    shuffled.forEach((f, i) => { f.target = Math.min(base + (i < rem ? 1 : 0), maxReplicas); });
+
+    // 5. Tenta di piazzare un film in uno slot: jitter casuale ±30', poi
+    //    fit-scan a passi di 5' (avanti/indietro fino a ±90') attorno all'ancora.
+    const CLEANING_NEW = 10 * 60000;   // pulizie richieste dal nuovo spettacolo
+    const CLEANING_OWN = 15 * 60000;   // pulizie che il nuovo spettacolo "lascia" (come eventi esistenti)
+    const STEP = 5 * 60000;
+
+    const fits = (s: number, runtimeMin: number, dayStartMs: number): boolean => {
+      const movieEnd = s + runtimeMin * 60000;
+      const eNew = movieEnd + CLEANING_NEW;
+      if (s < dayStartMs + 10 * 3600000) return false;          // apertura 10:00
+      // adminScheduleMovie rifiuta se film + pulizie (10') sforano l'01:00:
+      // il limite va applicato a eNew, non alla sola fine del film.
+      if (eNew > dayStartMs + 25 * 3600000) return false;
+      if (s < nowMs + 30 * 60000) return false;
+      return !occupied.some((o) => s < o.end && eNew > o.start);
+    };
+
+    const tryPlace = (slot: Slot, runtimeMin: number): number | null => {
+      const jitter = (Math.floor(Math.random() * 13) - 6) * STEP; // ±30' a passi di 5'
+      const start = slot.anchorMs + jitter;
+      if (fits(start, runtimeMin, slot.dayStartMs)) return start;
+      for (let off = STEP; off <= 90 * 60000; off += STEP) {
+        if (fits(start + off, runtimeMin, slot.dayStartMs)) return start + off;
+        if (fits(start - off, runtimeMin, slot.dayStartMs)) return start - off;
+      }
+      return null;
+    };
+
+    // 6. Assegnazione: per ogni slot scegli il film col punteggio migliore
+    //    (repliche mancanti, giorni di distanza dall'ultima proiezione, fascia
+    //    mai usata, bisogno di una prima serata, più un pizzico di caso).
+    const plan: AutoPlanShow[] = [];
+
+    for (const slot of slots) {
+      const band = autoPlanBandOf(slot.anchorMs);
+      const candidates = films
+        .filter((f) => f.placed < f.target)
+        .filter((f) => f.lastDay !== slot.dayIdx || f.target > days)
+        .map((f) => ({
+          f,
+          score:
+            (f.target - f.placed) * 10 +
+            Math.min(slot.dayIdx - f.lastDay, 6) * 3 +
+            (!f.bandsUsed.has(band) ? 6 : 0) +
+            (band === 'Prima serata' && !f.hasPrime ? 12 : 0) +
+            Math.random() * 5,
+        }))
+        .sort((a, b) => b.score - a.score);
+
+      for (const { f } of candidates) {
+        const startMs = tryPlace(slot, f.runtime);
+        if (startMs == null) continue;
+
+        const movieEndMs = startMs + f.runtime * 60000;
+        occupied.push({ start: startMs, end: movieEndMs + CLEANING_OWN });
+        f.placed++;
+        f.lastDay = slot.dayIdx;
+        const realBand = autoPlanBandOf(startMs);
+        f.bandsUsed.add(realBand);
+        if (realBand === 'Prima serata') f.hasPrime = true;
+
+        plan.push({
+          tmdbId: f.tmdbId,
+          title: f.title,
+          overview: f.overview,
+          posterPath: f.posterPath,
+          language: f.language,
+          subtitles: f.subtitles,
+          versionLanguage: f.versionLanguage,
+          runtime: f.runtime,
+          date: formatManualISO(new Date(startMs)),
+          startMs,
+          endLabel: formatInTimeZone(new Date(movieEndMs), TIMEZONE, 'HH:mm'),
+          band: realBand,
+        });
+        break;
+      }
+    }
+
+    plan.sort((a, b) => a.startMs - b.startMs);
+
+    const unplaced = films.filter((f) => f.placed === 0);
+    if (unplaced.length > 0) {
+      warnings.push(`${unplaced.length} film senza proiezioni (${unplaced.map((f) => f.title).join(', ')}): aumenta i giorni o l'intensità.`);
+    }
+
+    const summary = films
+      .map((f) => ({ tmdbId: f.tmdbId, title: f.title, count: f.placed }))
+      .sort((a, b) => b.count - a.count);
+
+    console.log(`[adminGenerateAutoPlan] 🎬 ${films.length} film → ${plan.length} spettacoli in ${days} giorni (sala ${seatingPlanId}, ${intensity}).`);
+    return { success: true, plan, warnings, summary };
+  } catch (error: any) {
+    console.error('[adminGenerateAutoPlan] ❌ Errore:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error), plan: [], warnings: [], summary: [] };
+  }
+}
+
 export async function adminRefreshAllAwards() {
   try {
     const prisma = (await import('@/lib/prisma')).default;
