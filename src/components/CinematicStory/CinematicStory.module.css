@@ -374,6 +374,147 @@
   font-style: italic;
 }
 
+/* --- Questo weekend al cinema --- */
+.weekendChapter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 6rem 1.5rem;
+}
+
+.weekendTitle {
+  margin: 0 0 2.5rem;
+  font-family: var(--font-apple);
+  font-size: clamp(2rem, 5.5vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.55) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.weekendGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: clamp(1rem, 2.5vw, 2rem);
+  width: min(1200px, 100%);
+  align-items: start;
+}
+
+.weekendDay {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1.4rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+}
+
+.weekendDayHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.weekendDayName {
+  font-family: var(--font-apple);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.65) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.weekendDayDate {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+}
+
+.weekendShows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.weekendCard {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.7rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  text-align: left;
+  transition: var(--transition-snappy);
+}
+
+.weekendCard:hover {
+  background: rgba(255, 255, 255, 0.07);
+  transform: translateX(4px);
+}
+
+.weekendPoster {
+  position: relative;
+  flex-shrink: 0;
+  width: 52px;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.weekendInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.weekendFilmTitle {
+  font-family: var(--font-apple);
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weekendTimes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.timeChip {
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+}
+
+.timeChipSoldOut {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  border-color: var(--surface-border);
+  background: transparent;
+}
+
 /* --- Capitolo calendario --- */
 .calendarChapter {
   padding: 3rem 0 1rem;
@@ -527,6 +668,14 @@
 
   .marqueeChapter {
     padding: 3.5rem 0;
+  }
+
+  .weekendChapter {
+    padding: 4rem 1rem;
+  }
+
+  .weekendGrid {
+    grid-template-columns: 1fr;
   }
 
   .stripe {

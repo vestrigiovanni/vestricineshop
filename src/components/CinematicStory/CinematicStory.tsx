@@ -6,7 +6,7 @@ import { animate, motion, useInView, useReducedMotion, useScroll, useTransform }
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
-import { buildStory, StoryStats } from './storyBuilder';
+import { buildStory, StoryStats, WeekendDay } from './storyBuilder';
 import styles from './CinematicStory.module.css';
 
 interface CinematicStoryProps {
@@ -346,6 +346,83 @@ function AwardsChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
   );
 }
 
+function WeekendChapter({ days, reduced }: { days: WeekendDay[]; reduced: boolean }) {
+  return (
+    <section className={styles.weekendChapter}>
+      <motion.span
+        className={styles.chapterKicker}
+        initial={reduced ? false : { opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, amount: 0.6 }}
+        transition={{ duration: 0.8 }}
+      >
+        Venerdì, sabato e domenica
+      </motion.span>
+      <motion.h2
+        className={styles.weekendTitle}
+        initial={reduced ? false : { opacity: 0, y: 30, filter: 'blur(6px)' }}
+        whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        viewport={{ once: true, amount: 0.6 }}
+        transition={{ duration: 0.9, delay: 0.1, ease: easeApple }}
+      >
+        Questo weekend al cinema.
+      </motion.h2>
+      <div className={styles.weekendGrid}>
+        {days.map((day, i) => (
+          <motion.div
+            key={day.isoDate}
+            className={styles.weekendDay}
+            initial={reduced ? false : { opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.8, delay: i * 0.15, ease: easeApple }}
+          >
+            <header className={styles.weekendDayHeader}>
+              <span className={styles.weekendDayName}>{day.label}</span>
+              <span className={styles.weekendDayDate}>{day.dateLabel}</span>
+            </header>
+            <div className={styles.weekendShows}>
+              {day.shows.map(show => (
+                <button
+                  key={show.movie.id}
+                  className={styles.weekendCard}
+                  onClick={() => selectMovie(show.movie.id)}
+                >
+                  {show.movie.poster_path && (
+                    <div className={styles.weekendPoster}>
+                      <Image
+                        src={getTMDBImageUrl(show.movie.poster_path, 'w185')!}
+                        alt={show.movie.title}
+                        fill
+                        sizes="72px"
+                        style={{ objectFit: 'cover' }}
+                      />
+                    </div>
+                  )}
+                  <div className={styles.weekendInfo}>
+                    <span className={styles.weekendFilmTitle}>{show.movie.title}</span>
+                    <div className={styles.weekendTimes}>
+                      {show.times.map(t => (
+                        <span
+                          key={t.time}
+                          className={`${styles.timeChip} ${t.isSoldOut ? styles.timeChipSoldOut : ''}`}
+                          title={t.isSoldOut ? 'Sold out' : (t.roomName || undefined)}
+                        >
+                          {t.time}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function MosaicChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
@@ -476,6 +553,8 @@ export default function CinematicStory({ movies, subEvents }: CinematicStoryProp
             return <StatsChapter key={i} stats={chapter.stats} reduced={reduced} />;
           case 'logos':
             return <LogoWallChapter key={i} movies={chapter.movies} reduced={reduced} />;
+          case 'weekend':
+            return <WeekendChapter key={i} days={chapter.days} reduced={reduced} />;
           case 'calendar':
             return (
               <motion.section

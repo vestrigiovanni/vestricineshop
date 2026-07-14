@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildStory, excerptOverview, StoryChapter } from './storyBuilder';
+import { buildStory, buildWeekend, excerptOverview, StoryChapter } from './storyBuilder';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 
 type TaglineChapter = Extract<StoryChapter, { kind: 'tagline' }>;
@@ -44,6 +44,62 @@ describe('excerptOverview', () => {
 
   it('gestisce testo vuoto', () => {
     expect(excerptOverview('')).toBe('');
+  });
+});
+
+describe('buildWeekend', () => {
+  // 2026-07-17 è un venerdì; in luglio Roma è UTC+2.
+  const wednesday = new Date('2026-07-15T10:00:00Z');
+
+  it('raggruppa ven/sab/dom per film, deduplica gli orari identici e ordina', () => {
+    const movies = [
+      mk(1, {
+        subevents: [
+          { date: '2026-07-17T19:00:00.000Z', isSoldOut: false, roomName: 'Sala 1' },
+          { date: '2026-07-17T19:00:00.000Z', isSoldOut: true, roomName: 'Sala 1' }, // duplicato identico
+          { date: '2026-07-18T16:00:00.000Z', isSoldOut: true },
+        ],
+      }),
+      mk(2, {
+        subevents: [
+          { date: '2026-07-19T14:30:00.000Z' },
+          { date: '2026-07-20T19:00:00.000Z' }, // lunedì: fuori dal weekend
+        ],
+      }),
+    ];
+    const days = buildWeekend(movies, wednesday);
+
+    expect(days.map(d => d.label)).toEqual(['Venerdì', 'Sabato', 'Domenica']);
+    expect(days.map(d => d.isoDate)).toEqual(['2026-07-17', '2026-07-18', '2026-07-19']);
+
+    // venerdì: un solo chip 21:00 (Roma), prenotabile perché una copia lo è
+    expect(days[0].shows).toHaveLength(1);
+    expect(days[0].shows[0].times).toEqual([{ time: '21:00', isSoldOut: false, roomName: 'Sala 1' }]);
+
+    // sabato 18:00 sold out; domenica 16:30
+    expect(days[1].shows[0].times[0]).toEqual({ time: '18:00', isSoldOut: true, roomName: undefined });
+    expect(days[2].shows[0].times[0].time).toBe('16:30');
+  });
+
+  it('a weekend iniziato usa il venerdì corrente e omette i giorni vuoti', () => {
+    const saturday = new Date('2026-07-18T10:00:00Z');
+    const movies = [mk(1, { subevents: [{ date: '2026-07-19T14:30:00.000Z' }] })];
+    const days = buildWeekend(movies, saturday);
+    expect(days.map(d => d.label)).toEqual(['Domenica']);
+  });
+
+  it('ordina i film del giorno per primo orario', () => {
+    const movies = [
+      mk(1, { subevents: [{ date: '2026-07-17T20:00:00.000Z' }] }), // 22:00
+      mk(2, { subevents: [{ date: '2026-07-17T15:00:00.000Z' }] }), // 17:00
+    ];
+    const days = buildWeekend(movies, wednesday);
+    expect(days[0].shows.map(s => s.movie.id)).toEqual([2, 1]);
+  });
+
+  it('senza proiezioni nel weekend non produce giorni', () => {
+    expect(buildWeekend([mk(1, { subevents: [{ date: '2026-07-21T19:00:00.000Z' }] })], wednesday)).toEqual([]);
+    expect(buildWeekend([mk(1, { subevents: [{}] })], wednesday)).toEqual([]);
   });
 });
 
@@ -146,6 +202,18 @@ describe('buildStory', () => {
 
     const senzaMosaico = buildStory([mk(1), mk(2, { poster_path: null }), mk(3, { poster_path: null })]);
     expect(kinds(senzaMosaico)).not.toContain('mosaic');
+  });
+
+  it('inserisce il capitolo weekend subito prima del calendario', () => {
+    const now = new Date('2026-07-15T10:00:00Z');
+    const movies = [mk(1, { subevents: [{ date: '2026-07-17T19:00:00.000Z' }] }), mk(2), mk(3)];
+    const k = kinds(buildStory(movies, now));
+    expect(k).toContain('weekend');
+    expect(k.indexOf('weekend')).toBe(k.indexOf('calendar') - 1);
+
+    // senza proiezioni weekend il capitolo sparisce
+    const senza = kinds(buildStory([mk(1), mk(2), mk(3)], now));
+    expect(senza).not.toContain('weekend');
   });
 
   it('film senza alcun backdrop non entrano nelle strisce', () => {

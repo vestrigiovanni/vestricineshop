@@ -8,6 +8,24 @@ export interface StoryStats {
   genresCount: number;
 }
 
+export interface WeekendShowtime {
+  time: string;
+  isSoldOut: boolean;
+  roomName?: string;
+}
+
+export interface WeekendShow {
+  movie: GroupedMovie;
+  times: WeekendShowtime[];
+}
+
+export interface WeekendDay {
+  label: string;
+  dateLabel: string;
+  isoDate: string;
+  shows: WeekendShow[];
+}
+
 export type StoryChapter =
   | { kind: 'intro' }
   | { kind: 'tagline'; movie: GroupedMovie }
@@ -15,6 +33,7 @@ export type StoryChapter =
   | { kind: 'stripes'; movies: GroupedMovie[]; backdropIndex: number }
   | { kind: 'stats'; stats: StoryStats }
   | { kind: 'logos'; movies: GroupedMovie[] }
+  | { kind: 'weekend'; days: WeekendDay[] }
   | { kind: 'calendar' }
   | { kind: 'awards'; movies: GroupedMovie[] }
   | { kind: 'mosaic'; movies: GroupedMovie[] }
@@ -40,6 +59,74 @@ export function excerptOverview(overview: string, maxLength: number = 150): stri
   return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
 }
 
+interface ShowtimeLike {
+  date?: string;
+  isSoldOut?: boolean;
+  roomName?: string;
+}
+
+// Tutte le date sono valutate sul fuso di Roma, così il markup generato in SSR
+// (che su Vercel gira in UTC) coincide con quello che il browser idrata.
+const ROME = 'Europe/Rome';
+const romeDateKey = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: ROME });
+const romeTime = (d: Date) => d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: ROME });
+
+const DOW: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/**
+ * Raggruppa le proiezioni di venerdì/sabato/domenica del weekend corrente
+ * (se già iniziato) o del prossimo. Le proiezioni identiche (stesso film,
+ * stesso giorno, stesso orario) vengono unificate.
+ */
+export function buildWeekend(movies: GroupedMovie[], now: Date = new Date()): WeekendDay[] {
+  const dowName = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: ROME }).format(now);
+  const dow = DOW[dowName] ?? now.getDay();
+  const fridayOffset = dow === 6 ? -1 : dow === 0 ? -2 : 5 - dow;
+
+  const labels = ['Venerdì', 'Sabato', 'Domenica'];
+  const days: WeekendDay[] = [0, 1, 2].map(i => {
+    const date = new Date(now.getTime() + (fridayOffset + i) * 86400000);
+    return {
+      label: labels[i],
+      dateLabel: date.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', timeZone: ROME }),
+      isoDate: romeDateKey(date),
+      shows: [],
+    };
+  });
+
+  for (const movie of movies) {
+    for (const se of (movie.subevents || []) as ShowtimeLike[]) {
+      if (!se?.date) continue;
+      const d = new Date(se.date);
+      if (isNaN(d.getTime())) continue;
+
+      const day = days.find(x => x.isoDate === romeDateKey(d));
+      if (!day) continue;
+
+      let show = day.shows.find(s => s.movie.id === movie.id);
+      if (!show) {
+        show = { movie, times: [] };
+        day.shows.push(show);
+      }
+
+      const time = romeTime(d);
+      const existing = show.times.find(t => t.time === time);
+      if (existing) {
+        // Proiezione duplicata: resta prenotabile se almeno una copia lo è.
+        existing.isSoldOut = existing.isSoldOut && Boolean(se.isSoldOut);
+        continue;
+      }
+      show.times.push({ time, isSoldOut: Boolean(se.isSoldOut), roomName: se.roomName });
+    }
+  }
+
+  for (const day of days) {
+    day.shows.forEach(s => s.times.sort((a, b) => a.time.localeCompare(b.time)));
+    day.shows.sort((a, b) => a.times[0].time.localeCompare(b.times[0].time));
+  }
+  return days.filter(d => d.shows.length > 0);
+}
+
 function computeStats(movies: GroupedMovie[]): StoryStats {
   const totalMinutes = movies.reduce((sum, m) => sum + (m.runtime || 0), 0);
   const genres = new Set(movies.flatMap(m => m.genres || []));
@@ -56,7 +143,7 @@ function computeStats(movies: GroupedMovie[]): StoryStats {
  * Trasforma i film in programmazione nella sequenza di capitoli dello
  * scrollytelling. I capitoli senza contenuto vengono omessi, mai resi vuoti.
  */
-export function buildStory(movies: GroupedMovie[]): StoryChapter[] {
+export function buildStory(movies: GroupedMovie[], now: Date = new Date()): StoryChapter[] {
   if (movies.length === 0) return [];
 
   const chapters: StoryChapter[] = [];
@@ -89,6 +176,12 @@ export function buildStory(movies: GroupedMovie[]): StoryChapter[] {
   const logoMovies = movies.filter(m => m.logo_path);
   if (logoMovies.length >= 4) {
     chapters.push({ kind: 'logos', movies: logoMovies });
+  }
+
+  // Questo weekend al cinema
+  const weekendDays = buildWeekend(movies, now);
+  if (weekendDays.length > 0) {
+    chapters.push({ kind: 'weekend', days: weekendDays });
   }
 
   chapters.push({ kind: 'calendar' });
