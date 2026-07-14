@@ -36,10 +36,16 @@ export type StoryChapter =
   | { kind: 'calendar' }
   | { kind: 'awards'; movies: GroupedMovie[] }
   | { kind: 'mosaic'; movies: GroupedMovie[] }
-  | { kind: 'marquee'; movies: GroupedMovie[] }
-  | { kind: 'outro' };
+  | { kind: 'marquee'; movies: GroupedMovie[] };
+
+// Quanti film al massimo per le sezioni collettive: con cataloghi grandi
+// la rotazione del seed decide quali entrano a ogni refresh.
+const MAX_LOGOS = 8;
+const MAX_MOSAIC = 12;
+const MAX_MARQUEE = 16;
 
 const hasTagline = (m: GroupedMovie) => Boolean(m.tagline && m.tagline.trim());
+const hasAwards = (m: GroupedMovie) => (m.awards?.length || 0) > 0;
 const hasStripeVisual = (m: GroupedMovie) =>
   Boolean((m.extraBackdrops && m.extraBackdrops.length > 0) || m.backdrop_path);
 
@@ -56,6 +62,29 @@ export function excerptOverview(overview: string, maxLength: number = 150): stri
 
   const cut = firstSentence.slice(0, maxLength);
   return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
+}
+
+// PRNG deterministico: lo stesso seed produce la stessa storia, così l'HTML
+// generato in SSR coincide con l'hydration client. Il seed cambia a ogni
+// richiesta (lo genera page.tsx), quindi a ogni refresh ruotano i film.
+function mulberry32(seed: number) {
+  let t = seed >>> 0;
+  return function () {
+    t += 0x6d2b79f5;
+    let r = Math.imul(t ^ (t >>> 15), t | 1);
+    r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle<T>(items: T[], seed: number): T[] {
+  const rnd = mulberry32(seed);
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 interface ShowtimeLike {
@@ -142,12 +171,15 @@ function computeStats(movies: GroupedMovie[]): StoryStats {
  * Trasforma i film in programmazione nella sequenza di capitoli dello
  * scrollytelling. I capitoli senza contenuto vengono omessi, mai resi vuoti.
  */
-export function buildStory(movies: GroupedMovie[], now: Date = new Date()): StoryChapter[] {
+export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?: number): StoryChapter[] {
   if (movies.length === 0) return [];
+
+  // Con un seed i film ruotano a ogni refresh; senza seed l'ordine resta quello dato.
+  const pool = seed == null ? movies : seededShuffle(movies, seed);
 
   const chapters: StoryChapter[] = [];
   const featured = new Set<number>();
-  const taglineMovies = movies.filter(hasTagline);
+  const taglineMovies = pool.filter(hasTagline);
 
   // 1° slogan
   const firstTagline = taglineMovies[0];
@@ -157,25 +189,25 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date()): Stor
   }
 
   // Prima serie di strisce backdrop+logo
-  let stripesA = movies.filter(m => hasStripeVisual(m) && !featured.has(m.id)).slice(0, 3);
+  let stripesA = pool.filter(m => hasStripeVisual(m) && !featured.has(m.id)).slice(0, 3);
   if (stripesA.length === 0 && !firstTagline) {
-    stripesA = movies.filter(hasStripeVisual).slice(0, 2);
+    stripesA = pool.filter(hasStripeVisual).slice(0, 2);
   }
   if (stripesA.length > 0) {
     chapters.push({ kind: 'stripes', movies: stripesA, backdropIndex: 0 });
     stripesA.forEach(m => featured.add(m.id));
   }
 
-  // I numeri della programmazione
+  // I numeri della programmazione (sempre su tutto il catalogo)
   chapters.push({ kind: 'stats', stats: computeStats(movies) });
 
   // Muro di loghi
-  const logoMovies = movies.filter(m => m.logo_path);
+  const logoMovies = pool.filter(m => m.logo_path);
   if (logoMovies.length >= 4) {
-    chapters.push({ kind: 'logos', movies: logoMovies });
+    chapters.push({ kind: 'logos', movies: logoMovies.slice(0, MAX_LOGOS) });
   }
 
-  // Questo weekend al cinema
+  // Questo weekend al cinema (sempre completo, mai ruotato)
   const weekendDays = buildWeekend(movies, now);
   if (weekendDays.length > 0) {
     chapters.push({ kind: 'weekend', days: weekendDays });
@@ -185,18 +217,15 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date()): Stor
 
   // Citazione dalla trama (per un film senza tagline)
   const quoteMovie =
-    movies.find(m => !hasTagline(m) && !featured.has(m.id) && (m.overview || '').trim().length >= 80) ||
-    movies.find(m => !hasTagline(m) && (m.overview || '').trim().length >= 80);
+    pool.find(m => !hasTagline(m) && !featured.has(m.id) && (m.overview || '').trim().length >= 80) ||
+    pool.find(m => !hasTagline(m) && (m.overview || '').trim().length >= 80);
   if (quoteMovie) {
     chapters.push({ kind: 'quote', movie: quoteMovie, text: excerptOverview(quoteMovie.overview) });
     featured.add(quoteMovie.id);
   }
 
-  // Premi e riconoscimenti
-  const awardMovies = movies
-    .filter(m => (m.awards?.length || 0) > 0)
-    .sort((a, b) => (b.awards?.length || 0) - (a.awards?.length || 0))
-    .slice(0, 3);
+  // Premi e riconoscimenti (la rotazione decide quali premiati mostrare)
+  const awardMovies = pool.filter(hasAwards).slice(0, 3);
   if (awardMovies.length > 0) {
     chapters.push({ kind: 'awards', movies: awardMovies });
   }
@@ -211,23 +240,38 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date()): Stor
   }
 
   // Seconda serie di strisce con i film non ancora protagonisti
-  const stripesB = movies.filter(m => hasStripeVisual(m) && !featured.has(m.id)).slice(0, 3);
+  const stripesB = pool.filter(m => hasStripeVisual(m) && !featured.has(m.id)).slice(0, 3);
   if (stripesB.length > 0) {
     chapters.push({ kind: 'stripes', movies: stripesB, backdropIndex: 1 });
     stripesB.forEach(m => featured.add(m.id));
   }
 
   // Mosaico in parallax
-  const posterMovies = movies.filter(m => m.poster_path);
+  const posterMovies = pool.filter(m => m.poster_path);
   if (posterMovies.length >= 3) {
-    chapters.push({ kind: 'mosaic', movies: posterMovies });
+    chapters.push({ kind: 'mosaic', movies: posterMovies.slice(0, MAX_MOSAIC) });
   }
 
   // Nastro di poster in scorrimento continuo
   if (posterMovies.length >= 4) {
-    chapters.push({ kind: 'marquee', movies: posterMovies });
+    chapters.push({ kind: 'marquee', movies: posterMovies.slice(0, MAX_MARQUEE) });
   }
 
-  chapters.push({ kind: 'outro' });
+  // Chiusura: mai un messaggio commerciale, solo un'altra voce dei film —
+  // preferendo quelli premiati.
+  const closingTagline =
+    taglineMovies.find(m => !featured.has(m.id) && hasAwards(m)) ||
+    taglineMovies.find(m => !featured.has(m.id));
+  if (closingTagline) {
+    chapters.push({ kind: 'tagline', movie: closingTagline });
+  } else {
+    const closingQuote = pool.find(
+      m => !hasTagline(m) && !featured.has(m.id) && (m.overview || '').trim().length >= 80
+    );
+    if (closingQuote) {
+      chapters.push({ kind: 'quote', movie: closingQuote, text: excerptOverview(closingQuote.overview) });
+    }
+  }
+
   return chapters;
 }

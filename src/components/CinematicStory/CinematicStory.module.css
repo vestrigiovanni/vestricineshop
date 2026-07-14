@@ -675,27 +675,6 @@
   color: var(--text-muted);
 }
 
-/* --- Chiusura --- */
-.outro {
-  min-height: 50vh;
-  display: grid;
-  place-items: center;
-  padding: 5rem 1.5rem;
-}
-
-.outroText {
-  margin: 0;
-  text-align: center;
-  font-family: var(--font-apple);
-  font-size: clamp(1.8rem, 5vw, 3.5rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.55) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 /* --- Mobile --- */
 @media (max-width: 768px) {
   .quoteChapter {
@@ -765,9 +744,5 @@
 
   .mosaicColumn:nth-child(2) {
     margin-top: 2rem;
-  }
-
-  .outro {
-    min-height: 40vh;
   }
 }

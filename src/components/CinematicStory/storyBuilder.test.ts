@@ -3,6 +3,7 @@ import { buildStory, buildWeekend, excerptOverview, StoryChapter } from './story
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 
 type TaglineChapter = Extract<StoryChapter, { kind: 'tagline' }>;
+type MarqueeChapter = Extract<StoryChapter, { kind: 'marquee' }>;
 type QuoteChapter = Extract<StoryChapter, { kind: 'quote' }>;
 type StripesChapter = Extract<StoryChapter, { kind: 'stripes' }>;
 type StatsChapter = Extract<StoryChapter, { kind: 'stats' }>;
@@ -113,7 +114,7 @@ describe('buildStory', () => {
     const chapters = buildStory(movies);
     expect(kinds(chapters)).toEqual([
       'tagline', 'stripes', 'stats', 'logos', 'calendar',
-      'tagline', 'mosaic', 'marquee', 'outro',
+      'tagline', 'mosaic', 'marquee',
     ]);
 
     const t1 = chapters[0] as TaglineChapter;
@@ -160,7 +161,7 @@ describe('buildStory', () => {
     expect(quote.text).toContain('Una lunga storia');
   });
 
-  it('crea il capitolo premi solo se ci sono premiati, ordinati e max 3', () => {
+  it('crea il capitolo premi solo se ci sono premiati, max 3', () => {
     const noAwards = buildStory([mk(1), mk(2), mk(3)]);
     expect(kinds(noAwards)).not.toContain('awards');
 
@@ -171,7 +172,40 @@ describe('buildStory', () => {
       mk(4, { awards: [{}] }),
     ];
     const awards = buildStory(movies).find(c => c.kind === 'awards') as AwardsChapter;
-    expect(awards.movies.map(m => m.id)).toEqual([2, 3, 1]);
+    expect(awards.movies.map(m => m.id)).toEqual([1, 2, 3]);
+  });
+
+  it('con seed la rotazione è deterministica ma varia tra i refresh', () => {
+    const now = new Date('2026-07-15T10:00:00Z');
+    const movies = Array.from({ length: 8 }, (_, i) => mk(i + 1));
+
+    const a = buildStory(movies, now, 12345);
+    const b = buildStory(movies, now, 12345);
+    expect((a[0] as TaglineChapter).movie.id).toBe((b[0] as TaglineChapter).movie.id);
+    expect(kinds(a)).toEqual(kinds(b));
+
+    const firstIds = new Set(
+      [1, 2, 3, 4, 5, 6].map(seed => (buildStory(movies, now, seed)[0] as TaglineChapter).movie.id)
+    );
+    expect(firstIds.size).toBeGreaterThan(1);
+  });
+
+  it('con cataloghi grandi applica i tetti: 8 loghi, 12 mosaico, 16 marquee', () => {
+    const now = new Date('2026-07-15T10:00:00Z');
+    const movies = Array.from({ length: 20 }, (_, i) => mk(i + 1));
+    const chapters = buildStory(movies, now, 42);
+    expect((chapters.find(c => c.kind === 'logos') as LogosChapter).movies).toHaveLength(8);
+    expect((chapters.find(c => c.kind === 'mosaic') as MosaicChapter).movies).toHaveLength(12);
+    expect((chapters.find(c => c.kind === 'marquee') as MarqueeChapter).movies).toHaveLength(16);
+  });
+
+  it('chiude con la frase di un film, preferendo i premiati (niente messaggi commerciali)', () => {
+    const movies = Array.from({ length: 10 }, (_, i) => mk(i + 1, i === 9 ? { awards: [{}] } : {}));
+    const chapters = buildStory(movies);
+    const last = chapters[chapters.length - 1] as TaglineChapter;
+    expect(last.kind).toBe('tagline');
+    expect(last.movie.id).toBe(10);
+    expect(kinds(chapters)).not.toContain('outro');
   });
 
   it('salta loghi e marquee quando i film sono pochi', () => {
@@ -184,7 +218,7 @@ describe('buildStory', () => {
 
   it('con un solo film resta una sequenza minima senza capitoli vuoti', () => {
     const chapters = buildStory([mk(1)]);
-    expect(kinds(chapters)).toEqual(['tagline', 'stats', 'calendar', 'outro']);
+    expect(kinds(chapters)).toEqual(['tagline', 'stats', 'calendar']);
   });
 
   it('film senza tagline non generano capitoli slogan', () => {

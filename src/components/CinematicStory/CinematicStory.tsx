@@ -15,6 +15,8 @@ import styles from './CinematicStory.module.css';
 interface CinematicStoryProps {
   movies: GroupedMovie[];
   subEvents: ComponentProps<typeof WeeklyCinemaCalendar>['subEvents'];
+  /** Cambia a ogni richiesta SSR: fa ruotare i film mostrati nei capitoli. */
+  storySeed?: number;
 }
 
 const easeApple: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -533,25 +535,9 @@ function MarqueeChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: 
   );
 }
 
-function OutroChapter({ reduced }: { reduced: boolean }) {
-  return (
-    <section className={styles.outro}>
-      <motion.p
-        className={styles.outroText}
-        initial={reduced ? false : { opacity: 0, scale: 0.92 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true, amount: 0.6 }}
-        transition={{ duration: 1.1, ease: easeApple }}
-      >
-        Ti aspettiamo al cinema.
-      </motion.p>
-    </section>
-  );
-}
-
-export default function CinematicStory({ movies, subEvents }: CinematicStoryProps) {
+export default function CinematicStory({ movies, subEvents, storySeed }: CinematicStoryProps) {
   const reduced = useReducedMotion() ?? false;
-  const chapters = buildStory(movies);
+  const chapters = buildStory(movies, new Date(), storySeed);
 
   if (chapters.length === 0) {
     // Nessun film: mostriamo comunque il calendario, come faceva la home prima.
@@ -605,8 +591,6 @@ export default function CinematicStory({ movies, subEvents }: CinematicStoryProp
             return <MosaicChapter key={i} movies={chapter.movies} reduced={reduced} />;
           case 'marquee':
             return <MarqueeChapter key={i} movies={chapter.movies} reduced={reduced} />;
-          case 'outro':
-            return <OutroChapter key={i} reduced={reduced} />;
         }
       })}
     </div>

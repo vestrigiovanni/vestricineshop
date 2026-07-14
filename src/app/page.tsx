@@ -185,7 +185,11 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
         movies={movies}
         initialAvailability={availabilityMap}
       />
-      <CinematicStory movies={movies} subEvents={enrichedSubEvents as any} />
+      <CinematicStory
+        movies={movies}
+        subEvents={enrichedSubEvents as any}
+        storySeed={Math.floor(Math.random() * 1_000_000_000)}
+      />
     </main>
   );
 }

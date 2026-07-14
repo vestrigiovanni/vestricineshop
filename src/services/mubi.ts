@@ -230,11 +230,15 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
             // Authoritative win from MUBI
             if (cleanedText) bucket.won.add(cleanedText);
             else bucket.selection = true;
+          } else if (status === 'second_place') {
+            // Treat second place as an award/win
+            if (cleanedText) bucket.won.add(`2° posto: ${cleanedText}`);
+            else bucket.selection = true;
           } else if (status === 'screening' || !cleanedText) {
             // Pure festival presence with no specific prize
             bucket.selection = true;
           } else {
-            // nominated, shortlisted, second_place, ... → it's a nomination, not a win
+            // nominated, shortlisted, ... → it's a nomination, not a win
             bucket.nominated.add(cleanedText);
           }
         });
@@ -251,7 +255,13 @@ export async function fetchMubiAwards(tmdbId: string, title: string, originalTit
       // Build a human-readable string that clearly separates wins from nominations.
       // Use ' · ' between the two groups and ', ' within each group.
       const parts: string[] = [];
-      if (won.length) parts.push(`Vincitore: ${won.join(', ')}`);
+      if (won.length) {
+        if (won.length === 1 && won[0].startsWith('2° posto:')) {
+          parts.push(won[0]);
+        } else {
+          parts.push(`Vincitore: ${won.join(', ')}`);
+        }
+      }
       if (nominated.length) parts.push(`Candidatura: ${nominated.join(', ')}`);
       if (!parts.length && info.selection) parts.push('Selezione Ufficiale');
 
