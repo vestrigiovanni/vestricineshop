@@ -17,7 +17,7 @@ interface AwardProps {
   vertical?: boolean;
 }
 
-interface AwardConfig {
+export interface AwardConfig {
   src: string;
   width: number;
   height: number;
@@ -42,6 +42,16 @@ const festivalConfigs: Record<string, AwardConfig> = {
   romacinemafest: { src: '/logos/roma.png', width: DEFAULT_DIMENSION, height: DEFAULT_DIMENSION }
 };
 
+/** Risolve il logo del festival da un award type (stessa logica dei badge in hero). */
+export function getFestivalConfig(type: string): AwardConfig {
+  const t = (type || '').toLowerCase().trim();
+  if (t === 'toronto' || t === 'tiff' || t.includes('toronto') || t.includes('tiff')) {
+    return festivalConfigs.toronto;
+  }
+  if (festivalConfigs[t]) return festivalConfigs[t];
+  return festivalConfigs.oscar;
+}
+
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
@@ -65,15 +75,7 @@ const itemVariants: Variants = {
 const AwardBadge = ({ type, label, details, year, index = 0, isMounted = false }: MovieAward & { index?: number, isMounted?: boolean }) => {
   const [isHovered, setIsHovered] = useState(false);
   
-  const config = useMemo(() => {
-    const t = (type || '').toLowerCase().trim();
-    if (t === 'toronto' || t === 'tiff' || t.includes('toronto') || t.includes('tiff')) {
-      return festivalConfigs.toronto;
-    }
-    // Very explicit mapping to avoid defaults flipping
-    if (festivalConfigs[t]) return festivalConfigs[t];
-    return festivalConfigs.oscar;
-  }, [type]);
+  const config = useMemo(() => getFestivalConfig(type), [type]);
 
   // Base structure must be identical on server and first client render
   return (

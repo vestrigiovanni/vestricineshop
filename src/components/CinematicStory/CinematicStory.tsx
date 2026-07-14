@@ -6,6 +6,7 @@ import { animate, motion, useInView, useReducedMotion, useScroll, useTransform }
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
+import { getFestivalConfig } from '../MovieAwards/MovieAwards';
 import { buildStory, StoryStats, WeekendDay } from './storyBuilder';
 import styles from './CinematicStory.module.css';
 
@@ -286,6 +287,15 @@ function AwardsChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
         {movies.map((m, i) => {
           const shown = (m.awards || []).slice(0, 3);
           const extra = (m.awards?.length || 0) - shown.length;
+          // Un logo per festival, senza ripetizioni anche con più premi dallo stesso.
+          const festivalLogos = Array.from(
+            new Map(
+              (m.awards || []).map(a => {
+                const config = getFestivalConfig(a.type);
+                return [config.src, config] as const;
+              })
+            ).values()
+          ).slice(0, 4);
           return (
             <motion.article
               key={m.id}
@@ -296,31 +306,31 @@ function AwardsChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, delay: i * 0.12, ease: easeApple }}
             >
-              {m.poster_path && (
-                <div className={styles.awardPoster}>
+              <div className={styles.awardLogos}>
+                {festivalLogos.map(c => (
                   <Image
-                    src={getTMDBImageUrl(m.poster_path, 'w342')!}
-                    alt={m.title}
-                    fill
-                    sizes="140px"
-                    style={{ objectFit: 'cover' }}
+                    key={c.src}
+                    src={c.src}
+                    alt=""
+                    aria-hidden="true"
+                    width={c.width}
+                    height={c.height}
+                    className={styles.awardLogoImg}
+                    unoptimized
                   />
-                </div>
-              )}
-              <div className={styles.awardInfo}>
-                <h3 className={styles.awardFilmTitle}>{m.title}</h3>
-                <ul className={styles.awardList}>
-                  {shown.map((a, j) => (
-                    <li key={j} className={styles.awardItem}>
-                      <span className={styles.awardItemType}>{a.type}</span>
-                      <span className={styles.awardItemLabel}>
-                        {a.label}{a.year ? ` · ${a.year}` : ''}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                {extra > 0 && <span className={styles.awardMore}>e altri {extra} riconoscimenti</span>}
+                ))}
               </div>
+              <h3 className={styles.awardFilmTitle}>{m.title}</h3>
+              <ul className={styles.awardList}>
+                {shown.map((a, j) => (
+                  <li key={j}>
+                    <span className={styles.awardItemLabel}>
+                      {a.label}{a.year ? ` · ${a.year}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {extra > 0 && <span className={styles.awardMore}>e altri {extra} riconoscimenti</span>}
             </motion.article>
           );
         })}
