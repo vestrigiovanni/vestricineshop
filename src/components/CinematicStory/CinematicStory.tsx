@@ -7,6 +7,8 @@ import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
 import { getFestivalConfig } from '../MovieAwards/MovieAwards';
+import RatingBadge from '../RatingBadge';
+import { Clock } from 'lucide-react';
 import { buildStory, StoryStats, WeekendDay } from './storyBuilder';
 import styles from './CinematicStory.module.css';
 
@@ -24,18 +26,37 @@ function selectMovie(movieId: number) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Riga di metadati compatta: anno · durata · generi · voto TMDB.
-function movieMeta(m: GroupedMovie): string {
-  return [
-    m.release_date ? m.release_date.slice(0, 4) : null,
-    m.runtime ? `${m.runtime} min` : null,
-    m.genres && m.genres.length > 0 ? m.genres.slice(0, 2).join(', ') : null,
-    m.voteAverage ? `★ ${m.voteAverage.toFixed(1)}` : null,
-  ].filter(Boolean).join(' · ');
+function formatRuntime(min?: number | null): string | null {
+  if (!min) return null;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m}m`;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+// Metadati visuali del film: classificazione, anno, durata e chip dei generi.
+function MetaRow({ movie, compact = false }: { movie: GroupedMovie; compact?: boolean }) {
+  const year = movie.release_date ? movie.release_date.slice(0, 4) : null;
+  const runtime = formatRuntime(movie.runtime);
+  const genres = (movie.genres || []).slice(0, compact ? 1 : 3);
+  return (
+    <span className={`${styles.metaRow} ${compact ? styles.metaRowCompact : ''}`}>
+      <RatingBadge rating={movie.rating} size="xs" />
+      {year && <span className={styles.metaChip}>{year}</span>}
+      {runtime && (
+        <span className={styles.metaChip}>
+          <Clock size={11} strokeWidth={2.4} aria-hidden="true" />
+          {runtime}
+        </span>
+      )}
+      {genres.map(g => (
+        <span key={g} className={`${styles.metaChip} ${styles.genreChip}`}>{g}</span>
+      ))}
+    </span>
+  );
 }
 
 function TaglineChapter({ movie, reduced }: { movie: GroupedMovie; reduced: boolean }) {
-  const meta = movieMeta(movie);
   // Terzo backdrop alternativo: mai usato da hero (principale) né dalle strisce ([0] e [1]).
   const extras = movie.extraBackdrops || [];
   const bg = extras[2] || extras[1] || movie.backdrop_path;
@@ -74,17 +95,15 @@ function TaglineChapter({ movie, reduced }: { movie: GroupedMovie; reduced: bool
       >
         {movie.title}
       </motion.p>
-      {meta && (
-        <motion.p
-          className={styles.movieMeta}
-          initial={reduced ? false : { opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, amount: 0.5 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-        >
-          {meta}
-        </motion.p>
-      )}
+      <motion.div
+        className={styles.metaRowWrap}
+        initial={reduced ? false : { opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, amount: 0.5 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
+      >
+        <MetaRow movie={movie} />
+      </motion.div>
     </section>
   );
 }
@@ -111,6 +130,15 @@ function QuoteChapter({ movie, text, reduced }: { movie: GroupedMovie; text: str
       >
         {movie.title}{movie.director ? ` — di ${movie.director}` : ''}
       </motion.p>
+      <motion.div
+        className={styles.metaRowWrap}
+        initial={reduced ? false : { opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, amount: 0.5 }}
+        transition={{ duration: 0.8, delay: 0.45 }}
+      >
+        <MetaRow movie={movie} />
+      </motion.div>
     </section>
   );
 }
@@ -128,8 +156,6 @@ function Stripe({ movie, flip, backdropIndex, reduced }: {
   const extras = movie.extraBackdrops || [];
   const backdrop = extras[backdropIndex] || extras[0] || movie.backdrop_path;
   if (!backdrop) return null;
-
-  const meta = movieMeta(movie);
 
   return (
     <div ref={ref} className={styles.stripe} onClick={() => selectMovie(movie.id)}>
@@ -163,7 +189,7 @@ function Stripe({ movie, flip, backdropIndex, reduced }: {
             <span className={styles.stripeTitle}>{movie.title}</span>
           )}
           {movie.director && <span className={styles.stripeDirector}>un film di {movie.director}</span>}
-          {meta && <span className={styles.movieMeta}>{meta}</span>}
+          <MetaRow movie={movie} />
         </div>
       </motion.div>
     </div>
@@ -321,7 +347,7 @@ function AwardsChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
                 ))}
               </div>
               <h3 className={styles.awardFilmTitle}>{m.title}</h3>
-              {movieMeta(m) && <span className={styles.movieMeta}>{movieMeta(m)}</span>}
+              <MetaRow movie={m} />
               <ul className={styles.awardList}>
                 {shown.map((a, j) => (
                   <li key={j}>
@@ -395,6 +421,7 @@ function WeekendChapter({ days, reduced }: { days: WeekendDay[]; reduced: boolea
                   )}
                   <div className={styles.weekendInfo}>
                     <span className={styles.weekendFilmTitle}>{show.movie.title}</span>
+                    <MetaRow movie={show.movie} compact />
                     <div className={styles.weekendTimes}>
                       {show.times.map(t => (
                         <span
@@ -446,6 +473,12 @@ function MosaicChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
                 sizes="(max-width: 768px) 33vw, 260px"
                 style={{ objectFit: 'cover' }}
               />
+              <span className={styles.posterOverlay} aria-hidden="true">
+                <span className={styles.posterOverlayTitle}>{m.title}</span>
+                <span className={styles.posterOverlayMeta}>
+                  {[m.release_date?.slice(0, 4), (m.genres || [])[0]].filter(Boolean).join(' · ')}
+                </span>
+              </span>
             </button>
           ))}
         </motion.div>
@@ -476,6 +509,12 @@ function MarqueeRow({ movies, reverse, reduced }: { movies: GroupedMovie[]; reve
               sizes="190px"
               style={{ objectFit: 'cover' }}
             />
+            <span className={styles.posterOverlay} aria-hidden="true">
+              <span className={styles.posterOverlayTitle}>{m.title}</span>
+              <span className={styles.posterOverlayMeta}>
+                {[m.release_date?.slice(0, 4), (m.genres || [])[0]].filter(Boolean).join(' · ')}
+              </span>
+            </span>
           </button>
         ))}
       </div>

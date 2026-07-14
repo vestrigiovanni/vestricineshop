@@ -16,12 +16,51 @@
   text-transform: uppercase;
 }
 
-.movieMeta {
-  margin: 0;
-  color: var(--text-muted);
+/* Riga di badge metadati (classificazione, anno, durata, generi) */
+.metaRowWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.metaRow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.metaChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.24rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
   font-family: var(--font-apple);
-  font-size: 0.85rem;
-  letter-spacing: 0.06em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.85);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.genreChip {
+  background: rgba(139, 92, 246, 0.14);
+  border-color: rgba(139, 92, 246, 0.35);
+  color: #cdbcf8;
+}
+
+.metaRowCompact {
+  justify-content: flex-start;
+  gap: 0.3rem;
+}
+
+.metaRowCompact .metaChip {
+  padding: 0.1rem 0.45rem;
+  font-size: 0.66rem;
 }
 
 /* --- Capitolo slogan --- */
@@ -56,8 +95,7 @@
     radial-gradient(ellipse at center, transparent 40%, rgba(5, 5, 7, 0.65) 100%);
 }
 
-.taglineChapter > blockquote,
-.taglineChapter > p {
+.taglineChapter > *:not(.taglineBg):not(.taglineVignette) {
   position: relative;
   z-index: 1;
 }
@@ -165,6 +203,14 @@
 .stripeInfoFlip {
   align-items: flex-end;
   text-align: right;
+}
+
+.stripeInfo .metaRow {
+  justify-content: flex-start;
+}
+
+.stripeInfoFlip .metaRow {
+  justify-content: flex-end;
 }
 
 .stripeDirector {
@@ -589,6 +635,44 @@
 @keyframes marqueeScroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
+}
+
+/* --- Overlay titolo/anno su poster (mosaico e marquee) --- */
+.posterOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  padding: 0.8rem;
+  background: linear-gradient(180deg, transparent 55%, rgba(5, 5, 7, 0.9) 100%);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: var(--transition-smooth);
+  text-align: left;
+  pointer-events: none;
+}
+
+.mosaicPoster:hover .posterOverlay,
+.mosaicPoster:focus-visible .posterOverlay,
+.marqueeItem:hover .posterOverlay,
+.marqueeItem:focus-visible .posterOverlay {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.posterOverlayTitle {
+  font-family: var(--font-apple);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.posterOverlayMeta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 
 /* --- Chiusura --- */
