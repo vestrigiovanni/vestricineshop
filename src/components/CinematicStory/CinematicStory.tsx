@@ -33,44 +33,27 @@ function movieMeta(m: GroupedMovie): string {
   ].filter(Boolean).join(' · ');
 }
 
-function IntroChapter({ reduced }: { reduced: boolean }) {
-  return (
-    <section className={styles.introChapter}>
-      <motion.span
-        className={styles.chapterKicker}
-        initial={reduced ? false : { opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, amount: 0.6 }}
-        transition={{ duration: 0.8 }}
-      >
-        Vestri Cinema
-      </motion.span>
-      <motion.h2
-        className={styles.introTitle}
-        initial={reduced ? false : { opacity: 0, y: 40, filter: 'blur(8px)' }}
-        whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        viewport={{ once: true, amount: 0.6 }}
-        transition={{ duration: 0.9, delay: 0.1, ease: easeApple }}
-      >
-        Adesso in sala.
-      </motion.h2>
-      <motion.p
-        className={styles.introSub}
-        initial={reduced ? false : { opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, amount: 0.6 }}
-        transition={{ duration: 0.8, delay: 0.4 }}
-      >
-        Scorri e lasciati raccontare la programmazione.
-      </motion.p>
-    </section>
-  );
-}
-
 function TaglineChapter({ movie, reduced }: { movie: GroupedMovie; reduced: boolean }) {
   const meta = movieMeta(movie);
+  // Terzo backdrop alternativo: mai usato da hero (principale) né dalle strisce ([0] e [1]).
+  const extras = movie.extraBackdrops || [];
+  const bg = extras[2] || extras[1] || movie.backdrop_path;
   return (
     <section className={styles.taglineChapter}>
+      {bg && (
+        <>
+          <div className={styles.taglineBg} aria-hidden="true">
+            <Image
+              src={getTMDBImageUrl(bg, 'w1280')!}
+              alt=""
+              fill
+              sizes="100vw"
+              style={{ objectFit: 'cover' }}
+            />
+          </div>
+          <div className={styles.taglineVignette} aria-hidden="true" />
+        </>
+      )}
       <motion.blockquote
         className={styles.taglineText}
         onClick={() => selectMovie(movie.id)}
@@ -529,8 +512,6 @@ export default function CinematicStory({ movies, subEvents }: CinematicStoryProp
     <div className={styles.story}>
       {chapters.map((chapter, i) => {
         switch (chapter.kind) {
-          case 'intro':
-            return <IntroChapter key={i} reduced={reduced} />;
           case 'tagline':
             return <TaglineChapter key={i} movie={chapter.movie} reduced={reduced} />;
           case 'quote':

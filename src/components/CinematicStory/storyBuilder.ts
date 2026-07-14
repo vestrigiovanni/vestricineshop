@@ -27,7 +27,6 @@ export interface WeekendDay {
 }
 
 export type StoryChapter =
-  | { kind: 'intro' }
   | { kind: 'tagline'; movie: GroupedMovie }
   | { kind: 'quote'; movie: GroupedMovie; text: string }
   | { kind: 'stripes'; movies: GroupedMovie[]; backdropIndex: number }
@@ -149,8 +148,6 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date()): Stor
   const chapters: StoryChapter[] = [];
   const featured = new Set<number>();
   const taglineMovies = movies.filter(hasTagline);
-
-  chapters.push({ kind: 'intro' });
 
   // 1° slogan
   const firstTagline = taglineMovies[0];

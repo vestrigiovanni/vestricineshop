@@ -112,14 +112,14 @@ describe('buildStory', () => {
     const movies = [mk(1), mk(2), mk(3), mk(4), mk(5)];
     const chapters = buildStory(movies);
     expect(kinds(chapters)).toEqual([
-      'intro', 'tagline', 'stripes', 'stats', 'logos', 'calendar',
+      'tagline', 'stripes', 'stats', 'logos', 'calendar',
       'tagline', 'mosaic', 'marquee', 'outro',
     ]);
 
-    const t1 = chapters[1] as TaglineChapter;
-    const stripes = chapters[2] as StripesChapter;
-    const logos = chapters[4] as LogosChapter;
-    const t2 = chapters[6] as TaglineChapter;
+    const t1 = chapters[0] as TaglineChapter;
+    const stripes = chapters[1] as StripesChapter;
+    const logos = chapters[3] as LogosChapter;
+    const t2 = chapters[5] as TaglineChapter;
     expect(t1.movie.id).toBe(1);
     expect(stripes.movies.map(m => m.id)).toEqual([2, 3, 4]);
     expect(stripes.backdropIndex).toBe(0);
@@ -184,7 +184,7 @@ describe('buildStory', () => {
 
   it('con un solo film resta una sequenza minima senza capitoli vuoti', () => {
     const chapters = buildStory([mk(1)]);
-    expect(kinds(chapters)).toEqual(['intro', 'tagline', 'stats', 'calendar', 'outro']);
+    expect(kinds(chapters)).toEqual(['tagline', 'stats', 'calendar', 'outro']);
   });
 
   it('film senza tagline non generano capitoli slogan', () => {
