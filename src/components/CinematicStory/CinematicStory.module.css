@@ -533,6 +533,74 @@
   background: transparent;
 }
 
+/* --- Reveal: dissolvenze a schermo pieno --- */
+.reveal {
+  position: relative;
+}
+
+.revealSticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.revealSlide {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+.revealBg {
+  position: absolute;
+  inset: 0;
+}
+
+.revealVignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, var(--background) 0%, transparent 18%, transparent 82%, var(--background) 100%),
+    radial-gradient(ellipse at center, transparent 45%, rgba(5, 5, 7, 0.55) 100%);
+}
+
+.revealLogoWrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.revealLogo {
+  width: auto;
+  height: auto;
+  max-width: min(70vw, 460px);
+  max-height: clamp(90px, 16vh, 180px);
+  object-fit: contain;
+  filter: drop-shadow(0 6px 30px rgba(0, 0, 0, 0.7));
+}
+
+.revealTitle {
+  font-family: var(--font-serif-display), Georgia, serif;
+  font-style: italic;
+  font-size: clamp(2rem, 6vw, 4rem);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.8);
+  text-align: center;
+  padding: 0 1.5rem;
+}
+
+.revealStatic {
+  position: relative;
+  height: 80vh;
+  overflow: hidden;
+  cursor: pointer;
+}
+
 /* --- Capitolo calendario --- */
 .calendarChapter {
   padding: 3rem 0 1rem;

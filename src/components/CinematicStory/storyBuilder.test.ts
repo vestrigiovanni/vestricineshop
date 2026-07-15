@@ -9,6 +9,7 @@ type StatsChapter = Extract<StoryChapter, { kind: 'stats' }>;
 type LogosChapter = Extract<StoryChapter, { kind: 'logos' }>;
 type AwardsChapter = Extract<StoryChapter, { kind: 'awards' }>;
 type MosaicChapter = Extract<StoryChapter, { kind: 'mosaic' }>;
+type RevealChapter = Extract<StoryChapter, { kind: 'reveal' }>;
 
 const mk = (id: number, opts: Partial<GroupedMovie> = {}): GroupedMovie => ({
   id,
@@ -129,13 +130,27 @@ describe('buildStory', () => {
     expect(closing.movie.id).toBe(2);
   });
 
-  it('con 6 film aggiunge la seconda serie di strisce (backdropIndex 1)', () => {
-    const movies = [mk(1), mk(2), mk(3), mk(4), mk(5), mk(6)];
-    const chapters = buildStory(movies);
-    const stripeChapters = chapters.filter(c => c.kind === 'stripes') as StripesChapter[];
+  it('con 6 film il reveal assorbe i film residui; con 12 restano anche le strisce B', () => {
+    const sei = buildStory([mk(1), mk(2), mk(3), mk(4), mk(5), mk(6)]);
+    const reveal = sei.find(c => c.kind === 'reveal') as RevealChapter;
+    expect(reveal.movies.map(m => m.id)).toEqual([5, 6]);
+    expect(sei.filter(c => c.kind === 'stripes')).toHaveLength(1);
+
+    const dodici = buildStory(Array.from({ length: 12 }, (_, i) => mk(i + 1)));
+    const reveal12 = dodici.find(c => c.kind === 'reveal') as RevealChapter;
+    expect(reveal12.movies.map(m => m.id)).toEqual([5, 6, 7, 8]);
+    const stripeChapters = dodici.filter(c => c.kind === 'stripes') as StripesChapter[];
     expect(stripeChapters).toHaveLength(2);
-    expect(stripeChapters[1].movies.map(m => m.id)).toEqual([5, 6]);
+    expect(stripeChapters[1].movies.map(m => m.id)).toEqual([9, 10, 11]);
     expect(stripeChapters[1].backdropIndex).toBe(1);
+  });
+
+  it('il reveal sta subito prima del calendario e serve almeno 2 film con visual', () => {
+    const k = kinds(buildStory(Array.from({ length: 8 }, (_, i) => mk(i + 1))));
+    expect(k.indexOf('reveal')).toBe(k.indexOf('calendar') - 1);
+
+    // Con 5 film resta un solo candidato → capitolo omesso.
+    expect(kinds(buildStory([mk(1), mk(2), mk(3), mk(4), mk(5)]))).not.toContain('reveal');
   });
 
   it('calcola le statistiche della programmazione', () => {
@@ -202,11 +217,13 @@ describe('buildStory', () => {
   });
 
   it('chiude con la frase di un film, preferendo i premiati (niente messaggi commerciali)', () => {
-    const movies = Array.from({ length: 10 }, (_, i) => mk(i + 1, i === 9 ? { awards: [{}] } : {}));
+    // 14 film: apertura (1), strisce A (2-4), reveal (5-8), strisce B (9-11):
+    // il premiato n.14 resta libero e vince la chiusura.
+    const movies = Array.from({ length: 14 }, (_, i) => mk(i + 1, i === 13 ? { awards: [{}] } : {}));
     const chapters = buildStory(movies);
     const last = chapters[chapters.length - 1] as QuoteChapter;
     expect(last.kind).toBe('quote');
-    expect(last.movie.id).toBe(10);
+    expect(last.movie.id).toBe(14);
   });
 
   it('salta loghi e marquee quando i film sono pochi', () => {

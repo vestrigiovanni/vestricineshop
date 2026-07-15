@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, ComponentProps } from 'react';
 import Image from 'next/image';
-import { animate, motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { animate, motion, MotionValue, useInView, useMotionTemplate, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
@@ -454,6 +454,127 @@ function WeekendChapter({ days, reduced }: { days: WeekendDay[]; reduced: boolea
   );
 }
 
+function pickRevealBackdrop(movie: GroupedMovie): string | null {
+  // Quinto backdrop: strisce usano [0]/[1], citazioni [2], weekend [3].
+  const extras = movie.extraBackdrops || [];
+  return extras[4] || extras[3] || extras[0] || movie.backdrop_path || null;
+}
+
+function RevealSlide({ movie, index, count, progress }: {
+  movie: GroupedMovie;
+  index: number;
+  count: number;
+  progress: MotionValue<number>;
+}) {
+  const start = index / count;
+  const end = (index + 1) / count;
+  const fade = (end - start) * 0.25;
+
+  // Il primo slide parte già visibile, l'ultimo resta visibile fino in fondo.
+  const opacity = useTransform(
+    progress,
+    [start, start + fade, end - fade, end],
+    [index === 0 ? 1 : 0, 1, 1, index === count - 1 ? 1 : 0]
+  );
+  const scale = useTransform(progress, [start, end], [1, 1.08]);
+  const logoOpacity = useTransform(
+    progress,
+    [start + fade * 0.6, start + fade * 1.6, end - fade * 1.6, end - fade * 0.6],
+    [index === 0 ? 1 : 0, 1, 1, index === count - 1 ? 1 : 0]
+  );
+  const logoBlur = useTransform(
+    progress,
+    [start + fade * 0.6, start + fade * 1.6, end - fade * 1.6, end - fade * 0.6],
+    [index === 0 ? 0 : 10, 0, 0, index === count - 1 ? 0 : 10]
+  );
+  const logoFilter = useMotionTemplate`blur(${logoBlur}px)`;
+  const pointerEvents = useTransform(opacity, o => (o > 0.5 ? 'auto' : 'none'));
+
+  const backdrop = pickRevealBackdrop(movie);
+  if (!backdrop) return null;
+
+  return (
+    <motion.div
+      className={styles.revealSlide}
+      style={{ opacity, pointerEvents }}
+      onClick={() => selectMovie(movie.id)}
+    >
+      <motion.div className={styles.revealBg} style={{ scale }}>
+        <Image
+          src={getTMDBImageUrl(backdrop, 'w1280')!}
+          alt={movie.title}
+          fill
+          sizes="100vw"
+          style={{ objectFit: 'cover' }}
+        />
+      </motion.div>
+      <div className={styles.revealVignette} aria-hidden="true" />
+      <motion.div className={styles.revealLogoWrap} style={{ opacity: logoOpacity, filter: logoFilter }}>
+        {movie.logo_path ? (
+          <Image
+            src={getTMDBImageUrl(movie.logo_path, 'w500')!}
+            alt=""
+            width={460}
+            height={190}
+            className={styles.revealLogo}
+          />
+        ) : (
+          <span className={styles.revealTitle}>{movie.title}</span>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function RevealChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
+
+  if (reduced) {
+    // Reduced motion: una sola immagine statica con il logo visibile.
+    const movie = movies[0];
+    const backdrop = pickRevealBackdrop(movie);
+    if (!backdrop) return null;
+    return (
+      <section className={styles.revealStatic} onClick={() => selectMovie(movie.id)}>
+        <div className={styles.revealBg}>
+          <Image
+            src={getTMDBImageUrl(backdrop, 'w1280')!}
+            alt={movie.title}
+            fill
+            sizes="100vw"
+            style={{ objectFit: 'cover' }}
+          />
+        </div>
+        <div className={styles.revealVignette} aria-hidden="true" />
+        <div className={styles.revealLogoWrap}>
+          {movie.logo_path ? (
+            <Image
+              src={getTMDBImageUrl(movie.logo_path, 'w500')!}
+              alt=""
+              width={460}
+              height={190}
+              className={styles.revealLogo}
+            />
+          ) : (
+            <span className={styles.revealTitle}>{movie.title}</span>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section ref={ref} className={styles.reveal} style={{ height: `${movies.length * 120}vh` }}>
+      <div className={styles.revealSticky}>
+        {movies.map((m, i) => (
+          <RevealSlide key={m.id} movie={m} index={i} count={movies.length} progress={scrollYProgress} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function MosaicChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
@@ -578,6 +699,8 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
             return <LogoWallChapter key={i} movies={chapter.movies} reduced={reduced} />;
           case 'weekend':
             return <WeekendChapter key={i} days={chapter.days} reduced={reduced} />;
+          case 'reveal':
+            return <RevealChapter key={i} movies={chapter.movies} reduced={reduced} />;
           case 'calendar':
             return (
               <motion.section

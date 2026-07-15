@@ -32,6 +32,7 @@ export type StoryChapter =
   | { kind: 'stats'; stats: StoryStats }
   | { kind: 'logos'; movies: GroupedMovie[] }
   | { kind: 'weekend'; days: WeekendDay[] }
+  | { kind: 'reveal'; movies: GroupedMovie[] }
   | { kind: 'calendar' }
   | { kind: 'awards'; movies: GroupedMovie[] }
   | { kind: 'mosaic'; movies: GroupedMovie[] }
@@ -41,6 +42,8 @@ export type StoryChapter =
 // la rotazione del seed decide quali entrano a ogni refresh.
 const MAX_MOSAIC = 12;
 const MAX_MARQUEE = 16;
+const MAX_REVEAL = 4;
+const MIN_REVEAL = 2;
 
 const hasTagline = (m: GroupedMovie) => Boolean(m.tagline && m.tagline.trim());
 const hasAwards = (m: GroupedMovie) => (m.awards?.length || 0) > 0;
@@ -212,6 +215,13 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?
   const weekendDays = buildWeekend(movies, now);
   if (weekendDays.length > 0) {
     chapters.push({ kind: 'weekend', days: weekendDays });
+  }
+
+  // Reveal: dissolvenze a schermo pieno con i film non ancora protagonisti.
+  const revealMovies = pool.filter(m => hasStripeVisual(m) && !featured.has(m.id)).slice(0, MAX_REVEAL);
+  if (revealMovies.length >= MIN_REVEAL) {
+    chapters.push({ kind: 'reveal', movies: revealMovies });
+    revealMovies.forEach(m => featured.add(m.id));
   }
 
   chapters.push({ kind: 'calendar' });
