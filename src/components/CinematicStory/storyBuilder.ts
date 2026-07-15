@@ -39,7 +39,6 @@ export type StoryChapter =
 
 // Quanti film al massimo per le sezioni collettive: con cataloghi grandi
 // la rotazione del seed decide quali entrano a ogni refresh.
-const MAX_LOGOS = 8;
 const MAX_MOSAIC = 12;
 const MAX_MARQUEE = 16;
 
@@ -203,10 +202,10 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?
   // I numeri della programmazione (sempre su tutto il catalogo)
   chapters.push({ kind: 'stats', stats: computeStats(movies) });
 
-  // Muro di loghi
+  // Muro di loghi: tutti i film in programmazione che ne hanno uno.
   const logoMovies = pool.filter(m => m.logo_path);
   if (logoMovies.length >= 4) {
-    chapters.push({ kind: 'logos', movies: logoMovies.slice(0, MAX_LOGOS) });
+    chapters.push({ kind: 'logos', movies: logoMovies });
   }
 
   // Questo weekend al cinema (sempre completo, mai ruotato)
