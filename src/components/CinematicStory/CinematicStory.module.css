@@ -388,17 +388,24 @@
   font-style: italic;
 }
 
-/* --- Questo weekend al cinema --- */
+/* --- Questo weekend: filmstrip full-bleed --- */
 .weekendChapter {
+  display: flex;
+  flex-direction: column;
+  padding: 6rem 0 4rem;
+}
+
+.weekendIntro {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  padding: 6rem 1.5rem;
+  padding: 0 1.5rem;
+  text-align: center;
 }
 
 .weekendTitle {
-  margin: 0 0 2.5rem;
+  margin: 0;
   font-family: var(--font-apple);
   font-size: clamp(2rem, 5.5vw, 4rem);
   font-weight: 700;
@@ -410,113 +417,110 @@
   color: transparent;
 }
 
-.weekendGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: clamp(1rem, 2.5vw, 2rem);
-  width: min(1200px, 100%);
-  align-items: start;
-}
-
-.weekendDay {
+.weekendDayBlock {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
-  padding: 1.4rem;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
+  gap: 6px;
+  margin-top: 3.5rem;
 }
 
 .weekendDayHeader {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.8rem;
-  padding-bottom: 0.9rem;
-  border-bottom: 1px solid var(--surface-border);
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 1.5rem 1.4rem;
+  text-align: center;
+}
+
+.weekendDayDate {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
 }
 
 .weekendDayName {
   font-family: var(--font-apple);
-  font-size: 1.5rem;
+  font-size: clamp(1.8rem, 4.5vw, 3rem);
   font-weight: 700;
-  letter-spacing: -0.01em;
-  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.65) 100%);
+  letter-spacing: -0.02em;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.6) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.weekendDayDate {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  letter-spacing: 0.05em;
-}
-
-.weekendShows {
+.weekendStrips {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 6px;
 }
 
-.weekendCard {
-  display: flex;
-  gap: 0.9rem;
-  align-items: center;
-  padding: 0.7rem;
-  border: none;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.02);
-  cursor: pointer;
-  text-align: left;
-  transition: var(--transition-snappy);
-}
-
-.weekendCard:hover {
-  background: rgba(255, 255, 255, 0.07);
-  transform: translateX(4px);
-}
-
-.weekendPoster {
+.weekendStrip {
   position: relative;
-  flex-shrink: 0;
-  width: 52px;
-  aspect-ratio: 2 / 3;
-  border-radius: var(--radius-sm);
+  height: clamp(300px, 48vh, 480px);
   overflow: hidden;
-  background: var(--surface);
+  cursor: pointer;
 }
 
-.weekendInfo {
+.weekendStripShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(5, 5, 7, 0.25) 0%, rgba(5, 5, 7, 0.1) 45%, rgba(5, 5, 7, 0.82) 100%);
+}
+
+.weekendStripContent {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.9rem;
+  padding: 2rem 1.5rem 2.4rem;
+  text-align: center;
 }
 
-.weekendFilmTitle {
+.weekendLogo {
+  width: auto;
+  height: auto;
+  max-width: min(60vw, 340px);
+  max-height: clamp(70px, 11vh, 120px);
+  object-fit: contain;
+  filter: drop-shadow(0 4px 24px rgba(0, 0, 0, 0.65));
+}
+
+.weekendStripTitle {
   font-family: var(--font-apple);
-  font-size: 0.98rem;
-  font-weight: 600;
+  font-size: clamp(1.5rem, 3.6vw, 2.6rem);
+  font-weight: 700;
   color: var(--foreground);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.85);
+}
+
+.weekendMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .weekendTimes {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  justify-content: center;
+  gap: 0.55rem;
 }
 
-.timeChip {
-  padding: 0.22rem 0.6rem;
+.weekendTimeChip {
+  padding: 0.5rem 1.1rem;
   border-radius: 999px;
-  border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.05);
-  font-size: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(5, 5, 7, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: var(--font-apple);
+  font-size: 1rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--foreground);
@@ -700,11 +704,20 @@
   }
 
   .weekendChapter {
-    padding: 4rem 1rem;
+    padding: 4rem 0 3rem;
   }
 
-  .weekendGrid {
-    grid-template-columns: 1fr;
+  .weekendStrip {
+    height: clamp(240px, 40vh, 340px);
+  }
+
+  .weekendLogo {
+    max-height: 76px;
+  }
+
+  .weekendTimeChip {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.9rem;
   }
 
   .stripe {

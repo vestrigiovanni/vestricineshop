@@ -9,7 +9,7 @@ import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
 import { getFestivalConfig } from '../MovieAwards/MovieAwards';
 import RatingBadge from '../RatingBadge';
 import { Clock } from 'lucide-react';
-import { buildStory, StoryStats, WeekendDay } from './storyBuilder';
+import { buildStory, StoryStats, WeekendDay, WeekendShow } from './storyBuilder';
 import styles from './CinematicStory.module.css';
 
 interface CinematicStoryProps {
@@ -328,80 +328,128 @@ function AwardsChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
   );
 }
 
+function WeekendStrip({ show, reduced }: { show: WeekendShow; reduced: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const y = useTransform(scrollYProgress, [0, 1], ['-8%', '8%']);
+
+  const movie = show.movie;
+  // Quarto backdrop: le strisce narrative usano [0] e [1], le citazioni [2].
+  const extras = movie.extraBackdrops || [];
+  const backdrop = extras[3] || extras[0] || movie.backdrop_path;
+  const runtime = formatRuntime(movie.runtime);
+
+  return (
+    <div
+      ref={ref}
+      className={styles.weekendStrip}
+      onClick={() => selectMovie(movie.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectMovie(movie.id);
+        }
+      }}
+    >
+      {backdrop && (
+        <motion.div className={styles.stripeBg} style={reduced ? undefined : { y }}>
+          <Image
+            src={getTMDBImageUrl(backdrop, 'w1280')!}
+            alt={movie.title}
+            fill
+            sizes="100vw"
+            style={{ objectFit: 'cover' }}
+          />
+        </motion.div>
+      )}
+      <div className={styles.weekendStripShade} />
+      <motion.div
+        className={styles.weekendStripContent}
+        initial={reduced ? false : { opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.4 }}
+        transition={{ duration: 0.8, ease: easeApple }}
+      >
+        {movie.logo_path ? (
+          <Image
+            src={getTMDBImageUrl(movie.logo_path, 'w500')!}
+            alt={movie.title}
+            width={340}
+            height={140}
+            className={styles.weekendLogo}
+          />
+        ) : (
+          <span className={styles.weekendStripTitle}>{movie.title}</span>
+        )}
+        <div className={styles.weekendMeta}>
+          <RatingBadge rating={movie.rating} size="xs" />
+          {runtime && (
+            <span className={styles.metaChip}>
+              <Clock size={11} strokeWidth={2.4} aria-hidden="true" />
+              {runtime}
+            </span>
+          )}
+        </div>
+        <div className={styles.weekendTimes}>
+          {show.times.map(t => (
+            <span
+              key={t.time}
+              className={`${styles.weekendTimeChip} ${t.isSoldOut ? styles.timeChipSoldOut : ''}`}
+              title={t.isSoldOut ? 'Sold out' : (t.roomName || undefined)}
+            >
+              {t.time}
+            </span>
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 function WeekendChapter({ days, reduced }: { days: WeekendDay[]; reduced: boolean }) {
   return (
     <section className={styles.weekendChapter}>
-      <motion.span
-        className={styles.chapterKicker}
-        initial={reduced ? false : { opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, amount: 0.6 }}
-        transition={{ duration: 0.8 }}
-      >
-        Venerdì, sabato e domenica
-      </motion.span>
-      <motion.h2
-        className={styles.weekendTitle}
-        initial={reduced ? false : { opacity: 0, y: 30, filter: 'blur(6px)' }}
-        whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        viewport={{ once: true, amount: 0.6 }}
-        transition={{ duration: 0.9, delay: 0.1, ease: easeApple }}
-      >
-        Questo weekend al cinema.
-      </motion.h2>
-      <div className={styles.weekendGrid}>
-        {days.map((day, i) => (
-          <motion.div
-            key={day.isoDate}
-            className={styles.weekendDay}
-            initial={reduced ? false : { opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.25 }}
-            transition={{ duration: 0.8, delay: i * 0.15, ease: easeApple }}
-          >
-            <header className={styles.weekendDayHeader}>
-              <span className={styles.weekendDayName}>{day.label}</span>
-              <span className={styles.weekendDayDate}>{day.dateLabel}</span>
-            </header>
-            <div className={styles.weekendShows}>
-              {day.shows.map(show => (
-                <button
-                  key={show.movie.id}
-                  className={styles.weekendCard}
-                  onClick={() => selectMovie(show.movie.id)}
-                >
-                  {show.movie.poster_path && (
-                    <div className={styles.weekendPoster}>
-                      <Image
-                        src={getTMDBImageUrl(show.movie.poster_path, 'w185')!}
-                        alt={show.movie.title}
-                        fill
-                        sizes="72px"
-                        style={{ objectFit: 'cover' }}
-                      />
-                    </div>
-                  )}
-                  <div className={styles.weekendInfo}>
-                    <span className={styles.weekendFilmTitle}>{show.movie.title}</span>
-                    <MetaRow movie={show.movie} compact />
-                    <div className={styles.weekendTimes}>
-                      {show.times.map(t => (
-                        <span
-                          key={t.time}
-                          className={`${styles.timeChip} ${t.isSoldOut ? styles.timeChipSoldOut : ''}`}
-                          title={t.isSoldOut ? 'Sold out' : (t.roomName || undefined)}
-                        >
-                          {t.time}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        ))}
+      <div className={styles.weekendIntro}>
+        <motion.span
+          className={styles.chapterKicker}
+          initial={reduced ? false : { opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ duration: 0.8 }}
+        >
+          Venerdì, sabato e domenica
+        </motion.span>
+        <motion.h2
+          className={styles.weekendTitle}
+          initial={reduced ? false : { opacity: 0, y: 30, filter: 'blur(6px)' }}
+          whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ duration: 0.9, delay: 0.1, ease: easeApple }}
+        >
+          Questo weekend al cinema.
+        </motion.h2>
       </div>
+      {days.map(day => (
+        <div key={day.isoDate} className={styles.weekendDayBlock}>
+          <motion.header
+            className={styles.weekendDayHeader}
+            initial={reduced ? false : { opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.6 }}
+            transition={{ duration: 0.7, ease: easeApple }}
+          >
+            <span className={styles.weekendDayDate}>{day.dateLabel}</span>
+            <span className={styles.weekendDayName}>{day.label}</span>
+          </motion.header>
+          <div className={styles.weekendStrips}>
+            {day.shows.map(show => (
+              <WeekendStrip key={show.movie.id} show={show} reduced={reduced} />
+            ))}
+          </div>
+        </div>
+      ))}
     </section>
   );
 }
