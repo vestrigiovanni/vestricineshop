@@ -152,7 +152,6 @@ function Stripe({ movie, flip, backdropIndex, reduced }: {
             <span className={styles.stripeTitle}>{movie.title}</span>
           )}
           {movie.director && <span className={styles.stripeDirector}>un film di {movie.director}</span>}
-          <MetaRow movie={movie} />
         </div>
       </motion.div>
     </div>

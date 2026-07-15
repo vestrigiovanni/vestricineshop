@@ -194,9 +194,14 @@
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.8);
 }
 
+/* Tetto d'altezza: i loghi "alti" (es. Ultimo Tango a Parigi) non devono
+   dominare la striscia come farebbero scalando solo sulla larghezza. */
 .stripeLogo {
-  width: clamp(160px, 26vw, 340px);
+  width: auto;
   height: auto;
+  max-width: clamp(160px, 26vw, 340px);
+  max-height: clamp(80px, 13vh, 140px);
+  object-fit: contain;
   filter: drop-shadow(0 4px 24px rgba(0, 0, 0, 0.65));
 }
 
@@ -676,6 +681,10 @@
   .stripeInfo {
     max-width: 75%;
     gap: 0.5rem;
+  }
+
+  .stripeLogo {
+    max-height: 84px;
   }
 
   .awardsChapter {
