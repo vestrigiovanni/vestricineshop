@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildStory, buildWeekend, excerptOverview, StoryChapter } from './storyBuilder';
+import { buildFestivalGroups, buildStory, buildWeekend, excerptOverview, StoryChapter } from './storyBuilder';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 
 type MarqueeChapter = Extract<StoryChapter, { kind: 'marquee' }>;
@@ -7,7 +7,7 @@ type QuoteChapter = Extract<StoryChapter, { kind: 'quote' }>;
 type StripesChapter = Extract<StoryChapter, { kind: 'stripes' }>;
 type StatsChapter = Extract<StoryChapter, { kind: 'stats' }>;
 type LogosChapter = Extract<StoryChapter, { kind: 'logos' }>;
-type AwardsChapter = Extract<StoryChapter, { kind: 'awards' }>;
+type FestivalChapterT = Extract<StoryChapter, { kind: 'festival' }>;
 type MosaicChapter = Extract<StoryChapter, { kind: 'mosaic' }>;
 type RevealChapter = Extract<StoryChapter, { kind: 'reveal' }>;
 
@@ -178,18 +178,17 @@ describe('buildStory', () => {
     expect(senzaTagline.text).toContain('Una lunga storia');
   });
 
-  it('crea il capitolo premi solo se ci sono premiati, max 3', () => {
-    const noAwards = buildStory([mk(1), mk(2), mk(3)]);
-    expect(kinds(noAwards)).not.toContain('awards');
+  it('crea il capitolo festival dopo il calendario solo se ci sono premiati', () => {
+    const senza = kinds(buildStory([mk(1), mk(2), mk(3)]));
+    expect(senza).not.toContain('festival');
 
-    const movies = [
-      mk(1, { awards: [{}] }),
-      mk(2, { awards: [{}, {}, {}] }),
-      mk(3, { awards: [{}, {}] }),
-      mk(4, { awards: [{}] }),
-    ];
-    const awards = buildStory(movies).find(c => c.kind === 'awards') as AwardsChapter;
-    expect(awards.movies.map(m => m.id)).toEqual([1, 2, 3]);
+    const movies = [mk(1, { awards: [{ type: 'cannes', label: "Palma d'Oro", year: 2024 }] }), mk(2), mk(3)];
+    const k = kinds(buildStory(movies));
+    expect(k.indexOf('festival')).toBe(k.indexOf('calendar') + 1);
+
+    const festival = buildStory(movies).find(c => c.kind === 'festival') as FestivalChapterT;
+    expect(festival.groups[0].festival.key).toBe('cannes');
+    expect(festival.groups[0].films[0].movie.id).toBe(1);
   });
 
   it('con seed la rotazione è deterministica ma varia tra i refresh', () => {
@@ -273,5 +272,40 @@ describe('buildStory', () => {
     const chapters = buildStory(movies);
     const stripes = chapters.find(c => c.kind === 'stripes') as StripesChapter;
     expect(stripes.movies.map(m => m.id)).toEqual([3]);
+  });
+});
+
+describe('buildFestivalGroups', () => {
+  it('raggruppa i film per festival, ordina per numero di film e poi prestigio', () => {
+    const movies = [
+      mk(1, { awards: [
+        { type: 'cannes', label: "Palma d'Oro", year: 2024 },
+        { type: 'venice', label: "Leone d'Argento", year: 2023 },
+      ] }),
+      mk(2, { awards: [{ type: 'venice', label: 'Coppa Volpi', year: 2025 }] }),
+      mk(3, { awards: [{ type: 'VENICE ', label: "Leone d'Oro" }] }),
+    ];
+    const groups = buildFestivalGroups(movies);
+
+    expect(groups.map(g => g.festival.key)).toEqual(['venice', 'cannes']);
+    expect(groups[0].films.map(f => f.movie.id)).toEqual([1, 2, 3]);
+    expect(groups[0].films[0].awardLabel).toBe("Leone d'Argento · 2023");
+    expect(groups[0].films[2].awardLabel).toBe("Leone d'Oro");
+    expect(groups[1].films.map(f => f.movie.id)).toEqual([1]);
+  });
+
+  it('a parità di film vince il prestigio; alias e tipi ignoti hanno un fallback', () => {
+    const movies = [
+      mk(1, { awards: [{ type: 'venice', label: 'Premio' }] }),
+      mk(2, { awards: [{ type: 'cannes', label: 'Premio' }] }),
+      mk(3, { awards: [{ type: 'TIFF People Choice', label: 'Premio' }] }),
+      mk(4, { awards: [{ type: 'sconosciuto', label: 'Premio' }] }),
+    ];
+    const groups = buildFestivalGroups(movies);
+    expect(groups.map(g => g.festival.key)).toEqual(['cannes', 'venice', 'oscar', 'toronto']);
+  });
+
+  it('senza premi non produce gruppi', () => {
+    expect(buildFestivalGroups([mk(1), mk(2)])).toEqual([]);
   });
 });

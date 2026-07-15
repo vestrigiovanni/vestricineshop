@@ -6,10 +6,9 @@ import { animate, motion, MotionValue, useInView, useMotionTemplate, useReducedM
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
-import { getFestivalConfig } from '../MovieAwards/MovieAwards';
 import RatingBadge from '../RatingBadge';
 import { Clock } from 'lucide-react';
-import { buildStory, StoryStats, WeekendDay, WeekendShow } from './storyBuilder';
+import { buildStory, FestivalGroup, StoryStats, WeekendDay, WeekendShow } from './storyBuilder';
 import styles from './CinematicStory.module.css';
 
 interface CinematicStoryProps {
@@ -34,28 +33,6 @@ function formatRuntime(min?: number | null): string | null {
   const m = min % 60;
   if (h === 0) return `${m}m`;
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
-// Metadati visuali del film: classificazione, anno, durata e chip dei generi.
-function MetaRow({ movie, compact = false }: { movie: GroupedMovie; compact?: boolean }) {
-  const year = movie.release_date ? movie.release_date.slice(0, 4) : null;
-  const runtime = formatRuntime(movie.runtime);
-  const genres = (movie.genres || []).slice(0, compact ? 1 : 3);
-  return (
-    <span className={`${styles.metaRow} ${compact ? styles.metaRowCompact : ''}`}>
-      <RatingBadge rating={movie.rating} size="xs" />
-      {year && <span className={styles.metaChip}>{year}</span>}
-      {runtime && (
-        <span className={styles.metaChip}>
-          <Clock size={11} strokeWidth={2.4} aria-hidden="true" />
-          {runtime}
-        </span>
-      )}
-      {genres.map(g => (
-        <span key={g} className={`${styles.metaChip} ${styles.genreChip}`}>{g}</span>
-      ))}
-    </span>
-  );
 }
 
 function QuoteChapter({ movie, text, reduced }: { movie: GroupedMovie; text: string; reduced: boolean }) {
@@ -250,9 +227,9 @@ function LogoWallChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced:
   );
 }
 
-function AwardsChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: boolean }) {
+function FestivalChapter({ groups, reduced }: { groups: FestivalGroup[]; reduced: boolean }) {
   return (
-    <section className={styles.awardsChapter}>
+    <section className={styles.festivalChapter}>
       <motion.span
         className={styles.chapterKicker}
         initial={reduced ? false : { opacity: 0 }}
@@ -262,68 +239,56 @@ function AwardsChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
       >
         Dai festival alla nostra sala
       </motion.span>
-      <motion.h2
-        className={styles.awardsTitle}
-        initial={reduced ? false : { opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.6 }}
-        transition={{ duration: 0.8, delay: 0.1, ease: easeApple }}
-      >
-        Premiati e riconosciuti.
-      </motion.h2>
-      <div className={styles.awardsGrid}>
-        {movies.map((m, i) => {
-          const shown = (m.awards || []).slice(0, 3);
-          const extra = (m.awards?.length || 0) - shown.length;
-          // Un logo per festival, senza ripetizioni anche con più premi dallo stesso.
-          const festivalLogos = Array.from(
-            new Map(
-              (m.awards || []).map(a => {
-                const config = getFestivalConfig(a.type);
-                return [config.src, config] as const;
-              })
-            ).values()
-          ).slice(0, 4);
-          return (
-            <motion.article
-              key={m.id}
-              className={styles.awardCard}
-              onClick={() => selectMovie(m.id)}
-              initial={reduced ? false : { opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.7, delay: i * 0.12, ease: easeApple }}
-            >
-              <div className={styles.awardLogos}>
-                {festivalLogos.map(c => (
-                  <Image
-                    key={c.src}
-                    src={c.src}
-                    alt=""
-                    aria-hidden="true"
-                    width={c.width}
-                    height={c.height}
-                    className={styles.awardLogoImg}
-                    unoptimized
-                  />
-                ))}
-              </div>
-              <h3 className={styles.awardFilmTitle}>{m.title}</h3>
-              <MetaRow movie={m} />
-              <ul className={styles.awardList}>
-                {shown.map((a, j) => (
-                  <li key={j}>
-                    <span className={styles.awardItemLabel}>
-                      {a.label}{a.year ? ` · ${a.year}` : ''}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {extra > 0 && <span className={styles.awardMore}>e altri {extra} riconoscimenti</span>}
-            </motion.article>
-          );
-        })}
-      </div>
+      {groups.map(group => (
+        <div key={group.festival.key} className={styles.festivalBlock}>
+          <motion.div
+            className={styles.festivalHeader}
+            initial={reduced ? false : { opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.8, ease: easeApple }}
+          >
+            <Image
+              src={group.festival.logo}
+              alt=""
+              aria-hidden="true"
+              width={Math.round(group.festival.logoWidth * 1.6)}
+              height={Math.round(group.festival.logoHeight * 1.6)}
+              className={styles.festivalLogo}
+              unoptimized
+            />
+            <h3 className={styles.festivalName}>{group.festival.name}</h3>
+          </motion.div>
+          <div className={styles.festivalFilms}>
+            {group.films.map((film, i) => (
+              <motion.button
+                key={film.movie.id}
+                className={styles.festivalFilm}
+                onClick={() => selectMovie(film.movie.id)}
+                aria-label={`Vai a ${film.movie.title}`}
+                initial={reduced ? false : { opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.7, delay: i * 0.08, ease: easeApple }}
+              >
+                <span className={styles.festivalPoster}>
+                  {film.movie.poster_path && (
+                    <Image
+                      src={getTMDBImageUrl(film.movie.poster_path, 'w342')!}
+                      alt={film.movie.title}
+                      fill
+                      sizes="(max-width: 768px) 40vw, 200px"
+                      style={{ objectFit: 'cover' }}
+                    />
+                  )}
+                </span>
+                <span className={styles.festivalFilmTitle}>{film.movie.title}</span>
+                <span className={styles.festivalAward}>{film.awardLabel}</span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      ))}
     </section>
   );
 }
@@ -714,8 +679,8 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
                 <WeeklyCinemaCalendar subEvents={subEvents} />
               </motion.section>
             );
-          case 'awards':
-            return <AwardsChapter key={i} movies={chapter.movies} reduced={reduced} />;
+          case 'festival':
+            return <FestivalChapter key={i} groups={chapter.groups} reduced={reduced} />;
           case 'mosaic':
             return <MosaicChapter key={i} movies={chapter.movies} reduced={reduced} />;
           case 'marquee':

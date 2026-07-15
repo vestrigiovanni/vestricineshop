@@ -1,4 +1,5 @@
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
+import { FESTIVAL_PRESTIGE, FestivalInfo, resolveFestival } from './festivals';
 
 export interface StoryStats {
   filmCount: number;
@@ -26,6 +27,17 @@ export interface WeekendDay {
   shows: WeekendShow[];
 }
 
+export interface FestivalFilm {
+  movie: GroupedMovie;
+  /** Riconoscimento principale a questo festival, es. "Palma d'Oro · 2024" */
+  awardLabel: string;
+}
+
+export interface FestivalGroup {
+  festival: FestivalInfo;
+  films: FestivalFilm[];
+}
+
 export type StoryChapter =
   | { kind: 'quote'; movie: GroupedMovie; text: string }
   | { kind: 'stripes'; movies: GroupedMovie[]; backdropIndex: number }
@@ -34,7 +46,7 @@ export type StoryChapter =
   | { kind: 'weekend'; days: WeekendDay[] }
   | { kind: 'reveal'; movies: GroupedMovie[] }
   | { kind: 'calendar' }
-  | { kind: 'awards'; movies: GroupedMovie[] }
+  | { kind: 'festival'; groups: FestivalGroup[] }
   | { kind: 'mosaic'; movies: GroupedMovie[] }
   | { kind: 'marquee'; movies: GroupedMovie[] };
 
@@ -160,6 +172,45 @@ export function buildWeekend(movies: GroupedMovie[], now: Date = new Date()): We
   return days.filter(d => d.shows.length > 0);
 }
 
+interface AwardLike {
+  type?: string;
+  label?: string;
+  year?: number | null;
+}
+
+/**
+ * Raggruppa i film premiati per festival: il festival è il protagonista,
+ * sotto di lui i poster dei film in programmazione candidati o vincitori.
+ */
+export function buildFestivalGroups(movies: GroupedMovie[]): FestivalGroup[] {
+  const map = new Map<string, { festival: FestivalInfo; films: Map<number, FestivalFilm> }>();
+
+  for (const movie of movies) {
+    for (const award of (movie.awards || []) as AwardLike[]) {
+      const festival = resolveFestival(award.type || '');
+      let group = map.get(festival.key);
+      if (!group) {
+        group = { festival, films: new Map() };
+        map.set(festival.key, group);
+      }
+      // Primo riconoscimento del film a questo festival: diventa l'etichetta.
+      if (!group.films.has(movie.id)) {
+        const awardLabel = [award.label, award.year].filter(Boolean).join(' · ');
+        group.films.set(movie.id, { movie, awardLabel });
+      }
+    }
+  }
+
+  const prestige = (key: string) => {
+    const i = FESTIVAL_PRESTIGE.indexOf(key);
+    return i === -1 ? FESTIVAL_PRESTIGE.length : i;
+  };
+
+  return Array.from(map.values())
+    .map(g => ({ festival: g.festival, films: Array.from(g.films.values()) }))
+    .sort((a, b) => b.films.length - a.films.length || prestige(a.festival.key) - prestige(b.festival.key));
+}
+
 function computeStats(movies: GroupedMovie[]): StoryStats {
   const totalMinutes = movies.reduce((sum, m) => sum + (m.runtime || 0), 0);
   const genres = new Set(movies.flatMap(m => m.genres || []));
@@ -226,10 +277,10 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?
 
   chapters.push({ kind: 'calendar' });
 
-  // Premi e riconoscimenti (la rotazione decide quali premiati mostrare)
-  const awardMovies = pool.filter(hasAwards).slice(0, 3);
-  if (awardMovies.length > 0) {
-    chapters.push({ kind: 'awards', movies: awardMovies });
+  // Dai festival alla nostra sala: blocchi per festival, non per film.
+  const festivalGroups = buildFestivalGroups(pool);
+  if (festivalGroups.length > 0) {
+    chapters.push({ kind: 'festival', groups: festivalGroups });
   }
 
   // Seconda serie di strisce con i film non ancora protagonisti

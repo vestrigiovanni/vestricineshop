@@ -16,20 +16,7 @@
   text-transform: uppercase;
 }
 
-/* Riga di badge metadati (classificazione, anno, durata, generi) */
-.metaRowWrap {
-  display: flex;
-  justify-content: center;
-}
-
-.metaRow {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-}
-
+/* Chip metadato (usato dal weekend per la durata) */
 .metaChip {
   display: inline-flex;
   align-items: center;
@@ -45,22 +32,6 @@
   color: rgba(255, 255, 255, 0.85);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-
-.genreChip {
-  background: rgba(139, 92, 246, 0.14);
-  border-color: rgba(139, 92, 246, 0.35);
-  color: #cdbcf8;
-}
-
-.metaRowCompact {
-  justify-content: flex-start;
-  gap: 0.3rem;
-}
-
-.metaRowCompact .metaChip {
-  padding: 0.1rem 0.45rem;
-  font-size: 0.66rem;
 }
 
 /* --- Capitolo citazione (apertura e chiusura) --- */
@@ -178,14 +149,6 @@
   text-align: right;
 }
 
-.stripeInfo .metaRow {
-  justify-content: flex-start;
-}
-
-.stripeInfoFlip .metaRow {
-  justify-content: flex-end;
-}
-
 .stripeDirector {
   font-family: var(--font-apple);
   font-size: 0.95rem;
@@ -289,8 +252,8 @@
   opacity: 0.9;
 }
 
-/* --- Premi e riconoscimenti --- */
-.awardsChapter {
+/* --- Dai festival: blocchi per festival --- */
+.festivalChapter {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -298,94 +261,95 @@
   padding: 6rem 1.5rem;
 }
 
-.awardsTitle {
-  margin: 0 0 2.5rem;
-  font-family: var(--font-apple);
-  font-size: clamp(1.9rem, 5vw, 3.5rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.festivalBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 3.5rem;
+  width: min(1100px, 100%);
+}
+
+.festivalBlock:first-of-type {
+  margin-top: 2rem;
+}
+
+.festivalHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
   text-align: center;
-  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.55) 100%);
+}
+
+/* Il logo del festival è il protagonista del blocco */
+.festivalLogo {
+  width: auto;
+  height: clamp(110px, 15vw, 160px);
+  filter:
+    drop-shadow(0 6px 26px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 26px rgba(255, 255, 255, 0.08));
+}
+
+.festivalName {
+  margin: 0;
+  font-family: var(--font-apple);
+  font-size: clamp(1.4rem, 3.2vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.6) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.awardsGrid {
+.festivalFilms {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-items: flex-start;
-  gap: clamp(2rem, 5vw, 4.5rem);
-  max-width: 1200px;
+  gap: clamp(1.2rem, 3vw, 2.4rem);
 }
 
-/* Nessuna card: solo loghi e metadati, direttamente sul nero della pagina */
-.awardCard {
+.festivalFilm {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.9rem;
-  width: min(360px, 100%);
-  padding: 1rem 0.5rem;
+  gap: 0.6rem;
+  width: clamp(130px, 16vw, 190px);
   border: none;
   background: none;
+  padding: 0;
   cursor: pointer;
   text-align: center;
-}
-
-/* I loghi dei festival sono i protagonisti della card */
-.awardLogos {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 1.4rem;
-  min-height: 96px;
-  padding: 0.4rem 0;
-}
-
-.awardLogoImg {
-  height: clamp(84px, 11vw, 116px);
-  width: auto;
-  filter:
-    drop-shadow(0 6px 22px rgba(0, 0, 0, 0.55))
-    drop-shadow(0 0 22px rgba(255, 255, 255, 0.1));
   transition: var(--transition-snappy);
 }
 
-.awardCard:hover .awardLogoImg {
-  filter:
-    drop-shadow(0 6px 22px rgba(0, 0, 0, 0.55))
-    drop-shadow(0 0 28px rgba(255, 255, 255, 0.2));
+.festivalFilm:hover {
+  transform: translateY(-4px);
 }
 
-.awardFilmTitle {
-  margin: 0;
+.festivalPoster {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.festivalFilmTitle {
   font-family: var(--font-apple);
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--foreground);
+  line-height: 1.25;
 }
 
-.awardList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.awardItemLabel {
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 0.88rem;
-  line-height: 1.35;
-}
-
-.awardMore {
+.festivalAward {
   color: var(--text-muted);
-  font-size: 0.8rem;
-  font-style: italic;
+  font-size: 0.78rem;
+  line-height: 1.3;
 }
 
 /* --- Questo weekend: filmstrip full-bleed --- */
@@ -759,12 +723,16 @@
     max-height: 84px;
   }
 
-  .awardsChapter {
+  .festivalChapter {
     padding: 4rem 1rem;
   }
 
-  .awardCard {
-    width: 100%;
+  .festivalLogo {
+    height: clamp(90px, 22vw, 120px);
+  }
+
+  .festivalFilm {
+    width: clamp(120px, 38vw, 160px);
   }
 
   .marqueeChapter {
