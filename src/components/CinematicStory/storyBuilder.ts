@@ -27,7 +27,6 @@ export interface WeekendDay {
 }
 
 export type StoryChapter =
-  | { kind: 'tagline'; movie: GroupedMovie }
   | { kind: 'quote'; movie: GroupedMovie; text: string }
   | { kind: 'stripes'; movies: GroupedMovie[]; backdropIndex: number }
   | { kind: 'stats'; stats: StoryStats }
@@ -48,6 +47,10 @@ const hasTagline = (m: GroupedMovie) => Boolean(m.tagline && m.tagline.trim());
 const hasAwards = (m: GroupedMovie) => (m.awards?.length || 0) > 0;
 const hasStripeVisual = (m: GroupedMovie) =>
   Boolean((m.extraBackdrops && m.extraBackdrops.length > 0) || m.backdrop_path);
+
+// Un film ha una "voce" se ha una tagline o una trama abbastanza lunga da citarne l'incipit.
+const hasQuote = (m: GroupedMovie) => hasTagline(m) || (m.overview || '').trim().length >= 80;
+const quoteTextFor = (m: GroupedMovie) => (hasTagline(m) ? m.tagline!.trim() : excerptOverview(m.overview));
 
 /**
  * Estrae dalla trama una citazione breve da usare come "slogan di riserva":
@@ -179,18 +182,17 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?
 
   const chapters: StoryChapter[] = [];
   const featured = new Set<number>();
-  const taglineMovies = pool.filter(hasTagline);
 
-  // 1° slogan
-  const firstTagline = taglineMovies[0];
-  if (firstTagline) {
-    chapters.push({ kind: 'tagline', movie: firstTagline });
-    featured.add(firstTagline.id);
+  // Citazione d'apertura: tagline se c'è, altrimenti l'incipit della trama.
+  const opening = pool.find(hasQuote);
+  if (opening) {
+    chapters.push({ kind: 'quote', movie: opening, text: quoteTextFor(opening) });
+    featured.add(opening.id);
   }
 
   // Prima serie di strisce backdrop+logo
   let stripesA = pool.filter(m => hasStripeVisual(m) && !featured.has(m.id)).slice(0, 3);
-  if (stripesA.length === 0 && !firstTagline) {
+  if (stripesA.length === 0 && !opening) {
     stripesA = pool.filter(hasStripeVisual).slice(0, 2);
   }
   if (stripesA.length > 0) {
@@ -215,28 +217,10 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?
 
   chapters.push({ kind: 'calendar' });
 
-  // Citazione dalla trama (per un film senza tagline)
-  const quoteMovie =
-    pool.find(m => !hasTagline(m) && !featured.has(m.id) && (m.overview || '').trim().length >= 80) ||
-    pool.find(m => !hasTagline(m) && (m.overview || '').trim().length >= 80);
-  if (quoteMovie) {
-    chapters.push({ kind: 'quote', movie: quoteMovie, text: excerptOverview(quoteMovie.overview) });
-    featured.add(quoteMovie.id);
-  }
-
   // Premi e riconoscimenti (la rotazione decide quali premiati mostrare)
   const awardMovies = pool.filter(hasAwards).slice(0, 3);
   if (awardMovies.length > 0) {
     chapters.push({ kind: 'awards', movies: awardMovies });
-  }
-
-  // 2° slogan
-  const secondTagline =
-    taglineMovies.find(m => !featured.has(m.id)) ||
-    taglineMovies.find(m => m.id !== firstTagline?.id);
-  if (secondTagline) {
-    chapters.push({ kind: 'tagline', movie: secondTagline });
-    featured.add(secondTagline.id);
   }
 
   // Seconda serie di strisce con i film non ancora protagonisti
@@ -257,20 +241,14 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?
     chapters.push({ kind: 'marquee', movies: posterMovies.slice(0, MAX_MARQUEE) });
   }
 
-  // Chiusura: mai un messaggio commerciale, solo un'altra voce dei film —
-  // preferendo quelli premiati.
-  const closingTagline =
-    taglineMovies.find(m => !featured.has(m.id) && hasAwards(m)) ||
-    taglineMovies.find(m => !featured.has(m.id));
-  if (closingTagline) {
-    chapters.push({ kind: 'tagline', movie: closingTagline });
-  } else {
-    const closingQuote = pool.find(
-      m => !hasTagline(m) && !featured.has(m.id) && (m.overview || '').trim().length >= 80
-    );
-    if (closingQuote) {
-      chapters.push({ kind: 'quote', movie: closingQuote, text: excerptOverview(closingQuote.overview) });
-    }
+  // Citazione di chiusura: mai un messaggio commerciale, solo un'altra voce
+  // dei film — preferendo i premiati mai stati protagonisti.
+  const closing =
+    pool.find(m => hasQuote(m) && !featured.has(m.id) && hasAwards(m)) ||
+    pool.find(m => hasQuote(m) && !featured.has(m.id)) ||
+    pool.find(m => hasQuote(m) && m.id !== opening?.id);
+  if (closing) {
+    chapters.push({ kind: 'quote', movie: closing, text: quoteTextFor(closing) });
   }
 
   return chapters;

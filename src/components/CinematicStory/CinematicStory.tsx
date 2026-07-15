@@ -58,89 +58,50 @@ function MetaRow({ movie, compact = false }: { movie: GroupedMovie; compact?: bo
   );
 }
 
-function TaglineChapter({ movie, reduced }: { movie: GroupedMovie; reduced: boolean }) {
+function QuoteChapter({ movie, text, reduced }: { movie: GroupedMovie; text: string; reduced: boolean }) {
   // Terzo backdrop alternativo: mai usato da hero (principale) né dalle strisce ([0] e [1]).
   const extras = movie.extraBackdrops || [];
   const bg = extras[2] || extras[1] || movie.backdrop_path;
   return (
-    <section className={styles.taglineChapter}>
-      {bg && (
-        <>
-          <div className={styles.taglineBg} aria-hidden="true">
-            <Image
-              src={getTMDBImageUrl(bg, 'w1280')!}
-              alt=""
-              fill
-              sizes="100vw"
-              style={{ objectFit: 'cover' }}
-            />
-          </div>
-          <div className={styles.taglineVignette} aria-hidden="true" />
-        </>
-      )}
-      <motion.blockquote
-        className={styles.taglineText}
-        onClick={() => selectMovie(movie.id)}
-        initial={reduced ? false : { opacity: 0, y: 50, filter: 'blur(10px)' }}
-        whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        viewport={{ once: true, amount: 0.5 }}
-        transition={{ duration: 1, ease: easeApple }}
-      >
-        {movie.tagline}
-      </motion.blockquote>
-      <motion.p
-        className={styles.taglineMovie}
-        initial={reduced ? false : { opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, amount: 0.5 }}
-        transition={{ duration: 0.8, delay: 0.35 }}
-      >
-        {movie.title}
-      </motion.p>
-      <motion.div
-        className={styles.metaRowWrap}
-        initial={reduced ? false : { opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, amount: 0.5 }}
-        transition={{ duration: 0.8, delay: 0.5 }}
-      >
-        <MetaRow movie={movie} />
-      </motion.div>
-    </section>
-  );
-}
-
-function QuoteChapter({ movie, text, reduced }: { movie: GroupedMovie; text: string; reduced: boolean }) {
-  return (
     <section className={styles.quoteChapter}>
-      <motion.p
+      {bg && (
+        <motion.div
+          className={styles.quoteBg}
+          aria-hidden="true"
+          initial={reduced ? false : { opacity: 0, scale: 1.07 }}
+          whileInView={{ opacity: 0.42, scale: 1 }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{ duration: 1.6, ease: easeApple }}
+        >
+          <Image
+            src={getTMDBImageUrl(bg, 'w1280')!}
+            alt=""
+            fill
+            sizes="100vw"
+            style={{ objectFit: 'cover' }}
+          />
+        </motion.div>
+      )}
+      <div className={styles.quoteVignette} aria-hidden="true" />
+      <motion.blockquote
         className={styles.quoteText}
         onClick={() => selectMovie(movie.id)}
         initial={reduced ? false : { opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.5 }}
-        transition={{ duration: 0.9, ease: easeApple }}
+        transition={{ duration: 1, delay: 0.35, ease: easeApple }}
       >
-        «{text}»
-      </motion.p>
+        {text}
+      </motion.blockquote>
       <motion.p
-        className={styles.taglineMovie}
+        className={styles.quoteMovie}
         initial={reduced ? false : { opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true, amount: 0.5 }}
-        transition={{ duration: 0.8, delay: 0.3 }}
+        transition={{ duration: 0.8, delay: 0.7 }}
       >
         {movie.title}{movie.director ? ` — di ${movie.director}` : ''}
       </motion.p>
-      <motion.div
-        className={styles.metaRowWrap}
-        initial={reduced ? false : { opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, amount: 0.5 }}
-        transition={{ duration: 0.8, delay: 0.45 }}
-      >
-        <MetaRow movie={movie} />
-      </motion.div>
     </section>
   );
 }
@@ -548,8 +509,6 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
     <div className={styles.story}>
       {chapters.map((chapter, i) => {
         switch (chapter.kind) {
-          case 'tagline':
-            return <TaglineChapter key={i} movie={chapter.movie} reduced={reduced} />;
           case 'quote':
             return <QuoteChapter key={i} movie={chapter.movie} text={chapter.text} reduced={reduced} />;
           case 'stripes':

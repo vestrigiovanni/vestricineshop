@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { buildStory, buildWeekend, excerptOverview, StoryChapter } from './storyBuilder';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 
-type TaglineChapter = Extract<StoryChapter, { kind: 'tagline' }>;
 type MarqueeChapter = Extract<StoryChapter, { kind: 'marquee' }>;
 type QuoteChapter = Extract<StoryChapter, { kind: 'quote' }>;
 type StripesChapter = Extract<StoryChapter, { kind: 'stripes' }>;
@@ -113,19 +112,21 @@ describe('buildStory', () => {
     const movies = [mk(1), mk(2), mk(3), mk(4), mk(5)];
     const chapters = buildStory(movies);
     expect(kinds(chapters)).toEqual([
-      'tagline', 'stripes', 'stats', 'logos', 'calendar',
-      'tagline', 'mosaic', 'marquee',
+      'quote', 'stripes', 'stats', 'logos', 'calendar',
+      'stripes', 'mosaic', 'marquee', 'quote',
     ]);
 
-    const t1 = chapters[0] as TaglineChapter;
+    const opening = chapters[0] as QuoteChapter;
     const stripes = chapters[1] as StripesChapter;
     const logos = chapters[3] as LogosChapter;
-    const t2 = chapters[5] as TaglineChapter;
-    expect(t1.movie.id).toBe(1);
+    const closing = chapters[chapters.length - 1] as QuoteChapter;
+    expect(opening.movie.id).toBe(1);
+    expect(opening.text).toBe('Slogan 1');
     expect(stripes.movies.map(m => m.id)).toEqual([2, 3, 4]);
     expect(stripes.backdropIndex).toBe(0);
     expect(logos.movies).toHaveLength(5);
-    expect(t2.movie.id).toBe(5);
+    // Chiusura: nessun film libero rimasto → primo film con frase diverso dall'apertura.
+    expect(closing.movie.id).toBe(2);
   });
 
   it('con 6 film aggiunge la seconda serie di strisce (backdropIndex 1)', () => {
@@ -133,7 +134,7 @@ describe('buildStory', () => {
     const chapters = buildStory(movies);
     const stripeChapters = chapters.filter(c => c.kind === 'stripes') as StripesChapter[];
     expect(stripeChapters).toHaveLength(2);
-    expect(stripeChapters[1].movies.map(m => m.id)).toEqual([6]);
+    expect(stripeChapters[1].movies.map(m => m.id)).toEqual([5, 6]);
     expect(stripeChapters[1].backdropIndex).toBe(1);
   });
 
@@ -152,13 +153,14 @@ describe('buildStory', () => {
     });
   });
 
-  it('usa una citazione dalla trama per i film senza tagline', () => {
+  it('la citazione usa la tagline se presente, altrimenti la trama', () => {
     const overview = 'Una lunga storia di mare e di vento che attraversa tre generazioni di pescatori sulle isole Orcadi.';
-    const movies = [mk(1), mk(2, { tagline: '', overview }), mk(3)];
-    const chapters = buildStory(movies);
-    const quote = chapters.find(c => c.kind === 'quote') as QuoteChapter;
-    expect(quote.movie.id).toBe(2);
-    expect(quote.text).toContain('Una lunga storia');
+    const conTagline = buildStory([mk(1), mk(2), mk(3)])[0] as QuoteChapter;
+    expect(conTagline.text).toBe('Slogan 1');
+
+    const senzaTagline = buildStory([mk(1, { tagline: '', overview }), mk(2), mk(3)])[0] as QuoteChapter;
+    expect(senzaTagline.movie.id).toBe(1);
+    expect(senzaTagline.text).toContain('Una lunga storia');
   });
 
   it('crea il capitolo premi solo se ci sono premiati, max 3', () => {
@@ -181,11 +183,11 @@ describe('buildStory', () => {
 
     const a = buildStory(movies, now, 12345);
     const b = buildStory(movies, now, 12345);
-    expect((a[0] as TaglineChapter).movie.id).toBe((b[0] as TaglineChapter).movie.id);
+    expect((a[0] as QuoteChapter).movie.id).toBe((b[0] as QuoteChapter).movie.id);
     expect(kinds(a)).toEqual(kinds(b));
 
     const firstIds = new Set(
-      [1, 2, 3, 4, 5, 6].map(seed => (buildStory(movies, now, seed)[0] as TaglineChapter).movie.id)
+      [1, 2, 3, 4, 5, 6].map(seed => (buildStory(movies, now, seed)[0] as QuoteChapter).movie.id)
     );
     expect(firstIds.size).toBeGreaterThan(1);
   });
@@ -202,10 +204,9 @@ describe('buildStory', () => {
   it('chiude con la frase di un film, preferendo i premiati (niente messaggi commerciali)', () => {
     const movies = Array.from({ length: 10 }, (_, i) => mk(i + 1, i === 9 ? { awards: [{}] } : {}));
     const chapters = buildStory(movies);
-    const last = chapters[chapters.length - 1] as TaglineChapter;
-    expect(last.kind).toBe('tagline');
+    const last = chapters[chapters.length - 1] as QuoteChapter;
+    expect(last.kind).toBe('quote');
     expect(last.movie.id).toBe(10);
-    expect(kinds(chapters)).not.toContain('outro');
   });
 
   it('salta loghi e marquee quando i film sono pochi', () => {
@@ -218,13 +219,13 @@ describe('buildStory', () => {
 
   it('con un solo film resta una sequenza minima senza capitoli vuoti', () => {
     const chapters = buildStory([mk(1)]);
-    expect(kinds(chapters)).toEqual(['tagline', 'stats', 'calendar']);
+    expect(kinds(chapters)).toEqual(['quote', 'stats', 'calendar']);
   });
 
-  it('film senza tagline non generano capitoli slogan', () => {
+  it('film senza tagline né trama non generano citazioni', () => {
     const movies = [mk(1, { tagline: '' }), mk(2, { tagline: undefined }), mk(3, { tagline: '  ' })];
     const chapters = buildStory(movies);
-    expect(kinds(chapters)).not.toContain('tagline');
+    expect(kinds(chapters)).not.toContain('quote');
     const stripes = chapters.find(c => c.kind === 'stripes') as StripesChapter;
     expect(stripes.movies).toHaveLength(3);
   });
