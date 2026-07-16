@@ -38,13 +38,13 @@
 .quoteChapter {
   position: relative;
   overflow: hidden;
-  min-height: 82vh;
+  min-height: 68vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 1.6rem;
-  padding: 6rem 1.5rem;
+  padding: 4rem 1.5rem;
   text-align: center;
 }
 
@@ -182,8 +182,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3rem;
-  padding: 6rem 1.5rem;
+  gap: 2.5rem;
+  padding: 4rem 1.5rem;
   text-align: center;
 }
 
@@ -229,7 +229,7 @@
   gap: clamp(1rem, 3vw, 2.5rem);
   align-items: center;
   justify-items: center;
-  padding: 5rem clamp(1.5rem, 8vw, 7rem);
+  padding: 3.5rem clamp(1.5rem, 8vw, 7rem);
 }
 
 .logoCell {
@@ -259,7 +259,7 @@
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  padding: 6rem 1.5rem;
+  padding: 4rem 1.5rem;
 }
 
 .festivalBlock {
@@ -267,7 +267,7 @@
   flex-direction: column;
   align-items: center;
   gap: 2rem;
-  margin-top: 3.5rem;
+  margin-top: 2.5rem;
   width: min(1100px, 100%);
 }
 
@@ -357,7 +357,7 @@
 .weekendChapter {
   display: flex;
   flex-direction: column;
-  padding: 6rem 0 4rem;
+  padding: 4rem 0 2.5rem;
 }
 
 .weekendIntro {
@@ -386,7 +386,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-top: 3.5rem;
+  margin-top: 2.5rem;
 }
 
 .weekendDayHeader {
@@ -575,7 +575,7 @@
 
 /* --- Capitolo calendario --- */
 .calendarChapter {
-  padding: 3rem 0 1rem;
+  padding: 2rem 0 0.5rem;
 }
 
 /* --- Mosaico poster --- */
@@ -584,7 +584,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: clamp(10px, 2vw, 24px);
   align-items: start;
-  padding: 6rem clamp(1rem, 6vw, 5rem);
+  padding: 4rem clamp(1rem, 6vw, 5rem);
 }
 
 .mosaicColumn {
@@ -615,7 +615,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 5rem 0;
+  padding: 3.5rem 0;
   overflow: hidden;
 }
 
@@ -700,12 +700,12 @@
 /* --- Mobile --- */
 @media (max-width: 768px) {
   .quoteChapter {
-    min-height: 60vh;
-    padding: 4rem 1.25rem;
+    min-height: 52vh;
+    padding: 3rem 1.25rem;
   }
 
   .statsChapter {
-    padding: 4rem 1rem;
+    padding: 3rem 1rem;
     gap: 2rem;
   }
 
@@ -719,7 +719,7 @@
 
   .logoWall {
     grid-template-columns: repeat(2, 1fr);
-    padding: 3.5rem 1.5rem;
+    padding: 2.5rem 1.5rem;
   }
 
   .stripeInfo {
@@ -732,7 +732,7 @@
   }
 
   .festivalChapter {
-    padding: 4rem 1rem;
+    padding: 3rem 1rem;
   }
 
   .festivalLogo {
@@ -744,11 +744,11 @@
   }
 
   .marqueeChapter {
-    padding: 3.5rem 0;
+    padding: 2.5rem 0;
   }
 
   .weekendChapter {
-    padding: 4rem 0 3rem;
+    padding: 3rem 0 2rem;
   }
 
   .weekendStrip {
@@ -773,7 +773,7 @@
   }
 
   .mosaic {
-    padding: 3.5rem 1rem;
+    padding: 2.5rem 1rem;
   }
 
   .mosaicColumn:nth-child(2) {
