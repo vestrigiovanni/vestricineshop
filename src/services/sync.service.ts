@@ -451,10 +451,25 @@ export async function syncFutureSubeventsSurgically() {
 
   try {
     console.log('[SYNC-FUTURE] Starting surgical background sync for future events...');
-    
+
     // 1. Get the list of future subevents (Skip cache to detect deletions)
     const rawSubEvents = await listSubEvents(true, false, true);
-    
+
+    // SAFETY GUARD: listSubEvents returns [] both when Pretix genuinely has zero
+    // future events AND when the request fails (network error, timeout, auth).
+    // Since the cleanup below mirrors the DB to this list, an empty list caused by
+    // a failed fetch would delete EVERY projection (Prisma `notIn: []` matches all
+    // rows) and then every orphaned movie. That is catastrophic and unrecoverable
+    // without a DB restore. We therefore refuse to run the destructive cleanup when
+    // the list is empty: a stale past projection is harmless (the homepage filters
+    // by dateFrom >= now), whereas wiping the DB is not. We still run the
+    // availability updates below (the loop is a no-op on an empty list).
+    if (rawSubEvents.length === 0) {
+      console.warn('[SYNC-FUTURE] ⚠️ Pretix returned no events (error or truly empty). Skipping cleanup to avoid wiping the DB.');
+      console.log('[SYNC-FUTURE] Finished surgical sync of 0 future events.');
+      return;
+    }
+
     // 2. STAGE 1: Cleanup (Mirroring)
     // We remove any projection in the DB that is NOT in the current "active/future" list from Pretix.
     // This effectively keeps the DB as a clean mirror of the current programming.
