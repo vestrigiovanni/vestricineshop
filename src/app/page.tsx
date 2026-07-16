@@ -156,6 +156,8 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
     isSoldOut: p.movie?.manualSoldOut || p.isSoldOut,
     roomName: p.movie?.customRoomName || p.roomName || 'Sala',
     active: p.active,
+    tmdbId: p.tmdbId || null,
+    posterPath: p.movie?.customPosterPath || null,
     meta_data: {
       lingua: p.metaLingua || p.movie?.versionLanguage || '',
       sottotitoli: p.metaSottotitoli || p.movie?.subtitles || '',
