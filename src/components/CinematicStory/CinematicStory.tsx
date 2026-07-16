@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, ComponentProps } from 'react';
 import Image from 'next/image';
-import { animate, motion, MotionValue, useInView, useMotionTemplate, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { animate, motion, MotionValue, useInView, useMotionTemplate, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
@@ -83,6 +83,10 @@ function QuoteChapter({ movie, text, reduced }: { movie: GroupedMovie; text: str
   );
 }
 
+// Molla condivisa dai parallax su scroll: smorza il progresso grezzo dello
+// scroll così il backdrop insegue morbido invece di saltellare col trackpad.
+const parallaxSpring = { stiffness: 90, damping: 28, mass: 0.4 } as const;
+
 function Stripe({ movie, flip, backdropIndex, reduced }: {
   movie: GroupedMovie;
   flip: boolean;
@@ -91,7 +95,10 @@ function Stripe({ movie, flip, backdropIndex, reduced }: {
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  const y = useTransform(scrollYProgress, [0, 1], ['-8%', '8%']);
+  const smooth = useSpring(scrollYProgress, parallaxSpring);
+  // Corsa ampia: il backdrop viaggia dal fondo alla cima mentre la striscia
+  // attraversa il viewport (il bleed extra sta in .stripeBg).
+  const y = useTransform(smooth, [0, 1], ['-16%', '16%']);
 
   const extras = movie.extraBackdrops || [];
   const backdrop = extras[backdropIndex] || extras[0] || movie.backdrop_path;

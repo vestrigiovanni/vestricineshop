@@ -105,10 +105,11 @@
   cursor: pointer;
 }
 
-/* Bleed verticale extra per il travel del parallax (±8%) */
+/* Bleed verticale extra per il travel ampio del parallax (±16%) */
 .stripeBg {
   position: absolute;
-  inset: -12% 0;
+  inset: -18% 0;
+  will-change: transform;
 }
 
 .stripeShade {
