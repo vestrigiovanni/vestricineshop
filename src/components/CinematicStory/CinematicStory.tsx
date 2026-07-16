@@ -465,26 +465,34 @@ function RevealSlide({ movie, index, count, progress }: {
 }) {
   const start = index / count;
   const end = (index + 1) / count;
-  const fade = (end - start) * 0.25;
+  const span = end - start;
+  // Finestre di dissolvenza CENTRATE sui confini tra slide: mentre uno
+  // svanisce il successivo sta già emergendo, la somma delle opacità resta
+  // ~1 e lo schermo non passa mai dal nero. Il primo slide parte visibile,
+  // l'ultimo resta visibile fino in fondo.
+  const w = span * 0.18;
+  const first = index === 0;
+  const last = index === count - 1;
 
-  // Il primo slide parte già visibile, l'ultimo resta visibile fino in fondo.
-  const opacity = useTransform(
-    progress,
-    [start, start + fade, end - fade, end],
-    [index === 0 ? 1 : 0, 1, 1, index === count - 1 ? 1 : 0]
-  );
-  const scale = useTransform(progress, [start, end], [1, 1.08]);
-  const logoOpacity = useTransform(
-    progress,
-    [start + fade * 0.6, start + fade * 1.6, end - fade * 1.6, end - fade * 0.6],
-    [index === 0 ? 1 : 0, 1, 1, index === count - 1 ? 1 : 0]
-  );
-  const logoBlur = useTransform(
-    progress,
-    [start + fade * 0.6, start + fade * 1.6, end - fade * 1.6, end - fade * 0.6],
-    [index === 0 ? 0 : 10, 0, 0, index === count - 1 ? 0 : 10]
-  );
+  const fadePts = first
+    ? [0, end - w, end + w]
+    : last
+      ? [start - w, start + w, 1]
+      : [start - w, start + w, end - w, end + w];
+  const fadeVals = first ? [1, 1, 0] : last ? [0, 1, 1] : [0, 1, 1, 0];
+  const opacity = useTransform(progress, fadePts, fadeVals);
+
+  // Il logo emerge dal buio poco dopo il backdrop e svanisce poco prima.
+  const logoPts = first
+    ? [0, end - w * 1.4, end + w * 0.2]
+    : last
+      ? [start - w * 0.2, start + w * 1.4, 1]
+      : [start - w * 0.2, start + w * 1.4, end - w * 1.4, end + w * 0.2];
+  const logoOpacity = useTransform(progress, logoPts, fadeVals);
+  const logoBlur = useTransform(progress, logoPts, fadeVals.map(v => (1 - v) * 10));
   const logoFilter = useMotionTemplate`blur(${logoBlur}px)`;
+
+  const scale = useTransform(progress, [Math.max(0, start - w), Math.min(1, end + w)], [1, 1.08]);
   const pointerEvents = useTransform(opacity, o => (o > 0.5 ? 'auto' : 'none'));
 
   const backdrop = pickRevealBackdrop(movie);
@@ -562,7 +570,7 @@ function RevealChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
   }
 
   return (
-    <section ref={ref} className={styles.reveal} style={{ height: `${movies.length * 120}vh` }}>
+    <section ref={ref} className={styles.reveal} style={{ height: `${movies.length * 100}vh` }}>
       <div className={styles.revealSticky}>
         {movies.map((m, i) => (
           <RevealSlide key={m.id} movie={m} index={i} count={movies.length} progress={scrollYProgress} />
