@@ -206,11 +206,11 @@ describe('buildStory', () => {
     expect(firstIds.size).toBeGreaterThan(1);
   });
 
-  it('con cataloghi grandi il muro loghi li mostra tutti; mosaico e marquee restano a tetto', () => {
+  it('con cataloghi grandi applica i tetti: 12 loghi, 12 mosaico, 16 marquee', () => {
     const now = new Date('2026-07-15T10:00:00Z');
     const movies = Array.from({ length: 20 }, (_, i) => mk(i + 1));
     const chapters = buildStory(movies, now, 42);
-    expect((chapters.find(c => c.kind === 'logos') as LogosChapter).movies).toHaveLength(20);
+    expect((chapters.find(c => c.kind === 'logos') as LogosChapter).movies).toHaveLength(12);
     expect((chapters.find(c => c.kind === 'mosaic') as MosaicChapter).movies).toHaveLength(12);
     expect((chapters.find(c => c.kind === 'marquee') as MarqueeChapter).movies).toHaveLength(16);
   });
