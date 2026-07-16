@@ -488,9 +488,9 @@
   padding: 0.5rem 1.1rem;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.28);
-  background: rgba(5, 5, 7, 0.45);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  /* Niente backdrop-filter: costa troppo in compositing sopra un layer in
+     parallax e contribuiva alla scattosità dello scroll. */
+  background: rgba(5, 5, 7, 0.72);
   font-family: var(--font-apple);
   font-size: 1rem;
   font-weight: 600;
@@ -526,6 +526,7 @@
 .revealBg {
   position: absolute;
   inset: 0;
+  will-change: transform;
 }
 
 .revealVignette {

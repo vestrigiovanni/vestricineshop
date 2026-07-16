@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, ComponentProps } from 'react';
 import Image from 'next/image';
-import { animate, motion, MotionValue, useInView, useMotionTemplate, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
+import { animate, motion, MotionValue, useInView, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
@@ -483,14 +483,14 @@ function RevealSlide({ movie, index, count, progress }: {
   const opacity = useTransform(progress, fadePts, fadeVals);
 
   // Il logo emerge dal buio poco dopo il backdrop e svanisce poco prima.
+  // Solo opacity: niente blur animato, che ricalcolato a ogni frame di
+  // scroll costa troppo e rende la navigazione scattosa.
   const logoPts = first
     ? [0, end - w * 1.4, end + w * 0.2]
     : last
       ? [start - w * 0.2, start + w * 1.4, 1]
       : [start - w * 0.2, start + w * 1.4, end - w * 1.4, end + w * 0.2];
   const logoOpacity = useTransform(progress, logoPts, fadeVals);
-  const logoBlur = useTransform(progress, logoPts, fadeVals.map(v => (1 - v) * 10));
-  const logoFilter = useMotionTemplate`blur(${logoBlur}px)`;
 
   const scale = useTransform(progress, [Math.max(0, start - w), Math.min(1, end + w)], [1, 1.08]);
   const pointerEvents = useTransform(opacity, o => (o > 0.5 ? 'auto' : 'none'));
@@ -510,11 +510,12 @@ function RevealSlide({ movie, index, count, progress }: {
           alt={movie.title}
           fill
           sizes="100vw"
+          loading="eager"
           style={{ objectFit: 'cover' }}
         />
       </motion.div>
       <div className={styles.revealVignette} aria-hidden="true" />
-      <motion.div className={styles.revealLogoWrap} style={{ opacity: logoOpacity, filter: logoFilter }}>
+      <motion.div className={styles.revealLogoWrap} style={{ opacity: logoOpacity }}>
         {movie.logo_path ? (
           <Image
             src={getTMDBImageUrl(movie.logo_path, 'w500')!}

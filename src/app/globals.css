@@ -29,7 +29,9 @@
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
+  /* clip e non hidden: hidden crea uno scroll container e rompe position:sticky
+     (il Reveal in home resterebbe fermo lasciando schermate nere). */
+  overflow-x: clip;
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-apple);
