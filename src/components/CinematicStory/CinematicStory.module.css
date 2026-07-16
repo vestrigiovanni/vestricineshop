@@ -429,6 +429,13 @@
   cursor: pointer;
 }
 
+/* Bleed extra per l'inseguimento del mouse (offset fino a ±36px) */
+.weekendBgInner {
+  position: absolute;
+  inset: -3%;
+  will-change: transform;
+}
+
 .weekendStripShade {
   position: absolute;
   inset: 0;

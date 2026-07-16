@@ -303,7 +303,28 @@ function FestivalChapter({ groups, reduced }: { groups: FestivalGroup[]; reduced
 function WeekendStrip({ show, reduced }: { show: WeekendShow; reduced: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  const y = useTransform(scrollYProgress, [0, 1], ['-8%', '8%']);
+  const smooth = useSpring(scrollYProgress, parallaxSpring);
+  const y = useTransform(smooth, [0, 1], ['-16%', '16%']);
+
+  // Il backdrop insegue il mouse (in direzione opposta, effetto profondità)
+  // e torna al centro quando il cursore esce dalla striscia.
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const mx = useSpring(mouseX, { stiffness: 60, damping: 18, mass: 0.6 });
+  const my = useSpring(mouseY, { stiffness: 60, damping: 18, mass: 0.6 });
+
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (reduced) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    mouseX.set(px * -36);
+    mouseY.set(py * -24);
+  };
+  const onMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+  };
 
   const movie = show.movie;
   // Quarto backdrop: le strisce narrative usano [0] e [1], le citazioni [2].
@@ -316,6 +337,8 @@ function WeekendStrip({ show, reduced }: { show: WeekendShow; reduced: boolean }
       ref={ref}
       className={styles.weekendStrip}
       onClick={() => selectMovie(movie.id)}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
       role="button"
       tabIndex={0}
       onKeyDown={e => {
@@ -327,13 +350,15 @@ function WeekendStrip({ show, reduced }: { show: WeekendShow; reduced: boolean }
     >
       {backdrop && (
         <motion.div className={styles.stripeBg} style={reduced ? undefined : { y }}>
-          <Image
-            src={getTMDBImageUrl(backdrop, 'w1280')!}
-            alt={movie.title}
-            fill
-            sizes="100vw"
-            style={{ objectFit: 'cover' }}
-          />
+          <motion.div className={styles.weekendBgInner} style={reduced ? undefined : { x: mx, y: my }}>
+            <Image
+              src={getTMDBImageUrl(backdrop, 'w1280')!}
+              alt={movie.title}
+              fill
+              sizes="100vw"
+              style={{ objectFit: 'cover' }}
+            />
+          </motion.div>
         </motion.div>
       )}
       <div className={styles.weekendStripShade} />
