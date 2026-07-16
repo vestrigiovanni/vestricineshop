@@ -1,5 +1,5 @@
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
-import { FESTIVAL_PRESTIGE, FestivalInfo, resolveFestival } from './festivals';
+import { FESTIVAL_HOMEPAGE, FESTIVAL_PRESTIGE, FestivalInfo, resolveFestival } from './festivals';
 
 export interface StoryStats {
   filmCount: number;
@@ -176,28 +176,54 @@ export function buildWeekend(movies: GroupedMovie[], now: Date = new Date()): We
 interface AwardLike {
   type?: string;
   label?: string;
+  details?: string | null;
   year?: number | null;
+}
+
+/**
+ * Estrae il riconoscimento da mostrare sotto il poster: il premio vinto,
+ * altrimenti la candidatura, altrimenti il testo dei details così com'è
+ * (es. "Selezione Ufficiale"). `label` è il nome del festival, mai usato qui.
+ * Il rank decide quale riconoscimento vince quando un film ne ha più d'uno
+ * allo stesso festival: Vincitore > Candidatura > il resto.
+ */
+function awardHighlight(award: AwardLike): { text: string; rank: number } {
+  const details = (award.details || '').trim();
+  const year = award.year ? String(award.year) : '';
+  const withYear = (t: string) => (t && year ? `${t} · ${year}` : t || year);
+
+  const win = details.match(/Vincitore:\s*([^·]+)/i)?.[1]?.split(',')[0]?.trim();
+  if (win) return { text: withYear(win), rank: 2 };
+
+  const nomination = details.match(/Candidatura:\s*([^·]+)/i)?.[1]?.split(',')[0]?.trim();
+  if (nomination) return { text: withYear(`Candidatura: ${nomination}`), rank: 1 };
+
+  return { text: withYear(details), rank: 0 };
 }
 
 /**
  * Raggruppa i film premiati per festival: il festival è il protagonista,
  * sotto di lui i poster dei film in programmazione candidati o vincitori.
+ * In homepage entrano solo i festival della whitelist FESTIVAL_HOMEPAGE.
  */
 export function buildFestivalGroups(movies: GroupedMovie[]): FestivalGroup[] {
-  const map = new Map<string, { festival: FestivalInfo; films: Map<number, FestivalFilm> }>();
+  const map = new Map<string, { festival: FestivalInfo; films: Map<number, FestivalFilm & { rank: number }> }>();
 
   for (const movie of movies) {
     for (const award of (movie.awards || []) as AwardLike[]) {
       const festival = resolveFestival(award.type || '');
+      if (!FESTIVAL_HOMEPAGE.has(festival.key)) continue;
+
       let group = map.get(festival.key);
       if (!group) {
         group = { festival, films: new Map() };
         map.set(festival.key, group);
       }
-      // Primo riconoscimento del film a questo festival: diventa l'etichetta.
-      if (!group.films.has(movie.id)) {
-        const awardLabel = [award.label, award.year].filter(Boolean).join(' · ');
-        group.films.set(movie.id, { movie, awardLabel });
+      const { text, rank } = awardHighlight(award);
+      const existing = group.films.get(movie.id);
+      // Il riconoscimento migliore diventa l'etichetta sotto il poster.
+      if (!existing || rank > existing.rank) {
+        group.films.set(movie.id, { movie, awardLabel: text, rank });
       }
     }
   }
@@ -208,7 +234,10 @@ export function buildFestivalGroups(movies: GroupedMovie[]): FestivalGroup[] {
   };
 
   return Array.from(map.values())
-    .map(g => ({ festival: g.festival, films: Array.from(g.films.values()) }))
+    .map(g => ({
+      festival: g.festival,
+      films: Array.from(g.films.values()).map(({ movie, awardLabel }) => ({ movie, awardLabel })),
+    }))
     .sort((a, b) => b.films.length - a.films.length || prestige(a.festival.key) - prestige(b.festival.key));
 }
 

@@ -13,7 +13,7 @@ const STD = { logoWidth: 95, logoHeight: 95 };
 
 export const FESTIVALS: Record<string, FestivalInfo> = {
   cannes: { key: 'cannes', name: 'Festival di Cannes', logo: '/logos/cannes_v1.png', ...STD },
-  venice: { key: 'venice', name: 'Mostra di Venezia', logo: '/logos/venezia_v1.png', ...STD },
+  venice: { key: 'venice', name: "Mostra Internazionale d'Arte Cinematografica di Venezia", logo: '/logos/venezia_v1.png', ...STD },
   berlin: { key: 'berlin', name: 'Berlinale', logo: '/logos/berlinale_v1.png', ...STD },
   oscar: { key: 'oscar', name: 'Academy Awards', logo: '/logos/oscars_v1.png', ...STD },
   bafta: { key: 'bafta', name: 'BAFTA', logo: '/logos/bafta_v1.png', ...STD },
@@ -25,6 +25,9 @@ export const FESTIVALS: Record<string, FestivalInfo> = {
   nastri: { key: 'nastri', name: "Nastri d'Argento", logo: '/logos/nastri.png', ...STD },
   romacinemafest: { key: 'romacinemafest', name: 'Festa del Cinema di Roma', logo: '/logos/roma.png', ...STD },
 };
+
+/** Festival mostrati nella sezione homepage "Dai festival alla nostra sala". */
+export const FESTIVAL_HOMEPAGE = new Set(['cannes', 'oscar', 'venice', 'davids']);
 
 /** Tie-break nell'ordinamento dei blocchi festival. */
 export const FESTIVAL_PRESTIGE = [

@@ -276,33 +276,53 @@ describe('buildStory', () => {
 });
 
 describe('buildFestivalGroups', () => {
-  it('raggruppa i film per festival, ordina per numero di film e poi prestigio', () => {
+  it('tiene solo i festival della whitelist homepage (Cannes, Oscar, Venezia, David)', () => {
     const movies = [
-      mk(1, { awards: [
-        { type: 'cannes', label: "Palma d'Oro", year: 2024 },
-        { type: 'venice', label: "Leone d'Argento", year: 2023 },
-      ] }),
-      mk(2, { awards: [{ type: 'venice', label: 'Coppa Volpi', year: 2025 }] }),
-      mk(3, { awards: [{ type: 'VENICE ', label: "Leone d'Oro" }] }),
+      mk(1, { awards: [{ type: 'cannes', label: 'Festival de Cannes', details: "Vincitore: Palma d'Oro", year: 2024 }] }),
+      mk(2, { awards: [{ type: 'berlin', label: 'Berlinale', details: "Vincitore: Orso d'Oro", year: 2023 }] }),
+      mk(3, { awards: [{ type: 'toronto', label: 'TIFF', details: 'Selezione Ufficiale', year: 2022 }] }),
+      mk(4, { awards: [{ type: 'davids', label: 'David di Donatello', details: 'Vincitore: Miglior film', year: 2025 }] }),
     ];
     const groups = buildFestivalGroups(movies);
-
-    expect(groups.map(g => g.festival.key)).toEqual(['venice', 'cannes']);
-    expect(groups[0].films.map(f => f.movie.id)).toEqual([1, 2, 3]);
-    expect(groups[0].films[0].awardLabel).toBe("Leone d'Argento · 2023");
-    expect(groups[0].films[2].awardLabel).toBe("Leone d'Oro");
-    expect(groups[1].films.map(f => f.movie.id)).toEqual([1]);
+    expect(groups.map(g => g.festival.key).sort()).toEqual(['cannes', 'davids']);
   });
 
-  it('a parità di film vince il prestigio; alias e tipi ignoti hanno un fallback', () => {
+  it('ordina per numero di film e poi per prestigio', () => {
     const movies = [
-      mk(1, { awards: [{ type: 'venice', label: 'Premio' }] }),
-      mk(2, { awards: [{ type: 'cannes', label: 'Premio' }] }),
-      mk(3, { awards: [{ type: 'TIFF People Choice', label: 'Premio' }] }),
-      mk(4, { awards: [{ type: 'sconosciuto', label: 'Premio' }] }),
+      mk(1, { awards: [
+        { type: 'venice', label: 'Mostra', details: "Vincitore: Leone d'Oro", year: 2020 },
+        { type: 'cannes', label: 'Cannes', details: 'Selezione Ufficiale', year: 2020 },
+      ] }),
+      mk(2, { awards: [{ type: 'venice', label: 'Mostra', details: 'Selezione Ufficiale', year: 2021 }] }),
+      mk(3, { awards: [{ type: 'davids', label: 'David', details: 'Vincitore: Miglior film', year: 2022 }] }),
+      mk(4, { awards: [{ type: 'oscar', label: 'Oscar', details: 'Candidatura: Miglior film', year: 2023 }] }),
     ];
     const groups = buildFestivalGroups(movies);
-    expect(groups.map(g => g.festival.key)).toEqual(['cannes', 'venice', 'oscar', 'toronto']);
+    expect(groups.map(g => g.festival.key)).toEqual(['venice', 'cannes', 'oscar', 'davids']);
+  });
+
+  it('sotto il poster va il premio parsato dai details, non il nome del festival', () => {
+    const movies = [
+      mk(1, { awards: [{ type: 'cannes', label: 'Festival de Cannes', details: "Vincitore: Palma d'Oro, Prix du Jury", year: 2024 }] }),
+      mk(2, { awards: [{ type: 'cannes', label: 'Festival de Cannes', details: "Candidatura: Palma d'Oro", year: 2019 }] }),
+      mk(3, { awards: [{ type: 'cannes', label: 'Festival de Cannes', details: 'Selezione Ufficiale', year: 2007 }] }),
+      mk(4, { awards: [{ type: 'cannes', label: 'Festival de Cannes', year: 2001 }] }),
+    ];
+    const films = buildFestivalGroups(movies)[0].films;
+    expect(films[0].awardLabel).toBe("Palma d'Oro · 2024");
+    expect(films[1].awardLabel).toBe("Candidatura: Palma d'Oro · 2019");
+    expect(films[2].awardLabel).toBe('Selezione Ufficiale · 2007');
+    expect(films[3].awardLabel).toBe('2001');
+  });
+
+  it('con più riconoscimenti allo stesso festival vince il Vincitore sulla Selezione', () => {
+    const movies = [
+      mk(1, { awards: [
+        { type: 'venice', label: 'Mostra', details: 'Selezione Ufficiale', year: 2016 },
+        { type: 'venice', label: 'Mostra', details: "Vincitore: Leone d'Oro", year: 2016 },
+      ] }),
+    ];
+    expect(buildFestivalGroups(movies)[0].films[0].awardLabel).toBe("Leone d'Oro · 2016");
   });
 
   it('senza premi non produce gruppi', () => {
