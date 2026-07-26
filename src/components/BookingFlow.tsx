@@ -486,7 +486,6 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
                 selectedSeats={new Set(selectedSeats.keys())}
                 onSeatToggle={handleSeatToggle}
                 subeventId={selectedSubeventId}
-                onClose={onClose}
               />
             </div>
 
@@ -542,7 +541,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
                 disabled={count === 0}
                 onClick={startCheckout}
               >
-                PROCEDI ALL&apos;ACQUISTO
+                Procedi all&apos;acquisto
               </button>
               {count === 0 && (
                 <p className={styles.hintText}>Seleziona almeno un posto per continuare</p>

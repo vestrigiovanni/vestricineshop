@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { RotateCcw, X, Loader2, Info } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 import { getSubEventSeats } from '@/services/pretix';
 import styles from './SeatMap.module.css';
 
@@ -7,7 +7,6 @@ interface SeatMapProps {
   selectedSeats: Set<string>;
   onSeatToggle: (seatId: string, label: string) => void;
   subeventId?: number | null;
-  onClose?: () => void;
 }
 
 interface Seat {
@@ -19,7 +18,7 @@ interface Seat {
   isVip: boolean;
 }
 
-export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClose }: SeatMapProps) {
+export default function SeatMap({ selectedSeats, onSeatToggle, subeventId }: SeatMapProps) {
   const [seats, setSeats] = useState<Seat[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,10 +41,10 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClo
 
         // 2. Process into a simple list
         const extractedSeats: Seat[] = statusData.map((s: any) => {
-          const isVip = 
+          const isVip =
             (typeof s.seat_guid === 'string' && s.seat_guid.toUpperCase().includes('VIP')) ||
             (typeof s.category === 'string' && (s.category.toUpperCase().includes('VIP') || s.category.toUpperCase().includes('POLTRONA')));
-          
+
           return {
             id: s.seat_guid || s.id.toString(),
             name: s.name || `Posto ${s.seat_number}`,
@@ -75,10 +74,23 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClo
     loadData();
   }, [subeventId]);
 
+  // ── Raggruppa i posti per fila (i posti sono già ordinati) ────
+  const rows = useMemo(() => {
+    const grouped: { row: string; seats: Seat[] }[] = [];
+    for (const seat of seats) {
+      const last = grouped[grouped.length - 1];
+      if (last && last.row === seat.row) last.seats.push(seat);
+      else grouped.push({ row: seat.row, seats: [seat] });
+    }
+    return grouped;
+  }, [seats]);
+
+  const hasRowLabels = rows.some(r => r.row !== '');
+
   if (loading) return (
     <div className={styles.loadingContainer}>
-      <Loader2 className={styles.spinner} size={48} />
-      <span>Sincronizzazione posti in tempo reale...</span>
+      <Loader2 className={styles.spinner} size={36} />
+      <span>Caricamento posti…</span>
     </div>
   );
 
@@ -87,62 +99,62 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onClo
       <div className={styles.stageArea}>
         <div className={styles.screenWrapper}>
           <div className={styles.screenCurve} />
-          <span className={styles.screenLabel}>SCHERMO / PALCO</span>
+          <span className={styles.screenLabel}>Schermo</span>
         </div>
       </div>
 
       <div className={styles.container}>
         {seats.length > 0 ? (
-          <div className={styles.simplifiedRow}>
-            {seats.map(seat => {
-              const isSelected = selectedSeats.has(seat.id);
-              const label = seat.row ? `Fila ${seat.row} - Posto ${seat.seat}` : seat.name;
+          <div className={styles.rows}>
+            {rows.map(({ row, seats: rowSeats }) => (
+              <div className={styles.row} key={row || 'sala'}>
+                {hasRowLabels && <span className={styles.rowLabel} aria-hidden="true">{row}</span>}
+                <div className={styles.rowSeats}>
+                  {rowSeats.map(seat => {
+                    const isSelected = selectedSeats.has(seat.id);
+                    // I posti "poltrona" non sono acquistabili online (bloccati lato server):
+                    // li mostriamo come non disponibili invece di far fallire il checkout.
+                    const isDisabled = seat.isOccupied || seat.isVip;
+                    const label = seat.row ? `Fila ${seat.row} - Posto ${seat.seat}` : seat.name;
 
-              return (
-                <button
-                  key={seat.id}
-                  disabled={seat.isOccupied}
-                  type="button"
-                  onClick={() => onSeatToggle(seat.id, label)}
-                  className={[
-                    styles.seat,
-                    seat.isOccupied ? styles.occupied : isSelected ? styles.selected : styles.available,
-                    seat.isVip ? styles.vip : '',
-                    styles.simplifiedSeat
-                  ].join(' ')}
-                  title={label + (seat.isOccupied ? ' (Occupato)' : '')}
-                >
-                  <span className={styles.seatLabel}>
-                    {seat.seat || seat.name}
-                  </span>
-                  {seat.row && <span className={styles.rowSubLabel}>{seat.row}</span>}
-                </button>
-              );
-            })}
+                    return (
+                      <button
+                        key={seat.id}
+                        disabled={isDisabled}
+                        type="button"
+                        aria-label={label}
+                        aria-pressed={isSelected}
+                        onClick={() => onSeatToggle(seat.id, label)}
+                        className={[
+                          styles.seat,
+                          isDisabled ? styles.occupied : isSelected ? styles.selected : styles.available
+                        ].join(' ')}
+                        title={isDisabled ? `${label} — non disponibile` : label}
+                      >
+                        <span className={styles.seatLabel}>
+                          {seat.seat || seat.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {hasRowLabels && <span className={styles.rowLabel} aria-hidden="true">{row}</span>}
+              </div>
+            ))}
           </div>
         ) : (
           <div className={styles.noSeats}>
-            <Info size={48} className={styles.noSeatsIcon} />
-            <p className={styles.errorTitle}>NESSUN POSTO DISPONIBILE</p>
-            <span>Pretix non ha restituito posti per questo evento ({subeventId}).</span>
+            <Info size={32} className={styles.noSeatsIcon} />
+            <p className={styles.errorTitle}>Nessun posto disponibile</p>
+            <span>Non ci sono posti da mostrare per questa proiezione.</span>
           </div>
-        )}
-      </div>
-
-      <div className={styles.bottomActions}>
-        {onClose && (
-          <button onClick={onClose} className={styles.closeBtn} title="Chiudi">
-            <X size={20} />
-            <span>Chiudi Mappa</span>
-          </button>
         )}
       </div>
 
       <div className={styles.legend}>
-        <div className={styles.legendItem}><div className={[styles.dot, styles.dotAvailable].join(' ')} /><span>Libero</span></div>
-        <div className={styles.legendItem}><div className={[styles.dot, styles.dotSelected].join(' ')} /><span>Selezionato</span></div>
-        <div className={styles.legendItem}><div className={[styles.dot, styles.dotOccupied].join(' ')} /><span>Occupato</span></div>
-        <div className={styles.legendItem}><div className={[styles.dot, styles.dotVip].join(' ')} /><span>⭐ VIP</span></div>
+        <div className={styles.legendItem}><span className={[styles.dot, styles.dotAvailable].join(' ')} /><span>Libero</span></div>
+        <div className={styles.legendItem}><span className={[styles.dot, styles.dotSelected].join(' ')} /><span>Selezionato</span></div>
+        <div className={styles.legendItem}><span className={[styles.dot, styles.dotOccupied].join(' ')} /><span>Non disponibile</span></div>
       </div>
     </div>
   );

@@ -182,8 +182,8 @@
   border: none;
   border-radius: 14px;
   font-size: 0.95rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 10px 20px -5px rgba(255, 255, 255, 0.2);
@@ -217,7 +217,7 @@
   font-size: 0.7rem;
   color: rgba(255, 255, 255, 0.35);
   margin: 0;
-  text-align: right;
+  text-align: center;
 }
 
 .seatsSummary {
@@ -354,10 +354,10 @@
   }
 
   .proceedBtn {
-    padding: 1.25rem;
-    font-size: 1.1rem;
+    padding: 1.15rem;
+    font-size: 1rem;
     border-radius: 16px;
-    box-shadow: 0 0 40px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 8px 30px -8px rgba(255, 255, 255, 0.25);
   }
 
   .subeventList {
