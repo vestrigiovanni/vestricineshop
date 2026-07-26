@@ -451,6 +451,39 @@ export async function planningCommitStatus(jobId: string): Promise<CommitJob | n
   return getJob(jobId);
 }
 
+/**
+ * Elimina uno spettacolo: da Pretix, dal database e — se era l'ultima
+ * proiezione di quel film — anche i suoi metadati. `adminDeleteEvent` fa già
+ * tutte e tre le cose, qui si aggiunge solo la rete di sicurezza.
+ *
+ * Di default si RIFIUTA se ci sono biglietti pagati: cancellare il sub-evento
+ * lascerebbe orfani ordini di gente che ha pagato davvero. Chi vuole procedere
+ * comunque — perché sta annullando lo spettacolo e rimborserà dal pannello
+ * Pretix — passa `force`.
+ */
+export async function planningDeleteShow(
+  pretixId: number,
+  force = false
+): Promise<{ deleted: boolean; soldTickets: number; error?: string }> {
+  const { countSoldTickets } = await import('@/services/pretix');
+  const { adminDeleteEvent } = await import('@/actions/adminActions');
+
+  const soldTickets = await countSoldTickets(pretixId);
+  if (soldTickets > 0 && !force) {
+    return {
+      deleted: false,
+      soldTickets,
+      error:
+        soldTickets === 1
+          ? "C'è già 1 biglietto venduto per questo spettacolo."
+          : `Ci sono già ${soldTickets} biglietti venduti per questo spettacolo.`,
+    };
+  }
+
+  await adminDeleteEvent(pretixId);
+  return { deleted: true, soldTickets };
+}
+
 /** Il primo giorno programmabile: oggi, se non è già troppo tardi. */
 export async function planningDefaultStartDate(): Promise<string> {
   const now = new Date();

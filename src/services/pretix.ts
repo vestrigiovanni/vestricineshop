@@ -963,6 +963,24 @@ export async function setSubEventPriceOverrides(subeventId: number, itemOverride
 }
 
 /**
+ * Quanti biglietti pagati esistono per uno spettacolo.
+ *
+ * Serve prima di eliminare: cancellare un sub-evento su cui qualcuno ha già
+ * comprato lascia gli ordini orfani, e sono persone che hanno pagato davvero.
+ *
+ * Costa una richiesta sola: si chiede `limit=1` e si legge il totale che Pretix
+ * mette in `count`, senza scaricare le posizioni una per una.
+ */
+export async function countSoldTickets(subEventId: number): Promise<number> {
+  const data = await fetchPretix(
+    `/orderpositions/?subevent=${subEventId}&order__status=p&limit=1`,
+    {},
+    true // niente cache: qui una risposta vecchia farebbe danni
+  );
+  return typeof data?.count === 'number' ? data.count : 0;
+}
+
+/**
  * Deletes a sub-event from Pretix.
  */
 export async function deleteSubEvent(subEventId: number) {
