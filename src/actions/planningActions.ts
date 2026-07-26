@@ -34,6 +34,7 @@ import {
   summarizeDay,
   type FreeGap,
 } from '@/services/scheduling/occupancy';
+import { findFreeSlots, SLOTS_PER_DAY } from '@/services/scheduling/freeSlots';
 import { msToGlobalMinute, romeClock, todayInRome } from '@/services/scheduling/rome';
 import { getJob, type CommitJob } from '@/services/scheduling/commitJobs';
 import { startCommit, type CommitInput } from '@/services/scheduling/commitRunner';
@@ -433,6 +434,168 @@ export async function planningSnapShow(
 /** I dati dei film necessari alla creazione, per chi non li ha già. */
 export async function planningGetFilmInfo(tmdbIds: string[]): Promise<PlanningFilmInfo[]> {
   return [...(await loadFilmInfo(tmdbIds)).values()];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROGRAMMAZIONE AL CONTRARIO — prima il film, poi gli orari
+//
+// Il percorso normale parte dal periodo e chiede al motore di riempirlo. Qui si
+// parte dal film e si chiede dove ci sta: si scandiscono i giorni a partire da
+// oggi e si tengono solo quelli che hanno spazio davvero, il più vicino per
+// primo. Le regole di orario sono le stesse del motore — stanno in
+// `scheduling/freeSlots`, che le prende in prestito da `engine` — così un
+// orario proposto qui è per costruzione un orario che il motore accetterà.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Un orario libero in cui il film scelto potrebbe entrare. */
+export interface SlotProposal {
+  /** Giorno di programmazione: le 00:30 appartengono alla serata precedente. */
+  day: string;
+  /** Data di calendario da mandare a Pretix (dopo la mezzanotte è `day` + 1). */
+  date: string;
+  time: string;
+  endTime: string;
+  /** Minuto globale, riferito a `fromDate`. */
+  startMinute: number;
+  endMinute: number;
+  band: Band;
+}
+
+export interface SlotDay {
+  /** Giorno di programmazione. */
+  day: string;
+  weekday: string;
+  isWeekend: boolean;
+  /** Quanto è già piena la giornata: 0 vuota, 1 piena. */
+  saturation: number;
+  /** Cosa c'è già in sala quel giorno, per capire dove si incastra la proposta. */
+  existing: ExistingShow[];
+  slots: SlotProposal[];
+}
+
+export interface PlanningFindSlotsResult {
+  /** `null` se TMDB non conosce il film o non ne conosce la durata. */
+  film: PlanningFilmInfo | null;
+  /** Origine della scansione, e quindi dei minuti globali qui dentro. */
+  fromDate: string;
+  /** Solo i giorni che hanno almeno un orario libero, dal più vicino. */
+  days: SlotDay[];
+  /** Quanti giorni sono stati guardati per trovarli. */
+  scannedDays: number;
+  /** Fin dove ci si era spinti a guardare. */
+  horizonDays: number;
+  /** Perché non c'è nessuna proposta, quando non ce n'è. */
+  reason?: string;
+}
+
+export interface PlanningFindSlotsInput {
+  seatingPlanId: number;
+  tmdbId: string;
+  /** Da quando cercare. Default: il primo giorno programmabile. */
+  fromDate?: string;
+  /** Quanti giorni *con spazio* restituire. */
+  maxDays?: number;
+  /** Fin dove spingersi a cercarli. */
+  horizonDays?: number;
+  /** Quanti orari proporre per giornata. */
+  perDay?: number;
+  /** Solo orari in questa fascia. */
+  band?: Band;
+}
+
+const clampInt = (v: number, lo: number, hi: number) => Math.min(Math.max(Math.trunc(v), lo), hi);
+
+/**
+ * Gli orari liberi per un film, giorno per giorno, dal più vicino a oggi.
+ *
+ * Si ferma appena ha trovato `maxDays` giornate con spazio: cercarne trenta
+ * quando ne servono sette sarebbe lavoro buttato, e la risposta deve arrivare
+ * mentre l'utente guarda la schermata. I giorni pieni vengono saltati in
+ * silenzio — è esattamente ciò che si vuole vedere: solo dove si può andare.
+ */
+export async function planningFindSlots(
+  input: PlanningFindSlotsInput
+): Promise<PlanningFindSlotsResult> {
+  const fromDate = input.fromDate || (await planningDefaultStartDate());
+  const horizonDays = clampInt(input.horizonDays ?? 21, 1, 60);
+  const maxDays = clampInt(input.maxDays ?? 7, 1, 30);
+  const perDay = clampInt(input.perDay ?? SLOTS_PER_DAY, 1, 12);
+
+  const film = (await loadFilmInfo([input.tmdbId])).get(input.tmdbId) ?? null;
+  const empty = (reason: string): PlanningFindSlotsResult => ({
+    film,
+    fromDate,
+    days: [],
+    scannedDays: 0,
+    horizonDays,
+    reason,
+  });
+
+  if (!film) return empty('Questo film non risulta su TMDB.');
+  if (!film.runtime || film.runtime <= 0) {
+    return empty(`Di «${film.title}» non si conosce la durata: senza, non so quanto spazio serve.`);
+  }
+
+  // Una lettura sola della sala per tutta la finestra: leggerla giorno per
+  // giorno significherebbe una chiamata a Pretix per giornata scandita.
+  const { shows, occupied } = await readRoomOccupancy(input.seatingPlanId, fromDate, horizonDays);
+  const notBefore = msToGlobalMinute(Date.now() + 30 * 60000, fromDate);
+
+  const days: SlotDay[] = [];
+  let scannedDays = 0;
+
+  for (let d = 0; d < horizonDays && days.length < maxDays; d++) {
+    scannedDays = d + 1;
+
+    const slots = findFreeSlots({
+      runtime: film.runtime,
+      dayIndex: d,
+      occupied,
+      notBefore,
+      band: input.band,
+      limit: perDay,
+    });
+    if (slots.length === 0) continue;
+
+    const day = addDaysISO(fromDate, d);
+    const dayShows = shows
+      .filter((s) => s.dayIndex === d)
+      .sort((a, b) => a.startMinute - b.startMinute);
+    const summary = summarizeDay(
+      dayShows.map((s) => ({ start: s.startMinute, end: s.endMinute + MIN_GAP_MINUTES })),
+      d
+    );
+
+    days.push({
+      day,
+      weekday: new Date(`${day}T12:00:00Z`).toLocaleDateString('it-IT', { weekday: 'long', timeZone: 'UTC' }),
+      isWeekend: isWeekend(day),
+      saturation: summary.saturation,
+      existing: dayShows.map(({ dayIndex: _d, tmdbId: _t, ...rest }) => rest),
+      slots: slots.map((s) => ({
+        day,
+        // Uno spettacolo che comincia dopo la mezzanotte appartiene a questa
+        // serata ma alla data di calendario successiva: è quella che va a Pretix.
+        date: addDaysISO(fromDate, Math.floor(s.startMinute / MINUTES_PER_DAY)),
+        time: formatClock(s.startMinute),
+        endTime: formatClock(s.endMinute),
+        startMinute: s.startMinute,
+        endMinute: s.endMinute,
+        band: s.band,
+      })),
+    });
+  }
+
+  return {
+    film,
+    fromDate,
+    days,
+    scannedDays,
+    horizonDays,
+    reason: days.length === 0
+      ? `In ${scannedDays} giorni non c'è un buco da ${film.runtime}′ in questa sala: prova un'altra sala o guarda più avanti.`
+      : undefined,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

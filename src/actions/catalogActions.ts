@@ -369,6 +369,62 @@ export async function catalogSearchTmdb(query: string) {
   return searchMovies(q, false, 'it-IT');
 }
 
+/** Quali di questi id TMDB sono già in catalogo. */
+export async function catalogWhichExist(tmdbIds: string[]): Promise<string[]> {
+  const ids = tmdbIds.filter(Boolean);
+  if (ids.length === 0) return [];
+  const rows = await prisma.catalogFilm.findMany({
+    where: { tmdbId: { in: ids } },
+    select: { tmdbId: true },
+    distinct: ['tmdbId'],
+  });
+  return rows.map((r) => r.tmdbId!).filter(Boolean);
+}
+
+/**
+ * Un film di TMDB nella forma che il wizard sa maneggiare, **senza** scriverlo
+ * in catalogo.
+ *
+ * Serve a programmare un titolo di passaggio. La creazione degli spettacoli
+ * legge titolo, durata e locandina da TMDB (vedi `commitRunner`), non dalla
+ * riga di catalogo: quella riga quindi non è un requisito tecnico, è una
+ * decisione di archivio. E siccome è una decisione, la prende l'utente — questa
+ * funzione non tocca il database.
+ */
+export async function catalogPreviewTmdb(tmdbId: string) {
+  const details = await getMovieDetails(tmdbId);
+  if (!details) return null;
+
+  // Se il film in catalogo c'è già, i suoi dati vincono: sono quelli corretti a
+  // mano, e mostrarne di diversi farebbe sembrare il film un doppione.
+  const existing = await prisma.catalogFilm.findFirst({ where: { tmdbId }, orderBy: { id: 'asc' } });
+  const scheduledCount = await prisma.pretixSync.count({ where: { tmdbId } });
+
+  const year = details.release_date ? parseInt(details.release_date.slice(0, 4), 10) : null;
+  const runtime = existing?.runtime ?? details.runtime ?? null;
+
+  return {
+    id: existing?.id ?? 0,
+    title: existing?.title || details.title || details.original_title || `TMDB ${tmdbId}`,
+    year: existing?.year ?? (Number.isFinite(year as number) ? year : null),
+    durationMin: existing?.durationMin ?? details.runtime ?? null,
+    runtime,
+    director: existing?.director ?? getDirectors(details)[0] ?? null,
+    tmdbId,
+    posterPath: existing?.posterPath ?? details.poster_path ?? null,
+    genres: existing?.genres?.length ? existing.genres : (details.genres ?? []).map((g) => g.name),
+    voteAverage: existing?.voteAverage ?? details.vote_average ?? null,
+    awardLabels: existing?.awardLabels ?? [],
+    inPlex: existing?.inPlex ?? false,
+    // Un film arrivato da un id TMDB esplicito è confermato per definizione:
+    // l'abbinamento non è stato indovinato, l'hai indicato tu.
+    verifyStatus: existing?.verifyStatus ?? 'fixed',
+    scheduledCount,
+    /** Falso = sta solo in questa sessione, il catalogo non lo conosce. */
+    inCatalog: Boolean(existing),
+  };
+}
+
 export async function catalogFixTmdbId(catalogId: number, newTmdbId: string) {
   const details = await getMovieDetails(newTmdbId);
   if (!details) throw new Error('Film TMDB non trovato per questo id.');

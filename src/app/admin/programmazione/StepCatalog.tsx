@@ -9,13 +9,13 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Award, Check, Clapperboard, Dices, Loader2, Search, Star, X } from 'lucide-react';
+import { Clapperboard, Dices, Globe, Loader2, Search, X } from 'lucide-react';
 import styles from './Programmazione.module.css';
-import {
-  catalogAddByTmdbId, catalogGetFacets, catalogGetRails, catalogList, catalogSearchTmdb,
-} from '@/actions/catalogActions';
+import { catalogGetFacets, catalogGetRails, catalogList } from '@/actions/catalogActions';
 import { CATALOG_RAIL_HINTS, RUNTIME_BUCKETS, type RuntimeBucketKey } from '@/constants/catalogRails';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
+import FilmCard from './FilmCard';
+import TmdbSearchModal from './TmdbSearchModal';
 import { BAND_CHOICES, runtimeOf, type CatalogItem, type Pick } from './types';
 import type { Band } from '@/services/scheduling/times';
 
@@ -29,47 +29,6 @@ interface Props {
 }
 
 type Rail = { rail: string; label: string; films: CatalogItem[] };
-
-/** Un risultato grezzo di TMDB, per i film che in catalogo non ci sono ancora. */
-interface TmdbHit {
-  id: number;
-  title: string;
-  release_date?: string;
-  poster_path?: string | null;
-}
-
-function FilmCard({
-  film, selected, onClick, compact = false,
-}: { film: CatalogItem; selected: boolean; onClick: () => void; compact?: boolean }) {
-  const poster = getTMDBImageUrl(film.posterPath, 'w342');
-  const rt = runtimeOf(film);
-  return (
-    <button
-      type="button"
-      className={`${styles.filmCard} ${compact ? styles.filmCardCompact : ''} ${selected ? styles.filmCardSelected : ''}`}
-      onClick={onClick}
-      title={`${film.title}${film.director ? ` — ${film.director}` : ''}`}
-    >
-      <span className={styles.posterFrame}>
-        {poster
-          ? <img src={poster} alt="" loading="lazy" />
-          : <span className={styles.posterFallback}><Clapperboard size={26} /></span>}
-        {selected && <span className={styles.cardCheck}><Check size={26} strokeWidth={3} /></span>}
-        {film.scheduledCount > 0 && <span className={styles.cardBadge}>in sala ×{film.scheduledCount}</span>}
-        {film.awardLabels.length > 0 && (
-          <span className={styles.cardAward} title={film.awardLabels.slice(0, 4).join(' · ')}>
-            <Award size={11} /> {film.awardLabels.length}
-          </span>
-        )}
-      </span>
-      <span className={styles.cardTitle}>{film.title}</span>
-      <span className={styles.cardMeta}>
-        {film.year || '—'}{rt ? ` · ${rt}′` : ''}
-        {film.voteAverage ? <> · <Star size={9} /> {film.voteAverage.toFixed(1)}</> : null}
-      </span>
-    </button>
-  );
-}
 
 export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genresInSchedule }: Props) {
   const [search, setSearch] = useState('');
@@ -87,8 +46,7 @@ export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genre
   const [loadingRails, setLoadingRails] = useState(true);
   const [loadingGrid, setLoadingGrid] = useState(true);
   const [railNonce, setRailNonce] = useState(0);
-  const [tmdbResults, setTmdbResults] = useState<TmdbHit[]>([]);
-  const [tmdbBusy, setTmdbBusy] = useState(false);
+  const [tmdbOpen, setTmdbOpen] = useState(false);
 
   // La ricerca aspetta che tu abbia finito di scrivere: senza attesa ogni
   // lettera sarebbe una query.
@@ -156,47 +114,6 @@ export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genre
 
   const hasFilters = Boolean(debounced || genre || decade || bucket || onlyInPlex);
 
-  /**
-   * La rete di sicurezza per i film che in catalogo non ci sono ancora — una
-   * novità appena uscita, un titolo non ancora entrato in libreria. Cercarlo su
-   * TMDB, aggiungerlo al catalogo e selezionarlo è la capacità che la vecchia
-   * "Cerca Film (TMDB)" copriva; senza, toglierla sarebbe una perdita.
-   */
-  const searchOnTmdb = async () => {
-    if (!debounced) return;
-    setTmdbBusy(true);
-    setTmdbResults([]);
-    try {
-      const res = await catalogSearchTmdb(debounced);
-      setTmdbResults(res.slice(0, 8) as TmdbHit[]);
-    } catch (e) {
-      console.error('[Programmazione] ricerca TMDB', e);
-    } finally {
-      setTmdbBusy(false);
-    }
-  };
-
-  const addFromTmdb = async (hit: TmdbHit) => {
-    setTmdbBusy(true);
-    try {
-      await catalogAddByTmdbId(String(hit.id));
-      // Rileggiamo la riga appena creata: solo il catalogo conosce la durata e
-      // i generi normalizzati che servono al motore.
-      const fresh = await catalogList({ search: hit.title, pageSize: 10 });
-      const added = (fresh.films as unknown as CatalogItem[]).find((f) => f.tmdbId === String(hit.id));
-      if (added) {
-        onToggle(added);
-        setTmdbResults([]);
-        setSearch('');
-      }
-    } catch (e) {
-      console.error('[Programmazione] aggiunta da TMDB', e);
-      window.alert('Non sono riuscito ad aggiungerlo al catalogo.');
-    } finally {
-      setTmdbBusy(false);
-    }
-  };
-
   return (
     <main className={styles.stepBody}>
       {/* ── Filtri ─────────────────────────────────────────────────────── */}
@@ -239,6 +156,11 @@ export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genre
           <input type="checkbox" checked={onlyInPlex} onChange={(e) => setOnlyInPlex(e.target.checked)} />
           Solo in libreria
         </label>
+
+        {/* Il catalogo copre ciò che il cinema ha in casa; questa copre il resto. */}
+        <button className={styles.ghostBtnSmall} onClick={() => setTmdbOpen(true)}>
+          <Globe size={14} /> Cerca su TMDB
+        </button>
 
         {hasFilters && (
           <button
@@ -294,34 +216,15 @@ export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genre
           </div>
         )}
 
-        {/* Il film non è in catalogo? Si pesca da TMDB e ci si aggiunge. */}
+        {/* Il film non è in catalogo? Si pesca da TMDB. */}
         {debounced && !loadingGrid && grid.filter(usable).length < 3 && (
           <div className={styles.tmdbFallback}>
             <p>
               Non trovi <b>{debounced}</b>? Potrebbe non essere ancora in catalogo.
             </p>
-            <button className={styles.ghostBtnSmall} onClick={searchOnTmdb} disabled={tmdbBusy}>
-              {tmdbBusy ? <Loader2 size={13} className={styles.spin} /> : <Search size={13} />}
-              Cercalo su TMDB
+            <button className={styles.ghostBtnSmall} onClick={() => setTmdbOpen(true)}>
+              <Search size={13} /> Cercalo su TMDB
             </button>
-
-            {tmdbResults.length > 0 && (
-              <div className={styles.tmdbList}>
-                {tmdbResults.map((hit) => (
-                  <button key={hit.id} className={styles.tmdbHit} onClick={() => addFromTmdb(hit)} disabled={tmdbBusy}>
-                    <span className={styles.tmdbPoster}>
-                      {hit.poster_path
-                        ? <img src={getTMDBImageUrl(hit.poster_path, 'w92') ?? ''} alt="" />
-                        : <Clapperboard size={14} />}
-                    </span>
-                    <span className={styles.tmdbMain}>
-                      <b>{hit.title}</b>
-                      <span>{hit.release_date?.slice(0, 4) ?? '—'} · aggiungilo al catalogo e scegli</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
         {total > grid.length && (
@@ -382,6 +285,14 @@ export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genre
           </div>
         </section>
       )}
+
+      <TmdbSearchModal
+        open={tmdbOpen}
+        onClose={() => setTmdbOpen(false)}
+        onPick={onToggle}
+        pickedIds={new Set(picks.keys())}
+        initialQuery={debounced}
+      />
     </main>
   );
 }

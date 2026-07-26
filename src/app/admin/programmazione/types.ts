@@ -18,7 +18,23 @@ export interface CatalogItem {
   inPlex: boolean;
   verifyStatus: string;
   scheduledCount: number;
+  /**
+   * `false` = il film vive solo in questa sessione, preso da TMDB e mai scritto
+   * in catalogo. Si può programmare lo stesso — la creazione legge i dati da
+   * TMDB — ma la UI deve dirlo, altrimenti sembra un film archiviato.
+   * `undefined` sui film che arrivano dal catalogo, dove la domanda non si pone.
+   */
+  inCatalog?: boolean;
 }
+
+/**
+ * I due versi del wizard.
+ *
+ * `period` — dal periodo al film: scegli dove e quando, il motore riempie.
+ * `film` — dal film al periodo: scegli il titolo, e sono gli orari liberi a
+ * farsi avanti, dal giorno più vicino.
+ */
+export type PlanningMode = 'period' | 'film';
 
 /** Un film scelto, con le preferenze che l'utente gli ha dato. */
 export interface Pick {

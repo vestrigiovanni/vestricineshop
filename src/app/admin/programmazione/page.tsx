@@ -14,15 +14,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  CalendarCheck, ChevronLeft, ChevronRight, Clapperboard, Loader2, Sparkles, Wand2, X,
+  CalendarCheck, CalendarClock, ChevronLeft, ChevronRight, Clapperboard, Loader2,
+  Sparkles, Wand2, X,
 } from 'lucide-react';
 import styles from './Programmazione.module.css';
 import StepSlot from './StepSlot';
 import StepCatalog from './StepCatalog';
 import StepCalendar from './StepCalendar';
+import StepFilm from './StepFilm';
+import StepFreeSlots, { slotKey } from './StepFreeSlots';
 import StepCommit, { type CommitFailure, type CommitProgress } from './StepCommit';
 import {
   planningDefaultStartDate,
+  planningFindSlots,
   planningGenerate,
   planningGetPeriodOccupancy,
   planningGetRooms,
@@ -31,13 +35,40 @@ import {
   planningCommitStatus,
   type DayOccupancy,
   type PeriodOccupancy,
+  type PlanningFindSlotsResult,
+  type SlotProposal,
 } from '@/actions/planningActions';
 import { catalogEnsureByTmdbId } from '@/actions/catalogActions';
 import type { ScheduledShow } from '@/services/scheduling/engine';
 import type { Intensity } from '@/services/scheduling/engine';
-import { commitKey, showKey, type CatalogItem, type Pick, type WizardStep } from './types';
+import { MINUTES_PER_DAY, daysBetweenISO, type Band } from '@/services/scheduling/times';
+import {
+  commitKey, runtimeOf, showKey,
+  type CatalogItem, type Pick, type PlanningMode, type WizardStep,
+} from './types';
 
-const STEP_LABELS = ['Lo slot', 'I film', 'Il calendario', 'In sala'];
+const STEP_LABELS: Record<PlanningMode, string[]> = {
+  period: ['Lo slot', 'I film', 'Il calendario', 'In sala'],
+  film: ['Il film', 'Gli orari', 'Il calendario', 'In sala'],
+};
+
+const MODES: { key: PlanningMode; label: string; hint: string; icon: React.ReactNode }[] = [
+  {
+    key: 'period',
+    label: 'Dal periodo',
+    hint: 'Scegli sala e giorni, poi i film: il motore riempie la settimana.',
+    icon: <Sparkles size={16} />,
+  },
+  {
+    key: 'film',
+    label: 'Dal film',
+    hint: 'Scegli il titolo, e ti propongo gli orari liberi dal giorno più vicino.',
+    icon: <CalendarClock size={16} />,
+  },
+];
+
+/** Quante giornate con spazio mostrare, e fin dove spingersi a cercarle. */
+const SLOT_DAYS_STEP = 7;
 
 const INTENSITIES: { key: Intensity; label: string; hint: string }[] = [
   { key: 'soft', label: '🌙 Rilassata', hint: '4 spettacoli nei feriali · 5 nel weekend' },
@@ -47,6 +78,7 @@ const INTENSITIES: { key: Intensity; label: string; hint: string }[] = [
 
 export default function ProgrammazionePage() {
   const [step, setStep] = useState<WizardStep>(1);
+  const [mode, setMode] = useState<PlanningMode>('period');
 
   // ── Passo 1: lo slot ──────────────────────────────────────────────────
   const [rooms, setRooms] = useState<{ id: number; name: string; isFavorite: boolean }[]>([]);
@@ -60,6 +92,14 @@ export default function ProgrammazionePage() {
   // ── Passo 2: i film ───────────────────────────────────────────────────
   const [picks, setPicks] = useState<Map<string, Pick>>(new Map());
   const [intensity, setIntensity] = useState<Intensity>('normal');
+
+  // ── Al contrario: il film prima, gli orari poi ────────────────────────
+  const [reverseFilm, setReverseFilm] = useState<CatalogItem | null>(null);
+  const [slotsResult, setSlotsResult] = useState<PlanningFindSlotsResult | null>(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedSlots, setSelectedSlots] = useState<Map<string, SlotProposal>>(new Map());
+  const [slotBand, setSlotBand] = useState<Band | ''>('');
+  const [slotDays, setSlotDays] = useState(SLOT_DAYS_STEP);
 
   // ── Passo 3: il calendario ────────────────────────────────────────────
   const [shows, setShows] = useState<ScheduledShow[]>([]);
@@ -115,8 +155,11 @@ export default function ProgrammazionePage() {
   }, []);
 
   // Ogni cambio di sala o periodo rilegge l'occupazione: è l'informazione su
-  // cui si appoggia tutto il resto del wizard.
+  // cui si appoggia tutto il resto del wizard. Programmando al contrario non
+  // serve — lì il periodo non esiste ancora — e sarebbe una lettura di Pretix
+  // buttata a ogni tasto premuto sulla data.
   useEffect(() => {
+    if (mode !== 'period') return;
     if (!roomId || !startDate) return;
     let cancelled = false;
     async function loadOccupancy() {
@@ -132,7 +175,7 @@ export default function ProgrammazionePage() {
     }
     loadOccupancy();
     return () => { cancelled = true; };
-  }, [roomId, startDate, days]);
+  }, [mode, roomId, startDate, days]);
 
   const gaps = useMemo(
     () => (occupancy?.daysDetail ?? []).flatMap((d) => d.gaps.map((g) => g.minutes)),
@@ -160,6 +203,141 @@ export default function ProgrammazionePage() {
       return next;
     });
   }, []);
+
+  // ── Al contrario: dal film agli orari ─────────────────────────────────
+  // In questo verso `startDate` è il giorno da cui *cercare*, non l'inizio di
+  // un periodo da riempire: la finestra vera nasce dopo, dagli orari scelti.
+  useEffect(() => {
+    if (mode !== 'film' || step !== 2) return;
+    if (!roomId || !reverseFilm?.tmdbId || !startDate) return;
+
+    let cancelled = false;
+    async function loadSlots() {
+      setLoadingSlots(true);
+      try {
+        const res = await planningFindSlots({
+          seatingPlanId: roomId!,
+          tmdbId: reverseFilm!.tmdbId!,
+          fromDate: startDate,
+          maxDays: slotDays,
+          // Si guarda più lontano di quanto si mostri: se i prossimi giorni sono
+          // pieni, le giornate buone vanno comunque trovate.
+          horizonDays: Math.min(slotDays * 3, 60),
+          band: slotBand || undefined,
+        });
+        if (!cancelled) setSlotsResult(res);
+      } catch (e) {
+        console.error('[Programmazione] orari liberi', e);
+        if (!cancelled) {
+          setSlotsResult({
+            film: null, fromDate: startDate, days: [], scannedDays: 0, horizonDays: 0,
+            reason: 'Non sono riuscito a leggere la sala. Riprova.',
+          });
+        }
+      } finally {
+        if (!cancelled) setLoadingSlots(false);
+      }
+    }
+    loadSlots();
+    return () => { cancelled = true; };
+  }, [mode, step, roomId, reverseFilm, startDate, slotBand, slotDays]);
+
+  /**
+   * Un orario scelto vale solo finché resta fra quelli proposti. Cambiando sala,
+   * giorno di partenza o fascia la vecchia scelta non è più valida — e i suoi
+   * minuti globali sarebbero perfino riferiti a un'altra origine, il che
+   * produrrebbe spettacoli piazzati nel giorno sbagliato.
+   */
+  useEffect(() => {
+    if (!slotsResult) return;
+    const alive = new Set(slotsResult.days.flatMap((d) => d.slots.map(slotKey)));
+    setSelectedSlots((prev) => {
+      if ([...prev.keys()].every((k) => alive.has(k))) return prev;
+      return new Map([...prev].filter(([k]) => alive.has(k)));
+    });
+  }, [slotsResult]);
+
+  const toggleSlot = useCallback((slot: SlotProposal) => {
+    setSelectedSlots((prev) => {
+      const next = new Map(prev);
+      const key = slotKey(slot);
+      if (next.has(key)) next.delete(key);
+      else next.set(key, slot);
+      return next;
+    });
+  }, []);
+
+  /**
+   * Dagli orari spuntati al calendario.
+   *
+   * Gli spettacoli nascono **bloccati**: sono orari che hai scelto tu uno per
+   * uno, e un ricalcolo che li spostasse tradirebbe la scelta. Da qui in poi il
+   * passo 3 è lo stesso dell'altro verso — trascinamento, repliche, conferma —
+   * perché ciò che gli serve è solo un elenco di spettacoli e una finestra.
+   */
+  const goToCalendarFromSlots = async () => {
+    if (!roomId || !reverseFilm?.tmdbId || selectedSlots.size === 0 || !slotsResult) return;
+
+    const chosen = [...selectedSlots.values()].sort((a, b) => a.startMinute - b.startMinute);
+    const windowStart = chosen[0].day;
+    const span = Math.min(Math.max(daysBetweenISO(windowStart, chosen[chosen.length - 1].day) + 1, 1), 30);
+
+    // I minuti globali arrivano riferiti al giorno da cui si era cercato. La
+    // finestra del calendario però parte dal primo orario scelto, e i due assi
+    // devono coincidere o il piano finirebbe traslato di giorni.
+    const shift = daysBetweenISO(slotsResult.fromDate, windowStart) * MINUTES_PER_DAY;
+    const info = slotsResult.film;
+
+    const fresh: ScheduledShow[] = chosen.map((s) => ({
+      tmdbId: reverseFilm.tmdbId!,
+      title: info?.title ?? reverseFilm.title,
+      runtime: info?.runtime || runtimeOf(reverseFilm) || 0,
+      posterPath: info?.posterPath || reverseFilm.posterPath || undefined,
+      day: s.day,
+      date: s.date,
+      time: s.time,
+      endTime: s.endTime,
+      startMinute: s.startMinute - shift,
+      endMinute: s.endMinute - shift,
+      band: s.band,
+      locked: true,
+    }));
+
+    setBusy(true);
+    setStartDate(windowStart);
+    setDays(span);
+    setPicks(new Map([[reverseFilm.tmdbId!, { film: reverseFilm }]]));
+    setShows(fresh);
+    setWarnings([]);
+
+    try {
+      const occ = await planningGetPeriodOccupancy(roomId, windowStart, span);
+      setExistingDays(occ.daysDetail);
+    } catch (e) {
+      console.error('[Programmazione] occupazione del piano', e);
+      setExistingDays([]);
+    } finally {
+      setBusy(false);
+    }
+
+    setStep(3);
+    window.scrollTo({ top: 0 });
+  };
+
+  /** Cambiare verso ricomincia: le due strade non condividono nessuna scelta. */
+  const changeMode = (next: PlanningMode) => {
+    if (next === mode) return;
+    setMode(next);
+    setPicks(new Map());
+    setReverseFilm(null);
+    setSlotsResult(null);
+    setSelectedSlots(new Map());
+    setSlotBand('');
+    setSlotDays(SLOT_DAYS_STEP);
+    setShows([]);
+    setWarnings([]);
+    setStartDate(minDate);
+  };
 
   // ── Generazione e ricalcolo ───────────────────────────────────────────
   /**
@@ -335,13 +513,18 @@ export default function ProgrammazionePage() {
     setFailures([]);
     setCreated(0);
     setProgress({ step: '', done: 0, total: 1 });
+    setReverseFilm(null);
+    setSlotsResult(null);
+    setSelectedSlots(new Map());
+    setSlotBand('');
+    setSlotDays(SLOT_DAYS_STEP);
     setStep(1);
   };
 
   // ── Barra dei passi ───────────────────────────────────────────────────
   const canAdvance =
-    step === 1 ? Boolean(roomId && startDate)
-    : step === 2 ? picks.size > 0
+    step === 1 ? Boolean(roomId && startDate && (mode === 'period' || reverseFilm))
+    : step === 2 ? (mode === 'period' ? picks.size > 0 : selectedSlots.size > 0)
     : step === 3 ? shows.length > 0
     : false;
 
@@ -357,7 +540,7 @@ export default function ProgrammazionePage() {
         </div>
 
         <nav className={styles.steps}>
-          {STEP_LABELS.map((label, i) => (
+          {STEP_LABELS[mode].map((label, i) => (
             <React.Fragment key={label}>
               {i > 0 && <ChevronRight size={13} className={styles.stepArrow} />}
               <button
@@ -376,6 +559,22 @@ export default function ProgrammazionePage() {
       </header>
 
       {step === 1 && (
+        <section className={styles.modeBar}>
+          {MODES.map((m) => (
+            <button
+              key={m.key}
+              type="button"
+              className={`${styles.modeBtn} ${mode === m.key ? styles.modeActive : ''}`}
+              onClick={() => changeMode(m.key)}
+            >
+              <b>{m.icon} {m.label}</b>
+              <span>{m.hint}</span>
+            </button>
+          ))}
+        </section>
+      )}
+
+      {step === 1 && mode === 'period' && (
         <StepSlot
           rooms={rooms}
           roomId={roomId}
@@ -390,13 +589,40 @@ export default function ProgrammazionePage() {
         />
       )}
 
-      {step === 2 && (
+      {step === 1 && mode === 'film' && (
+        <StepFilm
+          rooms={rooms}
+          roomId={roomId}
+          onRoomChange={(id) => { setRoomId(id); localStorage.setItem('defaultSalaId', String(id)); }}
+          fromDate={startDate}
+          onFromDateChange={setStartDate}
+          minDate={minDate}
+          film={reverseFilm}
+          onFilmChange={(f) => { setReverseFilm(f); setSelectedSlots(new Map()); setSlotsResult(null); }}
+        />
+      )}
+
+      {step === 2 && mode === 'period' && (
         <StepCatalog
           picks={picks}
           onToggle={togglePick}
           onUpdatePick={updatePick}
           gaps={gaps}
           genresInSchedule={genresInSchedule}
+        />
+      )}
+
+      {step === 2 && mode === 'film' && reverseFilm && (
+        <StepFreeSlots
+          film={reverseFilm}
+          result={slotsResult}
+          loading={loadingSlots}
+          selected={selectedSlots}
+          onToggleSlot={toggleSlot}
+          band={slotBand}
+          onBandChange={setSlotBand}
+          onLookFurther={() => setSlotDays((d) => Math.min(d + SLOT_DAYS_STEP, 20))}
+          expanding={loadingSlots}
         />
       )}
 
@@ -434,7 +660,7 @@ export default function ProgrammazionePage() {
             </button>
           )}
 
-          {step === 2 && (
+          {step === 2 && mode === 'period' && (
             <div className={styles.intensityField}>
               <span>Ritmo</span>
               <div className={styles.intensityGroup}>
@@ -457,14 +683,26 @@ export default function ProgrammazionePage() {
 
           {step === 1 && (
             <button className={styles.ctaBtn} onClick={() => setStep(2)} disabled={!canAdvance}>
-              <Clapperboard size={19} /> Scegli i film
+              {mode === 'period'
+                ? <><Clapperboard size={19} /> Scegli i film</>
+                : <><CalendarClock size={19} /> Trova gli orari liberi</>}
             </button>
           )}
-          {step === 2 && (
+          {step === 2 && mode === 'period' && (
             <button className={styles.ctaBtn} onClick={goToCalendar} disabled={!canAdvance || busy}>
               {busy
                 ? <><Loader2 size={19} className={styles.spin} /> Costruisco il calendario…</>
                 : <><Sparkles size={19} /> Genera il calendario · {picks.size} film</>}
+            </button>
+          )}
+          {step === 2 && mode === 'film' && (
+            <button className={styles.ctaBtn} onClick={goToCalendarFromSlots} disabled={!canAdvance || busy}>
+              {busy
+                ? <><Loader2 size={19} className={styles.spin} /> Preparo il calendario…</>
+                : <>
+                    <CalendarCheck size={19} /> Metti in calendario · {selectedSlots.size}{' '}
+                    spettacol{selectedSlots.size === 1 ? 'o' : 'i'}
+                  </>}
             </button>
           )}
           {step === 3 && (
