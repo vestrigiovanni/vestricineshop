@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFestivalGroups, buildStory, buildWeekend, excerptOverview, StoryChapter } from './storyBuilder';
+import { buildFestivalGroups, buildMood, buildSoireeHook, buildSoirees, buildStory, buildWeekend, excerptOverview, StoryChapter } from './storyBuilder';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 
 type MarqueeChapter = Extract<StoryChapter, { kind: 'marquee' }>;
@@ -49,58 +49,198 @@ describe('excerptOverview', () => {
 });
 
 describe('buildWeekend', () => {
-  // 2026-07-17 è un venerdì; in luglio Roma è UTC+2.
+  // 2026-07-18 è un sabato; in luglio Roma è UTC+2.
   const wednesday = new Date('2026-07-15T10:00:00Z');
 
-  it('raggruppa ven/sab/dom per film, deduplica gli orari identici e ordina', () => {
+  it('raggruppa solo sabato e domenica, deduplica gli orari identici e ordina', () => {
     const movies = [
       mk(1, {
         subevents: [
-          { date: '2026-07-17T19:00:00.000Z', isSoldOut: false, roomName: 'Sala 1' },
-          { date: '2026-07-17T19:00:00.000Z', isSoldOut: true, roomName: 'Sala 1' }, // duplicato identico
-          { date: '2026-07-18T16:00:00.000Z', isSoldOut: true },
+          { date: '2026-07-18T19:00:00.000Z', isSoldOut: false, roomName: 'Sala 1' },
+          { date: '2026-07-18T19:00:00.000Z', isSoldOut: true, roomName: 'Sala 1' }, // duplicato identico
+          { date: '2026-07-19T16:00:00.000Z', isSoldOut: true },
         ],
       }),
       mk(2, {
         subevents: [
-          { date: '2026-07-19T14:30:00.000Z' },
+          { date: '2026-07-17T19:00:00.000Z' }, // venerdì: escluso dal weekend
           { date: '2026-07-20T19:00:00.000Z' }, // lunedì: fuori dal weekend
         ],
       }),
     ];
     const days = buildWeekend(movies, wednesday);
 
-    expect(days.map(d => d.label)).toEqual(['Venerdì', 'Sabato', 'Domenica']);
-    expect(days.map(d => d.isoDate)).toEqual(['2026-07-17', '2026-07-18', '2026-07-19']);
+    expect(days.map(d => d.label)).toEqual(['Sabato', 'Domenica']);
+    expect(days.map(d => d.isoDate)).toEqual(['2026-07-18', '2026-07-19']);
 
-    // venerdì: un solo chip 21:00 (Roma), prenotabile perché una copia lo è
+    // sabato: un solo chip 21:00 (Roma), prenotabile perché una copia lo è
     expect(days[0].shows).toHaveLength(1);
     expect(days[0].shows[0].times).toEqual([{ time: '21:00', isSoldOut: false, roomName: 'Sala 1' }]);
 
-    // sabato 18:00 sold out; domenica 16:30
+    // domenica 18:00 sold out; il film 2 (solo venerdì/lunedì) non compare
     expect(days[1].shows[0].times[0]).toEqual({ time: '18:00', isSoldOut: true, roomName: undefined });
-    expect(days[2].shows[0].times[0].time).toBe('16:30');
+    expect(days.flatMap(d => d.shows.map(s => s.movie.id))).not.toContain(2);
   });
 
-  it('a weekend iniziato usa il venerdì corrente e omette i giorni vuoti', () => {
-    const saturday = new Date('2026-07-18T10:00:00Z');
+  it('a weekend iniziato usa il sabato corrente e omette i giorni vuoti', () => {
+    const sunday = new Date('2026-07-19T10:00:00Z');
     const movies = [mk(1, { subevents: [{ date: '2026-07-19T14:30:00.000Z' }] })];
-    const days = buildWeekend(movies, saturday);
+    const days = buildWeekend(movies, sunday);
     expect(days.map(d => d.label)).toEqual(['Domenica']);
   });
 
   it('ordina i film del giorno per primo orario', () => {
     const movies = [
-      mk(1, { subevents: [{ date: '2026-07-17T20:00:00.000Z' }] }), // 22:00
-      mk(2, { subevents: [{ date: '2026-07-17T15:00:00.000Z' }] }), // 17:00
+      mk(1, { subevents: [{ date: '2026-07-18T20:00:00.000Z' }] }), // 22:00
+      mk(2, { subevents: [{ date: '2026-07-18T15:00:00.000Z' }] }), // 17:00
     ];
     const days = buildWeekend(movies, wednesday);
     expect(days[0].shows.map(s => s.movie.id)).toEqual([2, 1]);
   });
 
-  it('senza proiezioni nel weekend non produce giorni', () => {
+  it('senza proiezioni sabato o domenica non produce giorni', () => {
     expect(buildWeekend([mk(1, { subevents: [{ date: '2026-07-21T19:00:00.000Z' }] })], wednesday)).toEqual([]);
+    // il venerdì da solo non basta più a creare il weekend
+    expect(buildWeekend([mk(1, { subevents: [{ date: '2026-07-17T19:00:00.000Z' }] })], wednesday)).toEqual([]);
     expect(buildWeekend([mk(1, { subevents: [{}] })], wednesday)).toEqual([]);
+  });
+});
+
+describe('buildSoirees', () => {
+  // Mercoledì 15 luglio 2026, Roma UTC+2.
+  const wednesday = new Date('2026-07-15T10:00:00Z');
+
+  it('raccoglie le sere di oggi/domani/dopodomani con le etichette giuste', () => {
+    const movies = [
+      mk(1, { subevents: [{ date: '2026-07-15T19:00:00.000Z' }] }), // stasera 21:00
+      mk(2, { subevents: [{ date: '2026-07-16T18:30:00.000Z' }] }), // domani 20:30
+      mk(3, { subevents: [{ date: '2026-07-17T19:15:00.000Z' }] }), // dopodomani 21:15
+    ];
+    const items = buildSoirees(movies, wednesday);
+
+    expect(items.map(i => i.dayLabel)).toEqual(['Stasera', 'Domani sera', 'Dopodomani sera']);
+    expect(items[0].dateLabel).toBe('');
+    expect(items[1].dateLabel).toContain('16');
+    expect(items.map(i => i.times[0].time)).toEqual(['21:00', '20:30', '21:15']);
+  });
+
+  it('esclude le proiezioni pomeridiane (prima delle 17) e i giorni oltre dopodomani', () => {
+    const movies = [
+      mk(1, { subevents: [{ date: '2026-07-15T13:00:00.000Z' }] }), // 15:00 Roma: pomeriggio
+      mk(2, { subevents: [{ date: '2026-07-15T15:00:00.000Z' }] }), // 17:00 Roma: entra
+      mk(3, { subevents: [{ date: '2026-07-18T19:00:00.000Z' }] }), // fra tre giorni: fuori
+    ];
+    const items = buildSoirees(movies, wednesday);
+    expect(items.map(i => i.movie.id)).toEqual([2]);
+    expect(items[0].times[0].time).toBe('17:00');
+  });
+
+  it('ordina la sera per premi e voto e tiene al massimo 3 film', () => {
+    const evening = (id: number, opts: Partial<GroupedMovie> = {}) =>
+      mk(id, { subevents: [{ date: `2026-07-15T${18 + (id % 3)}:00:00.000Z` }], awards: [], ...opts });
+    const movies = [
+      evening(1, { voteAverage: 6.1 }),
+      evening(2, { awards: [{}], voteAverage: 5.0 }),
+      evening(3, { voteAverage: 8.4 }),
+      evening(4, { voteAverage: 7.2 }),
+    ];
+    const items = buildSoirees(movies, wednesday);
+    // Il premiato vince, poi i voti più alti; il quarto resta fuori.
+    expect(items.map(i => i.movie.id)).toEqual([2, 3, 4]);
+  });
+
+  it('unifica gli orari duplicati restando prenotabile se una copia lo è', () => {
+    const movies = [
+      mk(1, {
+        subevents: [
+          { date: '2026-07-15T19:00:00.000Z', isSoldOut: true },
+          { date: '2026-07-15T19:00:00.000Z', isSoldOut: false },
+          { date: '2026-07-15T21:00:00.000Z', isSoldOut: true },
+        ],
+      }),
+    ];
+    const items = buildSoirees(movies, wednesday);
+    expect(items).toHaveLength(1);
+    expect(items[0].times).toEqual([
+      { time: '21:00', isSoldOut: false },
+      { time: '23:00', isSoldOut: true },
+    ]);
+  });
+});
+
+describe('buildSoireeHook', () => {
+  const now = new Date('2026-07-15T10:00:00Z');
+
+  it('il premio vinto batte tutto e cita il festival declinato', () => {
+    const movie = mk(1, {
+      release_date: '1972-05-10', // sarebbe un classico, ma il premio vince
+      awards: [{ type: 'cannes', details: "Vincitore: Palma d'Oro", year: 2024 }],
+    });
+    expect(buildSoireeHook(movie, [], now)).toBe("Palma d'Oro a Cannes · 2024");
+  });
+
+  it('la candidatura viene dopo il premio e prima del resto', () => {
+    const movie = mk(1, { awards: [{ type: 'oscar', details: 'Candidatura: Miglior film', year: 2025 }] });
+    expect(buildSoireeHook(movie, [], now)).toBe('Candidato agli Oscar · 2025');
+  });
+
+  it('un festival non riconosciuto non produce frasi sbagliate', () => {
+    const movie = mk(1, { awards: [{ type: 'sundance', details: 'Vincitore: Gran Premio', year: 2024 }] });
+    // niente fallback Oscar: si passa alla regola successiva (genere · durata)
+    expect(buildSoireeHook(movie, [], now)).toBe('Dramma · 2h');
+  });
+
+  it('riconosce il classico che torna in sala', () => {
+    const movie = mk(1, { release_date: '1972-05-10' });
+    expect(buildSoireeHook(movie, [], now)).toBe('Il classico del 1972 torna sul grande schermo');
+  });
+
+  it('estrae formato speciale e lingua originale dalle proiezioni della sera', () => {
+    expect(buildSoireeHook(mk(1), [{ format: '35mm' }], now)).toBe('Proiezione in 35mm');
+    expect(buildSoireeHook(mk(1), [{ language: 'Inglese', subtitles: 'Italiano' }], now))
+      .toBe('In lingua originale, sottotitolato in italiano');
+    expect(buildSoireeHook(mk(1), [{ language: 'Inglese' }], now)).toBe('In lingua originale');
+    // l'italiano non è "lingua originale" da annunciare
+    expect(buildSoireeHook(mk(1), [{ language: 'Italiano' }], now)).toBe('Dramma · 2h');
+  });
+
+  it('voto mondiale, cast e regia in coda, con la durata come ultima risorsa', () => {
+    expect(buildSoireeHook(mk(1, { voteAverage: 8.4 }), [], now))
+      .toBe('Voto 8,4 su 10 per il pubblico mondiale');
+    expect(buildSoireeHook(mk(1, { cast: ['Timothée Chalamet', 'Zendaya'] }), [], now))
+      .toBe('Con Timothée Chalamet e Zendaya');
+    expect(buildSoireeHook(mk(1, { director: 'Denis Villeneuve' }), [], now))
+      .toBe('La regia di Denis Villeneuve');
+    expect(buildSoireeHook(mk(1), [], now)).toBe('Dramma · 2h');
+  });
+
+  it('buildSoirees assegna il gancio a ogni serata', () => {
+    const movies = [
+      mk(1, {
+        awards: [{ type: 'venice', details: "Vincitore: Leone d'Oro", year: 2023 }],
+        subevents: [{ date: '2026-07-15T19:00:00.000Z' }],
+      }),
+    ];
+    const items = buildSoirees(movies, now);
+    expect(items[0].hook).toBe("Leone d'Oro a Venezia · 2023");
+  });
+});
+
+describe('buildMood', () => {
+  it('sceglie il genere dominante pesato sulle proiezioni, non sui film', () => {
+    const movies = [
+      mk(1, { genres: ['Dramma'], subevents: [{}] }),
+      mk(2, { genres: ['Horror'], subevents: [{}, {}, {}] }),
+    ];
+    expect(buildMood(movies)).toEqual({ genre: 'Horror', accent: '#e05a5a' });
+  });
+
+  it('usa la tinta di riserva per generi sconosciuti o cataloghi vuoti', () => {
+    const sconosciuto = buildMood([mk(1, { genres: ['Sperimentale'] })]);
+    expect(sconosciuto.genre).toBe('Sperimentale');
+    expect(sconosciuto.accent).toBe('#e8b45a');
+
+    expect(buildMood([])).toEqual({ genre: null, accent: '#e8b45a' });
   });
 });
 
@@ -257,7 +397,7 @@ describe('buildStory', () => {
 
   it('inserisce il capitolo weekend subito prima del calendario', () => {
     const now = new Date('2026-07-15T10:00:00Z');
-    const movies = [mk(1, { subevents: [{ date: '2026-07-17T19:00:00.000Z' }] }), mk(2), mk(3)];
+    const movies = [mk(1, { subevents: [{ date: '2026-07-18T19:00:00.000Z' }] }), mk(2), mk(3)];
     const k = kinds(buildStory(movies, now));
     expect(k).toContain('weekend');
     expect(k.indexOf('weekend')).toBe(k.indexOf('calendar') - 1);
@@ -265,6 +405,26 @@ describe('buildStory', () => {
     // senza proiezioni weekend il capitolo sparisce
     const senza = kinds(buildStory([mk(1), mk(2), mk(3)], now));
     expect(senza).not.toContain('weekend');
+  });
+
+  it('apre con il carosello delle serate quando ci sono almeno 2 serate in arrivo', () => {
+    const now = new Date('2026-07-15T10:00:00Z');
+    const movies = [
+      mk(1, { subevents: [{ date: '2026-07-15T19:00:00.000Z' }] }),
+      mk(2, { subevents: [{ date: '2026-07-16T19:00:00.000Z' }] }),
+      mk(3),
+    ];
+    const chapters = buildStory(movies, now);
+    expect(chapters[0].kind).toBe('soirees');
+    const soirees = chapters[0] as Extract<StoryChapter, { kind: 'soirees' }>;
+    expect(soirees.items).toHaveLength(2);
+
+    // Con il carosello in apertura la citazione resta solo in chiusura.
+    expect(kinds(chapters).filter(k => k === 'quote')).toHaveLength(1);
+
+    // Con una sola serata si torna alla citazione d'apertura.
+    const una = buildStory([mk(1, { subevents: [{ date: '2026-07-15T19:00:00.000Z' }] }), mk(2)], now);
+    expect(una[0].kind).toBe('quote');
   });
 
   it('film senza alcun backdrop non entrano nelle strisce', () => {

@@ -69,6 +69,22 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
+  // La rotazione automatica gira solo quando la hero è davvero visibile:
+  // cambiare backdrop full-screen mentre l'utente sta scorrendo lo
+  // scrollytelling in basso causava scatti periodici su tutta la pagina.
+  const showcaseRef = useRef<HTMLDivElement>(null);
+  const [heroInView, setHeroInView] = useState(true);
+
+  useEffect(() => {
+    const el = showcaseRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeroInView(entry.isIntersecting),
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   
   const { openTrailer } = useTrailer();
@@ -189,14 +205,14 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
   }, [availableMovies]);
 
   useEffect(() => {
-    if (availableMovies.length <= 1 || !isAutoScrollEnabled || isImmersiveMode) return;
+    if (availableMovies.length <= 1 || !isAutoScrollEnabled || isImmersiveMode || !heroInView) return;
 
     const interval = setInterval(() => {
       goToNextMovie();
     }, AUTO_SCROLL_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [goToNextMovie, availableMovies.length, timerKey, isAutoScrollEnabled]);
+  }, [goToNextMovie, availableMovies.length, timerKey, isAutoScrollEnabled, heroInView]);
 
   useEffect(() => {
     if (drawerOpen || isOverviewExpanded) {
@@ -249,7 +265,7 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
   };
 
   return (
-    <div className={styles.showcase} onClick={disableAutoScroll}>
+    <div ref={showcaseRef} className={styles.showcase} onClick={disableAutoScroll}>
       {/* Hero Section */}
       <div className={styles.hero}>
         <div className={styles.heroBackdrop}>

@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useRef, ComponentProps } from 'react';
+import { useEffect, useRef, useState, ComponentProps, CSSProperties } from 'react';
 import Image from 'next/image';
-import { animate, motion, MotionValue, useInView, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
+import { animate, motion, MotionValue, useInView, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
 import RatingBadge from '../RatingBadge';
 import { Clock } from 'lucide-react';
-import { buildStory, FestivalGroup, StoryStats, WeekendDay, WeekendShow } from './storyBuilder';
+import { buildMood, buildStory, FestivalGroup, SoireeItem, StoryStats, WeekendDay } from './storyBuilder';
 import styles from './CinematicStory.module.css';
 
 interface CinematicStoryProps {
@@ -19,6 +19,10 @@ interface CinematicStoryProps {
 }
 
 const easeApple: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
+// Durata di ogni scena del palcoscenico d'apertura. Tenuta in sync con la
+// barra di avanzamento (--soiree-duration in CinematicStory.module.css).
+const SOIREE_DURATION_MS = 3800;
 
 // Riporta l'utente alla hero con il film selezionato: MovieShowcase ascolta
 // questo evento e invoca la stessa logica del click sui poster in galleria.
@@ -300,45 +304,46 @@ function FestivalChapter({ groups, reduced }: { groups: FestivalGroup[]; reduced
   );
 }
 
-function WeekendStrip({ show, reduced }: { show: WeekendShow; reduced: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  const smooth = useSpring(scrollYProgress, parallaxSpring);
-  const y = useTransform(smooth, [0, 1], ['-16%', '16%']);
+// Apertura: il palcoscenico delle serate. Un solo grande schermo full-bleed
+// dove le prossime serate si alternano in regia: backdrop in dissolvenza con
+// una lenta spinta in avanti, e per ogni film il suo metadato più
+// sorprendente in corsivo serif (premio, classico, lingua originale…).
+// Tutto a tempo, mai legato allo scroll: solo opacity e transform GPU.
+function SoireeChapter({ items, reduced }: { items: SoireeItem[]; reduced: boolean }) {
+  const [active, setActive] = useState(0);
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { amount: 0.35 });
 
-  // Il backdrop insegue il mouse (in direzione opposta, effetto profondità)
-  // e torna al centro quando il cursore esce dalla striscia.
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const mx = useSpring(mouseX, { stiffness: 60, damping: 18, mass: 0.6 });
-  const my = useSpring(mouseY, { stiffness: 60, damping: 18, mass: 0.6 });
+  // La regia cambia scena ogni 3,8 secondi (come la barra di avanzamento),
+  // finché il palcoscenico è visibile. L'hover non ferma lo scorrimento.
+  useEffect(() => {
+    if (reduced || !inView || items.length < 2) return;
+    const id = setInterval(() => setActive(a => (a + 1) % items.length), SOIREE_DURATION_MS);
+    return () => clearInterval(id);
+  }, [reduced, inView, items.length]);
 
-  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (reduced) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const px = (e.clientX - rect.left) / rect.width - 0.5;
-    const py = (e.clientY - rect.top) / rect.height - 0.5;
-    mouseX.set(px * -36);
-    mouseY.set(py * -24);
+  const item = items[Math.min(active, items.length - 1)];
+  const movie = item.movie;
+
+  const stageBackdrop = (m: GroupedMovie) => {
+    // Terzo backdrop: le strisce narrative usano [0] e [1], il weekend [3].
+    const extras = m.extraBackdrops || [];
+    return extras[2] || extras[0] || m.backdrop_path;
   };
-  const onMouseLeave = () => {
-    mouseX.set(0);
-    mouseY.set(0);
-  };
 
-  const movie = show.movie;
-  // Quarto backdrop: le strisce narrative usano [0] e [1], le citazioni [2].
-  const extras = movie.extraBackdrops || [];
-  const backdrop = extras[3] || extras[0] || movie.backdrop_path;
-  const runtime = formatRuntime(movie.runtime);
+  // La riga sotto il gancio: regia, anno, genere — senza ripetere il gancio.
+  const year = (movie.release_date || '').slice(0, 4);
+  const byline = [
+    movie.director && !item.hook.includes(movie.director) ? `di ${movie.director}` : '',
+    year && !item.hook.includes(year) ? year : '',
+    (movie.genres || [])[0] && !item.hook.includes((movie.genres || [])[0]) ? (movie.genres || [])[0] : '',
+  ].filter(Boolean).join(' · ');
 
   return (
-    <div
+    <section
       ref={ref}
-      className={styles.weekendStrip}
+      className={styles.soireeStage}
       onClick={() => selectMovie(movie.id)}
-      onMouseMove={onMouseMove}
-      onMouseLeave={onMouseLeave}
       role="button"
       tabIndex={0}
       onKeyDown={e => {
@@ -348,60 +353,222 @@ function WeekendStrip({ show, reduced }: { show: WeekendShow; reduced: boolean }
         }
       }}
     >
-      {backdrop && (
-        <motion.div className={styles.stripeBg} style={reduced ? undefined : { y }}>
-          <motion.div className={styles.weekendBgInner} style={reduced ? undefined : { x: mx, y: my }}>
+      {items.map((it, i) => {
+        const bg = stageBackdrop(it.movie);
+        if (!bg) return null;
+        return (
+          <div
+            key={`${it.dayKey}-${it.movie.id}`}
+            className={`${styles.soireeBg} ${i === active ? styles.soireeBgActive : ''} ${reduced ? styles.soireeBgStill : ''}`}
+            aria-hidden="true"
+          >
             <Image
-              src={getTMDBImageUrl(backdrop, 'w1280')!}
-              alt={movie.title}
+              src={getTMDBImageUrl(bg, 'w1280')!}
+              alt=""
               fill
               sizes="100vw"
               style={{ objectFit: 'cover' }}
             />
-          </motion.div>
-        </motion.div>
-      )}
-      <div className={styles.weekendStripShade} />
-      <motion.div
-        className={styles.weekendStripContent}
-        initial={reduced ? false : { opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.4 }}
-        transition={{ duration: 0.8, ease: easeApple }}
-      >
+          </div>
+        );
+      })}
+      <div className={styles.soireeVignette} aria-hidden="true" />
+
+      {/* key sulla scena: il blocco rientra in dissolvenza a ogni cambio */}
+      <div key={`${item.dayKey}-${movie.id}`} className={styles.soireeContent}>
+        <span className={styles.soireeDayLine}>
+          {item.dayLabel}
+          {item.dateLabel ? ` · ${item.dateLabel}` : ''}
+        </span>
         {movie.logo_path ? (
           <Image
             src={getTMDBImageUrl(movie.logo_path, 'w500')!}
             alt={movie.title}
             width={340}
             height={140}
-            className={styles.weekendLogo}
+            className={styles.soireeLogo}
           />
         ) : (
-          <span className={styles.weekendStripTitle}>{movie.title}</span>
+          <span className={styles.soireeTitle}>{movie.title}</span>
         )}
-        <div className={styles.weekendMeta}>
+        {item.hook && <p className={styles.soireeHook}>{item.hook}</p>}
+        {byline && <span className={styles.soireeByline}>{byline}</span>}
+        <span className={styles.soireeTimes}>
           <RatingBadge rating={movie.rating} size="xs" />
-          {runtime && (
-            <span className={styles.metaChip}>
-              <Clock size={11} strokeWidth={2.4} aria-hidden="true" />
-              {runtime}
-            </span>
-          )}
-        </div>
-        <div className={styles.weekendTimes}>
-          {show.times.map(t => (
+          {item.times.map(t => (
             <span
               key={t.time}
-              className={`${styles.weekendTimeChip} ${t.isSoldOut ? styles.timeChipSoldOut : ''}`}
-              title={t.isSoldOut ? 'Sold out' : (t.roomName || undefined)}
+              className={`${styles.timeChip} ${t.isSoldOut ? styles.timeChipSoldOut : ''}`}
+              title={t.isSoldOut ? 'Sold out' : undefined}
             >
               {t.time}
             </span>
           ))}
+        </span>
+      </div>
+
+      {items.length > 1 && (
+        <div className={styles.soireeTicks}>
+          {items.map((it, i) => (
+            <button
+              key={`${it.dayKey}-${it.movie.id}`}
+              className={`${styles.soireeTick} ${i === active ? styles.soireeTickActive : ''} ${reduced ? styles.soireeTickStill : ''}`}
+              aria-label={`Mostra ${it.movie.title}, ${it.dayLabel.toLowerCase()}`}
+              onClick={e => {
+                e.stopPropagation();
+                setActive(i);
+              }}
+            />
+          ))}
         </div>
-      </motion.div>
-    </div>
+      )}
+    </section>
+  );
+}
+
+// Weekend come dittico di "schermi vivi": sabato e domenica sono due metà
+// cinematografiche. I backdrop dei film del giorno si dissolvono uno
+// nell'altro a tempo (come il Reveal, ma senza legami con lo scroll) con una
+// lenta spinta in avanti; la filmstrip di mini-poster salta da un film
+// all'altro. Solo opacity e transform via CSS: lo scroll resta libero.
+function WeekendPanel({ day, reduced }: { day: WeekendDay; reduced: boolean }) {
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { amount: 0.3 });
+
+  const shows = day.shows;
+  const show = shows[Math.min(active, shows.length - 1)];
+
+  // La regia cambia film ogni 5 secondi, ma solo quando il pannello è in
+  // scena e il mouse non ci sta sopra (hover = l'utente sta guardando).
+  useEffect(() => {
+    if (reduced || paused || !inView || shows.length < 2) return;
+    const id = setInterval(() => setActive(a => (a + 1) % shows.length), 5000);
+    return () => clearInterval(id);
+  }, [reduced, paused, inView, shows.length]);
+
+  const movie = show.movie;
+  const runtime = formatRuntime(movie.runtime);
+  const genre = (movie.genres || [])[0];
+
+  const panelBackdrop = (m: GroupedMovie) => {
+    // Quarto backdrop: le strisce narrative usano [0] e [1], il palcoscenico [2].
+    const extras = m.extraBackdrops || [];
+    return extras[3] || extras[1] || m.backdrop_path;
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      className={styles.weekendPanel}
+      onClick={() => selectMovie(movie.id)}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectMovie(movie.id);
+        }
+      }}
+      initial={reduced ? false : { opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.9, ease: easeApple }}
+    >
+      {shows.map((s, i) => {
+        const bg = panelBackdrop(s.movie);
+        if (!bg) return null;
+        return (
+          <div
+            key={s.movie.id}
+            className={`${styles.weekendBackdrop} ${i === active ? styles.weekendBackdropActive : ''} ${reduced ? styles.weekendBackdropStill : ''}`}
+            aria-hidden={i !== active}
+          >
+            <Image
+              src={getTMDBImageUrl(bg, 'w1280')!}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              style={{ objectFit: 'cover' }}
+            />
+          </div>
+        );
+      })}
+      <div className={styles.weekendPanelShade} aria-hidden="true" />
+
+      <header className={styles.weekendPanelHead}>
+        <span className={styles.weekendPanelName}>{day.label}</span>
+        <span className={styles.weekendPanelDate}>{day.dateLabel}</span>
+      </header>
+
+      <div className={styles.weekendPanelFoot}>
+        {/* key sul film attivo: il blocco rientra in dissolvenza a ogni cambio */}
+        <div key={movie.id} className={styles.weekendNow}>
+          {movie.logo_path ? (
+            <Image
+              src={getTMDBImageUrl(movie.logo_path, 'w300')!}
+              alt={movie.title}
+              width={220}
+              height={90}
+              className={styles.weekendNowLogo}
+            />
+          ) : (
+            <span className={styles.weekendNowTitle}>{movie.title}</span>
+          )}
+          <span className={styles.weekendNowMeta}>
+            <RatingBadge rating={movie.rating} size="xs" />
+            {runtime && (
+              <span className={styles.metaChip}>
+                <Clock size={11} strokeWidth={2.4} aria-hidden="true" />
+                {runtime}
+              </span>
+            )}
+            {genre && <span className={styles.metaChip}>{genre}</span>}
+          </span>
+          <span className={styles.weekendNowTimes}>
+            {show.times.map(t => (
+              <span
+                key={t.time}
+                className={`${styles.timeChip} ${t.isSoldOut ? styles.timeChipSoldOut : ''}`}
+                title={t.isSoldOut ? 'Sold out' : (t.roomName || undefined)}
+              >
+                {t.time}
+              </span>
+            ))}
+          </span>
+        </div>
+
+        {shows.length > 1 && (
+          <div className={styles.weekendRail}>
+            {shows.map((s, i) => (
+              <button
+                key={s.movie.id}
+                className={`${styles.weekendRailItem} ${i === active ? styles.weekendRailActive : ''}`}
+                aria-label={`Mostra ${s.movie.title}`}
+                onClick={e => {
+                  e.stopPropagation();
+                  setActive(i);
+                }}
+                onMouseEnter={() => setActive(i)}
+              >
+                {s.movie.poster_path && (
+                  <Image
+                    src={getTMDBImageUrl(s.movie.poster_path, 'w185')!}
+                    alt=""
+                    fill
+                    sizes="46px"
+                    style={{ objectFit: 'cover' }}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 }
 
@@ -416,7 +583,7 @@ function WeekendChapter({ days, reduced }: { days: WeekendDay[]; reduced: boolea
           viewport={{ once: true, amount: 0.6 }}
           transition={{ duration: 0.8 }}
         >
-          Venerdì, sabato e domenica
+          Sabato e domenica
         </motion.span>
         <motion.h2
           className={styles.weekendTitle}
@@ -428,25 +595,11 @@ function WeekendChapter({ days, reduced }: { days: WeekendDay[]; reduced: boolea
           Questo weekend al cinema.
         </motion.h2>
       </div>
-      {days.map(day => (
-        <div key={day.isoDate} className={styles.weekendDayBlock}>
-          <motion.header
-            className={styles.weekendDayHeader}
-            initial={reduced ? false : { opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.6 }}
-            transition={{ duration: 0.7, ease: easeApple }}
-          >
-            <span className={styles.weekendDayDate}>{day.dateLabel}</span>
-            <span className={styles.weekendDayName}>{day.label}</span>
-          </motion.header>
-          <div className={styles.weekendStrips}>
-            {day.shows.map(show => (
-              <WeekendStrip key={show.movie.id} show={show} reduced={reduced} />
-            ))}
-          </div>
-        </div>
-      ))}
+      <div className={`${styles.weekendDuo} ${days.length === 1 ? styles.weekendDuoSingle : ''}`}>
+        {days.map(day => (
+          <WeekendPanel key={day.isoDate} day={day} reduced={reduced} />
+        ))}
+      </div>
     </section>
   );
 }
@@ -673,6 +826,9 @@ function MarqueeChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: 
 export default function CinematicStory({ movies, subEvents, storySeed }: CinematicStoryProps) {
   const reduced = useReducedMotion() ?? false;
   const chapters = buildStory(movies, new Date(), storySeed);
+  // Il "colore della settimana": la tinta d'accento della storia segue il
+  // genere dominante del cartellone, così la home cambia con la programmazione.
+  const mood = buildMood(movies);
 
   if (chapters.length === 0) {
     // Nessun film: mostriamo comunque il calendario, come faceva la home prima.
@@ -680,11 +836,13 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
   }
 
   return (
-    <div className={styles.story}>
+    <div className={styles.story} style={{ '--story-accent': mood.accent } as CSSProperties}>
       {chapters.map((chapter, i) => {
         switch (chapter.kind) {
           case 'quote':
             return <QuoteChapter key={i} movie={chapter.movie} text={chapter.text} reduced={reduced} />;
+          case 'soirees':
+            return <SoireeChapter key={i} items={chapter.items} reduced={reduced} />;
           case 'stripes':
             return (
               <section key={i} className={styles.stripes}>
