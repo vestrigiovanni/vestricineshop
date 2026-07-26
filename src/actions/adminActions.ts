@@ -48,9 +48,17 @@ function formatManualISO(d: Date) {
 }
 
 /**
- * HELPER: Calculates blocked intervals for a specific room.
- * Each interval is [Start, End + 15m Cleaning].
- * Uses TMDB to fetch missing durations for absolute precision.
+ * Gli intervalli occupati di una sala: [inizio, fine + pausa].
+ *
+ * La durata si cerca dove costa meno, in quest'ordine: i metadati che lo
+ * spettacolo si porta dietro, poi `MovieOverride.runtime` nel database, poi
+ * `date_to`, e solo alla fine un valore prudente.
+ *
+ * Prima qui si interrogava TMDB — una ricerca per titolo più una lettura dei
+ * dettagli — per ogni proiezione senza durata nei metadati. Questa funzione
+ * viene chiamata *una volta per ogni spettacolo creato*, quindi durante una
+ * programmazione da quaranta film quelle chiamate si moltiplicavano per
+ * quaranta. Il database sa già tutto e risponde in una query sola.
  */
 async function getBlockedIntervals(seatingPlanId: number) {
   const events = await listSubEvents(true);
@@ -61,67 +69,63 @@ async function getBlockedIntervals(seatingPlanId: number) {
   // vedessero mai in faccia.
   const CLEANING_BUFFER_EXISTING = MIN_GAP_MINUTES * 60000;
 
-  console.log(`\n--- DEBUG: CALCOLO OCCUPAZIONE REALE PER SALA ${seatingPlanId} ---`);
+  type SubEvent = {
+    active?: boolean; seating_plan?: number | string; date_from: string;
+    date_to?: string | null; comment?: unknown; name?: { it?: string } | string;
+  };
 
-  const intervals = await Promise.all(events
-    .filter((e: any) => e.active === true && Number(e.seating_plan) === seatingPlanId)
-    .map(async (e: any) => {
-      const s = new Date(e.date_from).getTime();
-      let runtimeMin = 120; // Default fallback
-      let source = "FALLBACK (120m)";
+  const mine = (events as SubEvent[]).filter(
+    (e) => e.active === true && Number(e.seating_plan) === seatingPlanId
+  );
 
-      // 1. Try metadata in comment
-      try {
-        if (e.comment) {
-          const metadata = JSON.parse(e.comment);
-          if (metadata.runtime) {
-            runtimeMin = metadata.runtime;
-            source = "METADATA";
-          }
-        }
-      } catch { /* ignore */ }
+  const metaOf = (e: SubEvent): { runtime?: number; tmdbId?: string } => {
+    if (typeof e.comment !== 'string') return {};
+    try {
+      return JSON.parse(e.comment) ?? {};
+    } catch {
+      return {};
+    }
+  };
 
-      // 2. If metadata failed or was default, try TMDB by ID or Title
-      if (source === "FALLBACK (120m)") {
-        const title = e.name.it || e.name;
-        // Search TMDB for this title
-        const results = await adminSearchMovies(title);
-        if (results && results.length > 0) {
-          const firstMatch = results[0];
-          const details = await adminGetMovieById(firstMatch.id.toString());
-          if (details?.runtime) {
-            runtimeMin = details.runtime;
-            source = `TMDB (${details.runtime}m)`;
-          }
-        }
-      }
+  // Una sola lettura per tutte le durate mancanti, invece di due chiamate di
+  // rete per proiezione.
+  const missing = mine
+    .map((e) => metaOf(e))
+    .filter((m) => !m.runtime && m.tmdbId)
+    .map((m) => m.tmdbId as string);
 
-      // 3. Respect date_to if it's already larger (manual overrides)
-      let e_end = s + runtimeMin * 60000;
-      if (e.date_to) {
-        const dTo = new Date(e.date_to).getTime();
-        if (dTo > e_end) {
-          e_end = dTo;
-          source += " + MANUAL OVERRIDE";
-        }
-      }
+  const runtimeByTmdb = new Map<string, number>();
+  if (missing.length > 0) {
+    const prisma = (await import('@/lib/prisma')).default;
+    const rows = await prisma.movieOverride.findMany({
+      where: { tmdbId: { in: [...new Set(missing)] }, runtime: { not: null } },
+      select: { tmdbId: true, runtime: true },
+    });
+    for (const r of rows) runtimeByTmdb.set(r.tmdbId, r.runtime!);
+  }
 
-      const interval = {
-        start: s,
-        end: e_end + CLEANING_BUFFER_EXISTING,
-        title: e.name.it || e.name,
-        runtime: runtimeMin,
-        source
-      };
+  return mine.map((e) => {
+    const s = new Date(e.date_from).getTime();
+    const meta = metaOf(e);
+    const runtimeMin =
+      meta.runtime ||
+      (meta.tmdbId ? runtimeByTmdb.get(meta.tmdbId) : undefined) ||
+      120; // prudente: più lungo del film medio, quindi non fa passare sovrapposizioni
 
-      const dateStr = formatInTimeZone(new Date(s), TIMEZONE, "dd/MM HH:mm");
-      console.log(`[${dateStr}] ${interval.title.padEnd(25)} | Fine: ${formatInTimeZone(new Date(e_end), TIMEZONE, "HH:mm")} | Durata: ${runtimeMin}m | Fonte: ${source}`);
+    // `date_to` più lungo significa che qualcuno l'ha allungato a mano: vince.
+    let e_end = s + runtimeMin * 60000;
+    if (e.date_to) {
+      const dTo = new Date(e.date_to).getTime();
+      if (dTo > e_end) e_end = dTo;
+    }
 
-      return interval;
-    }));
-
-  console.log(`--- FINE DEBUG ---\n`);
-  return intervals;
+    return {
+      start: s,
+      end: e_end + CLEANING_BUFFER_EXISTING,
+      title: (typeof e.name === 'object' ? e.name?.it : e.name) || 'Senza titolo',
+      runtime: runtimeMin,
+    };
+  });
 }
 
 export async function adminClearCache() {
@@ -577,7 +581,12 @@ export async function adminScheduleMovie(
       : getCast(details);
 
     // 2. Fetch Seating Plan Details to get exact category names
-    const planDetail = await getSeatingPlanDetail(seatingPlanId, true);
+    // Cache attiva (5 minuti). La piantina di una sala non cambia mentre stai
+    // creando spettacoli, e riscaricarla per intero a ogni spettacolo era il
+    // costo più grosso di una programmazione lunga: quaranta film, quaranta
+    // scaricamenti dello stesso file. Chi crea a lotti la rinfresca una volta
+    // sola all'inizio (vedi `commitRunner`), così resta anche aggiornata.
+    const planDetail = await getSeatingPlanDetail(seatingPlanId);
     if (!planDetail) throw new Error(`Could not fetch seating plan detail for ID ${seatingPlanId}`);
 
     // 3. Build Seat Category Mapping ONLY from categories that have actual seats in the layout.

@@ -64,21 +64,41 @@ async function run(jobId: string, input: CommitInput): Promise<void> {
 
   updateJob(jobId, { state: 'running', step: 'Preparo i metadati' });
 
+  // La piantina della sala si rinfresca qui, una volta: da qui in avanti ogni
+  // creazione la trova in cache invece di riscaricarla. È fresca *e* costa una
+  // chiamata sola invece di una per spettacolo.
+  const { getSeatingPlanDetail } = await import('@/services/pretix');
+  await getSeatingPlanDetail(input.seatingPlanId, true).catch(() => null);
+
   const info = new Map((await planningGetFilmInfo(uniqueIds)).map((f) => [f.tmdbId, f]));
   let done = 0;
 
-  // ── 1. Metadati arricchiti e premi MUBI, una volta per film ────────────────
+  // ── 1. Metadati arricchiti e premi MUBI ───────────────────────────────────
+  // Qui si può andare in parallelo: sono TMDB e MUBI, non Pretix, e i film non
+  // si toccano fra loro. Il vincolo della sequenzialità riguarda solo la
+  // creazione degli spettacoli più sotto. Quattro alla volta perché MUBI è uno
+  // scraping e non merita di essere martellato.
   const meta: Record<string, unknown> = {};
-  for (const tmdbId of uniqueIds) {
-    const title = info.get(tmdbId)?.title ?? tmdbId;
-    updateJob(jobId, { step: `Metadati e premi · ${title}`, done });
-    try {
-      meta[tmdbId] = await adminPrepareMetadata(tmdbId);
-    } catch (err) {
-      console.error('[commitRunner] metadati', tmdbId, err);
-      meta[tmdbId] = null;
-    }
-    done++;
+  const METADATA_CONCURRENCY = 4;
+
+  for (let i = 0; i < uniqueIds.length; i += METADATA_CONCURRENCY) {
+    const batch = uniqueIds.slice(i, i + METADATA_CONCURRENCY);
+    updateJob(jobId, {
+      step: `Metadati e premi · ${batch.map((id) => info.get(id)?.title ?? id).join(', ')}`,
+      done,
+    });
+    await Promise.all(
+      batch.map(async (tmdbId) => {
+        try {
+          meta[tmdbId] = await adminPrepareMetadata(tmdbId);
+        } catch (err) {
+          console.error('[commitRunner] metadati', tmdbId, err);
+          meta[tmdbId] = null;
+        }
+      })
+    );
+    done += batch.length;
+    updateJob(jobId, { done });
   }
 
   // ── 2. Creazione, uno alla volta ──────────────────────────────────────────
