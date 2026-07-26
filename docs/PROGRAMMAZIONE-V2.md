@@ -90,7 +90,7 @@ Plex (localhost:32400)
   { title, originalTitle, year, durationMin, director,
     tmdbId, imdbId, plexKey, addedAt, summary, contentRating }
        ↓ POST  Authorization: Bearer CATALOG_SYNC_SECRET
-https://vestricinema.it/api/catalog/plex-sync
+https://vestricinema.com/api/catalog/plex-sync
 ```
 
 Il pezzo prezioso è che Plex conosce già il **tmdbId** (`Guid[]` contiene
@@ -519,7 +519,7 @@ poter diventare pubblico per una dimenticanza.
 Verifica che sia tutto a posto prima di far scrivere una riga all'app:
 
 ```bash
-curl -s -H "Authorization: Bearer LA_TUA_CHIAVE" https://vestricinema.it/api/planning/rooms
+curl -s -H "Authorization: Bearer LA_TUA_CHIAVE" https://vestricinema.com/api/planning/rooms
 ```
 
 Deve rispondere con l'elenco delle sale. `401` = chiave sbagliata,

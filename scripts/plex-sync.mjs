@@ -20,7 +20,7 @@
  *   PLEX_URL            es. http://localhost:32400
  *   PLEX_TOKEN          il token del server Plex
  *   PLEX_LIBRARY        nome della libreria film (default: la prima di tipo "movie")
- *   CATALOG_SYNC_URL    es. https://vestricinema.it/api/catalog/plex-sync
+ *   CATALOG_SYNC_URL    es. https://vestricinema.com/api/catalog/plex-sync
  *   CATALOG_SYNC_SECRET lo stesso segreto configurato sul sito
  */
 

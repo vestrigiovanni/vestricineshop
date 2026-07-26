@@ -3,7 +3,7 @@ cinema direttamente dall'iPhone/iPad.
 
 ## Contesto
 
-Il cinema ha un sito Next.js (dominio: https://vestricinema.it) che è l'unico
+Il cinema ha un sito Next.js (dominio: https://vestricinema.com) che è l'unico
 cervello del sistema: conosce il catalogo film, calcola gli orari, parla con
 Pretix (biglietteria) e con MUBI (premi). L'app NON deve reimplementare niente di
 tutto questo e NON deve mai parlare direttamente con Pretix. L'app è un client:
@@ -25,7 +25,7 @@ una API key personale salvata in Keychain.
 
 ## ⚠️ Stai lavorando contro il cinema vero
 
-Non esiste un ambiente di prova. `https://vestricinema.it` è il sito in
+Non esiste un ambiente di prova. `https://vestricinema.com` è il sito in
 produzione, e `POST /api/planning/commit` **crea davvero gli spettacoli sulla
 biglietteria**: compaiono online, la gente può comprarci i biglietti.
 
