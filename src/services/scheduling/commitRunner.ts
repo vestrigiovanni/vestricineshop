@@ -105,6 +105,16 @@ async function run(jobId: string, input: CommitInput): Promise<void> {
   const created: number[] = [];
   const errors: CommitError[] = [];
 
+  // Il palinsesto viaggia di spettacolo in spettacolo: si legge da Pretix una
+  // volta sola (dentro la prima creazione) e poi si passa avanti aggiornato.
+  // Prima veniva riletto per intero — tutte le pagine — a ogni spettacolo, ed
+  // era il vero costo di un commit lungo: sei proiezioni, sei scansioni, più i
+  // backoff quando Pretix rispondeva 429.
+  //
+  // I controlli non cambiano: ogni spettacolo viene comunque confrontato con
+  // quelli esistenti e con quelli creati un attimo prima nello stesso lotto.
+  let blocked: { start: number; end: number; title: string; runtime: number }[] | undefined;
+
   for (let i = 0; i < shows.length; i++) {
     const s = shows[i];
     const f = info.get(s.tmdbId);
@@ -134,11 +144,20 @@ async function run(jobId: string, input: CommitInput): Promise<void> {
       false,
       0,
       true, // il sync si fa una volta sola, alla fine
-      meta[s.tmdbId] ?? undefined
+      meta[s.tmdbId] ?? undefined,
+      blocked
     );
 
-    if (res.success && res.subeventId) created.push(res.subeventId);
-    else errors.push({ key: showKeyOf(s), label, error: res.error || 'errore sconosciuto' });
+    if (res.success && res.subeventId) {
+      created.push(res.subeventId);
+      blocked = (res as { blockedAfter?: typeof blocked }).blockedAfter ?? blocked;
+    } else {
+      errors.push({ key: showKeyOf(s), label, error: res.error || 'errore sconosciuto' });
+      // Fallito a metà: non sappiamo se il sub-evento sia nato prima dell'errore,
+      // quindi la lista in mano non è più affidabile. Si rilegge da Pretix al
+      // giro dopo — capita di rado, e meglio lento che con un doppione.
+      blocked = undefined;
+    }
 
     done++;
     updateJob(jobId, { done, created: [...created], errors: [...errors] });

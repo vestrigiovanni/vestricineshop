@@ -554,7 +554,22 @@ export async function adminScheduleMovie(
   override: boolean = false,
   buffer: number = 0,
   skipSync: boolean = false,
-  enrichedMetadata?: any
+  enrichedMetadata?: any,
+  /**
+   * Il palinsesto già noto, per chi crea a lotti.
+   *
+   * Ricavarlo costa una lettura paginata di TUTTI i sub-eventi futuri da
+   * Pretix, e questa funzione viene chiamata una volta per spettacolo: su un
+   * lotto da sei erano sei scansioni complete dello stesso palinsesto, con in
+   * più il rischio di prendersi un 429 e i suoi backoff da secondi.
+   *
+   * Chi passa questo parametro riceve indietro `blockedAfter`, cioè la stessa
+   * lista con dentro lo spettacolo appena creato: ripassandola alla chiamata
+   * successiva il controllo dei conflitti resta identico — ogni spettacolo è
+   * confrontato con gli esistenti E con quelli creati poco prima — ma Pretix
+   * viene letto una volta sola per l'intero lotto.
+   */
+  knownBlocked?: { start: number; end: number; title: string; runtime: number }[]
 ) {
   try {
     // ── TRACCIAMENTO ESECUZIONE (visibile nei log Vercel) ──────────────────────
@@ -675,7 +690,7 @@ export async function adminScheduleMovie(
       override
     });
 
-    const blockedIntervals = await getBlockedIntervals(seatingPlanId);
+    const blockedIntervals = knownBlocked ?? (await getBlockedIntervals(seatingPlanId));
 
     // CRITICAL: use timezone-aware Rome midnight for the bitmap anchor
     const dayStartMs = getRomeDayStartMs(startDate);
@@ -819,10 +834,19 @@ export async function adminScheduleMovie(
 
     console.log(`[adminScheduleMovie] ✅ END – Subevent creato ID=${subeventId}, runtime=${runtimeMinutes}m`);
 
-    return { 
-      success: true, 
-      subeventId: subeventId, 
+    return {
+      success: true,
+      subeventId: subeventId,
       runtimeMinutes,
+      // Il palinsesto con dentro lo spettacolo appena creato. Chi crea a lotti
+      // lo ripassa come `knownBlocked` alla chiamata dopo: stessi controlli,
+      // ma Pretix letto una volta sola invece che una per spettacolo.
+      // `eNew` include già la pausa pulizie, come le voci che arrivano da
+      // `getBlockedIntervals`.
+      blockedAfter: [
+        ...blockedIntervals,
+        { start: sNew, end: eNew, title: movieData.title, runtime: runtimeMinutes },
+      ],
       ratingWarning: isItMissing ? `Attenzione: Classificazione IT mancante. Usato fallback internazionale o 'T'.` : null
     };
   } catch (error: any) {
