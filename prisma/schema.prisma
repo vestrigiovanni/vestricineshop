@@ -92,6 +92,24 @@ model CatalogFilm {
   genres       String[]  @default([])
   runtime      Int?
 
+  // --- Dalla libreria Plex (push dal Mac del cinema) ---
+  plexKey      String?   @unique // ratingKey Plex: identifica il film nella libreria
+  inPlex       Boolean   @default(false) // false = sparito dalla libreria, MAI cancellato
+  addedAt      DateTime? // quando è entrato in libreria → corsia "Novità"
+
+  // --- Anagrafica estesa TMDB (arriva dalla stessa chiamata dell'arricchimento) ---
+  originalTitle    String?
+  originalLanguage String?
+  overview         String?
+  backdropPath     String?
+  voteAverage      Float? // → corsia "Acclamati"
+  voteCount        Int?
+  popularity       Float?
+
+  // --- Premi MUBI (arricchimento graduale in background) ---
+  awardLabels     String[]  @default([])
+  awardsCheckedAt DateTime? // null = mai interrogato
+
   // --- Qualità / verifica ---
   verifyStatus String    @default("pending") // pending | ok | suspect | missing | fixed
   enrichedAt   DateTime?
@@ -101,4 +119,8 @@ model CatalogFilm {
 
   @@index([tmdbId])
   @@index([verifyStatus])
+  @@index([inPlex])
+  @@index([voteAverage])
+  @@index([addedAt])
+  @@index([awardsCheckedAt])
 }

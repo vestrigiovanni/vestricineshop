@@ -2311,3 +2311,23 @@
   padding: 0.2rem 0.6rem;
   border-radius: 1rem;
 }
+/* Ingresso unico alla programmazione: sostituisce la ricerca TMDB e il modale. */
+.scheduleEntry {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 1.1rem 1.3rem;
+  text-align: left;
+  text-decoration: none;
+  border-radius: 12px;
+}
+.scheduleEntry span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  line-height: 1.35;
+}
+.scheduleEntry b { font-size: 1rem; }
+.scheduleEntry span span,
+.scheduleEntry span :not(b) { font-size: 0.8rem; opacity: 0.8; font-weight: 400; }

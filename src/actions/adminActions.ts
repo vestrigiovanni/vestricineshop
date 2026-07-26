@@ -27,6 +27,7 @@ import { revalidatePath } from 'next/cache';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
 import { calculatePretixDateTime } from '@/utils/dateUtils';
 import { deleteMovieMetadata } from '@/services/db.service';
+import { CLOSING_MINUTE, MIN_GAP_MINUTES, OPENING_MINUTE } from '@/services/scheduling/times';
 
 // Admin logic for Pretix management
 
@@ -53,7 +54,12 @@ function formatManualISO(d: Date) {
  */
 async function getBlockedIntervals(seatingPlanId: number) {
   const events = await listSubEvents(true);
-  const CLEANING_BUFFER_EXISTING = 15 * 60000;
+  // La pausa fra due spettacoli ha un'unica definizione, quella del motore.
+  // Prima qui erano 15 minuti mentre la creazione ne chiedeva 10: uno
+  // spettacolo piazzato a 10 minuti da uno esistente veniva generato come
+  // valido e poi rifiutato al salvataggio, senza che le due regole si
+  // vedessero mai in faccia.
+  const CLEANING_BUFFER_EXISTING = MIN_GAP_MINUTES * 60000;
 
   console.log(`\n--- DEBUG: CALCOLO OCCUPAZIONE REALE PER SALA ${seatingPlanId} ---`);
 
@@ -645,7 +651,7 @@ export async function adminScheduleMovie(
 
     // 5. Algorithm No-Overlap Check (Nuclear Bit-Map Logic)
     const runtimeMinutes = (details.runtime || 120);
-    const CLEANING_BUFFER_NEW = 10 * 60000;
+    const CLEANING_BUFFER_NEW = MIN_GAP_MINUTES * 60000;
 
     // Per i calcoli interni della bitmap, usiamo STILL toDate ma solo per posizionarci
     // NON lo usiamo per la stringa finale Pretix.
@@ -670,16 +676,23 @@ export async function adminScheduleMovie(
     if (!override) {
       const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
       if (dayStartMs >= transitionDateMs) {
-        const minStartMs = dayStartMs + 10 * 60 * 60 * 1000; // 10:00
-        const maxEndMs = dayStartMs + 25 * 60 * 60 * 1000;   // 01:00 (giorno dopo)
-        
+        // Apertura e chiusura vengono dal motore: se un giorno cambiano, cambiano
+        // per chi genera il piano e per chi lo salva nello stesso momento.
+        const minStartMs = dayStartMs + OPENING_MINUTE * 60000;
+        const maxEndMs = dayStartMs + CLOSING_MINUTE * 60000;
+
         if (sNew < minStartMs) {
-          const msg = `Orario non consentito: dal 9 Giugno il primo spettacolo non può iniziare prima delle 10:00.`;
+          const msg = `Orario non consentito: il primo spettacolo non può iniziare prima delle 10:00.`;
           console.log(`[adminScheduleMovie] ⛔ ${msg}`);
           throw new Error(msg);
         }
-        if (eNew > maxEndMs) {
-          const msg = `Orario non consentito: dal 9 Giugno l'ultimo spettacolo deve terminare entro l'01:00 (il film terminerebbe alle ${formatInTimeZone(new Date(eNew), TIMEZONE, 'HH:mm')}).`;
+        // Conta la fine del FILM, non la fine delle pulizie: dopo l'ultimo
+        // spettacolo il cinema chiude, e nessuno resta ad aspettare che la sala
+        // sia rifatta. Confrontare `eNew` (che include i 10 minuti di pausa)
+        // rendeva illegali spettacoli che finivano alle 00:59.
+        const movieEndMs = sNew + runtimeMinutes * 60000;
+        if (movieEndMs > maxEndMs) {
+          const msg = `Orario non consentito: l'ultimo spettacolo deve terminare entro l'01:00 (il film terminerebbe alle ${formatInTimeZone(new Date(movieEndMs), TIMEZONE, 'HH:mm')}).`;
           console.log(`[adminScheduleMovie] ⛔ ${msg}`);
           throw new Error(msg);
         }
@@ -994,215 +1007,6 @@ export async function adminGetQuotaAvailability(quotaId: number) {
 /**
  * SMART SCHEDULING: Get the first available slot for a given movie/room.
  */
-export async function adminGetSmartSuggestion(tmdbId: string, seatingPlanId: number, buffer: number = 0) {
-  const details = await getMovieDetails(tmdbId);
-  const runtime = (details?.runtime || 120);
-  const CLEANING_BUFFER_NEW = 10 * 60000;
-  const runtimeWithBufferMs = (runtime * 60000) + CLEANING_BUFFER_NEW;
-  const roundingMs = 5 * 60000;
-
-  const now = new Date();
-  const blockedIntervals = await getBlockedIntervals(seatingPlanId);
-
-  // Scan starting from now, rounded to 5 mins
-  let currentPointer = Math.ceil(now.getTime() / roundingMs) * roundingMs;
-
-  // Limit search to next 7 days for smart suggestion
-  const limitMs = now.getTime() + (7 * 24 * 60 * 60 * 1000);
-
-  while (currentPointer < limitMs) {
-    const sNew = currentPointer;
-    const eNew = sNew + runtimeWithBufferMs;
-
-    const dRef = new Date(sNew);
-    // CRITICAL: timezone-aware Rome midnight for bitmap anchor
-    const dayStartMs = getRomeDayStartMs(dRef);
-
-    // Enforce opening hour constraints for smart suggestions
-    const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
-    let minStartMs = dayStartMs + 8 * 60 * 60 * 1000;
-    let maxLimitMs = dayStartMs + (23 * 60 + 30) * 60 * 1000; // max start time for old logic
-    let isNewLogic = false;
-
-    if (dayStartMs >= transitionDateMs) {
-      minStartMs = dayStartMs + 10 * 60 * 60 * 1000;
-      maxLimitMs = dayStartMs + 25 * 60 * 60 * 1000; // max end time for new logic
-      isNewLogic = true;
-    }
-
-    if (sNew < minStartMs) {
-      // Too early, jump to opening time
-      currentPointer = minStartMs;
-      continue;
-    }
-
-    const movieEndMs = sNew + (runtime * 60000);
-    if (isNewLogic ? (movieEndMs > maxLimitMs) : (sNew > maxLimitMs)) {
-      // Too late, jump to next day's opening time
-      currentPointer = dayStartMs + 24 * 60 * 60 * 1000 + (isNewLogic ? 10 : 8) * 60 * 60 * 1000;
-      continue;
-    }
-
-    const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
-    const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs) ||
-                        blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start);
-
-    if (!hasConflict) {
-      return formatManualISO(new Date(sNew));
-    }
-
-    // Jump to the end of the conflicting interval to find the next gap
-    const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
-    if (conflict) {
-      currentPointer = Math.ceil(conflict.end / roundingMs) * roundingMs;
-    } else {
-      currentPointer += roundingMs;
-    }
-  }
-
-  return formatManualISO(new Date(currentPointer));
-}
-
-/**
- * SMART SCHEDULING: Check if a specific time slot overlaps.
- */
-export async function adminCheckConflict(date: string, tmdbId: string, seatingPlanId: number, buffer: number = 0) {
-  const details = await getMovieDetails(tmdbId);
-  const runtime = (details?.runtime || 120);
-  const sDate = toDate(date, { timeZone: TIMEZONE });
-  const sNew = sDate.getTime();
-  const CLEANING_BUFFER_NEW = 10 * 60000;
-  const eNew = sNew + (runtime * 60000) + CLEANING_BUFFER_NEW;
-
-  const blockedIntervals = await getBlockedIntervals(seatingPlanId);
-
-  // CRITICAL: timezone-aware Rome midnight for bitmap anchor
-  const dayStartMs = getRomeDayStartMs(sDate);
-
-  // Enforce opening hour constraints for conflicts
-  const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
-  if (dayStartMs >= transitionDateMs) {
-    const minStartMs = dayStartMs + 10 * 60 * 60 * 1000;
-    const maxEndMs = dayStartMs + 25 * 60 * 60 * 1000;
-    if (sNew < minStartMs) {
-      return {
-        hasConflict: true,
-        movieTitle: "Orario apertura (il cinema apre alle 10:00)",
-        conflictEndTime: "10:00",
-        runtime
-      };
-    }
-    const movieEndMs = sNew + (runtime * 60000);
-    if (movieEndMs > maxEndMs) {
-      return {
-        hasConflict: true,
-        movieTitle: "Orario chiusura (il film deve terminare entro l'01:00)",
-        conflictEndTime: "01:00",
-        runtime
-      };
-    }
-  } else {
-    const minStartMs = dayStartMs + 8 * 60 * 60 * 1000;
-    const maxStartMs = dayStartMs + (23 * 60 + 30) * 60 * 1000;
-    if (sNew < minStartMs) {
-      return {
-        hasConflict: true,
-        movieTitle: "Orario apertura (il cinema apre alle 08:00)",
-        conflictEndTime: "08:00",
-        runtime
-      };
-    }
-    if (sNew > maxStartMs) {
-      return {
-        hasConflict: true,
-        movieTitle: "Orario limite (l'ultimo film deve iniziare entro le 23:30)",
-        conflictEndTime: "23:30",
-        runtime
-      };
-    }
-  }
-
-  const dayMap = getDayOccupancyMap(blockedIntervals, sDate);
-  const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs) ||
-                      blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start);
-
-  if (hasConflict) {
-    const conflict = blockedIntervals.find(interval => sNew < interval.end && eNew > interval.start);
-    // Round end to 5 mins and display in Rome timezone
-    const roundedFreeAt = new Date(Math.ceil((conflict?.end || 0) / (5 * 60000)) * (5 * 60000));
-    const conflictEndTime = formatInTimeZone(roundedFreeAt, TIMEZONE, 'HH:mm');
-
-    return {
-      hasConflict: true,
-      movieTitle: conflict?.title || 'un altro film',
-      conflictEndTime,
-      runtime
-    };
-  }
-  return { hasConflict: false, runtime };
-}
-
-
-
-/**
- * Finds the nearest free slots before and after a conflict.
- * Returns suggestive ISO strings for the UI.
- */
-export async function adminFindNearestSlots(date: string, tmdbId: string, seatingPlanId: number, buffer: number = 0) {
-  const details = await getMovieDetails(tmdbId);
-  const runtime = details?.runtime || 120;
-  const CLEANING_BUFFER_NEW = 10 * 60000;
-  const runtimeWithBufferMs = (runtime * 60000) + CLEANING_BUFFER_NEW;
-  const roundingMs = 5 * 60000;
-
-  const targetDateMs = toDate(date, { timeZone: TIMEZONE }).getTime();
-  const blockedIntervals = await getBlockedIntervals(seatingPlanId);
-
-  // Find pre-conflict slot (scan backwards from target)
-  let preSuggestion: string | null = null;
-  let prePointer = targetDateMs - roundingMs;
-  const preLimit = targetDateMs - (12 * 60 * 60 * 1000); // 12h back max
-
-  while (prePointer > preLimit) {
-    const sNew = prePointer;
-    const eNew = sNew + runtimeWithBufferMs;
-    const dRef = new Date(sNew);
-    // CRITICAL: timezone-aware Rome midnight
-    const dayStartMs = getRomeDayStartMs(dRef);
-    const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
-    if (isWithinOpeningHours(sNew, eNew, dayStartMs, runtime * 60000) && 
-        isRangeFree(dayMap, sNew, eNew, dayStartMs) &&
-        !blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start)) {
-      preSuggestion = formatInTimeZone(new Date(sNew), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
-      break;
-    }
-    prePointer -= roundingMs;
-  }
-
-  // Find post-conflict slot (scan forwards from target)
-  let postSuggestion: string | null = null;
-  let postPointer = targetDateMs + roundingMs;
-  const postLimit = targetDateMs + (12 * 60 * 60 * 1000); // 12h forward max
-
-  while (postPointer < postLimit) {
-    const sNew = postPointer;
-    const eNew = sNew + runtimeWithBufferMs;
-    const dRef = new Date(sNew);
-    // CRITICAL: timezone-aware Rome midnight
-    const dayStartMs = getRomeDayStartMs(dRef);
-    const dayMap = getDayOccupancyMap(blockedIntervals, dRef);
-    if (isWithinOpeningHours(sNew, eNew, dayStartMs, runtime * 60000) && 
-        isRangeFree(dayMap, sNew, eNew, dayStartMs) &&
-        !blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start)) {
-      postSuggestion = formatInTimeZone(new Date(sNew), TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
-      break;
-    }
-    postPointer += roundingMs;
-  }
-
-  return { preSuggestion, postSuggestion, runtime };
-}
-
 export async function adminClearMovieMetadata(tmdbId: string) {
   deleteMovieMetadata(tmdbId);
   revalidatePath('/');
@@ -1245,163 +1049,6 @@ export async function adminGetEmptyProjections() {
 }
 
 
-/**
- * BULK SCHEDULING: Get multiple available slots for the next 14 days.
- * Optimized to find real gaps based on runtime + buffer.
- */
-export async function adminGetWeeklySlots(tmdbId: string, seatingPlanId: number, daysCount = 14, buffer = 0) {
-  const details = await getMovieDetails(tmdbId);
-  const runtime = (details?.runtime || 120);
-  const CLEANING_BUFFER_NEW = 10 * 60000; // 10m buffer for new movie
-  const runtimeWithBufferMs = (runtime * 60000) + CLEANING_BUFFER_NEW;
-  const SCAN_STEP_MS = 5 * 60000; // Scan every 5 minutes
-
-  console.log(`[adminGetWeeklySlots] Film: ${tmdbId} | Runtime: ${runtime}m | Sala: ${seatingPlanId}`);
-
-  const blockedIntervals = await getBlockedIntervals(seatingPlanId);
-  const suggestions: { date: string; label: string; isOccupied: boolean; isMorning?: boolean; isOptimized?: boolean; runtime: number }[] = [];
-  const nowMs = Date.now();
-
-  for (let d = 0; d < daysCount; d++) {
-    // Compute Rome midnight for day d using an approximate UTC ms reference then correcting with getRomeDayStartMs
-    const approxDayMs = nowMs + d * 24 * 60 * 60 * 1000;
-    const dayStartMs = getRomeDayStartMs(new Date(approxDayMs)); // 00:00 in Rome
-
-    const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
-    let timelineStartMs: number;
-    let timelineEndMs: number;
-
-    if (dayStartMs < transitionDateMs) {
-      // Timeline boundary in Rome time (Old logic): 08:00 = +8h, 23:30 = +23.5h
-      timelineStartMs = dayStartMs + 8 * 60 * 60 * 1000;
-      timelineEndMs = dayStartMs + (23 * 60 + 30) * 60 * 1000;
-    } else {
-      // New logic: first film starting from 10:00, last film must finish by 01:00 of next morning (without cleaning buffer)
-      timelineStartMs = dayStartMs + 10 * 60 * 60 * 1000;
-      timelineEndMs = dayStartMs + 25 * 60 * 60 * 1000 - (runtime * 60000);
-    }
-
-    let currentPointer = timelineStartMs;
-
-    const daySlots: typeof suggestions = [];
-    const dayMap = getDayOccupancyMap(blockedIntervals, new Date(dayStartMs));
-
-    while (currentPointer <= timelineEndMs) {
-      const sNew = currentPointer;
-      const eNew = sNew + runtimeWithBufferMs;
-
-      // Skip slots in the past
-      if (sNew > nowMs) {
-        const hasConflict = !isRangeFree(dayMap, sNew, eNew, dayStartMs) ||
-                            blockedIntervals.some(interval => sNew < interval.end && eNew > interval.start);
-
-        if (!hasConflict) {
-          // Build the display label in Rome timezone (correct even on UTC Vercel)
-          const romeHHmm = formatInTimeZone(new Date(sNew), TIMEZONE, 'HH:mm');
-          const h = parseInt(romeHHmm.split(':')[0], 10);
-          daySlots.push({
-            date: formatManualISO(new Date(sNew)),
-            label: romeHHmm,
-            isOccupied: false,
-            isMorning: h >= 5 && h < 13,
-            isOptimized: false,
-            runtime
-          });
-        }
-      }
-      currentPointer += SCAN_STEP_MS;
-    }
-
-    if (daySlots.length > 0) {
-      // Mark the absolute last slot of the day as optimized
-      daySlots[daySlots.length - 1].isOptimized = true;
-    }
-
-    // Filter slots to show one every 30 minutes to provide a dense but readable grid
-    // If the room is free, this will show e.g. 09:00, 09:30, 10:00...
-    const groupedSlots: typeof suggestions = [];
-    const seenIntervals = new Set<string>();
-
-    daySlots.forEach(s => {
-      const [h, m] = s.label.split(':').map(Number);
-      const intervalKey = `${h}:${m < 30 ? '00' : '30'}`;
-      if (!seenIntervals.has(intervalKey) || s.isOptimized) {
-        groupedSlots.push(s);
-        seenIntervals.add(intervalKey);
-      }
-    });
-
-    suggestions.push(...groupedSlots);
-  }
-
-  console.log(`[adminGetWeeklySlots] Trovati ${suggestions.length} slot liberi nei prossimi ${daysCount} giorni.`);
-  return suggestions;
-}
-
-
-
-/**
- * BULK SCHEDULING: Create multiple screenings at once.
- */
-export async function adminBulkScheduleMovie(
-  movieData: { id: string; title: string; overview: string; posterPath: string; language: string; subtitles: string; versionLanguage: string },
-  selectedDates: string[],
-  seatingPlanId: number,
-  buffer: number = 0
-) {
-  let successCount = 0;
-  let errorCount = 0;
-  const errors: string[] = [];
-
-  // --- PARALLEL BULK SCHEDULING (Standard Tecnico) ---
-  // We process all slots in parallel to avoid sequential API overhead
-  const scheduleTasks = selectedDates.map(async (fullDate) => {
-    try {
-      const [datePart, timePart] = fullDate.includes('T') ? fullDate.split('T') : [fullDate, "00:00"];
-      const cleanTime = timePart.substring(0, 5);
-
-      console.log(`[adminBulkScheduleMovie] Parallel processing slot: ${datePart} ${cleanTime}`);
-      await adminScheduleMovie(movieData, datePart, cleanTime, seatingPlanId, false, buffer, true);
-      successCount++;
-    } catch (e: any) {
-      console.error(`Bulk Error at ${fullDate}:`, e);
-      errorCount++;
-      errors.push(`${fullDate}: ${e.message}`);
-    }
-  });
-
-  await Promise.all(scheduleTasks);
-
-  // --- ATOMIC SYNC (Standard Tecnico) ---
-  try {
-    const { syncPretixToDatabase } = await import('@/services/sync.service');
-    await syncPretixToDatabase({ skipPush: true });
-  } catch (syncErr) {
-    console.error('[adminBulkScheduleMovie] ⚠️ Background sync failed:', syncErr);
-  }
-
-  revalidatePath('/');
-  revalidatePath('/admin/movies-control');
-  return {
-    success: true,
-    summary: `Creati ${successCount} spettacoli. Errori: ${errorCount}.`,
-    details: errors
-  };
-}
-
-/**
- * MIRROR SYSTEM: CREATE NEW SEATING PLAN WITH CONFIGURABLE LAYOUT
- *
- * CRITICAL: The layout JSON must match Pretix's internal format EXACTLY.
- * Missing fields (uuid on seats/rows/zones, row_number_position, areas, zone_id)
- * cause a Python KeyError in Pretix's sub-event processing → HTTP 500.
- *
- * Reference format obtained from a working Pretix-created plan.
- *
- * @param name     Nome della sala (es. "SALA 1")
- * @param numRows  Numero di file (default 5)
- * @param numCols  Numero di posti per fila (default 10)
- */
 export async function adminCreateSeatingPlan(name: string, numRows: number = 5, numCols: number = 10) {
   try {
     const normalizedName = name.toUpperCase().trim();
@@ -1810,7 +1457,25 @@ export async function adminPrepareMetadata(tmdbId: string) {
         isManualOverride: existing?.isManualOverride || false,
         isDraft: false
       });
-      
+
+      // I premi appena estratti valgono anche per il catalogo: è l'unica volta
+      // che li abbiamo in mano, e conservarli qui non costa nessuna chiamata in
+      // più. Il catalogo si arricchisce da sé man mano che programmi, invece di
+      // pretendere uno scraping di massa su film che non hai ancora scelto.
+      try {
+        const labels = ((metadata.awards ?? []) as { label?: string }[])
+          .map((a) => a?.label)
+          .filter((l): l is string => typeof l === 'string' && l.length > 0);
+        await prisma.catalogFilm.updateMany({
+          where: { tmdbId },
+          data: { awardLabels: labels, awardsCheckedAt: new Date() },
+        });
+      } catch (err) {
+        // Il catalogo è un di più: se non si aggiorna, la programmazione va
+        // avanti lo stesso.
+        console.warn(`[adminPrepareMetadata] premi non salvati in catalogo per ${tmdbId}`, err);
+      }
+
       return metadata;
     } else {
       console.warn(`[adminPrepareMetadata] ⚠️ No metadata found for TMDB ID: ${tmdbId}`);
@@ -1871,232 +1536,6 @@ export async function adminRefreshMovieAwards(tmdbId: string) {
 /**
  * Refreshes MUBI awards for ALL currently scheduled movies.
  */
-// ═══════════════════════════════════════════════════════════════════════════
-// PLANNER AUTOMATICO: genera una programmazione "da vero cinema" per un
-// insieme di film scelti dal catalogo. Distribuisce le repliche su più giorni,
-// varia le fasce orarie (matinée / pomeriggio / prima serata / seconda serata),
-// concentra gli spettacoli nel weekend, garantisce a ogni film almeno una
-// prima serata e aggiunge un jitter casuale agli orari così che ogni
-// generazione produca orari sempre diversi. Rispetta gli orari di apertura
-// e gli spettacoli già esistenti in sala (incluse le pulizie).
-// ═══════════════════════════════════════════════════════════════════════════
-
-export type AutoPlanShow = {
-  tmdbId: string;
-  title: string;
-  overview: string;
-  posterPath: string;
-  language: string;
-  subtitles: string;
-  versionLanguage: string;
-  runtime: number;
-  date: string;   // ISO Europe/Rome (stesso formato degli slot settimanali)
-  startMs: number;
-  endLabel: string; // 'HH:mm' fine film (senza pulizie)
-  band: 'Matinée' | 'Pomeriggio' | 'Prima serata' | 'Seconda serata';
-};
-
-export type AutoPlanIntensity = 'soft' | 'normal' | 'festival';
-
-// Ancore orarie per fascia: [orario base, fascia]. Il jitter ±30' le rende
-// sempre diverse; il fit-scan le sposta se la sala è occupata.
-const AUTO_PLAN_ANCHORS: Record<AutoPlanIntensity, { weekday: string[]; weekend: string[] }> = {
-  soft:     { weekday: ['18:00', '21:15'],                            weekend: ['16:00', '18:30', '21:15'] },
-  normal:   { weekday: ['15:30', '18:00', '21:00'],                   weekend: ['11:00', '15:30', '18:00', '21:00'] },
-  festival: { weekday: ['15:00', '17:30', '20:00', '22:15'],          weekend: ['10:45', '14:30', '17:00', '19:30', '21:45'] },
-};
-
-function autoPlanBandOf(startMs: number): AutoPlanShow['band'] {
-  const h = parseInt(formatInTimeZone(new Date(startMs), TIMEZONE, 'HH'), 10);
-  const m = parseInt(formatInTimeZone(new Date(startMs), TIMEZONE, 'mm'), 10);
-  const mins = h * 60 + m;
-  if (mins < 13 * 60) return 'Matinée';
-  if (mins < 18 * 60 + 30) return 'Pomeriggio';
-  if (mins < 21 * 60 + 50) return 'Prima serata';
-  return 'Seconda serata';
-}
-
-export async function adminGenerateAutoPlan(
-  tmdbIds: string[],
-  options: { seatingPlanId: number; startDate: string; days: number; intensity: AutoPlanIntensity }
-): Promise<{ success: boolean; error?: string; plan: AutoPlanShow[]; warnings: string[]; summary: { tmdbId: string; title: string; count: number }[] }> {
-  try {
-    const { seatingPlanId, startDate, intensity } = options;
-    const days = Math.min(Math.max(options.days, 1), 30);
-    const ids = [...new Set(tmdbIds)].slice(0, 40);
-    if (ids.length === 0) throw new Error('Nessun film selezionato.');
-
-    // 1. Dettagli TMDB + override esistenti (per titolo/poster/lingua corretti)
-    const { getLanguageName } = await import('@/services/tmdb.utils');
-    const [detailsList, overrides] = await Promise.all([
-      Promise.all(ids.map((id) => getMovieDetails(id).catch(() => null))),
-      adminGetOverrides(),
-    ]);
-
-    type PlanFilm = {
-      tmdbId: string; title: string; overview: string; posterPath: string;
-      language: string; subtitles: string; versionLanguage: string; runtime: number;
-      target: number; placed: number; lastDay: number; bandsUsed: Set<string>; hasPrime: boolean;
-    };
-
-    const films: PlanFilm[] = [];
-    const warnings: string[] = [];
-
-    ids.forEach((tmdbId, i) => {
-      const d = detailsList[i];
-      if (!d) { warnings.push(`Film TMDB ${tmdbId}: dettagli non trovati, escluso dal piano.`); return; }
-      const ov = (overrides as any)[tmdbId];
-      const isItalian = d.original_language === 'it';
-      films.push({
-        tmdbId,
-        title: ov?.customTitle || d.title,
-        overview: ov?.customOverview || d.overview || '',
-        posterPath: ov?.customPosterPath || d.poster_path || '',
-        language: ov?.versionLanguage || (isItalian ? 'Italiano' : getLanguageName(d.original_language)),
-        subtitles: ov?.subtitles || (isItalian ? 'Nessuno' : 'Italiano'),
-        versionLanguage: ov?.customVersion || (isItalian ? 'Versione Originale' : 'Versione Originale Sottotitolata'),
-        runtime: d.runtime || 120,
-        target: 0, placed: 0, lastDay: -99, bandsUsed: new Set(), hasPrime: false,
-      });
-    });
-    if (films.length === 0) throw new Error('Nessun film valido tra quelli selezionati.');
-
-    // 2. Occupazione esistente della sala (già comprensiva di pulizie +15')
-    const blocked = await getBlockedIntervals(seatingPlanId);
-    // Le proiezioni piazzate dal piano vengono aggiunte qui man mano (fine + 15'
-    // di pulizie, come gli eventi reali) così i controlli in fase di creazione
-    // Pretix troveranno esattamente gli stessi vincoli.
-    const occupied = blocked.map((b: any) => ({ start: b.start, end: b.end }));
-    const nowMs = Date.now();
-
-    // 3. Slot candidati per ogni giorno (ancora + fascia), in ordine cronologico
-    const baseNoonMs = toDate(`${startDate}T12:00:00`, { timeZone: TIMEZONE }).getTime();
-    type Slot = { dayIdx: number; dayStartMs: number; anchorMs: number };
-    const slots: Slot[] = [];
-
-    for (let dIdx = 0; dIdx < days; dIdx++) {
-      const dayStartMs = getRomeDayStartMs(new Date(baseNoonMs + dIdx * 86400000));
-      // 1=lun … 7=dom: venerdì/sabato/domenica sono giorni "pieni"
-      const isoDay = parseInt(formatInTimeZone(new Date(dayStartMs + 12 * 3600000), TIMEZONE, 'i'), 10);
-      const anchors = isoDay >= 5 ? AUTO_PLAN_ANCHORS[intensity].weekend : AUTO_PLAN_ANCHORS[intensity].weekday;
-      for (const a of anchors) {
-        const [h, m] = a.split(':').map(Number);
-        const anchorMs = dayStartMs + (h * 60 + m) * 60000;
-        if (anchorMs > nowMs + 30 * 60000) slots.push({ dayIdx: dIdx, dayStartMs, anchorMs });
-      }
-    }
-    slots.sort((a, b) => a.anchorMs - b.anchorMs);
-    if (slots.length === 0) throw new Error('Nessuno slot disponibile nel periodo scelto (è tutto nel passato?).');
-
-    // 4. Obiettivo repliche per film: equo, con resto distribuito a caso
-    const maxReplicas = Math.min(Math.max(2, days), 5);
-    const shuffled = [...films];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    const base = Math.floor(slots.length / shuffled.length);
-    const rem = slots.length % shuffled.length;
-    shuffled.forEach((f, i) => { f.target = Math.min(base + (i < rem ? 1 : 0), maxReplicas); });
-
-    // 5. Tenta di piazzare un film in uno slot: jitter casuale ±30', poi
-    //    fit-scan a passi di 5' (avanti/indietro fino a ±90') attorno all'ancora.
-    const CLEANING_NEW = 10 * 60000;   // pulizie richieste dal nuovo spettacolo
-    const CLEANING_OWN = 15 * 60000;   // pulizie che il nuovo spettacolo "lascia" (come eventi esistenti)
-    const STEP = 5 * 60000;
-
-    const fits = (s: number, runtimeMin: number, dayStartMs: number): boolean => {
-      const movieEnd = s + runtimeMin * 60000;
-      const eNew = movieEnd + CLEANING_NEW;
-      if (s < dayStartMs + 10 * 3600000) return false;          // apertura 10:00
-      // adminScheduleMovie rifiuta se film + pulizie (10') sforano l'01:00:
-      // il limite va applicato a eNew, non alla sola fine del film.
-      if (eNew > dayStartMs + 25 * 3600000) return false;
-      if (s < nowMs + 30 * 60000) return false;
-      return !occupied.some((o) => s < o.end && eNew > o.start);
-    };
-
-    const tryPlace = (slot: Slot, runtimeMin: number): number | null => {
-      const jitter = (Math.floor(Math.random() * 13) - 6) * STEP; // ±30' a passi di 5'
-      const start = slot.anchorMs + jitter;
-      if (fits(start, runtimeMin, slot.dayStartMs)) return start;
-      for (let off = STEP; off <= 90 * 60000; off += STEP) {
-        if (fits(start + off, runtimeMin, slot.dayStartMs)) return start + off;
-        if (fits(start - off, runtimeMin, slot.dayStartMs)) return start - off;
-      }
-      return null;
-    };
-
-    // 6. Assegnazione: per ogni slot scegli il film col punteggio migliore
-    //    (repliche mancanti, giorni di distanza dall'ultima proiezione, fascia
-    //    mai usata, bisogno di una prima serata, più un pizzico di caso).
-    const plan: AutoPlanShow[] = [];
-
-    for (const slot of slots) {
-      const band = autoPlanBandOf(slot.anchorMs);
-      const candidates = films
-        .filter((f) => f.placed < f.target)
-        .filter((f) => f.lastDay !== slot.dayIdx || f.target > days)
-        .map((f) => ({
-          f,
-          score:
-            (f.target - f.placed) * 10 +
-            Math.min(slot.dayIdx - f.lastDay, 6) * 3 +
-            (!f.bandsUsed.has(band) ? 6 : 0) +
-            (band === 'Prima serata' && !f.hasPrime ? 12 : 0) +
-            Math.random() * 5,
-        }))
-        .sort((a, b) => b.score - a.score);
-
-      for (const { f } of candidates) {
-        const startMs = tryPlace(slot, f.runtime);
-        if (startMs == null) continue;
-
-        const movieEndMs = startMs + f.runtime * 60000;
-        occupied.push({ start: startMs, end: movieEndMs + CLEANING_OWN });
-        f.placed++;
-        f.lastDay = slot.dayIdx;
-        const realBand = autoPlanBandOf(startMs);
-        f.bandsUsed.add(realBand);
-        if (realBand === 'Prima serata') f.hasPrime = true;
-
-        plan.push({
-          tmdbId: f.tmdbId,
-          title: f.title,
-          overview: f.overview,
-          posterPath: f.posterPath,
-          language: f.language,
-          subtitles: f.subtitles,
-          versionLanguage: f.versionLanguage,
-          runtime: f.runtime,
-          date: formatManualISO(new Date(startMs)),
-          startMs,
-          endLabel: formatInTimeZone(new Date(movieEndMs), TIMEZONE, 'HH:mm'),
-          band: realBand,
-        });
-        break;
-      }
-    }
-
-    plan.sort((a, b) => a.startMs - b.startMs);
-
-    const unplaced = films.filter((f) => f.placed === 0);
-    if (unplaced.length > 0) {
-      warnings.push(`${unplaced.length} film senza proiezioni (${unplaced.map((f) => f.title).join(', ')}): aumenta i giorni o l'intensità.`);
-    }
-
-    const summary = films
-      .map((f) => ({ tmdbId: f.tmdbId, title: f.title, count: f.placed }))
-      .sort((a, b) => b.count - a.count);
-
-    console.log(`[adminGenerateAutoPlan] 🎬 ${films.length} film → ${plan.length} spettacoli in ${days} giorni (sala ${seatingPlanId}, ${intensity}).`);
-    return { success: true, plan, warnings, summary };
-  } catch (error: any) {
-    console.error('[adminGenerateAutoPlan] ❌ Errore:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error), plan: [], warnings: [], summary: [] };
-  }
-}
-
 export async function adminRefreshAllAwards() {
   try {
     const prisma = (await import('@/lib/prisma')).default;

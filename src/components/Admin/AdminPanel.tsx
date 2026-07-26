@@ -3,75 +3,36 @@
 import React, { useState, useEffect } from 'react';
 import styles from './AdminPanel.module.css';
 import {
-  adminSearchMovies,
-  adminGetMovieById,
-  adminScheduleMovie,
   adminDeleteEvent,
   adminDeleteEventGroup,
   adminUpdateEventDate,
   adminListEvents,
   adminGetSeatingPlans,
-  adminGetSmartSuggestion,
-  adminCheckConflict,
-  adminGetWeeklySlots,
-  adminBulkScheduleMovie,
-  adminFindNearestSlots,
   adminListQuotas,
-  adminUpdateQuota,
-  adminDeleteQuota,
   adminGetQuotaAvailability,
   adminGetEmptyProjections,
-  adminClearCache,
-  adminGetOverrides,
-  adminSyncAllMovies,
-  adminPrepareMetadata,
-  adminSyncNewlyCreatedEvents
 } from '@/actions/adminActions';
-import { MovieItem, getTMDBImageUrl, getLanguageName } from '@/services/tmdb.utils';
-import { catalogExists, catalogAddByTmdbId } from '@/actions/catalogActions';
-import Image from 'next/image';
-import { Calendar, Trash2, Edit3, Plus, Search, Loader2, X, Info, Send, Eraser, Copy, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Grid, PlusCircle, MinusCircle, EyeOff, FilePlus, Eye, Star, Archive, RotateCcw, Settings, BookOpen, Wand2 } from 'lucide-react';
+import { Calendar, Trash2, Edit3, Loader2, X, Info, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Settings, BookOpen, Wand2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 const TicketRecoveryButton = dynamic(() => import('./TicketRecovery'), { ssr: false });
 const CatalogBrowser = dynamic(() => import('./CatalogBrowser/CatalogBrowser'), { ssr: false });
 import RoomManagementModal from './RoomManagementModal';
 
-import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 
 interface AdminDashboardProps {
   initialEvents: any[];
 }
 
 export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<MovieItem[]>([]);
   const [events, setEvents] = useState(initialEvents);
   const [seatingPlans, setSeatingPlans] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // Form State for Scheduling
-  const [selectedMovie, setSelectedMovie] = useState<MovieItem | null>(null);
-  const [formState, setFormState] = useState({
-    title: '',
-    overview: '',
-    posterPath: '',
-    date: '',
-    roomId: '', // Inizialmente vuoto
-    language: '',
-    subtitles: 'Italiano',
-    versionLanguage: 'Lingua Originale'
-  });
-
   const initPlans = async () => {
     try {
       const plans = await adminGetSeatingPlans();
       setSeatingPlans(plans);
 
-      if (plans.length > 0) {
-        setFormState(prev => ({ ...prev, roomId: plans[0].id.toString() }));
-      }
     } catch (err) {
       console.error('Error fetching initial data:', err);
     }
@@ -81,53 +42,15 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     initPlans();
   }, []);
 
-  const handleSync = async () => {
-    setIsSyncing(true);
-    try {
-      await adminClearCache();
-      // Trigger the full database mirror (Pretix -> DB)
-      const syncRes = await adminSyncAllMovies(false);
-      if (!syncRes.success) {
-        throw new Error(syncRes.error || 'Errore durante la sincronizzazione.');
-      }
-      const updatedEvents = await adminListEvents();
-      setEvents(updatedEvents);
-      await initPlans();
-      alert('Sincronizzazione completata! Il database è ora speculare a Pretix.');
-    } catch (error: any) {
-      console.error('Sync error:', error);
-      alert('Errore durante la sincronizzazione: ' + (error?.message || error));
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-
-  const [showModal, setShowModal] = useState(false);
   const [showCatalog, setShowCatalog] = useState(false);
-  const [lastScheduledFilm, setLastScheduledFilm] = useState<{ tmdbId: string; count: number } | null>(null);
   const [quotasState, setQuotasState] = useState<Record<number, any[]>>({});
   const [availabilityState, setAvailabilityState] = useState<Record<number, any>>({});
   const [loadingQuotas, setLoadingQuotas] = useState<Record<number, boolean>>({});
-  const [suggestionsOpen, setSuggestionsOpen] = useState<Record<number, boolean>>({});
   const [applyingSuggestion, setApplyingSuggestion] = useState<Record<number, boolean>>({});
-  const [scheduledSuggestion, setScheduledSuggestion] = useState<string | null>(null);
-  const [conflict, setConflict] = useState<string | null>(null);
-  const [conflictEndTime, setConflictEndTime] = useState<string | null>(null);
-  const [isValidating, setIsValidating] = useState(false);
 
-  const [weeklySlots, setWeeklySlots] = useState<{ date: string; label: string; isOccupied?: boolean; conflictWith?: string; isMorning?: boolean; isOptimized?: boolean }[]>([]);
-  const [loadingWeeklySlots, setLoadingWeeklySlots] = useState(false);
-  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [slotFilter, setSlotFilter] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
-  const [loadingBulk, setLoadingBulk] = useState(false);
-  const [schedulingStatus, setSchedulingStatus] = useState<{ step: string; progress: number } | null>(null);
   const [expandedMovies, setExpandedMovies] = useState<Set<string>>(new Set());
-  const [cleaningBuffer, setCleaningBuffer] = useState(0);
-  const [nearestSuggestions, setNearestSuggestions] = useState<{ preSuggestion: string | null; postSuggestion: string | null }>({ preSuggestion: null, postSuggestion: null });
   const [showDisplayModal, setShowDisplayModal] = useState(false);
   const [defaultSalaId, setDefaultSalaId] = useState<string | null>(null);
-  const [selectedMovieRuntime, setSelectedMovieRuntime] = useState<number | null>(null);
   const [prerollMin, setPrerollMin] = useState<number>(0);
   const [prerollSec, setPrerollSec] = useState<number>(0);
   const [showCleaningModal, setShowCleaningModal] = useState(false);
@@ -136,34 +59,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const [showRoomModal, setShowRoomModal] = useState(false);
 
   const availableSeatingPlans = seatingPlans;
-  const isColliding = (date1: string, date2: string) => {
-    const runtime = selectedMovieRuntime || 120;
-    const buffer = 10; // Parametro fisso richiesto dall'utente
-    const s1 = new Date(date1).getTime();
-    const e1 = s1 + (runtime + buffer) * 60000;
-    const s2 = new Date(date2).getTime();
-    const e2 = s2 + (runtime + buffer) * 60000;
-    return s1 < e2 && e1 > s2;
-  };
-
-  const hasCollisionWithSelected = (candidateDate: string, currentSelected: string[]) => {
-    return currentSelected.some(selectedDate => isColliding(candidateDate, selectedDate));
-  };
-
-  const internalCollisions = React.useMemo(() => {
-    if (selectedSlots.length < 2) return [];
-    const results: { a: string; b: string }[] = [];
-    for (let i = 0; i < selectedSlots.length; i++) {
-      for (let j = i + 1; j < selectedSlots.length; j++) {
-        if (isColliding(selectedSlots[i], selectedSlots[j])) {
-          results.push({ a: selectedSlots[i], b: selectedSlots[j] });
-        }
-      }
-    }
-    return results;
-  }, [selectedSlots, selectedMovieRuntime]);
-
-
   useEffect(() => {
     const saved = localStorage.getItem('defaultSalaId');
     if (saved) setDefaultSalaId(saved);
@@ -174,419 +69,36 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     localStorage.setItem('defaultSalaId', id);
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    setLoadingSearch(true);
-    setSearchResults([]); // Reset generic results
+  /**
+   * Apre il wizard di programmazione già puntato su un film.
+   *
+   * Sostituisce `selectMovieForScheduling`, `handleSelectFromCatalog` e
+   * `handleReplica`: erano tre strade che finivano tutte nello stesso modale,
+   * e ora sono lo stesso link con parametri diversi.
+   */
+  const openPlanner = (tmdbId: string | number, roomId?: string | number) => {
+    const params = new URLSearchParams({ tmdb: String(tmdbId) });
+    if (roomId) params.set('room', String(roomId));
+    window.location.href = `/admin/programmazione?${params.toString()}`;
+  };
 
+  /** Replica di uno spettacolo esistente: stesso film, stessa sala. */
+  const openPlannerFor = (event: any) => {
+    let tmdbId = '';
     try {
-      const isId = /^\d+$/.test(searchQuery.trim());
-
-      if (isId) {
-        // Direct search by TMDB ID
-        const movie = await adminGetMovieById(searchQuery.trim());
-        if (movie) {
-          // Found by ID! Auto-open the scheduling modal as requested
-          selectMovieForScheduling(movie);
-        } else {
-          alert('ID TMDB non trovato');
-        }
-      } else {
-        // Standard Title Search
-        const results = await adminSearchMovies(searchQuery);
-        setSearchResults(results);
-      }
-    } catch (error) {
-      console.error(error);
-      alert('Errore durante la ricerca');
-    } finally {
-      setLoadingSearch(false);
+      if (event.comment) tmdbId = JSON.parse(event.comment)?.tmdbId ?? '';
+    } catch {
+      /* commento non JSON */
     }
-  };
-
-  const getDefaultProjectionDate = () => {
-    const now = new Date();
-    // Start with current time + 1 hour as base
-    const baseTime = now.getTime() + 60 * 60 * 1000;
-    const d = new Date(baseTime);
-
-    // Round up to next full hour if not already clean (0 minutes, 0 seconds)
-    if (d.getMinutes() > 0 || d.getSeconds() > 0) {
-      d.setHours(d.getHours() + 1);
+    if (!tmdbId) {
+      alert('Questo spettacolo non ha un id TMDB nei metadati: aprilo dal catalogo.');
+      return;
     }
-    d.setMinutes(0, 0, 0);
-
-    // Format to YYYY-MM-DDTHH:mm for datetime-local input (local time)
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  const selectMovieForScheduling = async (movie: MovieItem) => {
-    setSelectedMovie(movie);
-    const isItalian = movie.original_language === 'it';
-    const translatedLang = getLanguageName(movie.original_language);
-
-    // Get the first available room
-    const defaultRoom = defaultSalaId || (availableSeatingPlans.length > 0 ? availableSeatingPlans[0].id.toString() : '');
-
-    const movieOverrides = await adminGetOverrides();
-    const movieOverride = movieOverrides[movie.id.toString()];
-
-    setFormState({
-      title: movieOverride?.customTitle || movie.title,
-      overview: movieOverride?.customOverview || movie.overview,
-      posterPath: movieOverride?.customPosterPath || movie.poster_path || '',
-      date: getDefaultProjectionDate(),
-      roomId: defaultRoom,
-      language: movieOverride?.versionLanguage || (isItalian ? 'Italiano' : translatedLang),
-      subtitles: movieOverride?.subtitles || (isItalian ? 'Nessuno' : 'Italiano'),
-      versionLanguage: movieOverride?.customVersion || (isItalian ? 'Versione Originale' : 'Versione Originale Sottotitolata')
-    });
-    setConflict(null);
-    setConflictEndTime(null);
-    setSelectedSlots([]);
-    setShowModal(true);
-
-    // Carica slot settimanali e suggerimento smart per il film appena selezionato
-    try {
-      setLoadingWeeklySlots(true);
-      const details = await adminGetMovieById(movie.id.toString());
-      if (details?.runtime) setSelectedMovieRuntime(details.runtime);
-
-      const [sug, weekly] = await Promise.all([
-        adminGetSmartSuggestion(movie.id.toString(), parseInt(defaultRoom), cleaningBuffer),
-        adminGetWeeklySlots(movie.id.toString(), parseInt(defaultRoom), 14, cleaningBuffer)
-      ]);
-      setScheduledSuggestion(sug);
-      setWeeklySlots(weekly);
-    } catch (e) {
-      console.error('Failed to get slots for new movie', e);
-    } finally {
-      setLoadingWeeklySlots(false);
-    }
-  };
-
-  const handleSelectFromCatalog = async (tmdbId: string) => {
-    const movie = await adminGetMovieById(tmdbId);
-    if (movie) {
-      // adminGetMovieById può non includere `id`: lo forziamo dal tmdbId noto,
-      // così selectMovieForScheduling (che usa movie.id) funziona sempre.
-      await selectMovieForScheduling({ ...(movie as any), id: Number(tmdbId) } as MovieItem);
-    }
-  };
-
-
-  const handleReplica = async (event: any) => {
-    let metadata = { tmdbId: '', overview: '', posterPath: '', language: '', subtitles: '', versionLanguage: '' };
-    try {
-      if (event.comment) {
-        metadata = JSON.parse(event.comment);
-      }
-    } catch (e) {
-      console.error('Failed to parse event metadata', e);
-    }
-
-    const movie: MovieItem = {
-      id: parseInt(metadata.tmdbId) || 0,
-      title: event.name?.it || event.name,
-      overview: metadata.overview || '',
-      poster_path: metadata.posterPath || '',
-      backdrop_path: null,
-      release_date: '',
-      original_language: metadata.language
-    };
-
-    setSelectedMovie(movie);
-    const replicaLang = metadata.language || (movie.original_language === 'it' ? 'Italiano' : getLanguageName(movie.original_language));
-    const replicaSubtitles = metadata.subtitles
-      ? metadata.subtitles
-      : (replicaLang === 'Italiano' ? 'Nessuno' : 'Italiano');
-    const replicaVersion = metadata.versionLanguage || (movie.original_language === 'it' ? 'Versione Originale' : 'Versione Originale Sottotitolata');
-
-    setFormState({
-      title: movie.title,
-      overview: movie.overview,
-      posterPath: movie.poster_path || '',
-      date: getDefaultProjectionDate(),
-      roomId: event.seating_plan?.toString() || (availableSeatingPlans.length > 0 ? availableSeatingPlans[0].id.toString() : ''),
-      language: replicaLang,
-      subtitles: replicaSubtitles,
-      versionLanguage: replicaVersion
-    });
-    setShowModal(true);
-
-    // Smart Suggestion
-    try {
-      setLoadingWeeklySlots(true);
-      const details = await adminGetMovieById(movie.id.toString());
-      if (details?.runtime) setSelectedMovieRuntime(details.runtime);
-
-      const roomToUse = event.seating_plan?.toString() || defaultSalaId || (availableSeatingPlans.length > 0 ? availableSeatingPlans[0].id.toString() : '');
-      const sug = await adminGetSmartSuggestion(movie.id.toString(), parseInt(roomToUse), cleaningBuffer);
-      setScheduledSuggestion(sug);
-
-      const weekly = await adminGetWeeklySlots(movie.id.toString(), parseInt(roomToUse), 14, cleaningBuffer);
-      setWeeklySlots(weekly);
-      setSelectedSlots([]); // Reset selection
-    } catch (e) {
-      console.error('Failed to get smart suggestion', e);
-    } finally {
-      setLoadingWeeklySlots(false);
-    }
-  };
-
-
-  useEffect(() => {
-    // Re-fetch weekly slots if room or buffer changes while modal is open
-    if (showModal && selectedMovie) {
-      setLoadingWeeklySlots(true);
-      Promise.all([
-        adminGetSmartSuggestion(selectedMovie.id.toString(), parseInt(formState.roomId), cleaningBuffer),
-        adminGetWeeklySlots(selectedMovie.id.toString(), parseInt(formState.roomId), 14, cleaningBuffer)
-      ]).then(([sug, weekly]) => {
-        setScheduledSuggestion(sug);
-        setWeeklySlots(weekly);
-      }).catch(console.error)
-        .finally(() => setLoadingWeeklySlots(false));
-    }
-  }, [formState.roomId, showModal, selectedMovie, cleaningBuffer]);
-
-  useEffect(() => {
-    if (!showModal || !selectedMovie || !formState.date) return;
-
-    const check = async () => {
-      setIsValidating(true);
-      try {
-        const res = await adminCheckConflict(formState.date, selectedMovie.id.toString(), parseInt(formState.roomId), cleaningBuffer);
-        // Always update the detected runtime displayed in the modal header
-        if (res.runtime && res.runtime > 0) setSelectedMovieRuntime(res.runtime);
-        if (res.hasConflict) {
-          setConflict(res.movieTitle);
-          setConflictEndTime(res.conflictEndTime || null);
-
-          // Prendi suggerimenti vicini
-          const suggestions = await adminFindNearestSlots(formState.date, selectedMovie.id.toString(), parseInt(formState.roomId), cleaningBuffer);
-          setNearestSuggestions(suggestions);
-        } else {
-          setConflict(null);
-          setConflictEndTime(null);
-          setNearestSuggestions({ preSuggestion: null, postSuggestion: null });
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsValidating(false);
-      }
-    };
-
-    const timer = setTimeout(check, 500);
-    return () => clearTimeout(timer);
-  }, [formState.date, formState.roomId, showModal, selectedMovie, cleaningBuffer]);
-
-  const applySmartSuggestion = (isoDate?: string) => {
-    const target = (typeof isoDate === 'string' ? isoDate : null) || scheduledSuggestion;
-    if (target) {
-      const d = new Date(target);
-      const pad = (n: number) => String(n).padStart(2, '0');
-      const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      setFormState(prev => ({ ...prev, date: formatted }));
-      setConflict(null);
-      setNearestSuggestions({ preSuggestion: null, postSuggestion: null });
-    }
-  };
-
-  const handleSchedule = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMovie || !formState.roomId) return;
-
-    // ── CLIENT-SIDE TRACCIAMENTO ──────────────────────────────────────────────
-    const [rawDate, rawTime] = formState.date.split('T');
-    console.log('[handleSchedule] ▶ Invio programmazione (TECNICA STRINGA CRUDA)', {
-      movie: formState.title,
-      rawDate,
-      rawTime,
-      roomId: formState.roomId,
-      conflict,
-      override: !!conflict,
-      selectedSlots: selectedSlots.length
-    });
-
-    setLoading(true);
-    setSchedulingStatus({ step: 'Inizializzazione...', progress: 5 });
-
-    try {
-      // --- STEP 1: PREPARE METADATA & AWARDS ---
-      setSchedulingStatus({ step: 'Estrazione premi da MUBI e dettagli TMDB...', progress: 15 });
-      const enrichedMetadata = await adminPrepareMetadata(selectedMovie.id.toString());
-
-      const slotsToProcess = selectedSlots.length > 0 ? selectedSlots : [formState.date];
-      const createdPretixIds: number[] = [];
-      let currentProgress = 20;
-      const progressStep = 70 / slotsToProcess.length;
-
-      // --- STEP 2: SEQUENTIAL SCHEDULING ---
-      for (let i = 0; i < slotsToProcess.length; i++) {
-        const fullDate = slotsToProcess[i];
-        const [datePart, timePart] = fullDate.includes('T') ? fullDate.split('T') : [fullDate, "00:00"];
-        const cleanTime = timePart.substring(0, 5);
-
-        setSchedulingStatus({
-          step: `Creazione spettacolo ${i + 1} di ${slotsToProcess.length}...`,
-          progress: Math.round(currentProgress)
-        });
-
-        const result = await adminScheduleMovie({
-          id: selectedMovie.id.toString(),
-          title: formState.title,
-          overview: formState.overview,
-          posterPath: formState.posterPath,
-          language: formState.language,
-          subtitles: formState.subtitles,
-          versionLanguage: formState.versionLanguage
-        }, datePart, cleanTime, parseInt(formState.roomId), !!conflict, cleaningBuffer, true, enrichedMetadata);
-
-        if (!result.success) {
-          throw new Error(result.error || 'Errore durante la creazione dello spettacolo.');
-        }
-
-        if (result.subeventId) {
-          createdPretixIds.push(result.subeventId);
-        }
-        currentProgress += progressStep;
-      }
-
-      // --- STEP 3: SURGICAL SYNC ---
-      if (createdPretixIds.length > 0) {
-        setSchedulingStatus({ step: 'Sincronizzazione chirurgica del database...', progress: 95 });
-        const syncResult = await adminSyncNewlyCreatedEvents(createdPretixIds);
-        if (!syncResult.success) {
-          throw new Error(syncResult.error || 'Errore durante la sincronizzazione con il database.');
-        }
-      }
-
-      setSchedulingStatus({ step: 'Completato!', progress: 100 });
-      setTimeout(() => setSchedulingStatus(null), 1500);
-
-      alert(selectedSlots.length > 0
-        ? `Creati ${createdPretixIds.length} spettacoli con successo!`
-        : (conflict ? 'Spettacolo programmato con successo (Override)!' : 'Spettacolo programmato con successo!')
-      );
-
-      // Chiedi se aggiungere il film alla lista "film da proporre" (catalogo)
-      if (selectedMovie?.id) {
-        try {
-          const tmdbId = selectedMovie.id.toString();
-          const already = await catalogExists(tmdbId);
-          if (!already && window.confirm(`Vuoi aggiungere «${formState.title || selectedMovie.title}» alla lista dei film da proporre (catalogo)?`)) {
-            await catalogAddByTmdbId(tmdbId);
-          }
-        } catch (e) {
-          console.error('[handleSchedule] aggiunta al catalogo fallita', e);
-        }
-      }
-
-      const updatedEvents = await adminListEvents();
-      setEvents(updatedEvents);
-
-      // Aggiorna lo stato per informare il CatalogBrowser (se aperto) del film programmato
-      if (selectedMovie?.id) {
-        const scheduledCount = selectedSlots.length > 0 ? selectedSlots.length : 1;
-        setLastScheduledFilm({
-          tmdbId: selectedMovie.id.toString(),
-          count: scheduledCount,
-        });
-      }
-
-      // Reset form and close modal
-      setSelectedMovie(null);
-      setShowModal(false);
-      setSearchQuery('');
-      setSearchResults([]);
-    } catch (error) {
-      console.error('[handleSchedule] ❌ Errore:', error);
-      alert('Errore durante la programmazione: ' + error);
-      setSchedulingStatus(null);
-    } finally {
-      setLoading(false);
-      setLoadingBulk(false);
-    }
-  };
-
-  const toggleSlotSelection = (date: string) => {
-    setSelectedSlots(prev => {
-      // Se lo slot è già selezionato, lo rimuoviamo (Reset)
-      if (prev.includes(date)) return prev.filter(d => d !== date);
-
-      // Se lo slot collide con uno già selezionato, impediamo la selezione
-      if (hasCollisionWithSelected(date, prev)) {
-        console.warn('[Collision] Impossibile selezionare slot: collisione rilevata.');
-        return prev;
-      }
-
-      return [...prev, date];
-    });
-  };
-
-  const selectAllMornings = () => {
-    const mornings = weeklySlots.filter(s => {
-      const hour = new Date(s.date).getHours();
-      return !s.isOccupied && hour < 14;
-    });
-
-    setSelectedSlots(prev => {
-      let newSelection = [...prev];
-      mornings.forEach(slot => {
-        if (!hasCollisionWithSelected(slot.date, newSelection)) {
-          newSelection.push(slot.date);
-        }
-      });
-      return newSelection;
-    });
-  };
-
-  const selectAllAfternoons = () => {
-    const afternoons = weeklySlots.filter(s => {
-      const hour = new Date(s.date).getHours();
-      return !s.isOccupied && hour >= 14 && hour < 18;
-    });
-
-    setSelectedSlots(prev => {
-      let newSelection = [...prev];
-      afternoons.forEach(slot => {
-        if (!hasCollisionWithSelected(slot.date, newSelection)) {
-          newSelection.push(slot.date);
-        }
-      });
-      return newSelection;
-    });
-  };
-
-  const selectAllEvenings = () => {
-    const evenings = weeklySlots.filter(s => {
-      const hour = new Date(s.date).getHours();
-      return !s.isOccupied && hour >= 18;
-    });
-
-    setSelectedSlots(prev => {
-      let newSelection = [...prev];
-      evenings.forEach(slot => {
-        if (!hasCollisionWithSelected(slot.date, newSelection)) {
-          newSelection.push(slot.date);
-        }
-      });
-      return newSelection;
-    });
+    openPlanner(tmdbId, event.seating_plan);
   };
 
   const handleDelete = async (subeventId: number) => {
     if (!confirm('Sei sicuro di voler cancellare questa proiezione?')) return;
-    setLoading(true);
     try {
       await adminDeleteEvent(subeventId);
       const updatedEvents = await adminListEvents();
@@ -594,14 +106,12 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     } catch (error) {
       alert('Errore durante la cancellazione');
     } finally {
-      setLoading(false);
     }
   };
 
   const handleDeleteGroup = async (title: string, subeventIds: number[]) => {
     if (!confirm(`Sei sicuro di voler eliminare il film "${title}" e tutte le sue ${subeventIds.length} repliche?\n\nQuesta azione è irreversibile.`)) return;
 
-    setLoading(true);
     try {
       const res = await adminDeleteEventGroup(subeventIds);
       if (res.details && res.details.length > 0) {
@@ -615,7 +125,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     } catch (error) {
       alert('Errore durante l\'eliminazione del gruppo');
     } finally {
-      setLoading(false);
     }
   };
 
@@ -630,7 +139,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
     const newDate = prompt('Inserisci la nuova data e ora (YYYY-MM-DDTHH:MM):', defaultValue);
     if (!newDate) return;
-    setLoading(true);
     try {
       await adminUpdateEventDate(subeventId, newDate);
       const updatedEvents = await adminListEvents();
@@ -644,7 +152,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         alert('Errore durante l\'aggiornamento: ' + error.message);
       }
     } finally {
-      setLoading(false);
     }
   };
 
@@ -773,7 +280,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       await adminUpdateEventDate(eventId, formatted);
       const updatedEvents = await adminListEvents();
       setEvents(updatedEvents);
-      setSuggestionsOpen(prev => ({ ...prev, [eventId]: false }));
     } catch (error: any) {
       if (error.message?.includes('403')) {
         alert('⚠️ AZIONE NEGATA: Questa proiezione ha già dei biglietti emessi. Non è possibile spostarla.');
@@ -800,7 +306,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
   const handleDeleteEmptyProjection = async (subeventId: number) => {
     if (!confirm('Attenzione: eliminerai definitivamente questa proiezione da Pretix. Procedere?')) return;
-    setLoading(true); // Usiamo il loading globale in modo sicuro
     try {
       await adminDeleteEvent(subeventId);
       setEmptyProjections(prev => prev.filter(p => p.id !== subeventId));
@@ -808,8 +313,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       setEvents(updatedEvents);
     } catch (error: any) {
       alert('Errore durante la cancellazione: ' + error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -835,14 +338,12 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
         <div className={styles.topBarActions}>
           <a
-            href="/admin/planner"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/admin/programmazione"
             className={`${styles.toolBtn} ${styles.toolBtnPurple}`}
-            title="Scegli i film dal catalogo e lascia che il planner costruisca la programmazione come un vero cinema"
+            title="Scegli sala e periodo, poi i film: il calendario lo costruisce il cinema"
           >
             <Wand2 size={18} />
-            <span>PLANNER AUTO</span>
+            <span>PROGRAMMA</span>
           </a>
 
           <button
@@ -885,11 +386,11 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         </div>
       </div>
 
-      {/* LEFT COLUMN: SEARCH & SCHEDULE */}
+      {/* PROGRAMMAZIONE: un solo ingresso, il wizard. */}
       <div className="flex flex-col gap-8">
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
-            <h2 className={styles.title}>Cerca Film (TMDB)</h2>
+            <h2 className={styles.title}>Programmazione</h2>
             <div className={styles.headerActions}>
               <a href="/admin/movies-control" target="_blank" rel="noopener noreferrer" className={styles.btnActionIcon} title="Gestisci Overrides">
                 <Settings size={18} />
@@ -897,53 +398,21 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
               <button
                 type="button"
                 className={styles.btnActionIcon}
-                title="Programma dal catalogo"
-                onClick={() => {
-                  setLastScheduledFilm(null);
-                  setShowCatalog(true);
-                }}
+                title="Gestisci il catalogo film"
+                onClick={() => setShowCatalog(true)}
               >
                 <BookOpen size={18} />
               </button>
             </div>
           </div>
 
-          <form onSubmit={handleSearch} className={styles.searchBar}>
-            <Search size={20} className="ml-2 text-zinc-500" />
-            <input
-              type="text"
-              className={styles.searchInput}
-              placeholder="Inserisci titolo o ID TMDB..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button type="submit" className={styles.btnPrimary + ' ' + styles.btn + ' px-4 py-2'} disabled={loadingSearch}>
-              {loadingSearch ? <Loader2 className="animate-spin" size={20} /> : 'Cerca'}
-            </button>
-          </form>
-
-          {searchResults.length > 0 && (
-            <div className={styles.searchResultsGrid}>
-              {searchResults.map((movie) => (
-                <div key={movie.id} className={styles.movieResultCard} onClick={() => selectMovieForScheduling(movie)}>
-                  <div className={styles.movieResultPoster}>
-                    {movie.poster_path ? (
-                      <Image
-                        src={getTMDBImageUrl(movie.poster_path, 'w185')!}
-                        alt={movie.title}
-                        fill
-                        sizes="185px"
-                        style={{ objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full bg-zinc-800 text-[10px] text-zinc-500">No Img</div>
-                    )}
-                  </div>
-                  <p className={styles.movieResultTitle}>{movie.title}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          <a href="/admin/programmazione" className={`${styles.btn} ${styles.btnPrimary} ${styles.scheduleEntry}`}>
+            <Wand2 size={20} />
+            <span>
+              <b>Programma spettacoli</b>
+              Scegli sala e periodo, poi i film: orari, pause e repliche li calcola il cinema
+            </span>
+          </a>
         </section>
 
       </div>
@@ -1106,8 +575,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
                               </button>
                               <button
                                 className={styles.btnActionIcon}
-                                onClick={() => handleReplica(event)}
-                                title="Copia"
+                                onClick={() => openPlannerFor(event)}
+                                title="Replica: apre la programmazione con questo film già scelto"
                               >
                                 <Calendar size={14} />
                               </button>
@@ -1142,344 +611,8 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
 
 
-      {/* MODAL SECTION: Moved outside grid flow to prevent layout breakage and ensure visibility */}
-
-      {/* 1. SCHEDULING MODAL */}
-      {showModal && selectedMovie && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h2>
-                <Calendar size={22} color="#e50914" />
-                Programma Spettacolo
-                {selectedMovieRuntime && (
-                  <span className="ml-4 text-xs font-medium text-zinc-500 bg-zinc-100 px-2 py-1 rounded-full">
-                    Durata rilevata per calcolo: {selectedMovieRuntime} min
-                  </span>
-                )}
-              </h2>
-
-              <button
-                onClick={() => setShowModal(false)}
-                className={styles.modalClose}
-                title="Chiudi"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className={styles.modalBody}>
-              <form id="schedule-form" onSubmit={handleSchedule}>
-                <div className={styles.modalGrid}>
-                  <div className={styles.modalPosterWrapper}>
-                    <div className={styles.modalPoster}>
-                      {formState.posterPath ? (
-                        <Image
-                          src={getTMDBImageUrl(formState.posterPath, 'w342')!}
-                          alt="Poster"
-                          fill
-                          sizes="140px"
-                          style={{ objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-zinc-600 text-xs text-center p-4">
-                          Nessuna Locandina
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={styles.modalMain}>
-                    <div>
-                      <h3 className={styles.modalTitle}>{formState.title}</h3>
-                      <p className={styles.modalOverview}>{formState.overview}</p>
-                    </div>
-
-                    <div className={styles.modalFormGrid}>
-                      <div className={styles.formGroup}>
-                        <label className={styles.modalLabel}>Inizio Proiezione</label>
-                        <div className={styles.inputWithSuggestion}>
-                          <input
-                            type="datetime-local"
-                            value={formState.date}
-                            onChange={(e) => setFormState({ ...formState, date: e.target.value })}
-                            required
-                            className={`${styles.modalInput} ${conflict ? styles.inputError : ''}`}
-                          />
-                          {scheduledSuggestion && (
-                            <div className={styles.suggestionBadge}>
-                              <span>Soluzione:</span>
-                              <button type="button" onClick={() => applySmartSuggestion()} className={styles.btnUseSuggestion}>Usa</button>
-                            </div>
-                          )}
-                        </div>
-                        {conflict && (
-                          <div className={styles.inlineConflict}>
-                            <TriangleAlert size={14} />
-                            <span>
-                              Sala occupata da: <strong>{conflict}</strong>
-                              {conflictEndTime && (
-                                <> (libera alle <strong>{conflictEndTime}</strong>)</>
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        {conflict && (nearestSuggestions.preSuggestion || nearestSuggestions.postSuggestion) && (
-                          <div className={styles.smartSuggestionsRow}>
-                            <span className={styles.suggestionLabel}>Suggerimenti:</span>
-                            <div className={styles.suggestionButtons}>
-                              {nearestSuggestions.preSuggestion && (
-                                <button
-                                  type="button"
-                                  onClick={() => applySmartSuggestion(nearestSuggestions.preSuggestion!)}
-                                  className={styles.suggestionBtn}
-                                >
-                                  {new Date(nearestSuggestions.preSuggestion).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                                </button>
-                              )}
-                              {nearestSuggestions.postSuggestion && (
-                                <button
-                                  type="button"
-                                  onClick={() => applySmartSuggestion(nearestSuggestions.postSuggestion!)}
-                                  className={styles.suggestionBtn}
-                                >
-                                  {new Date(nearestSuggestions.postSuggestion).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        {scheduledSuggestion && !conflict && (
-                          <div className={styles.suggestionNotice}>
-                            <Clock size={14} />
-                            <span>Slot suggerito: {new Date(scheduledSuggestion).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</span>
-                            <button type="button" onClick={() => applySmartSuggestion()} className={styles.btnUseSuggestion}>Usa</button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <div className="flex justify-between items-center mb-1">
-                          <label className={styles.modalLabel}>Scegli Sala</label>
-                          {formState.roomId !== defaultSalaId && (
-                            <button
-                              type="button"
-                              onClick={() => handleSetDefaultSala(formState.roomId)}
-                              className={styles.btnSaveDefault}
-                              title="Imposta come sala predefinita"
-                            >
-                              Salva come default
-                            </button>
-                          )}
-                        </div>
-                        <select
-                          value={formState.roomId}
-                          onChange={(e) => setFormState({ ...formState, roomId: e.target.value })}
-                          required
-                          className={styles.modalInput}
-                        >
-                          {availableSeatingPlans
-                            .map((room) => (
-                              <option key={room.id} value={room.id}>
-                                [{room.id}] {room.id.toString() === defaultSalaId ? `⭐ ${room.internalName || room.name}` : (room.internalName || room.name)}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.modalLabel}>Lingua</label>
-                        <input
-                          type="text"
-                          value={formState.language}
-                          onChange={(e) => setFormState({ ...formState, language: e.target.value })}
-                          className={styles.modalInput}
-                          placeholder="es. Francese"
-                        />
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.modalLabel}>Sottotitoli</label>
-                        <input
-                          type="text"
-                          value={formState.subtitles}
-                          onChange={(e) => setFormState({ ...formState, subtitles: e.target.value })}
-                          className={styles.modalInput}
-                          placeholder="es. Italiano"
-                        />
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.modalLabel}>Versione</label>
-                        <input
-                          type="text"
-                          value={formState.versionLanguage}
-                          onChange={(e) => setFormState({ ...formState, versionLanguage: e.target.value })}
-                          className={styles.modalInput}
-                          placeholder="es. V.O.S."
-                        />
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.modalLabel}>Intervallo Pulizia (min)</label>
-                        <div className={styles.bufferToggle}>
-                          {[0, 5, 10].map(val => (
-                            <button
-                              key={val}
-                              type="button"
-                              onClick={() => setCleaningBuffer(val)}
-                              className={`${styles.bufferBtn} ${cleaningBuffer === val ? styles.bufferActive : ''}`}
-                            >
-                              {val}m
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* WEEKLY SUGGESTIONS GRID */}
-                {showModal && selectedMovie && (
-                  <div className={styles.weeklySlotsSection}>
-                    <div className={styles.weeklyHeader}>
-                      <h4 className={styles.weeklyTitle}>Slot Settimanali Suggeriti (14 giorni)</h4>
-                      <div className={styles.bulkShortcuts}>
-                        <div className={styles.filterGroup}>
-                          <button type="button" onClick={() => setSlotFilter('all')} className={`${styles.filterBtn} ${slotFilter === 'all' ? styles.filterActive : ''}`}>Tutti</button>
-                          <button type="button" onClick={() => setSlotFilter('morning')} className={`${styles.filterBtn} ${slotFilter === 'morning' ? styles.filterActive : ''}`}>Mattine</button>
-                          <button type="button" onClick={() => setSlotFilter('afternoon')} className={`${styles.filterBtn} ${slotFilter === 'afternoon' ? styles.filterActive : ''}`}>Pomeriggio</button>
-                          <button type="button" onClick={() => setSlotFilter('evening')} className={`${styles.filterBtn} ${slotFilter === 'evening' ? styles.filterActive : ''}`}>Sere</button>
-                        </div>
-                        <div className="flex gap-2">
-                          <button type="button" onClick={selectAllMornings} className={styles.shortcutBtn}>Tutte le mattine</button>
-                          <button type="button" onClick={selectAllAfternoons} className={styles.shortcutBtn}>I pomeriggi</button>
-                          <button type="button" onClick={selectAllEvenings} className={styles.shortcutBtn}>Le sere</button>
-                          <button type="button" onClick={() => { setSelectedSlots([]); setSlotFilter('all'); }} className={styles.shortcutBtn}><X size={12} /> Reset</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className={styles.weeklyGrid}>
-                      {loadingWeeklySlots ? (
-                        <div className={styles.noSlotsFound}>
-                          <Loader2 size={16} className="animate-spin" />
-                          <span>Calcolo disponibilità in corso...</span>
-                        </div>
-                      ) : weeklySlots.length === 0 ? (
-                        <div className={styles.noSlotsFound}>
-                          <Info size={16} />
-                          <span>Nessuno slot libero trovato in questa sala per i prossimi 14 giorni.</span>
-                        </div>
-                      ) : (
-                        [...new Set(weeklySlots.map(s => new Date(s.date).toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' })))].map(dayLabel => {
-                          const slotsForDay = weeklySlots
-                            .filter(s => new Date(s.date).toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' }) === dayLabel)
-                            .filter(s => {
-                              if (slotFilter === 'all') return true;
-                              const h = new Date(s.date).getHours();
-                              if (slotFilter === 'morning') return h < 14;
-                              if (slotFilter === 'afternoon') return h >= 14 && h < 18;
-                              if (slotFilter === 'evening') return h >= 18;
-                              return true;
-                            });
-
-                          return (
-                            <div key={dayLabel} className={styles.dayColumn}>
-                              <span className={styles.dayLabel}>{dayLabel}</span>
-                              <div className={styles.daySlots}>
-                                {slotsForDay.length === 0 ? (
-                                  <div className="text-[10px] text-zinc-400 italic py-2 text-center bg-zinc-100/50 rounded border border-dashed border-zinc-200">
-                                    Sala occupata: nessun buco disponibile
-                                  </div>
-                                ) : (
-                                  slotsForDay.map(slot => {
-                                    const isSelected = selectedSlots.includes(slot.date);
-                                    const isCollidingAsCandidate = !isSelected && hasCollisionWithSelected(slot.date, selectedSlots);
-                                    const isDisabled = slot.isOccupied || isCollidingAsCandidate;
-
-                                    return (
-                                      <button
-                                        key={slot.date}
-                                        type="button"
-                                        onClick={() => !isDisabled && toggleSlotSelection(slot.date)}
-                                        className={`${styles.slotBadge} ${isSelected ? styles.slotSelected : ''} ${isDisabled ? styles.slotOccupied : ''} ${slot.isMorning ? styles.slotMorning : ''} ${slot.isOptimized ? styles.slotOptimized : ''}`}
-                                        title={
-                                          slot.isOccupied
-                                            ? 'Slot già occupato da un altro film'
-                                            : isCollidingAsCandidate
-                                              ? 'Collisione: troppo vicino a uno slot già selezionato'
-                                              : 'Slot disponibile – clicca per selezionare'
-                                        }
-                                        disabled={isDisabled}
-                                      >
-                                        {slot.label}
-                                      </button>
-                                    );
-                                  })
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })
-
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className={styles.modalInfo}>
-                  <Info className="text-zinc-500 mt-1 flex-shrink-0" size={18} />
-                  <p>
-                    Confermando la programmazione, verrà creato un nuovo sub-evento su Pretix.
-                    Verranno inoltre configurate automaticamente le quote per <strong>Biglietti Intero</strong> e <strong>Poltrona VIP</strong> con prezzo a zero (0.00 EUR).
-                  </p>
-                </div>
-              </form>
-            </div>
-
-            <div className={styles.modalFooter}>
-              <button
-                type="button"
-                className={styles.modalBtnCancel}
-                onClick={() => setShowModal(false)}
-              >
-                Annulla
-              </button>
-              <button
-                type="submit"
-                form="schedule-form"
-                className={`${styles.modalBtnSubmit} ${selectedSlots.length > 0 ? styles.btnBulkMode : ''} ${(selectedSlots.length === 0 && !!conflict) ? styles.btnOverride : ''} ${internalCollisions.length > 0 ? styles.btnDisabled : ''}`}
-                disabled={loading || (!formState.roomId) || (selectedSlots.length === 0 && (!formState.date)) || internalCollisions.length > 0}
-                title={
-                  internalCollisions.length > 0
-                    ? `Conflitto rilevato: lo spettacolo delle ${new Date(internalCollisions[0].a).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} finisce alle ${new Date(new Date(internalCollisions[0].a).getTime() + ((selectedMovieRuntime || 120) + 10) * 60000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} (inclusa pulizia). Rimuovi le sovrapposizioni per procedere.`
-                    : conflict
-                      ? `Orario non disponibile: il film finirebbe in conflitto con "${conflict}"${conflictEndTime ? ` (libero alle ${conflictEndTime})` : ''}`
-                      : selectedSlots.length > 0
-                        ? `Programma ${selectedSlots.length} spettacoli selezionati`
-                        : 'Conferma programmazione'
-                }
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="animate-spin" size={20} />
-                    <span>Sincronizzazione Database...</span>
-                  </>
-                ) : internalCollisions.length > 0 ? (
-                  <><TriangleAlert size={18} /> CONFLITTO RILEVATO</>
-                ) : selectedSlots.length > 0 ? (
-                  <><Send size={18} /> Conferma e Programma {selectedSlots.length} Spettacoli</>
-                ) : conflict ? (
-                  <><TriangleAlert size={18} /> PROGRAMMA COMUNQUE</>
-                ) : (
-                  <><Calendar size={18} /> Conferma e Programma 1 Spettacolo</>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* La programmazione vive tutta in /admin/programmazione: qui non c'è
+          più un modale che duplichi orari, conflitti e slot. */}
 
       {/* 2. EXTERNAL DISPLAY CONFIGURATION MODAL */}
       {showDisplayModal && (
@@ -1650,43 +783,10 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
       )}
 
 
-      {/* 5. INTERACTIVE SCHEDULING PROGRESS OVERLAY */}
-      {schedulingStatus && (
-        <div className={styles.progressOverlay}>
-          <div className={styles.progressContainer}>
-            <div className={styles.progressIcon}>
-              <div className={styles.spinnerRing}></div>
-              <Calendar size={32} />
-            </div>
-
-            <div className={styles.progressInfo}>
-              <h3 className={styles.progressStep}>{schedulingStatus.step}</h3>
-              <p className={styles.progressDetail}>
-                {schedulingStatus.progress < 100
-                  ? 'Il sistema sta sincronizzando i dati con Pretix e il database locale...'
-                  : 'Operazione completata con successo!'}
-              </p>
-            </div>
-
-            <div className={styles.progressBarWrapper}>
-              <div
-                className={styles.progressBar}
-                style={{ width: `${schedulingStatus.progress}%` }}
-              ></div>
-            </div>
-
-            <div className={styles.progressPercentage}>
-              {schedulingStatus.progress}%
-            </div>
-          </div>
-        </div>
-      )}
-
       {showCatalog && (
         <CatalogBrowser
-          onSelectFilm={handleSelectFromCatalog}
+          onSelectFilm={(tmdbId: string) => openPlanner(tmdbId)}
           onClose={() => setShowCatalog(false)}
-          lastScheduledFilm={lastScheduledFilm}
         />
       )}
 

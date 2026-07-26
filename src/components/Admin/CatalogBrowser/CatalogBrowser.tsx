@@ -10,6 +10,7 @@ import {
   catalogRandomMany,
   catalogSeed,
   catalogEnrich,
+  catalogBackfill,
   catalogDelete,
   catalogAddByTmdbId,
   catalogMarkVerified,
@@ -185,7 +186,18 @@ export default function CatalogBrowser({ onSelectFilm, onClose, lastScheduledFil
         if (res.remaining === 0 || res.processed === 0) break;
       }
 
-      setImportMsg(`Import completato: ${ok} ok · ${suspect} da verificare · ${missing} non trovati.`);
+      // I film già abbinati non passano da catalogEnrich: senza questo giro
+      // resterebbero senza voto, trama e premi, e le corsie del wizard che ci
+      // si appoggiano ("Acclamati", "Premiati dalla critica") sarebbero vuote.
+      let backfilled = 0;
+      for (;;) {
+        const res = await catalogBackfill(40);
+        backfilled += res.updated;
+        setImportMsg(`Schede film: ${backfilled} completate · ${res.remaining} rimaste…`);
+        if (res.remaining === 0 || res.processed === 0) break;
+      }
+
+      setImportMsg(`Import completato: ${ok} ok · ${suspect} da verificare · ${missing} non trovati · ${backfilled} schede completate.`);
       refreshFacetsAndStats();
       loadPage(1);
     } catch (err) {
@@ -210,7 +222,7 @@ export default function CatalogBrowser({ onSelectFilm, onClose, lastScheduledFil
           className={styles.importBtn}
           onClick={handleImport}
           disabled={importing}
-          title="Legge scratch/catalogo.csv e abbina i film a TMDB"
+          title="Legge il CSV, abbina i film a TMDB, completa le schede e cerca i premi. Si può rilanciare quante volte vuoi."
         >
           {importing ? '⏳ Import in corso…' : '⚙️ Importa/aggiorna catalogo'}
         </button>

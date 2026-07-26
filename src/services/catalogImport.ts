@@ -85,9 +85,111 @@ export async function enrichPendingFilms(
   return { processed: ok + suspect + missing, remaining, ok, suspect, missing };
 }
 
+/**
+ * Campi che arrivano dalla stessa chiamata TMDB dei dati principali e che prima
+ * venivano buttati via. Alimentano le corsie del catalogo: "Acclamati" vive su
+ * `voteAverage`, la scheda film su `overview` e `backdropPath`.
+ */
+function tmdbExtras(det: Awaited<ReturnType<typeof getMovieDetails>>) {
+  if (!det) return {};
+  const d = det as unknown as Record<string, unknown>;
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  return {
+    originalTitle: (d.original_title as string) || null,
+    originalLanguage: (d.original_language as string) || null,
+    overview: (d.overview as string) || null,
+    backdropPath: (d.backdrop_path as string) || null,
+    voteAverage: num(d.vote_average),
+    voteCount: num(d.vote_count),
+    popularity: num(d.popularity),
+  };
+}
+
+/**
+ * FASE 3 — Riempie i campi nuovi sui film già abbinati.
+ *
+ * `enrichPendingFilms` guarda solo i film `pending`, e il catalogo storico è
+ * tutto `ok` o `fixed`: senza questo passaggio voto, trama e sfondo resterebbero
+ * vuoti per sempre, e con loro le corsie che ci si appoggiano. Non tocca
+ * l'abbinamento TMDB né lo stato di verifica: aggiunge soltanto.
+ *
+ * Ripetibile: chiamala finché `remaining` è 0.
+ */
+export async function backfillFilmMetadata(
+  limit = 40,
+): Promise<{ processed: number; remaining: number; updated: number }> {
+  const where = { tmdbId: { not: null }, voteAverage: null } as const;
+  const films = await prisma.catalogFilm.findMany({
+    where,
+    orderBy: { id: 'asc' },
+    take: limit,
+    select: { id: true, tmdbId: true },
+  });
+
+  let updated = 0;
+  for (const batch of await chunk(films, 6)) {
+    await Promise.all(
+      batch.map(async (film) => {
+        try {
+          const det = await getMovieDetails(film.tmdbId!);
+          if (!det) {
+            // Senza lasciare un segno, questo film tornerebbe a ogni giro e
+            // bloccherebbe la coda. Zero significa "nessun voto": è falsy,
+            // quindi le schede non lo mostrano e le corsie lo ignorano.
+            await prisma.catalogFilm.update({ where: { id: film.id }, data: { voteAverage: 0 } });
+            return;
+          }
+          await prisma.catalogFilm.update({
+            where: { id: film.id },
+            data: {
+              ...tmdbExtras(det),
+              voteAverage: det.vote_average ?? 0,
+              posterPath: det.poster_path ?? undefined,
+              runtime: det.runtime ?? undefined,
+            },
+          });
+          updated++;
+        } catch (err) {
+          console.error(`[catalogImport] backfill fallito per id=${film.id}`, err);
+        }
+      }),
+    );
+  }
+
+  const remaining = await prisma.catalogFilm.count({ where });
+  return { processed: films.length, remaining, updated };
+}
+
 async function enrichOne(film: {
-  id: number; title: string; year: number | null; director: string | null;
+  id: number; title: string; year: number | null; director: string | null; tmdbId?: string | null;
 }): Promise<'ok' | 'suspect' | 'missing'> {
+  // Se l'id TMDB è già noto — tipicamente perché Plex ce l'ha detto — non c'è
+  // niente da indovinare: si prendono i dettagli e basta. È la via che elimina
+  // gli abbinamenti sbagliati, non solo quella più veloce.
+  if (film.tmdbId) {
+    const det = await getMovieDetails(film.tmdbId);
+    if (det) {
+      const tmdbYear = det.release_date ? parseInt(det.release_date.slice(0, 4), 10) : null;
+      await prisma.catalogFilm.update({
+        where: { id: film.id },
+        data: {
+          tmdbTitle: det.title,
+          tmdbYear: Number.isFinite(tmdbYear as number) ? tmdbYear : null,
+          posterPath: det.poster_path ?? null,
+          genres: (det.genres ?? []).map((g) => g.name),
+          runtime: det.runtime ?? null,
+          director: film.director ?? getDirectors(det)[0] ?? null,
+          verifyStatus: 'ok',
+          enrichedAt: new Date(),
+          ...tmdbExtras(det),
+        },
+      });
+      return 'ok';
+    }
+    // L'id non risponde su TMDB (film ritirato, id errato in Plex): si prosegue
+    // con la ricerca per titolo invece di arrendersi.
+  }
+
   const candidates = await searchMovies(film.title, false, 'it-IT');
 
   const byYear = candidates.filter((c) =>
@@ -134,6 +236,7 @@ async function enrichOne(film: {
       runtime: det?.runtime ?? null,
       verifyStatus: match.status,
       enrichedAt: new Date(),
+      ...tmdbExtras(det),
     },
   });
   return match.status;

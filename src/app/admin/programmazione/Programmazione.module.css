@@ -1,0 +1,590 @@
+/* Wizard di programmazione — stesso linguaggio visivo del planner che sostituisce. */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(1200px 500px at 50% -200px, rgba(139, 92, 246, 0.16), transparent),
+    #07070b;
+  color: #f3f3f5;
+  padding-bottom: 5.5rem;
+}
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── HEADER ─────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 1.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(10, 10, 15, 0.88);
+  backdrop-filter: blur(14px);
+  flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 0.8rem; }
+.brandIcon {
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 13px;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  box-shadow: 0 4px 18px rgba(124, 58, 237, 0.45);
+  flex-shrink: 0;
+}
+.brand h1 { font-size: 1.15rem; margin: 0; letter-spacing: -0.02em; line-height: 1.15; }
+.brand p { margin: 0; font-size: 0.75rem; opacity: 0.55; }
+
+.steps { display: flex; align-items: center; gap: 0.5rem; margin: 0 auto; flex-wrap: wrap; }
+.step {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  font-size: 0.78rem; font-weight: 600;
+  padding: 0.4rem 0.85rem; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: inherit; opacity: 0.5; white-space: nowrap; cursor: default;
+}
+.step:not(:disabled) { cursor: pointer; }
+.step b {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 19px; height: 19px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14); font-size: 0.68rem;
+}
+.stepActive { opacity: 1; background: rgba(124, 58, 237, 0.22); border-color: rgba(168, 85, 247, 0.6); }
+.stepActive b { background: #7c3aed; }
+.stepDone { opacity: 0.85; }
+.stepDone b { background: #16a34a; }
+.stepArrow { opacity: 0.3; flex-shrink: 0; }
+
+.exitBtn {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff; cursor: pointer; text-decoration: none;
+  transition: background 0.15s ease;
+}
+.exitBtn:hover { background: rgba(239, 68, 68, 0.3); }
+
+/* ── CORPO ──────────────────────────────────────────────────────────────── */
+.stepBody {
+  flex: 1;
+  padding: 1.4rem 1.6rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+  max-width: 1700px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.1rem 1.2rem 1.3rem;
+}
+.panelTitle {
+  display: flex; align-items: center; gap: 0.55rem;
+  font-size: 0.95rem; margin: 0 0 1rem; font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.countPill {
+  font-size: 0.72rem; font-weight: 600; opacity: 0.6;
+  padding: 0.15rem 0.5rem; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.emptyState {
+  display: flex; flex-direction: column; align-items: center; gap: 0.7rem;
+  padding: 2.5rem 1rem; opacity: 0.5; text-align: center;
+}
+.emptyState p { margin: 0; font-size: 0.85rem; }
+
+/* ── PASSO 1: SLOT ──────────────────────────────────────────────────────── */
+.slotControls { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+.field { display: flex; flex-direction: column; gap: 0.3rem; }
+.field > span { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.5; }
+.field select, .field input {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px; padding: 0.5rem 0.7rem;
+  color: #fff; font-size: 0.87rem; font-family: inherit;
+  min-width: 150px;
+}
+.field select option { background: #16161d; }
+
+.presets { display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center; margin-top: 0.9rem; }
+.presetBtn {
+  padding: 0.4rem 0.8rem; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.presetBtn:hover { background: rgba(255, 255, 255, 0.1); }
+.presetActive { background: rgba(124, 58, 237, 0.3); border-color: rgba(168, 85, 247, 0.65); }
+.presetHint { font-size: 0.72rem; opacity: 0.4; margin-left: 0.3rem; }
+
+.periodSummary {
+  margin: 0 0 1rem; font-size: 0.87rem; opacity: 0.8; line-height: 1.5;
+}
+.periodSummary b { color: #c4b5fd; }
+
+.dayStrip {
+  display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 0.6rem;
+  scrollbar-width: thin;
+}
+.dayCol {
+  flex: 0 0 168px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px; padding: 0.6rem 0.6rem 0.7rem;
+  display: flex; flex-direction: column; gap: 0.45rem;
+}
+.dayWeekend { background: rgba(124, 58, 237, 0.09); border-color: rgba(168, 85, 247, 0.22); }
+.dayPast { opacity: 0.35; }
+.dayColHead { display: flex; align-items: baseline; justify-content: space-between; gap: 0.4rem; }
+.dayColName { font-size: 0.78rem; font-weight: 650; }
+.dayColPct { font-size: 0.7rem; font-weight: 700; }
+
+.satTrack {
+  height: 5px; border-radius: 999px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.09);
+}
+.satFill { height: 100%; border-radius: 999px; transition: width 0.25s ease; }
+.satLow { background: #16a34a; color: #4ade80; }
+.satMid { background: #d97706; color: #fbbf24; }
+.satHigh { background: #dc2626; color: #f87171; }
+
+.dayColBody { display: flex; flex-direction: column; gap: 0.3rem; min-height: 60px; }
+.dayColEmpty { font-size: 0.72rem; opacity: 0.35; font-style: italic; padding: 0.3rem 0; }
+.existingShow {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.7rem; padding: 0.28rem 0.4rem; border-radius: 7px;
+  background: rgba(255, 255, 255, 0.07);
+  border-left: 2px solid rgba(255, 255, 255, 0.3);
+}
+.existingShow b { flex-shrink: 0; }
+.existingShow span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.75; }
+.gapChip {
+  font-size: 0.67rem; padding: 0.22rem 0.42rem; border-radius: 6px;
+  background: rgba(22, 163, 74, 0.14); color: #86efac;
+  border: 1px dashed rgba(74, 222, 128, 0.3);
+}
+
+/* ── PASSO 2: CATALOGO ──────────────────────────────────────────────────── */
+.filterBar {
+  display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px; padding: 0.75rem 0.9rem;
+  position: sticky; top: 78px; z-index: 20;
+  backdrop-filter: blur(12px);
+}
+.searchBox {
+  display: flex; align-items: center; gap: 0.5rem; flex: 1 1 260px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 9px; padding: 0.45rem 0.7rem;
+}
+.searchBox input {
+  flex: 1; background: none; border: none; outline: none;
+  color: #fff; font-size: 0.86rem; font-family: inherit; min-width: 0;
+}
+.searchBox button {
+  background: none; border: none; color: #fff; opacity: 0.5; cursor: pointer;
+  display: flex; padding: 0;
+}
+.filterSelect {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 9px; padding: 0.45rem 0.6rem;
+  color: #fff; font-size: 0.82rem; font-family: inherit;
+}
+.filterSelect option { background: #16161d; }
+.toggle {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.78rem; opacity: 0.8; cursor: pointer; white-space: nowrap;
+}
+.clearFilters {
+  display: flex; align-items: center; gap: 0.3rem;
+  background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5; border-radius: 8px; padding: 0.4rem 0.6rem;
+  font-size: 0.76rem; cursor: pointer; font-family: inherit;
+}
+
+.rails { display: flex; flex-direction: column; gap: 1.1rem; }
+.rail { display: flex; flex-direction: column; gap: 0.55rem; }
+.railHead { display: flex; align-items: baseline; gap: 0.7rem; flex-wrap: wrap; }
+.railHead h3 { margin: 0; font-size: 0.92rem; font-weight: 650; letter-spacing: -0.01em; }
+.railHint { font-size: 0.73rem; opacity: 0.42; }
+.railShuffle {
+  display: flex; align-items: center; gap: 0.3rem; margin-left: auto;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff; border-radius: 8px; padding: 0.3rem 0.6rem;
+  font-size: 0.74rem; cursor: pointer; font-family: inherit;
+}
+.railScroll {
+  display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+}
+
+.filmGrid {
+  display: grid; gap: 0.7rem;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+}
+
+.filmCard {
+  display: flex; flex-direction: column; gap: 0.32rem;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: inherit; font-family: inherit; text-align: left;
+}
+.filmCardCompact { flex: 0 0 124px; }
+.posterFrame {
+  position: relative; display: block;
+  aspect-ratio: 2 / 3; border-radius: 10px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.filmCard:hover .posterFrame { transform: translateY(-2px); }
+.filmCardSelected .posterFrame { border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25); }
+.posterFrame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.posterFallback {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  opacity: 0.3;
+}
+.cardCheck {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(124, 58, 237, 0.55); color: #fff;
+}
+.cardBadge {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  font-size: 0.62rem; padding: 0.18rem 0.3rem; text-align: center;
+  background: rgba(0, 0, 0, 0.75); color: #fbbf24;
+}
+.cardAward {
+  position: absolute; top: 5px; right: 5px;
+  display: flex; align-items: center; gap: 0.15rem;
+  font-size: 0.62rem; font-weight: 700; padding: 0.15rem 0.32rem;
+  border-radius: 999px; background: rgba(251, 191, 36, 0.9); color: #1a1400;
+}
+.cardTitle {
+  font-size: 0.76rem; font-weight: 600; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.cardMeta {
+  display: flex; align-items: center; gap: 0.2rem;
+  font-size: 0.68rem; opacity: 0.5;
+}
+.gridMore { font-size: 0.76rem; opacity: 0.45; margin: 0.9rem 0 0; text-align: center; }
+
+/* Ripiego su TMDB per i film non ancora in catalogo. */
+.tmdbFallback {
+  margin-top: 1rem; padding: 0.9rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start;
+}
+.tmdbFallback p { margin: 0; font-size: 0.82rem; opacity: 0.7; }
+.tmdbList { display: flex; flex-direction: column; gap: 0.35rem; width: 100%; }
+.tmdbHit {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px; padding: 0.4rem 0.55rem;
+  color: inherit; font-family: inherit; text-align: left; cursor: pointer;
+}
+.tmdbHit:hover:not(:disabled) { background: rgba(124, 58, 237, 0.2); }
+.tmdbHit:disabled { opacity: 0.5; cursor: wait; }
+.tmdbPoster {
+  width: 30px; height: 45px; border-radius: 5px; overflow: hidden; flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex; align-items: center; justify-content: center;
+}
+.tmdbPoster img { width: 100%; height: 100%; object-fit: cover; }
+.tmdbMain { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.tmdbMain b { font-size: 0.83rem; }
+.tmdbMain > span { font-size: 0.71rem; opacity: 0.5; }
+
+/* ── Vassoio dei selezionati ────────────────────────────────────────────── */
+.trayPanel {
+  background: rgba(124, 58, 237, 0.09);
+  border: 1px solid rgba(168, 85, 247, 0.28);
+  border-radius: 16px; padding: 1rem 1.1rem 1.1rem;
+}
+.trayTitle {
+  display: flex; align-items: baseline; gap: 0.7rem; flex-wrap: wrap;
+  margin: 0 0 0.8rem; font-size: 0.92rem; font-weight: 650;
+}
+.trayHint { font-size: 0.73rem; opacity: 0.45; font-weight: 400; }
+.trayList { display: flex; flex-direction: column; gap: 0.45rem; }
+.trayRow {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: rgba(0, 0, 0, 0.25); border-radius: 10px; padding: 0.45rem 0.6rem;
+  flex-wrap: wrap;
+}
+.trayPoster {
+  width: 34px; height: 51px; border-radius: 6px; overflow: hidden; flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.07);
+  display: flex; align-items: center; justify-content: center;
+}
+.trayPoster img { width: 100%; height: 100%; object-fit: cover; }
+.trayMain { display: flex; flex-direction: column; gap: 0.1rem; flex: 1 1 180px; min-width: 0; }
+.trayMain b { font-size: 0.84rem; font-weight: 620; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trayMain span { font-size: 0.72rem; opacity: 0.5; }
+.trayField { display: flex; flex-direction: column; gap: 0.15rem; }
+.trayField > span { font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.45; }
+.trayField select {
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px; padding: 0.3rem 0.45rem; color: #fff;
+  font-size: 0.78rem; font-family: inherit;
+}
+.trayField select option { background: #16161d; }
+.trayRemove {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+  background: rgba(239, 68, 68, 0.16); border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5; cursor: pointer;
+}
+
+/* ── PASSO 3: CALENDARIO ────────────────────────────────────────────────── */
+.warnings {
+  display: flex; flex-direction: column; gap: 0.35rem;
+  background: rgba(217, 119, 6, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: 12px; padding: 0.7rem 0.9rem;
+}
+.warnings > div {
+  display: flex; align-items: flex-start; gap: 0.45rem;
+  font-size: 0.79rem; color: #fcd34d; line-height: 1.4;
+}
+.warnings svg { flex-shrink: 0; margin-top: 2px; }
+
+.calendarLayout { display: flex; gap: 1rem; align-items: flex-start; }
+
+.sidePanel {
+  flex: 0 0 258px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px; padding: 0.9rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+  position: sticky; top: 90px;
+  max-height: calc(100vh - 170px); overflow-y: auto;
+}
+.sidePanelHead { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.sidePanelHead h3 { margin: 0; font-size: 0.88rem; font-weight: 650; }
+.sideHint { font-size: 0.71rem; opacity: 0.42; margin: 0 0 0.3rem; line-height: 1.4; }
+.sideFilm { display: flex; align-items: center; gap: 0.5rem; }
+.sidePoster {
+  width: 26px; height: 39px; border-radius: 5px; overflow: hidden; flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.07);
+  display: flex; align-items: center; justify-content: center;
+}
+.sidePoster img { width: 100%; height: 100%; object-fit: cover; }
+.sideTitle {
+  flex: 1; font-size: 0.77rem; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.stepper { display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0; }
+.stepper button {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.09); border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff; cursor: pointer; font-size: 0.9rem; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.stepper button:disabled { opacity: 0.3; cursor: not-allowed; }
+.stepper b { min-width: 16px; text-align: center; font-size: 0.82rem; }
+
+.calendarGrid {
+  flex: 1; display: flex; gap: 0.6rem; overflow-x: auto;
+  padding-bottom: 0.7rem; scrollbar-width: thin; min-width: 0;
+}
+.calDay {
+  flex: 0 0 216px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 13px; padding: 0.6rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.calDayDroppable { border-style: dashed; border-color: rgba(168, 85, 247, 0.4); }
+.calDayHead {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 0.4rem;
+  font-size: 0.79rem; font-weight: 650;
+}
+.calDayCount { font-size: 0.72rem; color: #c4b5fd; }
+.calDayBody { display: flex; flex-direction: column; gap: 0.4rem; }
+.calDayEmpty { font-size: 0.72rem; opacity: 0.3; font-style: italic; padding: 0.4rem 0; }
+
+.calExisting {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.7rem; padding: 0.3rem 0.42rem; border-radius: 7px;
+  background: rgba(255, 255, 255, 0.055); opacity: 0.65;
+  border-left: 2px solid rgba(255, 255, 255, 0.28);
+}
+.calExisting span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.calShow {
+  display: flex; flex-direction: column; gap: 0.4rem;
+  background: rgba(124, 58, 237, 0.17);
+  border: 1px solid rgba(168, 85, 247, 0.32);
+  border-radius: 10px; padding: 0.5rem;
+  cursor: grab;
+}
+.calShow:active { cursor: grabbing; }
+.calShowLocked { border-color: rgba(251, 191, 36, 0.5); background: rgba(217, 119, 6, 0.16); }
+.calShowDragging { opacity: 0.4; }
+.calShowTop { display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; }
+.calShowTime {
+  background: none; border: none; color: #fff; font-family: inherit;
+  font-size: 0.92rem; font-weight: 700; cursor: pointer; padding: 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+}
+.timeInput {
+  width: 62px; background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(168, 85, 247, 0.6); border-radius: 6px;
+  color: #fff; font-family: inherit; font-size: 0.9rem; font-weight: 700;
+  padding: 0.1rem 0.25rem; outline: none;
+}
+.bandTag {
+  font-size: 0.61rem; font-weight: 700; padding: 0.14rem 0.4rem;
+  border-radius: 999px; white-space: nowrap;
+}
+.bandMatinee { background: rgba(56, 189, 248, 0.22); color: #7dd3fc; }
+.bandAfternoon { background: rgba(250, 204, 21, 0.2); color: #fde047; }
+.bandEvening { background: rgba(244, 114, 182, 0.22); color: #f9a8d4; }
+.bandNight { background: rgba(129, 140, 248, 0.24); color: #a5b4fc; }
+
+.calShowMain { display: flex; gap: 0.45rem; align-items: center; }
+.calShowPoster {
+  width: 28px; height: 42px; border-radius: 5px; overflow: hidden; flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex; align-items: center; justify-content: center;
+}
+.calShowPoster img { width: 100%; height: 100%; object-fit: cover; }
+.calShowText { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.calShowText b {
+  font-size: 0.77rem; font-weight: 620; line-height: 1.2;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.calShowText span { font-size: 0.68rem; opacity: 0.55; }
+
+.calShowActions { display: flex; gap: 0.3rem; }
+.calShowActions button {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 0.22rem; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff; cursor: pointer;
+}
+.actionOn { background: rgba(251, 191, 36, 0.28) !important; color: #fcd34d !important; }
+.actionDanger:hover { background: rgba(239, 68, 68, 0.3); color: #fca5a5; }
+
+/* ── PASSO 4: CONFERMA ──────────────────────────────────────────────────── */
+.runCard {
+  max-width: 720px; margin: 2rem auto;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px; padding: 1.8rem;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.runCard h2 {
+  display: flex; align-items: center; gap: 0.55rem;
+  margin: 0; font-size: 1.15rem; font-weight: 650;
+}
+.progressTrack {
+  height: 9px; border-radius: 999px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.09);
+}
+.progressFill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #7c3aed, #db2777);
+  transition: width 0.3s ease;
+}
+.progressStep { margin: 0; font-size: 0.83rem; opacity: 0.7; }
+.runNote { margin: 0; font-size: 0.78rem; opacity: 0.5; line-height: 1.5; }
+.doneSummary { font-size: 1rem; }
+.doneSummary b { color: #86efac; }
+.doneErrors { color: #fca5a5; }
+.errorList { display: flex; flex-direction: column; gap: 0.35rem; }
+.errorList > div {
+  display: flex; align-items: flex-start; gap: 0.4rem;
+  font-size: 0.78rem; color: #fca5a5; line-height: 1.4;
+  background: rgba(239, 68, 68, 0.09); border-radius: 8px; padding: 0.4rem 0.55rem;
+}
+.errorList svg { flex-shrink: 0; margin-top: 2px; }
+.doneActions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.3rem; }
+
+/* ── FOOTER ─────────────────────────────────────────────────────────────── */
+.footer {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 25;
+  display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;
+  padding: 0.8rem 1.6rem;
+  background: rgba(10, 10, 15, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(14px);
+}
+.footerSpacer { flex: 1; }
+
+.ctaBtn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.7rem 1.3rem; border-radius: 11px; border: none;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  color: #fff; font-size: 0.92rem; font-weight: 650; font-family: inherit;
+  cursor: pointer; text-decoration: none;
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+  transition: transform 0.12s ease, opacity 0.15s ease;
+}
+.ctaBtn:hover:not(:disabled) { transform: translateY(-1px); }
+.ctaBtn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+.ghostBtn {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.62rem 1rem; border-radius: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  color: #fff; font-size: 0.86rem; font-weight: 600; font-family: inherit;
+  cursor: pointer; text-decoration: none;
+}
+.ghostBtn:hover { background: rgba(255, 255, 255, 0.11); }
+.ghostBtnSmall {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.3rem 0.55rem; border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  color: #fff; font-size: 0.73rem; font-family: inherit; cursor: pointer;
+}
+.ghostBtnSmall:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.intensityField { display: flex; align-items: center; gap: 0.6rem; }
+.intensityField > span {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.5;
+}
+.intensityGroup {
+  display: flex; gap: 0.25rem; padding: 0.2rem; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.intensityBtn {
+  padding: 0.35rem 0.7rem; border-radius: 8px; border: none;
+  background: none; color: #fff; font-size: 0.78rem; font-family: inherit;
+  cursor: pointer; opacity: 0.55; white-space: nowrap;
+}
+.intensityActive { background: rgba(124, 58, 237, 0.45); opacity: 1; }
+
+/* ── SCHERMI STRETTI ────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .header { gap: 0.8rem; padding: 0.8rem 1rem; }
+  .steps { order: 3; width: 100%; margin: 0; justify-content: center; }
+  .stepBody { padding: 1rem 0.9rem; }
+  .calendarLayout { flex-direction: column; }
+  .sidePanel { position: static; flex: 1 1 auto; width: 100%; max-height: none; }
+  .filterBar { position: static; }
+  .footer { padding: 0.7rem 1rem; }
+}
