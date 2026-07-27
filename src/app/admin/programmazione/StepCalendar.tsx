@@ -21,7 +21,7 @@ import type { DayOccupancy } from '@/actions/planningActions';
 import {
   BAND_LABELS, MINUTES_PER_DAY, OPENING_MINUTE, daysBetweenISO, type Band,
 } from '@/services/scheduling/times';
-import { dayLabel, showKey, type Pick } from './types';
+import { commitKey, dayLabel, showKey, type Pick } from './types';
 
 const BAND_CLASS: Record<Band, string> = {
   matinee: styles.bandMatinee,
@@ -41,6 +41,12 @@ interface Props {
   onMove: (show: ScheduledShow, desiredStartMinute: number) => void;
   onReplicasChange: (tmdbId: string, replicas: number) => void;
   onRegenerate: () => void;
+  /**
+   * Gli spettacoli che, confermando, ne elimineranno un altro. Indicizzati per
+   * `commitKey`: spostare uno spettacolo ne cambia la chiave e fa sparire il
+   * contrassegno, che è corretto — spostandolo non stai più sostituendo niente.
+   */
+  replacements?: Map<string, { label?: string; soldTickets: number }>;
 }
 
 /** 'HH:mm' → minuti dalla mezzanotte, o null se non è un orario. */
@@ -55,7 +61,7 @@ function parseClock(v: string): number | null {
 
 export default function StepCalendar({
   shows, warnings, existing, picks, busy,
-  onToggleLock, onDelete, onMove, onReplicasChange, onRegenerate,
+  onToggleLock, onDelete, onMove, onReplicasChange, onRegenerate, replacements,
 }: Props) {
   const [dragging, setDragging] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -179,11 +185,12 @@ export default function StepCalendar({
 
                 {d.fresh.map((s) => {
                   const key = showKey(s);
+                  const replacing = replacements?.get(commitKey(s));
                   const poster = getTMDBImageUrl(s.posterPath ?? null, 'w92');
                   return (
                     <article
                       key={key}
-                      className={`${styles.calShow} ${s.locked ? styles.calShowLocked : ''} ${dragging === key ? styles.calShowDragging : ''}`}
+                      className={`${styles.calShow} ${s.locked ? styles.calShowLocked : ''} ${dragging === key ? styles.calShowDragging : ''} ${replacing ? styles.calShowReplacing : ''}`}
                       draggable={!busy}
                       onDragStart={() => setDragging(key)}
                       onDragEnd={() => setDragging(null)}
@@ -221,6 +228,15 @@ export default function StepCalendar({
                         <div className={styles.calShowText}>
                           <b title={s.title}>{s.title}</b>
                           <span>{s.runtime}′ · fine {s.endTime}</span>
+                          {replacing && (
+                            <span
+                              className={styles.calShowReplaces}
+                              title={`Confermando, «${replacing.label}» verrà eliminato.`}
+                            >
+                              <TriangleAlert size={10} /> sostituisce {replacing.label}
+                              {replacing.soldTickets > 0 && ` · ${replacing.soldTickets} venduti`}
+                            </span>
+                          )}
                         </div>
                       </div>
 

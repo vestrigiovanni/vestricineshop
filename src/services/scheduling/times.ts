@@ -54,6 +54,28 @@ export const CLOSING_MINUTE = 25 * 60;
 
 export const MINUTES_PER_DAY = 1440;
 
+/**
+ * Fin dove arriva la coda di una serata: le 01:00, cioè la chiusura riportata
+ * dentro il giorno di calendario successivo.
+ *
+ * Serve a decidere a quale *giorno di programmazione* appartiene un orario. Il
+ * motore, altrove, se la cava con «prima dell'apertura è la sera prima»: gli
+ * basta, perché lavora su spettacoli già validi, che iniziano o dopo le 10:00 o
+ * nella coda dopo mezzanotte. Un orario battuto a mano no: fra l'01:00 e le
+ * 10:00 c'è una terra di nessuno in cui il cinema è semplicemente chiuso, e
+ * trattarla come coda della nottata precedente farebbe rispondere «finisce
+ * dopo la chiusura» a chi ha scritto le 09:00 — vero, ma incomprensibile.
+ */
+export const NIGHT_TAIL_MINUTE = CLOSING_MINUTE - MINUTES_PER_DAY;
+
+/**
+ * Il minuto globale di un orario d'orologio dentro un giorno di programmazione.
+ * Un orario nella coda della nottata cade sulla data di calendario successiva.
+ */
+export function globalMinuteOf(dayIndex: number, clock: number): number {
+  return dayIndex * MINUTES_PER_DAY + clock + (clock < NIGHT_TAIL_MINUTE ? MINUTES_PER_DAY : 0);
+}
+
 export type Band = 'matinee' | 'afternoon' | 'evening' | 'night';
 
 export const BAND_LABELS: Record<Band, string> = {

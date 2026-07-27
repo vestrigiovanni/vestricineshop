@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findFreeSlots, SLOT_SPACING } from './freeSlots';
+import { checkSlot, findFreeSlots, SLOT_SPACING } from './freeSlots';
 import { CLOSING_MINUTE, MINUTES_PER_DAY, MIN_GAP_MINUTES, OPENING_MINUTE, formatClock } from './times';
 
 /** Intervallo del giorno 0 espresso in ore decimali. */
@@ -130,5 +130,80 @@ describe('findFreeSlots', () => {
   it('una durata assurda non produce proposte', () => {
     expect(findFreeSlots({ runtime: 0, dayIndex: 0, occupied: [] })).toEqual([]);
     expect(findFreeSlots({ runtime: Number.NaN, dayIndex: 0, occupied: [] })).toEqual([]);
+  });
+});
+
+describe('checkSlot', () => {
+  const runtime = 110;
+
+  it('un orario libero dentro gli orari di apertura va bene', () => {
+    const c = checkSlot({ runtime, startMinute: 15 * 60, occupied: [] });
+    expect(c.ok).toBe(true);
+    expect(c.problem).toBeUndefined();
+    expect(c.clashes).toEqual([]);
+    expect(c.endMinute).toBe(15 * 60 + runtime);
+    expect(c.band).toBe('afternoon');
+    expect(c.dayIndex).toBe(0);
+  });
+
+  it('accetta anche un orario non elegante: sceglierlo è già una decisione', () => {
+    expect(checkSlot({ runtime, startMinute: 14 * 60 + 7, occupied: [] }).ok).toBe(true);
+  });
+
+  it('rifiuta prima dell\'apertura e dopo la chiusura', () => {
+    expect(checkSlot({ runtime, startMinute: 9 * 60, occupied: [] }).problem).toBe('beforeOpening');
+    // 23:30 + 110′ finisce all'01:20, oltre la chiusura dell'01:00.
+    expect(checkSlot({ runtime, startMinute: 23 * 60 + 30, occupied: [] }).problem).toBe('afterClosing');
+  });
+
+  it('rifiuta il passato, e il passato viene prima di tutto', () => {
+    const c = checkSlot({ runtime, startMinute: 11 * 60, occupied: [], notBefore: 12 * 60 });
+    expect(c.problem).toBe('past');
+  });
+
+  it('quando è occupato dice da cosa', () => {
+    // Uno spettacolo 15:00–16:50, pausa inclusa fino alle 17:00.
+    const altro = { start: 15 * 60, end: 17 * 60 };
+    const c = checkSlot({ runtime, startMinute: 16 * 60, occupied: [altro] });
+    expect(c.ok).toBe(false);
+    expect(c.problem).toBe('occupied');
+    expect(c.clashes).toEqual([altro]);
+  });
+
+  it('la pausa minima conta come occupazione, in entrambi i versi', () => {
+    const altro = { start: 15 * 60, end: 17 * 60 }; // fine film 16:50 + 10′
+    // Iniziare alle 16:55 invaderebbe la pausa dell'altro.
+    expect(checkSlot({ runtime, startMinute: 16 * 60 + 55, occupied: [altro] }).problem).toBe('occupied');
+    // Alle 17:00 esatte si può.
+    expect(checkSlot({ runtime, startMinute: 17 * 60, occupied: [altro] }).ok).toBe(true);
+    // Finire troppo a ridosso dell'inizio dell'altro è ugualmente occupato:
+    // 13:15 + 110′ = 15:05, che sfora dentro l'altro spettacolo.
+    expect(checkSlot({ runtime, startMinute: 13 * 60 + 15, occupied: [altro] }).problem).toBe('occupied');
+    // 13:00 + 110′ = 14:50, più 10′ di pausa: arriva esatto alle 15:00.
+    expect(checkSlot({ runtime, startMinute: 13 * 60, occupied: [altro] }).ok).toBe(true);
+  });
+
+  it('raccoglie tutti gli spettacoli che si accavallano, non solo il primo', () => {
+    const a = { start: 15 * 60, end: 17 * 60 };
+    const b = { start: 17 * 60, end: 19 * 60 };
+    const c = checkSlot({ runtime: 180, startMinute: 15 * 60, occupied: [a, b] });
+    expect(c.clashes).toEqual([a, b]);
+  });
+
+  it('la coda dopo la mezzanotte appartiene alla serata precedente', () => {
+    // 00:20 del giorno 1 è la nottata del giorno 0, e lì ci sta ancora.
+    const c = checkSlot({ runtime: 30, startMinute: MINUTES_PER_DAY + 20, occupied: [] });
+    expect(c.dayIndex).toBe(0);
+    expect(c.ok).toBe(true);
+    // 00:40 + 30′ finisce all'01:10: oltre la chiusura di quella serata.
+    expect(checkSlot({ runtime: 30, startMinute: MINUTES_PER_DAY + 40, occupied: [] }).problem)
+      .toBe('afterClosing');
+  });
+
+  it('lavora sul giorno giusto quando l\'indice non è zero', () => {
+    const base = 4 * MINUTES_PER_DAY;
+    const c = checkSlot({ runtime, startMinute: base + 15 * 60, occupied: [] });
+    expect(c.dayIndex).toBe(4);
+    expect(c.ok).toBe(true);
   });
 });

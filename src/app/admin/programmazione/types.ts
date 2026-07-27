@@ -1,6 +1,6 @@
 import type { ScheduledShow } from '@/services/scheduling/engine';
 import type { Band } from '@/services/scheduling/times';
-import type { PlanningFilmInfo } from '@/actions/planningActions';
+import type { PlanningFilmInfo, SlotProposal } from '@/actions/planningActions';
 
 /** Un film del catalogo, come lo vede il wizard. */
 export interface CatalogItem {
@@ -35,6 +35,33 @@ export interface CatalogItem {
  * farsi avanti, dal giorno più vicino.
  */
 export type PlanningMode = 'period' | 'film';
+
+/**
+ * Un orario scelto, con quello che comporta.
+ *
+ * `replaces` vuoto è il caso normale: l'orario era libero. Quando non è vuoto,
+ * confermare il piano **eliminerà** quegli spettacoli per far posto — ed è per
+ * questo che la scelta si porta dietro anche i biglietti venduti e un'etichetta
+ * leggibile: sono le due cose che servono per farlo capire prima, non dopo.
+ */
+export interface ChosenSlot {
+  slot: SlotProposal;
+  /** Id Pretix da rimuovere per fare posto. Vuoto = nessuna sostituzione. */
+  replaces: number[];
+  /** Cosa si sta sostituendo, in parole. */
+  replacesLabel?: string;
+  /** Biglietti già venduti su ciò che verrebbe rimosso. */
+  soldTickets: number;
+  /** Consenso esplicito a procedere nonostante i biglietti venduti. */
+  force: boolean;
+  /** Scelto a mano invece che fra le proposte. */
+  manual: boolean;
+}
+
+/** Identità di un orario: il minuto d'inizio è già unico dentro la finestra. */
+export function slotKey(s: SlotProposal): string {
+  return `${s.day}@${s.startMinute}`;
+}
 
 /** Un film scelto, con le preferenze che l'utente gli ha dato. */
 export interface Pick {

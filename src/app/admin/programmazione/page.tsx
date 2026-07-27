@@ -22,7 +22,7 @@ import StepSlot from './StepSlot';
 import StepCatalog from './StepCatalog';
 import StepCalendar from './StepCalendar';
 import StepFilm from './StepFilm';
-import StepFreeSlots, { slotKey } from './StepFreeSlots';
+import StepFreeSlots from './StepFreeSlots';
 import StepCommit, { type CommitFailure, type CommitProgress } from './StepCommit';
 import {
   planningDefaultStartDate,
@@ -43,8 +43,8 @@ import type { ScheduledShow } from '@/services/scheduling/engine';
 import type { Intensity } from '@/services/scheduling/engine';
 import { MINUTES_PER_DAY, daysBetweenISO, type Band } from '@/services/scheduling/times';
 import {
-  commitKey, runtimeOf, showKey,
-  type CatalogItem, type Pick, type PlanningMode, type WizardStep,
+  commitKey, runtimeOf, showKey, slotKey,
+  type CatalogItem, type ChosenSlot, type Pick, type PlanningMode, type WizardStep,
 } from './types';
 
 const STEP_LABELS: Record<PlanningMode, string[]> = {
@@ -97,7 +97,15 @@ export default function ProgrammazionePage() {
   const [reverseFilm, setReverseFilm] = useState<CatalogItem | null>(null);
   const [slotsResult, setSlotsResult] = useState<PlanningFindSlotsResult | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [selectedSlots, setSelectedSlots] = useState<Map<string, SlotProposal>>(new Map());
+  const [selectedSlots, setSelectedSlots] = useState<Map<string, ChosenSlot>>(new Map());
+  /**
+   * Le sostituzioni decise al passo 2, indicizzate per `commitKey`. Sono l'unica
+   * parte del piano che elimina qualcosa, e restano fuori da `shows` perché
+   * `ScheduledShow` appartiene al motore, che di Pretix non sa niente.
+   */
+  const [replacements, setReplacements] = useState<
+    Map<string, { replaces: number[]; force: boolean; label?: string; soldTickets: number }>
+  >(new Map());
   const [slotBand, setSlotBand] = useState<Band | ''>('');
   const [slotDays, setSlotDays] = useState(SLOT_DAYS_STEP);
 
@@ -252,19 +260,40 @@ export default function ProgrammazionePage() {
     if (!slotsResult) return;
     const alive = new Set(slotsResult.days.flatMap((d) => d.slots.map(slotKey)));
     setSelectedSlots((prev) => {
-      if ([...prev.keys()].every((k) => alive.has(k))) return prev;
-      return new Map([...prev].filter(([k]) => alive.has(k)));
+      // Gli orari decisi a mano non compaiono fra le proposte — è tutto il loro
+      // senso — quindi non vanno cercati lì: si giudicano solo quelli automatici,
+      // altrimenti una scelta manuale sparirebbe al primo cambio di fascia.
+      const stale = [...prev.entries()].filter(([k, c]) => !c.manual && !alive.has(k));
+      if (stale.length === 0) return prev;
+      return new Map([...prev].filter(([k, c]) => c.manual || alive.has(k)));
     });
   }, [slotsResult]);
+
+  /**
+   * Le scelte manuali restano legate alla sala e al giorno di partenza da cui
+   * erano state verificate: cambiandoli, quella verifica non vale più — la sala
+   * è un'altra, o i minuti globali hanno un'altra origine.
+   */
+  useEffect(() => {
+    setSelectedSlots((prev) => {
+      if (![...prev.values()].some((c) => c.manual)) return prev;
+      return new Map([...prev].filter(([, c]) => !c.manual));
+    });
+  }, [roomId, startDate, reverseFilm]);
 
   const toggleSlot = useCallback((slot: SlotProposal) => {
     setSelectedSlots((prev) => {
       const next = new Map(prev);
       const key = slotKey(slot);
       if (next.has(key)) next.delete(key);
-      else next.set(key, slot);
+      // Un orario proposto è libero per costruzione: non sostituisce niente.
+      else next.set(key, { slot, replaces: [], soldTickets: 0, force: false, manual: false });
       return next;
     });
+  }, []);
+
+  const addChosenSlot = useCallback((chosen: ChosenSlot) => {
+    setSelectedSlots((prev) => new Map(prev).set(slotKey(chosen.slot), chosen));
   }, []);
 
   /**
@@ -278,9 +307,12 @@ export default function ProgrammazionePage() {
   const goToCalendarFromSlots = async () => {
     if (!roomId || !reverseFilm?.tmdbId || selectedSlots.size === 0 || !slotsResult) return;
 
-    const chosen = [...selectedSlots.values()].sort((a, b) => a.startMinute - b.startMinute);
-    const windowStart = chosen[0].day;
-    const span = Math.min(Math.max(daysBetweenISO(windowStart, chosen[chosen.length - 1].day) + 1, 1), 30);
+    const chosen = [...selectedSlots.values()].sort((a, b) => a.slot.startMinute - b.slot.startMinute);
+    const windowStart = chosen[0].slot.day;
+    const span = Math.min(
+      Math.max(daysBetweenISO(windowStart, chosen[chosen.length - 1].slot.day) + 1, 1),
+      30
+    );
 
     // I minuti globali arrivano riferiti al giorno da cui si era cercato. La
     // finestra del calendario però parte dal primo orario scelto, e i due assi
@@ -288,7 +320,7 @@ export default function ProgrammazionePage() {
     const shift = daysBetweenISO(slotsResult.fromDate, windowStart) * MINUTES_PER_DAY;
     const info = slotsResult.film;
 
-    const fresh: ScheduledShow[] = chosen.map((s) => ({
+    const fresh: ScheduledShow[] = chosen.map(({ slot: s }) => ({
       tmdbId: reverseFilm.tmdbId!,
       title: info?.title ?? reverseFilm.title,
       runtime: info?.runtime || runtimeOf(reverseFilm) || 0,
@@ -302,6 +334,26 @@ export default function ProgrammazionePage() {
       band: s.band,
       locked: true,
     }));
+
+    // Le sostituzioni viaggiano a parte, in una mappa indicizzata come lo
+    // spettacolo *alla conferma*. Non stanno dentro `ScheduledShow` perché quel
+    // tipo è del motore, che di Pretix non sa niente; e la chiave scelta ha un
+    // effetto voluto: se al passo 3 sposti lo spettacolo a un altro orario, la
+    // chiave cambia e la sostituzione si perde — che è giusto, perché ti sei
+    // spostato via da ciò che volevi sostituire.
+    // La chiave si ricava da `commitKey` applicata allo spettacolo vero, non
+    // riscrivendone il formato a mano: le due stringhe devono coincidere, e un
+    // duplicato del formato si sfalserebbe in silenzio alla prima modifica,
+    // lasciando la sostituzione senza effetto e nessun errore a dirlo.
+    setReplacements(new Map(
+      chosen
+        .map((c, i) => [c, fresh[i]] as const)
+        .filter(([c]) => c.replaces.length > 0)
+        .map(([c, show]) => [
+          commitKey(show),
+          { replaces: c.replaces, force: c.force, label: c.replacesLabel, soldTickets: c.soldTickets },
+        ])
+    ));
 
     setBusy(true);
     setStartDate(windowStart);
@@ -332,6 +384,7 @@ export default function ProgrammazionePage() {
     setReverseFilm(null);
     setSlotsResult(null);
     setSelectedSlots(new Map());
+    setReplacements(new Map());
     setSlotBand('');
     setSlotDays(SLOT_DAYS_STEP);
     setShows([]);
@@ -472,7 +525,19 @@ export default function ProgrammazionePage() {
     try {
       const { jobId } = await planningCommitStart({
         seatingPlanId: roomId,
-        shows: sent.map((s) => ({ tmdbId: s.tmdbId, date: s.date, time: s.time, title: s.title })),
+        shows: sent.map((s) => {
+          // La sostituzione si riattacca qui, alla stessa chiave con cui era
+          // stata registrata: uno spettacolo spostato nel frattempo non la
+          // ritrova, e quindi non cancella niente.
+          const replacing = replacements.get(commitKey(s));
+          return {
+            tmdbId: s.tmdbId,
+            date: s.date,
+            time: s.time,
+            title: s.title,
+            ...(replacing ? { replaces: replacing.replaces, forceReplace: replacing.force } : {}),
+          };
+        }),
       });
 
       // Il lavoro procede sul server: qui si chiede periodicamente a che punto è.
@@ -504,7 +569,7 @@ export default function ProgrammazionePage() {
     } finally {
       setRunning(false);
     }
-  }, [roomId]);
+  }, [roomId, replacements]);
 
   const restart = () => {
     setPicks(new Map());
@@ -516,6 +581,7 @@ export default function ProgrammazionePage() {
     setReverseFilm(null);
     setSlotsResult(null);
     setSelectedSlots(new Map());
+    setReplacements(new Map());
     setSlotBand('');
     setSlotDays(SLOT_DAYS_STEP);
     setStep(1);
@@ -598,7 +664,7 @@ export default function ProgrammazionePage() {
           onFromDateChange={setStartDate}
           minDate={minDate}
           film={reverseFilm}
-          onFilmChange={(f) => { setReverseFilm(f); setSelectedSlots(new Map()); setSlotsResult(null); }}
+          onFilmChange={(f) => { setReverseFilm(f); setSelectedSlots(new Map()); setSlotsResult(null); setReplacements(new Map()); }}
         />
       )}
 
@@ -615,10 +681,14 @@ export default function ProgrammazionePage() {
       {step === 2 && mode === 'film' && reverseFilm && (
         <StepFreeSlots
           film={reverseFilm}
+          roomId={roomId!}
+          fromDate={startDate}
+          minDate={minDate}
           result={slotsResult}
           loading={loadingSlots}
           selected={selectedSlots}
           onToggleSlot={toggleSlot}
+          onAddChosen={addChosenSlot}
           band={slotBand}
           onBandChange={setSlotBand}
           onLookFurther={() => setSlotDays((d) => Math.min(d + SLOT_DAYS_STEP, 20))}
@@ -638,6 +708,7 @@ export default function ProgrammazionePage() {
           onMove={moveShow}
           onReplicasChange={changeReplicas}
           onRegenerate={regenerate}
+          replacements={replacements}
         />
       )}
 

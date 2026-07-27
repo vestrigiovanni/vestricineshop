@@ -17,6 +17,20 @@ export interface CommitShowInput {
   /** 'HH:mm' in ora di Roma. */
   time: string;
   title?: string;
+  /**
+   * Spettacoli da rimuovere per far posto a questo: la sovrascrittura.
+   *
+   * Sono id Pretix, e vengono eliminati **qui**, un attimo prima di creare il
+   * rimpiazzo — non quando l'utente li sceglie. Così un piano abbandonato a
+   * metà non lascia dietro di sé un buco in palinsesto, e la sala resta scoperta
+   * per i pochi secondi della sostituzione invece che per tutta la revisione.
+   */
+  replaces?: number[];
+  /**
+   * Procedere anche se su ciò che si sostituisce ci sono biglietti venduti.
+   * Senza, la rimozione si rifiuta e lo spettacolo nuovo non viene creato.
+   */
+  forceReplace?: boolean;
 }
 
 export interface CommitInput {
@@ -55,7 +69,7 @@ export function startCommit(input: CommitInput): string {
 async function run(jobId: string, input: CommitInput): Promise<void> {
   const { adminPrepareMetadata, adminScheduleMovie, adminSyncNewlyCreatedEvents } =
     await import('@/actions/adminActions');
-  const { planningGetFilmInfo } = await import('@/actions/planningActions');
+  const { planningGetFilmInfo, planningDeleteShow } = await import('@/actions/planningActions');
 
   const shows = [...input.shows].sort((a, b) =>
     `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`)
@@ -125,6 +139,77 @@ async function run(jobId: string, input: CommitInput): Promise<void> {
       errors.push({ key: showKeyOf(s), label, error: 'Film non trovato su TMDB.' });
       done++;
       updateJob(jobId, { errors: [...errors] });
+      continue;
+    }
+
+    // ── Sovrascrittura: prima si libera il posto ────────────────────────────
+    // Se la rimozione fallisce non si crea niente: lo spettacolo nuovo
+    // andrebbe a sbattere contro quello vecchio, e ci ritroveremmo con un
+    // errore al posto di una sostituzione. Il caso più frequente è il rifiuto
+    // per biglietti venduti, che è esattamente il rifiuto che vogliamo.
+    let blockedByReplace = false;
+    const replaces = s.replaces ?? [];
+
+    // Quando gli spettacoli da togliere sono più d'uno si guardano *tutti*
+    // prima di toccarne uno. Cancellando in fila, se il secondo ha biglietti
+    // venduti ci si ferma dopo aver già eliminato il primo: resterebbe un buco
+    // in palinsesto senza niente al suo posto, ed è il danno peggiore fra
+    // quelli possibili qui. Con una sola rimozione il controllo lo fa già
+    // `planningDeleteShow` prima di cancellare, e questo giro sarebbe sprecato.
+    if (replaces.length > 1 && !s.forceReplace) {
+      const { countSoldTickets } = await import('@/services/pretix');
+      for (const pretixId of replaces) {
+        let refusal: string | null = null;
+        try {
+          const sold = await countSoldTickets(pretixId);
+          if (sold > 0) {
+            refusal = sold === 1
+              ? "C'è già 1 biglietto venduto su uno degli spettacoli da sostituire."
+              : `Ci sono già ${sold} biglietti venduti su uno degli spettacoli da sostituire.`;
+          }
+        } catch {
+          // Non sapere quanti biglietti ci sono non autorizza a cancellare.
+          refusal = 'Non sono riuscito a controllare i biglietti venduti sugli spettacoli da sostituire.';
+        }
+        if (refusal) {
+          errors.push({ key: showKeyOf(s), label, error: refusal });
+          blockedByReplace = true;
+          break;
+        }
+      }
+    }
+
+    for (const pretixId of blockedByReplace ? [] : replaces) {
+      updateJob(jobId, { step: `Sostituisco · libero le ${s.time} del ${s.date}`, done });
+      try {
+        const removal = await planningDeleteShow(pretixId, s.forceReplace ?? false);
+        if (!removal.deleted) {
+          errors.push({
+            key: showKeyOf(s),
+            label,
+            error: removal.error ?? 'Non è stato possibile rimuovere lo spettacolo da sostituire.',
+          });
+          blockedByReplace = true;
+          break;
+        }
+        // Il palinsesto che ci portavamo dietro ora è vecchio di uno
+        // spettacolo: rileggerlo è l'unico modo di non credere ancora occupato
+        // il posto che abbiamo appena liberato.
+        blocked = undefined;
+      } catch (err) {
+        errors.push({
+          key: showKeyOf(s),
+          label,
+          error: err instanceof Error ? err.message : 'Rimozione fallita.',
+        });
+        blockedByReplace = true;
+        break;
+      }
+    }
+
+    if (blockedByReplace) {
+      done++;
+      updateJob(jobId, { done, errors: [...errors] });
       continue;
     }
 

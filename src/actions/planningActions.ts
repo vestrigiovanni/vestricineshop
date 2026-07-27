@@ -10,7 +10,7 @@
  */
 
 import prisma from '@/lib/prisma';
-import { listSubEvents } from '@/services/pretix';
+import { countSoldTickets, listSubEvents } from '@/services/pretix';
 import { getMovieDetails } from '@/services/tmdb';
 import {
   buildSchedule,
@@ -25,7 +25,9 @@ import {
   MIN_GAP_MINUTES,
   OPENING_MINUTE,
   addDaysISO,
+  daysBetweenISO,
   formatClock,
+  globalMinuteOf,
   isWeekend,
   type Band,
 } from '@/services/scheduling/times';
@@ -34,7 +36,7 @@ import {
   summarizeDay,
   type FreeGap,
 } from '@/services/scheduling/occupancy';
-import { findFreeSlots, SLOTS_PER_DAY } from '@/services/scheduling/freeSlots';
+import { checkSlot, findFreeSlots, SLOTS_PER_DAY } from '@/services/scheduling/freeSlots';
 import { msToGlobalMinute, romeClock, todayInRome } from '@/services/scheduling/rome';
 import { getJob, type CommitJob } from '@/services/scheduling/commitJobs';
 import { startCommit, type CommitInput } from '@/services/scheduling/commitRunner';
@@ -595,6 +597,174 @@ export async function planningFindSlots(
     reason: days.length === 0
       ? `In ${scannedDays} giorni non c'è un buco da ${film.runtime}′ in questa sala: prova un'altra sala o guarda più avanti.`
       : undefined,
+  };
+}
+
+/** Uno spettacolo che sta occupando l'orario che hai scelto a mano. */
+export interface SlotConflict extends ExistingShow {
+  /** Quanti biglietti pagati ci sono sopra. Sostituirlo li lascerebbe orfani. */
+  soldTickets: number;
+}
+
+export interface ManualSlotCheck {
+  /** L'orario è utilizzabile così com'è, senza toccare niente. */
+  free: boolean;
+  /** Libero, oppure occupato ma sostituibile: in entrambi i casi si può fare. */
+  usable: boolean;
+  slot: SlotProposal | null;
+  /** Gli spettacoli da rimuovere per fare posto, se si sceglie di sostituire. */
+  conflicts: SlotConflict[];
+  /** Biglietti venduti in totale su ciò che verrebbe rimosso. */
+  soldTickets: number;
+  /** Spiegazione leggibile: perché non si può, o cosa comporta sostituire. */
+  message: string;
+}
+
+/**
+ * Un orario deciso a mano: si può usare, e se no perché.
+ *
+ * È la valvola di sfogo delle proposte automatiche. Quelle mostrano solo il
+ * libero, che è giusto quando cerchi uno spazio; ma se sai già che vuoi il
+ * sabato alle 21:00 — e alle 21:00 c'è qualcos'altro — il libero non ti serve:
+ * ti serve sapere *cosa* c'è e poterlo sostituire.
+ *
+ * Qui non si cancella niente. La rimozione avviene alla conferma, dentro il
+ * lavoro di creazione, subito prima di creare il rimpiazzo: così una scelta
+ * ripensata non lascia dietro di sé un buco in palinsesto.
+ */
+export async function planningCheckManualSlot(input: {
+  seatingPlanId: number;
+  tmdbId: string;
+  /** Giorno di programmazione 'YYYY-MM-DD'. */
+  day: string;
+  /** Orario 'HH:mm'. */
+  time: string;
+  /** Origine dei minuti globali, per restare sull'asse delle altre proposte. */
+  fromDate: string;
+}): Promise<ManualSlotCheck> {
+  const nothing = (message: string): ManualSlotCheck => ({
+    free: false, usable: false, slot: null, conflicts: [], soldTickets: 0, message,
+  });
+
+  const clock = /^(\d{1,2}):(\d{2})$/.exec(input.time.trim());
+  if (!clock) return nothing('Orario non valido: scrivilo come 21:00.');
+  const hh = Number(clock[1]);
+  const mm = Number(clock[2]);
+  if (hh > 23 || mm > 59) return nothing('Quest\'ora non esiste.');
+
+  const film = (await loadFilmInfo([input.tmdbId])).get(input.tmdbId) ?? null;
+  if (!film) return nothing('Questo film non risulta su TMDB.');
+  if (!film.runtime || film.runtime <= 0) {
+    return nothing(`Di «${film.title}» non si conosce la durata: senza, non so quanto spazio serve.`);
+  }
+
+  const dayIndex = daysBetweenISO(input.fromDate, input.day);
+  const startMinute = globalMinuteOf(dayIndex, hh * 60 + mm);
+
+  // La finestra deve contenere il giorno scelto: senza, la sala risulterebbe
+  // vuota e ogni orario sembrerebbe libero.
+  const span = Math.min(Math.max(dayIndex + 2, 1), 60);
+  const { shows } = await readRoomOccupancy(input.seatingPlanId, input.fromDate, span);
+  const notBefore = msToGlobalMinute(Date.now() + 30 * 60000, input.fromDate);
+
+  // Gli intervalli si portano dietro lo spettacolo da cui vengono: quando il
+  // controllo dice «occupato», ciò che dà fastidio torna indietro identificato,
+  // senza doverlo ripescare confrontando dei numeri.
+  const occupied = shows.map((s) => ({
+    start: s.startMinute,
+    end: s.endMinute + MIN_GAP_MINUTES,
+    show: s,
+  }));
+
+  const check = checkSlot({ runtime: film.runtime, startMinute, occupied, notBefore });
+
+  const slot: SlotProposal = {
+    day: input.day,
+    date: addDaysISO(input.fromDate, Math.floor(startMinute / MINUTES_PER_DAY)),
+    time: formatClock(startMinute),
+    endTime: formatClock(check.endMinute),
+    startMinute,
+    endMinute: check.endMinute,
+    band: check.band,
+  };
+
+  if (check.problem === 'past') {
+    return nothing('Quest\'orario è già passato, o sta per esserlo.');
+  }
+  if (check.problem === 'beforeOpening') {
+    return nothing(`Il cinema apre alle ${formatClock(OPENING_MINUTE)}.`);
+  }
+  if (check.problem === 'afterClosing') {
+    return nothing(
+      `«${film.title}» dura ${film.runtime}′: partendo alle ${slot.time} finirebbe alle ` +
+      `${slot.endTime}, oltre la chiusura dell'${formatClock(CLOSING_MINUTE)}.`
+    );
+  }
+
+  if (check.ok) {
+    return {
+      free: true, usable: true, slot, conflicts: [], soldTickets: 0,
+      message: `Libero: ${slot.time}–${slot.endTime}.`,
+    };
+  }
+
+  // Occupato: ogni spettacolo che dà fastidio va pesato con i biglietti che ha
+  // sopra, perché è quello il numero che decide se la sostituzione è una
+  // sistemazione del palinsesto o un problema per delle persone.
+  let countFailed = false;
+  const conflicts: SlotConflict[] = await Promise.all(
+    check.clashes.map(async ({ show }) => {
+      const { dayIndex: _d, tmdbId: _t, ...rest } = show;
+      let soldTickets = 0;
+      if (rest.pretixId) {
+        try {
+          soldTickets = await countSoldTickets(rest.pretixId);
+        } catch {
+          countFailed = true;
+        }
+      }
+      return { ...rest, soldTickets };
+    })
+  );
+
+  // Se il conteggio non è riuscito ci si ferma. Dare per scontato lo zero
+  // sarebbe la bugia peggiore possibile proprio qui: annuncerebbe «nessuno
+  // resta a piedi» a chi sta per cancellare uno spettacolo che potrebbe avere
+  // una sala già venduta. La creazione ricontrollerebbe comunque e rifiuterebbe,
+  // ma a quel punto la decisione l'utente l'avrebbe già presa su un'informazione
+  // falsa.
+  if (countFailed) {
+    return {
+      free: false, usable: false, slot, conflicts, soldTickets: 0,
+      message: 'Non sono riuscito a controllare i biglietti venduti su ciò che occupa '
+        + "quest'orario. Riprova: non ti propongo una sostituzione senza sapere chi ha già pagato.",
+    };
+  }
+
+  // Un conflitto senza identificativo Pretix non si può rimuovere: è un
+  // impegno della sala che il sito non governa, e sostituirlo alla cieca
+  // creerebbe una sovrapposizione vera.
+  const unremovable = conflicts.filter((c) => c.pretixId == null);
+  if (conflicts.length === 0 || unremovable.length > 0) {
+    return {
+      free: false, usable: false, slot, conflicts, soldTickets: 0,
+      message: 'Quest\'orario è occupato da qualcosa che non posso rimuovere da qui.',
+    };
+  }
+
+  const soldTickets = conflicts.reduce((sum, c) => sum + c.soldTickets, 0);
+  const titles = conflicts.map((c) => `«${c.title}» delle ${c.time}`).join(' e ');
+
+  return {
+    free: false,
+    usable: true,
+    slot,
+    conflicts,
+    soldTickets,
+    message: soldTickets > 0
+      ? `Qui c'è ${titles}, con ${soldTickets} bigliett${soldTickets === 1 ? 'o venduto' : 'i venduti'}. ` +
+        'Sostituirlo lascia orfani ordini di gente che ha pagato: andranno rimborsati a mano da Pretix.'
+      : `Qui c'è ${titles}. Nessun biglietto venduto: sostituirlo non lascia nessuno a piedi.`,
   };
 }
 

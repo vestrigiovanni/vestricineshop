@@ -11,15 +11,21 @@
  * Si possono spuntare più orari, anche su giorni diversi: sono le repliche.
  */
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  CalendarClock, CalendarPlus, Check, Clapperboard, Loader2, Lock, Search,
+  CalendarClock, CalendarPlus, Check, Clapperboard, Loader2, Lock, Pencil,
+  Search, TriangleAlert,
 } from 'lucide-react';
 import styles from './Programmazione.module.css';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
-import type { PlanningFindSlotsResult, SlotProposal } from '@/actions/planningActions';
+import {
+  planningCheckManualSlot,
+  type ManualSlotCheck,
+  type PlanningFindSlotsResult,
+  type SlotProposal,
+} from '@/actions/planningActions';
 import { BAND_LABELS, type Band } from '@/services/scheduling/times';
-import { dayLabel, type CatalogItem } from './types';
+import { dayLabel, slotKey, type CatalogItem, type ChosenSlot } from './types';
 
 const BAND_CLASS: Record<Band, string> = {
   matinee: styles.bandMatinee,
@@ -36,17 +42,18 @@ const BAND_FILTERS: { value: Band | ''; label: string }[] = [
   { value: 'night', label: 'Seconda serata' },
 ];
 
-/** Identità di un orario proposto: il minuto d'inizio è già unico. */
-export function slotKey(s: SlotProposal): string {
-  return `${s.day}@${s.startMinute}`;
-}
-
 interface Props {
   film: CatalogItem;
+  roomId: number;
+  /** Origine dei minuti globali: la stessa da cui il server ha cercato. */
+  fromDate: string;
+  minDate: string;
   result: PlanningFindSlotsResult | null;
   loading: boolean;
-  selected: Map<string, SlotProposal>;
+  selected: Map<string, ChosenSlot>;
   onToggleSlot: (slot: SlotProposal) => void;
+  /** Aggiunge un orario deciso a mano, sostituzione compresa. */
+  onAddChosen: (chosen: ChosenSlot) => void;
   band: Band | '';
   onBandChange: (b: Band | '') => void;
   /** Allarga la ricerca ai giorni successivi. */
@@ -56,11 +63,75 @@ interface Props {
 }
 
 export default function StepFreeSlots({
-  film, result, loading, selected, onToggleSlot, band, onBandChange, onLookFurther, expanding,
+  film, roomId, fromDate, minDate, result, loading, selected,
+  onToggleSlot, onAddChosen, band, onBandChange, onLookFurther, expanding,
 }: Props) {
   const poster = getTMDBImageUrl(film.posterPath, 'w154');
   const runtime = result?.film?.runtime ?? film.runtime ?? film.durationMin;
-  const days = result?.days ?? [];
+  // Memoizzato perché finisce fra le dipendenze di un effetto: un array nuovo a
+  // ogni render lo farebbe ripartire all'infinito.
+  const days = useMemo(() => result?.days ?? [], [result]);
+
+  // ── L'orario deciso a mano ──────────────────────────────────────────────
+  const [manualDay, setManualDay] = useState('');
+  const [manualTime, setManualTime] = useState('21:00');
+  const [check, setCheck] = useState<ManualSlotCheck | null>(null);
+  const [checking, setChecking] = useState(false);
+  /** Consenso esplicito a passare sopra biglietti già venduti. */
+  const [consent, setConsent] = useState(false);
+
+  useEffect(() => {
+    if (!manualDay) setManualDay(days[0]?.day ?? fromDate);
+  }, [days, fromDate, manualDay]);
+
+  // Cambiare data o ora invalida l'esito precedente: lasciarlo lì, con il suo
+  // bottone «sostituisci» ancora attivo, significherebbe far cancellare uno
+  // spettacolo che non c'entra niente con quello che si sta guardando adesso.
+  useEffect(() => {
+    setCheck(null);
+    setConsent(false);
+  }, [manualDay, manualTime, roomId, film.tmdbId]);
+
+  const runCheck = async () => {
+    if (!manualDay || !manualTime || !film.tmdbId) return;
+    setChecking(true);
+    try {
+      setCheck(await planningCheckManualSlot({
+        seatingPlanId: roomId,
+        tmdbId: film.tmdbId,
+        day: manualDay,
+        time: manualTime,
+        fromDate,
+      }));
+    } catch (e) {
+      console.error('[Programmazione] verifica orario manuale', e);
+      setCheck({
+        free: false, usable: false, slot: null, conflicts: [], soldTickets: 0,
+        message: 'Non sono riuscito a controllare la sala. Riprova.',
+      });
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const addManual = () => {
+    if (!check?.usable || !check.slot) return;
+    if (check.soldTickets > 0 && !consent) return;
+    onAddChosen({
+      slot: check.slot,
+      replaces: check.conflicts.map((c) => c.pretixId!).filter((id) => id != null),
+      replacesLabel: check.conflicts.length
+        ? check.conflicts.map((c) => `${c.title} (${c.time})`).join(' e ')
+        : undefined,
+      soldTickets: check.soldTickets,
+      force: check.soldTickets > 0 && consent,
+      manual: true,
+    });
+    setCheck(null);
+    setConsent(false);
+  };
+
+  const alreadyChosen = check?.slot ? selected.has(slotKey(check.slot)) : false;
 
   return (
     <main className={styles.stepBody}>
@@ -90,10 +161,124 @@ export default function StepFreeSlots({
           <p className={styles.periodSummary}>
             Hai scelto <b>{selected.size} orari{selected.size === 1 ? 'o' : ''}</b>:{' '}
             {[...selected.values()]
-              .sort((a, b) => a.startMinute - b.startMinute)
-              .map((s) => `${dayLabel(s.day)} alle ${s.time}`)
+              .sort((a, b) => a.slot.startMinute - b.slot.startMinute)
+              .map((c) => `${dayLabel(c.slot.day)} alle ${c.slot.time}`)
               .join(' · ')}
           </p>
+        )}
+
+        {/* Le sostituzioni si dicono una volta di più, tutte insieme: sono
+            l'unica parte di questo piano che *distrugge* qualcosa, e chi
+            conferma deve saperlo senza doverlo ricostruire orario per orario. */}
+        {[...selected.values()].some((c) => c.replaces.length > 0) && (
+          <div className={styles.replaceNotice}>
+            <TriangleAlert size={15} />
+            <div>
+              <b>Confermando, questi spettacoli verranno eliminati:</b>
+              {[...selected.values()]
+                .filter((c) => c.replaces.length > 0)
+                .sort((a, b) => a.slot.startMinute - b.slot.startMinute)
+                .map((c) => (
+                  <span key={slotKey(c.slot)}>
+                    {dayLabel(c.slot.day)} — {c.replacesLabel}
+                    {c.soldTickets > 0 && (
+                      <em> · {c.soldTickets} bigliett{c.soldTickets === 1 ? 'o venduto' : 'i venduti'}</em>
+                    )}
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── L'orario deciso a mano ──────────────────────────────────────── */}
+      <section className={styles.panel}>
+        <h2 className={styles.panelTitle}><Pencil size={17} /> Oppure decidi tu giorno e ora</h2>
+        <p className={styles.sideHint}>
+          Le proposte qui sopra mostrano solo il libero. Se il posto che vuoi è
+          già occupato, qui puoi vedere da cosa e prenderlo comunque.
+        </p>
+
+        <div className={styles.manualRow}>
+          <label className={styles.field}>
+            <span>Giorno</span>
+            <input
+              type="date"
+              value={manualDay}
+              min={minDate}
+              onChange={(e) => setManualDay(e.target.value)}
+            />
+          </label>
+          <label className={styles.field}>
+            <span>Ora</span>
+            <input type="time" value={manualTime} onChange={(e) => setManualTime(e.target.value)} />
+          </label>
+          <button
+            className={styles.ghostBtnSmall}
+            onClick={runCheck}
+            disabled={checking || !manualDay || !manualTime}
+          >
+            {checking ? <Loader2 size={13} className={styles.spin} /> : <Search size={13} />}
+            Vedi se si può
+          </button>
+        </div>
+
+        {check && (
+          <div
+            className={`${styles.manualResult} ${
+              check.free ? styles.manualFree
+              : check.usable ? styles.manualBusy
+              : styles.manualNo
+            }`}
+          >
+            <p className={styles.manualMessage}>
+              {check.usable && !check.free && <TriangleAlert size={15} />}
+              {check.message}
+            </p>
+
+            {check.conflicts.length > 0 && (
+              <div className={styles.manualConflicts}>
+                {check.conflicts.map((c, i) => (
+                  <span key={c.pretixId ?? i}>
+                    <b>{c.time}–{c.endTime}</b> {c.title}
+                    {c.soldTickets > 0 && (
+                      <em> · {c.soldTickets} bigliett{c.soldTickets === 1 ? 'o' : 'i'}</em>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Passare sopra a chi ha pagato non può essere un clic distratto:
+                serve dirlo, non solo cliccare. */}
+            {check.usable && check.soldTickets > 0 && (
+              <label className={styles.manualConsent}>
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                />
+                So che {check.soldTickets === 1 ? 'un ordine pagato resterà orfano' : `${check.soldTickets} ordini pagati resteranno orfani`} e
+                che dovrò rimborsarli a mano da Pretix.
+              </label>
+            )}
+
+            {check.usable && check.slot && (
+              alreadyChosen ? (
+                <p className={styles.manualDone}><Check size={14} /> Già fra gli orari scelti.</p>
+              ) : (
+                <button
+                  className={check.free ? styles.ctaBtnSmall : styles.dangerBtnSmall}
+                  onClick={addManual}
+                  disabled={check.soldTickets > 0 && !consent}
+                >
+                  {check.free
+                    ? <><CalendarPlus size={14} /> Aggiungi alle {check.slot.time}</>
+                    : <><TriangleAlert size={14} /> Sostituisci e metti «{film.title}» alle {check.slot.time}</>}
+                </button>
+              )
+            )}
+          </div>
         )}
       </section>
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { apiError, requireApiKey } from '@/services/apiAuth';
-import { catalogGetRails, catalogList } from '@/actions/catalogActions';
+import { catalogAddByTmdbId, catalogGetRails, catalogList } from '@/actions/catalogActions';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -48,6 +48,45 @@ export async function GET(request: Request) {
       genresInSchedule: (q.get('genresInSchedule') ?? '').split(',').filter(Boolean),
     });
     return NextResponse.json({ ...grid, rails });
+  } catch (err) {
+    return apiError(err);
+  }
+}
+
+/**
+ * POST /api/planning/catalog
+ * { tmdbId } → { ok, id, title }
+ *
+ * Mette un film in archivio a partire da un id TMDB, e lo marca come confermato
+ * a mano ("fixed"). Se il film c'è già, ne aggiorna i dati.
+ *
+ * È **l'unica rotta TMDB che scrive**: cercare (GET /api/planning/tmdb) e
+ * sbirciare un film (GET /api/planning/tmdb/{tmdbId}) non toccano il catalogo.
+ * Il confine è voluto: gli spettacoli leggono titolo, durata e locandina da
+ * TMDB, quindi la riga di catalogo non è un requisito tecnico ma una decisione
+ * di archivio — e la decisione la prende l'utente, mai una ricerca di passaggio.
+ */
+export async function POST(request: Request) {
+  const denied = requireApiKey(request);
+  if (denied) return denied;
+
+  let body: { tmdbId?: string | number };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Corpo della richiesta non valido.' }, { status: 400 });
+  }
+
+  const tmdbId = String(body?.tmdbId ?? '').trim();
+  if (!/^\d+$/.test(tmdbId)) {
+    return NextResponse.json(
+      { error: 'Serve `tmdbId`: un id TMDB numerico.' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    return NextResponse.json(await catalogAddByTmdbId(tmdbId));
   } catch (err) {
     return apiError(err);
   }

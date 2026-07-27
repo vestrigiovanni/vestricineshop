@@ -5,7 +5,8 @@ import { NextResponse } from 'next/server';
  *
  * Una chiave sola, in `VESTRI_API_KEY`, passata come bearer token. Se la
  * variabile non è configurata le rotte restano chiuse: un endpoint che scrive
- * su Pretix non deve mai poter diventare pubblico per dimenticanza.
+ * su Pretix o in catalogo non deve mai poter diventare pubblico per
+ * dimenticanza.
  */
 export function requireApiKey(request: Request): NextResponse | null {
   const key = process.env.VESTRI_API_KEY;

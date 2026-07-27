@@ -31,8 +31,13 @@ biglietteria**: compaiono online, la gente può comprarci i biglietti.
 
 Quindi, mentre sviluppi:
 
-- Le chiamate in **lettura** (`/rooms`, `/occupancy`, `/catalog`) e `/generate`
-  sono innocue: puoi usarle quanto vuoi, non scrivono niente.
+- Le chiamate in **lettura** (`/rooms`, `/occupancy`, `/catalog`, `/slots`,
+  `/slots/check`, `/tmdb`) e `/generate` sono innocue: puoi usarle quanto vuoi,
+  non scrivono niente. `/slots/check` in particolare **non cancella** gli
+  spettacoli che ti elenca come conflitti: dice solo cosa c'è.
+- Oltre a `/commit` scrivono anche `POST /api/planning/catalog` (aggiunge un
+  film all'archivio curato) e `DELETE /api/planning/shows/{id}` (elimina uno
+  spettacolo vero, con i suoi biglietti). Stessa regola: non provarle da solo.
 - **Non chiamare mai `/commit`** di tua iniziativa, né per provare, né in un
   test automatico, né "solo una volta per vedere se funziona". Quando arrivi al
   punto in cui servirebbe, **fermati e chiedimelo**, e ti dirò io su quale sala
@@ -146,13 +151,113 @@ Lo stesso `seed` con gli stessi ingressi produce lo stesso identico piano.
 `existing` sono le proiezioni già in sala: mostrale nel calendario in grigio,
 non si toccano e non vanno mai rimandate al server.
 
+### GET /api/planning/slots?room=12&tmdb=27205
+Parametri: `from` (YYYY-MM-DD), `band`, `maxDays` (1–30), `horizonDays` (1–60),
+`perDay` (1–12). I tetti li applica il server: chiedere di più non è un errore.
+
+→ { "film": { "tmdbId": "27205", "title": "Inception", "runtime": 148,
+              "posterPath": "/abc.jpg", "overview": "…" },
+    "fromDate": "2026-08-01", "scannedDays": 9, "horizonDays": 21,
+    "days": [ { "day": "2026-08-01", "weekday": "sabato", "isWeekend": true,
+                "saturation": 0.42,
+                "existing": [ /* come in /occupancy */ ],
+                "slots": [ { "day": "2026-08-01", "date": "2026-08-01",
+                             "time": "21:00", "endTime": "23:28",
+                             "startMinute": 1260, "endMinute": 1408,
+                             "band": "evening" } ] } ],
+    "reason": "In 21 giorni non c'è un buco da 148′ …" }   // solo se days è vuoto
+
+La programmazione al contrario: si parte dal film e si chiede dove ci sta.
+Tornano SOLO le giornate che hanno spazio davvero, già dalla più vicina: non si
+riordinano e non si filtrano lato client. Ogni slot porta `date` e `time` nella
+forma esatta che vuole il commit, quindi da qui si va dritti alla creazione,
+senza passare da `/generate`.
+
+`startMinute`/`endMinute` sono l'asse interno del server, contato da `fromDate`.
+All'app non servono.
+
+### GET /api/planning/slots/check?room=12&tmdb=27205&day=2026-08-01&time=21:00
+Parametro facoltativo: `from`. **Passa lo stesso `fromDate` che ti ha
+restituito `/slots`**: è l'origine dell'asse dei minuti, non un filtro. Se lo
+ometti il server parte dal primo giorno programmabile e te lo dice in `fromDate`.
+
+→ { "free": false, "usable": true, "fromDate": "2026-08-01",
+    "slot": { /* come in /slots */ },
+    "conflicts": [ { "pretixId": 991, "title": "Perfect Days", "time": "20:30",
+                     "endTime": "22:34", "runtime": 124, "soldTickets": 3 } ],
+    "soldTickets": 3,
+    "message": "Qui c'è «Perfect Days» delle 20:30, con 3 biglietti venduti. …" }
+
+L'altra metà di `/slots`: quella propone il libero, questa risponde su un orario
+deciso a mano. È la valvola di sfogo delle proposte automatiche — se sai già che
+vuoi il sabato alle 21:00, il libero non ti serve: ti serve sapere *cosa* c'è.
+
+- `free` → è libero, si aggiunge e basta.
+- `usable && !free` → è occupato ma sostituibile: mostra i `conflicts` e, se
+  `soldTickets > 0`, chiedi un consenso esplicito dicendo quanti sono.
+- `!usable` → non si può: mostra `message` e fermati.
+
+**Non cancella niente.** La rimozione avviene al commit, e solo per gli
+spettacoli che ci arrivano con `replaces`. Un `time` scritto storto non è un
+errore HTTP: torna `usable: false` con il suo messaggio, ed è quello da mostrare.
+Un `day` fuori dalla finestra leggibile (prima di `from`, o oltre 58 giorni dopo)
+è invece un 400: meglio di un "libero" che poi non lo era.
+
+### GET /api/planning/tmdb?q=metropolis
+→ { "results": [ { "id": 19, "title": "Metropolis", "original_title": "…",
+                   "poster_path": "/x.jpg", "release_date": "1927-01-10",
+                   "vote_average": 8.2, "inCatalog": false } ] }
+
+Cerca su TMDB, anche fuori dal catalogo, per programmare un titolo di passaggio.
+`q` accetta un titolo **o direttamente un id TMDB** numerico, utile quando la
+ricerca per titolo abbina il film sbagliato.
+
+Attenzione alla forma: cercando per titolo arrivano risultati scarni, incollando
+un id arriva un singolo film di dettaglio che ha in più `runtime`, generi e voto.
+Le chiavi sono quelle grezze di TMDB (`poster_path`, `release_date`): è l'unico
+punto del contratto che non usa il camelCase del sito.
+
+Cercare **non archivia niente**.
+
+### GET /api/planning/tmdb/{tmdbId}
+→ il film nella forma del catalogo (stessa di `/catalog`), con `inCatalog`.
+`id` vale 0 quando in catalogo non c'è. 404 se TMDB non conosce l'id.
+
+Non scrive: serve a leggere titolo, durata e locandina prima di programmare.
+
+### POST /api/planning/catalog
+{ "tmdbId": 27205 } → { "ok": true, "id": 418, "title": "Inception" }
+
+⚠️ Scrive nell'archivio curato, e ci resta. Non crea nessuno spettacolo. Resta
+un gesto separato dalla ricerca apposta: riempire il catalogo di titoli di
+passaggio come effetto collaterale di una ricerca ne rovina il valore. Chiamala
+solo quando è l'utente a chiederlo.
+
+### DELETE /api/planning/shows/{pretixId}
+⚠️ Irreversibile, e si vede subito online. Con biglietti venduti risponde **409**
+con `{ error, soldTickets }` e non cancella niente; per procedere si ripete con
+`?force=1`, sapendo che gli ordini pagati restano orfani.
+
 ### POST /api/planning/commit
 { "seatingPlanId": 12,
-  "shows": [ { "tmdbId": "12345", "date": "2026-08-01", "time": "20:30" } ] }
+  "shows": [ { "tmdbId": "12345", "date": "2026-08-01", "time": "20:30",
+               "replaces": [991], "forceReplace": false } ] }
 → 202 { "jobId": "cj_m4k2p_a1b2c3" }
 
 Manda `date` (la data di calendario), NON `day`. Manda solo gli spettacoli
 nuovi, mai quelli che erano già in sala.
+
+⚠️ Con `replaces` questa rotta **elimina anche**: sono gli id Pretix presi dai
+`conflicts` di `/slots/check`, rimossi subito prima di creare il rimpiazzo (se la
+rimozione fallisce, il rimpiazzo non nasce). Di default la sostituzione si
+rifiuta quando ci sono biglietti venduti: `forceReplace: true` scavalca il
+rifiuto e lascia orfani ordini pagati, da rimborsare a mano da Pretix. Non
+mandarlo senza un sì esplicito dell'utente, raccolto mostrandogli quanti
+biglietti sono in gioco.
+
+Se rimandi in commit gli spettacoli falliti, ricordati di rimettergli i
+`replaces`: le chiavi in `errors[].key` non li portano, e uno spettacolo
+rimandato nudo tornerebbe a sbattere contro lo stesso conflitto.
 
 ### GET /api/planning/commit/{jobId}
 → { "id": "cj_…", "state": "running",     // pending | running | done | error

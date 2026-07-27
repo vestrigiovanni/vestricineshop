@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/planning/commit
- * { seatingPlanId, shows: [{ tmdbId, date, time }] } → { jobId }
+ * { seatingPlanId, shows: [{ tmdbId, date, time, replaces?, forceReplace? }] }
+ *   → { jobId }
  *
  * Risponde subito: la creazione prosegue in sottofondo e si segue con
  * GET /api/planning/commit/{jobId}.
@@ -16,6 +17,14 @@ export const dynamic = 'force-dynamic';
  * risposta si perde per strada, non rilanciarla: chiedi prima l'occupazione
  * della sala e guarda se ci sono già. Un commit ripetuto crea doppioni, e
  * niente qui può accorgersene al posto tuo.
+ *
+ * ATTENZIONE, DI PIÙ — con `replaces` questa rotta **elimina anche**. Sono id
+ * Pretix, rimossi subito prima di creare lo spettacolo che li sostituisce; se
+ * la rimozione fallisce, il rimpiazzo non viene creato. Di default la
+ * sostituzione si rifiuta quando ci sono biglietti venduti: `forceReplace`
+ * scavalca il rifiuto e lascia orfani gli ordini di chi ha pagato, che vanno
+ * poi rimborsati a mano da Pretix. Non mandarlo senza un consenso esplicito
+ * dell'utente, raccolto mostrando quanti biglietti sono in gioco.
  */
 export async function POST(request: Request) {
   const denied = requireApiKey(request);

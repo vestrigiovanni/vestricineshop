@@ -17,6 +17,7 @@ import {
   CLOSING_MINUTE,
   MINUTES_PER_DAY,
   MIN_GAP_MINUTES,
+  NIGHT_TAIL_MINUTE,
   OPENING_MINUTE,
   type Band,
   bandOf,
@@ -56,6 +57,74 @@ export interface FindFreeSlotsInput {
   band?: Band;
   spacing?: number;
   limit?: number;
+}
+
+/** Perché un orario scelto a mano non va bene. */
+export type SlotProblem = 'past' | 'beforeOpening' | 'afterClosing' | 'occupied';
+
+/**
+ * L'esito è generico sull'intervallo per un motivo pratico: chi chiama passa i
+ * propri blocchi — di solito con lo spettacolo attaccato — e si ritrova indietro
+ * *quegli stessi oggetti*. Senza, per sapere quale spettacolo dà fastidio
+ * bisognerebbe riscrivere fuori di qui la regola di sovrapposizione, che è
+ * esattamente il genere di duplicato che prima o poi diverge.
+ */
+export interface SlotCheck<T extends Interval = Interval> {
+  ok: boolean;
+  problem?: SlotProblem;
+  /** Gli intervalli già occupati che si accavallano con questo spettacolo. */
+  clashes: T[];
+  endMinute: number;
+  band: Band;
+  /** Indice del giorno di *programmazione*: dopo la mezzanotte è la sera prima. */
+  dayIndex: number;
+}
+
+/**
+ * Un orario deciso a mano si può usare?
+ *
+ * Le condizioni sono le stesse che `findFreeSlots` applica quando li propone
+ * lui, e per la stessa ragione: se scegliendo a mano valessero regole più
+ * larghe, l'utente potrebbe piazzare uno spettacolo che poi la creazione
+ * rifiuta. Qui però non ci si ferma al primo no — si dice *quale* no, e quando
+ * è «occupato» si restituisce da cosa, perché è ciò che permette di proporre la
+ * sovrascrittura invece di un vicolo cieco.
+ *
+ * L'orario non deve essere elegante: sceglierlo a mano è già una decisione, e
+ * rifiutare le 14:07 sarebbe una pedanteria.
+ */
+export function checkSlot<T extends Interval = Interval>(input: {
+  runtime: number;
+  /** Minuto globale d'inizio, sullo stesso asse degli intervalli occupati. */
+  startMinute: number;
+  occupied: T[];
+  notBefore?: number;
+}): SlotCheck<T> {
+  const { runtime, startMinute, occupied } = input;
+  const notBefore = input.notBefore ?? Number.NEGATIVE_INFINITY;
+
+  const endMinute = startMinute + runtime;
+  const inDay = ((startMinute % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+  // Solo la coda vera della nottata — prima dell'01:00 — appartiene alla serata
+  // precedente. Vedi `NIGHT_TAIL_MINUTE`: usare l'apertura come soglia, come fa
+  // il motore altrove, farebbe finire le 09:00 nella serata prima, e a chi le
+  // ha scritte risponderemmo «finisce dopo la chiusura» invece di «apriamo
+  // alle 10:00».
+  const dayIndex = Math.floor(startMinute / MINUTES_PER_DAY) - (inDay < NIGHT_TAIL_MINUTE ? 1 : 0);
+  const dayStart = dayIndex * MINUTES_PER_DAY;
+
+  const base = { endMinute, band: bandOf(startMinute), dayIndex };
+
+  const clashes = occupied.filter(
+    (o) => startMinute < o.end && o.start < endMinute + MIN_GAP_MINUTES
+  );
+
+  if (startMinute < notBefore) return { ok: false, problem: 'past', clashes, ...base };
+  if (startMinute < dayStart + OPENING_MINUTE) return { ok: false, problem: 'beforeOpening', clashes, ...base };
+  if (endMinute > dayStart + CLOSING_MINUTE) return { ok: false, problem: 'afterClosing', clashes, ...base };
+  if (clashes.length > 0) return { ok: false, problem: 'occupied', clashes, ...base };
+
+  return { ok: true, clashes: [], ...base };
 }
 
 /**
