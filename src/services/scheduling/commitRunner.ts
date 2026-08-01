@@ -117,6 +117,7 @@ async function run(jobId: string, input: CommitInput): Promise<void> {
 
   // ── 2. Creazione, uno alla volta ──────────────────────────────────────────
   const created: number[] = [];
+  const createdFilms = new Set<string>();
   const errors: CommitError[] = [];
 
   // Il palinsesto viaggia di spettacolo in spettacolo: si legge da Pretix una
@@ -235,6 +236,7 @@ async function run(jobId: string, input: CommitInput): Promise<void> {
 
     if (res.success && res.subeventId) {
       created.push(res.subeventId);
+      createdFilms.add(s.tmdbId);
       blocked = (res as { blockedAfter?: typeof blocked }).blockedAfter ?? blocked;
     } else {
       errors.push({ key: showKeyOf(s), label, error: res.error || 'errore sconosciuto' });
@@ -254,6 +256,37 @@ async function run(jobId: string, input: CommitInput): Promise<void> {
     const sync = await adminSyncNewlyCreatedEvents(created);
     if (!sync.success) {
       errors.push({ key: 'sync', label: 'Sincronizzazione database', error: sync.error ?? 'errore' });
+    }
+  }
+
+  // ── 4. I premi, di nuovo, in fondo ────────────────────────────────────────
+  // I premi si estraggono nella fase 1, quando i film non hanno ancora nessuno
+  // spettacolo — e per il resto del sistema una scheda film senza proiezioni è
+  // roba morta: la cancella il sync completo, la cancella la rimozione dello
+  // spettacolo che stiamo sostituendo. Se ne va la scheda e con lei i premi,
+  // perché il legame è a cascata. Poi il sync di fine lotto ricrea la scheda da
+  // TMDB, dove i premi non ci sono: ecco perché una settimana appena
+  // programmata risultava senza allori.
+  //
+  // Riscriverli qui, dopo tutto ciò che può cancellarli, non costa una sola
+  // chiamata di rete: sono già in memoria dalla fase 1.
+  const withAwards = [...createdFilms].filter((id) => {
+    const awards = (meta[id] as { awards?: unknown[] } | null)?.awards;
+    return Array.isArray(awards) && awards.length > 0;
+  });
+
+  if (withAwards.length > 0) {
+    updateJob(jobId, { step: 'Riporto i premi sulle schede film', done });
+    const { saveOverride } = await import('@/services/db.service');
+    for (const tmdbId of withAwards) {
+      const awards = (meta[tmdbId] as { awards?: any[] }).awards;
+      try {
+        await saveOverride(tmdbId, { awards });
+      } catch (err) {
+        // Un premio mancante non invalida uno spettacolo già creato: si segnala
+        // e si va avanti. Si recupera dal pannello film con "Aggiorna premi".
+        console.error('[commitRunner] premi non riscritti per', tmdbId, err);
+      }
     }
   }
 

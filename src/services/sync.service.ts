@@ -574,6 +574,18 @@ export async function syncNewlyCreatedEvents(pretixIds: number[]) {
                     ? existingMovie.genres
                     : (tmdbData.genres || []),
                   voteAverage: existingMovie?.voteAverage || tmdbData.voteAverage || null,
+                  // I premi arrivano insieme al resto dei metadati: ometterli qui
+                  // significava ricreare la scheda film senza allori ogni volta
+                  // che qualcuno l'aveva cancellata poco prima.
+                  ...(tmdbData.awards?.length ? {
+                    awards: {
+                      deleteMany: {},
+                      create: tmdbData.awards.map((a: any) => ({
+                        type: a.type, label: a.label, details: a.details, year: a.year
+                      }))
+                    },
+                    mubiId: tmdbData.mubiId || null,
+                  } : {}),
                 },
                 create: {
                   tmdbId,
@@ -592,7 +604,13 @@ export async function syncNewlyCreatedEvents(pretixIds: number[]) {
                   tagline: tmdbData.tagline || null,
                   extraBackdrops: tmdbData.extraBackdrops || [],
                   genres: tmdbData.genres || [],
-                  voteAverage: tmdbData.voteAverage || null
+                  voteAverage: tmdbData.voteAverage || null,
+                  awards: {
+                    create: (tmdbData.awards || []).map((a: any) => ({
+                      type: a.type, label: a.label, details: a.details, year: a.year
+                    }))
+                  },
+                  mubiId: tmdbData.mubiId || null,
                 }
               });
             }
