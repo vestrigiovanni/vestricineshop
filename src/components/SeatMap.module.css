@@ -325,3 +325,51 @@
     padding: 0.85rem 1rem 1rem;
   }
 }
+
+/* Errore di caricamento della mappa: volutamente diverso dallo stato
+   "nessun posto disponibile", che parla invece di sala esaurita. */
+.loadErrorBox {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  min-height: 400px;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+}
+
+.loadErrorIcon {
+  color: rgba(255, 190, 80, 0.85);
+}
+
+.retryBtn {
+  margin-top: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.retryBtn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.retryBtn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}

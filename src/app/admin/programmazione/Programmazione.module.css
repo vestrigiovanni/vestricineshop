@@ -26,6 +26,7 @@
   z-index: 30;
   background: rgba(10, 10, 15, 0.88);
   backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   flex-wrap: wrap;
 }
 .brand { display: flex; align-items: center; gap: 0.8rem; }
@@ -185,6 +186,7 @@
   border-radius: 14px; padding: 0.75rem 0.9rem;
   position: sticky; top: 78px; z-index: 20;
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .searchBox {
   display: flex; align-items: center; gap: 0.5rem; flex: 1 1 260px;
@@ -530,6 +532,7 @@
   background: rgba(10, 10, 15, 0.92);
   border-top: 1px solid rgba(255, 255, 255, 0.09);
   backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 .footerSpacer { flex: 1; }
 

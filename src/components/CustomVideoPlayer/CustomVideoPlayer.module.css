@@ -197,3 +197,79 @@
   .navButtonRight { right: 15px; }
   .closeButton { top: 20px; right: 20px; }
 }
+
+/* Audio: parte muto perché i browser lo impongono, un tocco lo attiva. */
+.soundButton {
+  position: absolute;
+  pointer-events: auto;
+  top: 30px;
+  right: 86px;
+  padding: 10px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  cursor: pointer;
+}
+
+.soundButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #fff;
+  transform: scale(1.1);
+}
+
+.soundButton:focus-visible,
+.playFallback:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+/* Comparsa solo quando il browser rifiuta l'avvio automatico. */
+.playFallback {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.9rem 1.6rem;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.playFallback:hover {
+  background: rgba(0, 0, 0, 0.75);
+  border-color: #fff;
+}
+
+@media (max-width: 768px) {
+  .soundButton {
+    top: 20px;
+    right: 72px;
+    padding: 8px;
+  }
+
+  .playFallback {
+    padding: 0.8rem 1.3rem;
+    font-size: 0.8rem;
+  }
+}

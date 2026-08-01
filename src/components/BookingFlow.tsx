@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import SeatMap from './SeatMap';
-import CheckoutTimer from './CheckoutTimer';
 import CheckoutButton from './CheckoutButton';
 import RatingBadge from './RatingBadge';
 import LanguageBadge from './LanguageBadge';
@@ -15,7 +14,8 @@ import { getTrustedSubeventMetadata, reportSoldOut, verifyQuotaAvailability } fr
 import { isVM18, isVM14, normalizeRating } from '@/utils/ratingUtils';
 import { listSubEvents, getItemAvailability, getSubEvent, listQuotas, getSubEventSeats, finalizeBooking } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
-import { Loader2, Calendar, Clock, ChevronLeft, Info, AlertTriangle, Globe, MessageSquare, X } from 'lucide-react';
+import { formatShowDayLong, formatShowTime } from '@/utils/cinemaDate';
+import { Loader2, Calendar, Clock, ChevronLeft, Info, AlertTriangle, Globe, MessageSquare, RefreshCw, X } from 'lucide-react';
 
 import styles from './BookingFlow.module.css';
 
@@ -39,10 +39,12 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   const [trustedMetadata, setTrustedMetadata] = useState<any>(null);
 
   const [refreshCounter, setRefreshCounter] = useState(0);
-  const [mounted, setMounted] = useState(false);
+  // Il caricamento è fallito: diverso da "non ci sono proiezioni".
+  const [loadError, setLoadError] = useState(false);
+  // Avviso quando un posto già scelto viene preso da qualcun altro.
+  const [seatNotice, setSeatNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    setMounted(true);
     sessionStorage.removeItem('age-verified');
     // Reset state whenever the component mounts (Modal opens)
     setCheckoutStarted(false);
@@ -52,6 +54,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
 
   const fetchSchedules = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const [data, allQuotas] = await Promise.all([
         listSubEvents(true),
@@ -128,7 +131,10 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
 
       setSubevents(subeventsWithStatus);
     } catch (err) {
+      // Senza questo flag un guasto di Pretix veniva presentato all'utente
+      // come "nessuna proiezione disponibile".
       console.error('Failed to load subevents', err);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -208,7 +214,25 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
     if (next.has(seatId)) next.delete(seatId);
     else next.set(seatId, label);
     setSelectedSeats(next);
+    setSeatNotice(null);
   };
+
+  // La mappa si riaggiorna da sola: se un posto scelto è stato preso nel
+  // frattempo lo togliamo dalla selezione e lo diciamo, invece di far
+  // fallire la conferma alla fine.
+  const handleSeatsTaken = useCallback((taken: { id: string; label: string }[]) => {
+    setSelectedSeats(prev => {
+      if (!taken.some(t => prev.has(t.id))) return prev;
+      const next = new Map(prev);
+      taken.forEach(t => next.delete(t.id));
+      return next;
+    });
+    setSeatNotice(
+      taken.length === 1
+        ? `Il posto ${taken[0].label} è stato appena prenotato da qualcun altro. Scegline un altro.`
+        : `Questi posti sono stati appena prenotati da altri: ${taken.map(t => t.label).join(', ')}. Scegline altri.`
+    );
+  }, []);
 
   const handleSubeventSelect = (se: any) => {
     if (se.isSoldOut) return;
@@ -278,15 +302,37 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
     }
   };
 
-  // ── Mounting ──────────────────────────────────────────────────
-  if (!mounted) return null;
-
   // ── Loading ──────────────────────────────────────────────────
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
         <Loader2 size={36} className={styles.spinner} />
         <p className={styles.loadingText}>Caricamento orari…</p>
+      </div>
+    );
+  }
+
+  // ── Errore di caricamento ────────────────────────────────────
+  if (loadError) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.soldOutContainer}>
+          {onClose && (
+            <button type="button" className={styles.closeBtnOverlay} onClick={onClose} aria-label="Chiudi">
+              <X size={20} />
+            </button>
+          )}
+          <AlertTriangle size={48} className={styles.soldOutIcon} />
+          <h2 className={styles.soldOutTitle}>Orari non disponibili</h2>
+          <p className={styles.soldOutDesc}>
+            Non riusciamo a contattare il sistema di prenotazione. Controlla la
+            connessione e riprova fra qualche istante.
+          </p>
+          <button type="button" className={styles.backBtn} onClick={() => fetchSchedules()}>
+            <RefreshCw size={15} style={{ marginRight: '0.4rem' }} />
+            Riprova
+          </button>
+        </div>
       </div>
     );
   }
@@ -334,7 +380,6 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
             <h2 className={styles.title}>Completa la prenotazione</h2>
           </div>
           <div className={styles.headerActions}>
-            <CheckoutTimer maxTimeSeconds={600} onExpire={() => setCheckoutStarted(false)} />
             {onClose && (
               <button className={styles.closeButtonMinimal} onClick={onClose} aria-label="Chiudi">
                 <X size={20} />
@@ -369,11 +414,9 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
 
   // ── Main UI ───────────────────────────────────────────────────
   const count = selectedSeats.size;
-  const totalPrice = (count * 0).toFixed(2).replace('.', ','); 
 
-  const subeventDate = selectedSubEvent ? new Date(selectedSubEvent.date_from) : null;
-  const timeStr = subeventDate ? subeventDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '';
-  const dateStr = subeventDate ? subeventDate.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }) : '';
+  const timeStr = selectedSubEvent ? formatShowTime(selectedSubEvent.date_from) : '';
+  const dateStr = selectedSubEvent ? formatShowDayLong(selectedSubEvent.date_from) : '';
   const movieTitle = selectedSubEvent ? (typeof selectedSubEvent.name === 'object' ? selectedSubEvent.name.it : selectedSubEvent.name) : '';
 
   return (
@@ -480,11 +523,19 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
         </div>
       ) : (
         <>
+          {seatNotice && (
+            <div className={styles.seatNotice} role="status">
+              <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+              <span>{seatNotice}</span>
+            </div>
+          )}
+
           <div className={styles.seatMapWrapper}>
               <SeatMap
                 key={`${selectedSubeventId}-${refreshCounter}`}
                 selectedSeats={new Set(selectedSeats.keys())}
                 onSeatToggle={handleSeatToggle}
+                onSeatsTaken={handleSeatsTaken}
                 subeventId={selectedSubeventId}
               />
             </div>
@@ -530,18 +581,21 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
               </div>
               <div className={styles.summaryDivider} />
               <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>Totale</span>
-                <span className={styles.summaryValue}>{totalPrice} €</span>
+                {/* I biglietti sono gratuiti: parlare di "totale" in euro
+                    faceva aspettare all'utente una richiesta di pagamento. */}
+                <span className={styles.summaryLabel}>Costo</span>
+                <span className={styles.summaryValue}>Gratuito</span>
               </div>
             </div>
 
             <div className={styles.actionBlock}>
               <button
+                type="button"
                 className={`${styles.proceedBtn} ${count > 0 ? styles.visible : ''}`}
                 disabled={count === 0}
                 onClick={startCheckout}
               >
-                Procedi all&apos;acquisto
+                Conferma prenotazione
               </button>
               {count === 0 && (
                 <p className={styles.hintText}>Seleziona almeno un posto per continuare</p>

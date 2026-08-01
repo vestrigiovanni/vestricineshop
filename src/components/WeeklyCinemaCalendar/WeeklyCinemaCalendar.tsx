@@ -8,6 +8,17 @@ import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import RatingBadge from '../RatingBadge';
 import LanguageBadge from '../LanguageBadge';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
+import {
+  cinemaToday,
+  formatDayAndMonth,
+  formatDayNumber,
+  formatShowDayLong,
+  formatShowTime,
+  formatWeekdayShort,
+  formatYear,
+  isSameCinemaDay,
+  toCinemaDayKey,
+} from '@/utils/cinemaDate';
 
 import { useAutoScroll } from '@/context/AutoScrollContext';
 import useSWR from 'swr';
@@ -33,13 +44,10 @@ interface WeeklyCinemaCalendarProps {
   subEvents: SubEvent[];
 }
 
-// Helper function to get local YYYY-MM-DD string
-const toLocalDateStr = (d: Date) => {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+// Chiave YYYY-MM-DD sul fuso di sala: `getFullYear()` e simili leggono il fuso
+// del runtime, e sul server è UTC — le proiezioni serali finivano nel giorno
+// sbagliato finché non entrava in gioco l'hydration.
+const toLocalDateStr = (d: Date) => toCinemaDayKey(d);
 
 export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: WeeklyCinemaCalendarProps) {
   const { data: availabilityData } = useSWR('/api/availability', fetcher, {
@@ -60,24 +68,21 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
 
   // Navigation state: start of the currently viewed week (Monday)
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Monday start
-    const monday = new Date(now.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
+    const today = cinemaToday();
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Monday start
+    const monday = new Date(today);
+    monday.setDate(diff);
     return monday;
   });
 
   // Giorno selezionato: unico pannello visibile, su ogni viewport.
-  const [selectedDayStr, setSelectedDayStr] = useState<string>(() => {
-    const now = new Date();
-    return toLocalDateStr(now);
-  });
+  const [selectedDayStr, setSelectedDayStr] = useState<string>(() => toLocalDateStr(cinemaToday()));
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedSubevent, setSelectedSubevent] = useState<{ id: number; title: string } | null>(null);
 
-  const { disableAutoScroll } = useAutoScroll();
+  const { suspendAutoScroll } = useAutoScroll();
 
   // Generate 7 days of the week
   const weekDays = useMemo(() => {
@@ -111,7 +116,7 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
   const openBooking = (id: number, title: string) => {
     setSelectedSubevent({ id, title });
     setDrawerOpen(true);
-    disableAutoScroll();
+    suspendAutoScroll();
   };
 
   // Group screenings by date string (YYYY-MM-DD) for easy access
@@ -141,8 +146,7 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
   const formatDateRange = () => {
     const start = weekDays[0];
     const end = weekDays[6];
-    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
-    return `${start.toLocaleDateString('it-IT', options)} - ${end.toLocaleDateString('it-IT', options)} ${end.getFullYear()}`;
+    return `${formatDayAndMonth(start)} - ${formatDayAndMonth(end)} ${formatYear(end)}`;
   };
 
   const selectedScreenings = screeningsByDay[selectedDayStr] || [];
@@ -177,7 +181,7 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
           {weekDays.map(day => {
             const dateStr = toLocalDateStr(day);
             const isSelected = selectedDayStr === dateStr;
-            const isToday = new Date().toDateString() === day.toDateString();
+            const isToday = isSameCinemaDay(new Date(), day);
             const hasShows = (screeningsByDay[dateStr] || []).length > 0;
 
             return (
@@ -189,9 +193,9 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
                 onClick={() => setSelectedDayStr(dateStr)}
               >
                 <span className={styles.dayTabName}>
-                  {day.toLocaleDateString('it-IT', { weekday: 'short' })}
+                  {formatWeekdayShort(day)}
                 </span>
-                <span className={styles.dayTabNumber}>{day.getDate()}</span>
+                <span className={styles.dayTabNumber}>{formatDayNumber(day)}</span>
                 <span className={`${styles.dayTabDot} ${hasShows ? styles.dayTabDotOn : ''}`} aria-hidden="true" />
               </button>
             );
@@ -200,12 +204,12 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
 
         <div className={styles.dayPanel}>
           <h3 className={styles.dayPanelTitle}>
-            {selectedDay?.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {selectedDay ? formatShowDayLong(selectedDay) : ''}
           </h3>
           {selectedScreenings.length > 0 ? (
             <div className={styles.screeningList}>
               {selectedScreenings.map(se => {
-                const time = new Date(se.date_from).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                const time = formatShowTime(se.date_from);
                 const title = typeof se.name === 'string' ? se.name : se.name.it;
                 const room = se.roomName || 'Sala';
                 const isSoldOut = se.isSoldOut;

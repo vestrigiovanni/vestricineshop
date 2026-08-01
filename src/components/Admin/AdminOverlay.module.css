@@ -4,6 +4,7 @@
   z-index: 9999;
   background-color: rgba(10, 10, 10, 0.98);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   overflow-y: auto;
   color: white;
   display: flex;

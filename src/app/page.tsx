@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
 import CinematicStory from '@/components/CinematicStory/CinematicStory';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
+import { formatShowDayLabel, formatShowTime, formatYear } from '@/utils/cinemaDate';
 import styles from './page.module.css';
 import { unstable_noStore as noStore } from 'next/cache';
 import type { MovieOverride, PretixSync } from '@prisma/client';
@@ -61,6 +62,10 @@ export default async function Home() {
   // Raggruppiamo per film (tmdbId)
   const groupedRecord: Record<string, { movie: MovieOverride, subevents: any[] }> = {};
 
+  // Le etichette di data e ora si calcolano qui, una volta, sul fuso di sala:
+  // così arrivano già scritte nell'HTML invece di comparire dopo l'hydration.
+  const now = new Date();
+
   for (const p of projections) {
     if (!p.tmdbId || !p.movie) continue;
 
@@ -77,6 +82,8 @@ export default async function Home() {
     groupedRecord[tmdbId].subevents.push({
       id: p.pretixId,
       date: p.dateFrom.toISOString(),
+      dayLabel: formatShowDayLabel(p.dateFrom, now),
+      timeLabel: formatShowTime(p.dateFrom),
       isSoldOut: isSoldOut,
       language: p.metaLingua || '',
       subtitles: p.metaSottotitoli || '',
@@ -85,6 +92,15 @@ export default async function Home() {
       roomName: roomName
     });
   }
+
+  // L'anno di uscita: la data arriva come "2024-10-18" dal catalogo, ma alcuni
+  // record hanno formati liberi. Risolto qui per non far calcolare nulla al client.
+  const releaseYearOf = (raw: string): string => {
+    if (!raw) return '';
+    if (raw.includes('-')) return raw.split('-')[0];
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? '' : formatYear(parsed);
+  };
 
   // Prepariamo l'array finale dei film per lo Showcase
   const movies: GroupedMovie[] = Object.values(groupedRecord).map(({ movie, subevents }) => {
@@ -115,6 +131,7 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
       backdrop_path: movie.customBackdropPath || '',
       logo_path: (movie as any).customLogoPath === 'none' ? '' : ((movie as any).customLogoPath || ''),
       release_date: (movie as any).releaseDate || '',
+      release_year: releaseYearOf((movie as any).releaseDate || ''),
       director: movie.customDirector || '',
       runtime: (movie as any).runtime || null,
       subevents: subevents,

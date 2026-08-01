@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, ComponentProps, CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, ComponentProps, CSSProperties } from 'react';
 import Image from 'next/image';
 import { animate, motion, MotionValue, useInView, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
@@ -8,7 +8,7 @@ import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
 import RatingBadge from '../RatingBadge';
 import { Clock } from 'lucide-react';
-import { buildMood, buildStory, FestivalGroup, SoireeItem, StoryStats, WeekendDay } from './storyBuilder';
+import { buildMood, buildStory, trimChaptersForPhone, FestivalGroup, SoireeItem, StoryStats, WeekendDay } from './storyBuilder';
 import styles from './CinematicStory.module.css';
 
 interface CinematicStoryProps {
@@ -91,34 +91,83 @@ function QuoteChapter({ movie, text, reduced }: { movie: GroupedMovie; text: str
 // scroll così il backdrop insegue morbido invece di saltellare col trackpad.
 const parallaxSpring = { stiffness: 90, damping: 28, mass: 0.4 } as const;
 
-function Stripe({ movie, flip, backdropIndex, reduced }: {
-  movie: GroupedMovie;
-  flip: boolean;
-  backdropIndex: number;
-  reduced: boolean;
+/**
+ * Il parallax legato allo scroll ricalcola una trasformazione per fotogramma
+ * su ogni sezione presente nella pagina. Sul telefono il guadagno visivo è
+ * minimo e il costo si sente tutto: lo teniamo dove c'è un mouse e uno
+ * schermo grande. Parte attivo, così il desktop non cambia di una virgola.
+ */
+function useParallaxEnabled(reduced: boolean) {
+  const [enabled, setEnabled] = useState(true);
+
+  useEffect(() => {
+    if (reduced) {
+      setEnabled(false);
+      return;
+    }
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+
+    const query = window.matchMedia('(min-width: 769px) and (pointer: fine)');
+    const apply = () => setEnabled(query.matches);
+    apply();
+    query.addEventListener('change', apply);
+    return () => query.removeEventListener('change', apply);
+  }, [reduced]);
+
+  return enabled;
+}
+
+/**
+ * Il fondale in parallax, isolato in un componente a parte.
+ *
+ * `useScroll` con un target rimisura la posizione dell'elemento a ogni evento
+ * di scorrimento: con una decina di sezioni in pagina sono altrettante letture
+ * di layout per fotogramma. Tenendo gli hook qui dentro, quando il parallax è
+ * spento il componente non viene montato e quel lavoro sparisce davvero,
+ * invece di continuare a girare a vuoto.
+ */
+function StripeBackdropParallax({ containerRef, src, alt }: {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  src: string;
+  alt: string;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start end', 'end start'] });
   const smooth = useSpring(scrollYProgress, parallaxSpring);
   // Corsa ampia: il backdrop viaggia dal fondo alla cima mentre la striscia
   // attraversa il viewport (il bleed extra sta in .stripeBg).
   const y = useTransform(smooth, [0, 1], ['-16%', '16%']);
 
+  return (
+    <motion.div className={styles.stripeBg} style={{ y }}>
+      <Image src={src} alt={alt} fill sizes="100vw" style={{ objectFit: 'cover' }} />
+    </motion.div>
+  );
+}
+
+function Stripe({ movie, flip, backdropIndex, reduced, parallax }: {
+  movie: GroupedMovie;
+  flip: boolean;
+  backdropIndex: number;
+  reduced: boolean;
+  parallax: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
   const extras = movie.extraBackdrops || [];
   const backdrop = extras[backdropIndex] || extras[0] || movie.backdrop_path;
   if (!backdrop) return null;
 
+  const backdropSrc = getTMDBImageUrl(backdrop, 'w1280')!;
+
   return (
     <div ref={ref} className={styles.stripe} onClick={() => selectMovie(movie.id)}>
-      <motion.div className={styles.stripeBg} style={reduced ? undefined : { y }}>
-        <Image
-          src={getTMDBImageUrl(backdrop, 'w1280')!}
-          alt={movie.title}
-          fill
-          sizes="100vw"
-          style={{ objectFit: 'cover' }}
-        />
-      </motion.div>
+      {parallax ? (
+        <StripeBackdropParallax containerRef={ref} src={backdropSrc} alt={movie.title} />
+      ) : (
+        <div className={styles.stripeBg}>
+          <Image src={backdropSrc} alt={movie.title} fill sizes="100vw" style={{ objectFit: 'cover' }} />
+        </div>
+      )}
       <div className={styles.stripeShade} />
       <motion.div
         className={`${styles.stripeContent} ${flip ? styles.stripeFlip : ''}`}
@@ -724,7 +773,7 @@ function RevealChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
   }
 
   return (
-    <section ref={ref} className={styles.reveal} style={{ height: `${movies.length * 100}vh` }}>
+    <section ref={ref} className={styles.reveal} style={{ '--reveal-count': movies.length } as CSSProperties}>
       <div className={styles.revealSticky}>
         {movies.map((m, i) => (
           <RevealSlide key={m.id} movie={m} index={i} count={movies.length} progress={scrollYProgress} />
@@ -734,7 +783,38 @@ function RevealChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
   );
 }
 
-function MosaicChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: boolean }) {
+/** Le locandine di una colonna del mosaico: identiche con e senza parallax. */
+function MosaicPosters({ col }: { col: GroupedMovie[] }) {
+  return (
+    <>
+      {col.map(m => (
+        <button
+          key={m.id}
+          className={styles.mosaicPoster}
+          onClick={() => selectMovie(m.id)}
+          aria-label={`Vai a ${m.title}`}
+        >
+          <Image
+            src={getTMDBImageUrl(m.poster_path, 'w342')!}
+            alt={m.title}
+            fill
+            sizes="(max-width: 768px) 33vw, 260px"
+            style={{ objectFit: 'cover' }}
+          />
+          <span className={styles.posterOverlay} aria-hidden="true">
+            <span className={styles.posterOverlayTitle}>{m.title}</span>
+            <span className={styles.posterOverlayMeta}>
+              {[m.release_date?.slice(0, 4), (m.genres || [])[0]].filter(Boolean).join(' · ')}
+            </span>
+          </span>
+        </button>
+      ))}
+    </>
+  );
+}
+
+/** Variante con le tre colonne a velocità diverse (solo desktop). */
+function MosaicChapterParallax({ columns }: { columns: GroupedMovie[][] }) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
   const ySlow = useTransform(scrollYProgress, [0, 1], [40, -40]);
@@ -742,36 +822,31 @@ function MosaicChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
   const yMid = useTransform(scrollYProgress, [0, 1], [70, -70]);
   const speeds = [ySlow, yFast, yMid];
 
-  const columns: GroupedMovie[][] = [[], [], []];
-  movies.forEach((m, i) => columns[i % 3].push(m));
-
   return (
     <section ref={ref} className={styles.mosaic}>
       {columns.map((col, i) => (
-        <motion.div key={i} className={styles.mosaicColumn} style={reduced ? undefined : { y: speeds[i] }}>
-          {col.map(m => (
-            <button
-              key={m.id}
-              className={styles.mosaicPoster}
-              onClick={() => selectMovie(m.id)}
-              aria-label={`Vai a ${m.title}`}
-            >
-              <Image
-                src={getTMDBImageUrl(m.poster_path, 'w342')!}
-                alt={m.title}
-                fill
-                sizes="(max-width: 768px) 33vw, 260px"
-                style={{ objectFit: 'cover' }}
-              />
-              <span className={styles.posterOverlay} aria-hidden="true">
-                <span className={styles.posterOverlayTitle}>{m.title}</span>
-                <span className={styles.posterOverlayMeta}>
-                  {[m.release_date?.slice(0, 4), (m.genres || [])[0]].filter(Boolean).join(' · ')}
-                </span>
-              </span>
-            </button>
-          ))}
+        <motion.div key={i} className={styles.mosaicColumn} style={{ y: speeds[i] }}>
+          <MosaicPosters col={col} />
         </motion.div>
+      ))}
+    </section>
+  );
+}
+
+function MosaicChapter({ movies, parallax }: { movies: GroupedMovie[]; parallax: boolean }) {
+  const columns: GroupedMovie[][] = [[], [], []];
+  movies.forEach((m, i) => columns[i % 3].push(m));
+
+  if (parallax) return <MosaicChapterParallax columns={columns} />;
+
+  // Senza parallax niente hook di scorrimento: il mosaico è una griglia ferma
+  // e il browser può saltarne del tutto il disegno quando è fuori schermo.
+  return (
+    <section className={`${styles.mosaic} ${styles.mosaicStatic}`}>
+      {columns.map((col, i) => (
+        <div key={i} className={styles.mosaicColumn}>
+          <MosaicPosters col={col} />
+        </div>
       ))}
     </section>
   );
@@ -823,9 +898,34 @@ function MarqueeChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: 
   );
 }
 
+/** Siamo su uno schermo da telefono? Parte da `false`: il desktop non cambia. */
+function useIsPhone() {
+  const [isPhone, setIsPhone] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const query = window.matchMedia('(max-width: 768px)');
+    const apply = () => setIsPhone(query.matches);
+    apply();
+    query.addEventListener('change', apply);
+    return () => query.removeEventListener('change', apply);
+  }, []);
+
+  return isPhone;
+}
+
 export default function CinematicStory({ movies, subEvents, storySeed }: CinematicStoryProps) {
   const reduced = useReducedMotion() ?? false;
-  const chapters = buildStory(movies, new Date(), storySeed);
+  const parallax = useParallaxEnabled(reduced);
+  const isPhone = useIsPhone();
+
+  // `buildStory` girava a ogni render — mescolava il catalogo e ricreava tutti
+  // gli array dei capitoli, facendo ridisegnare l'intera storia a ogni minimo
+  // cambio di stato. Ora si costruisce una volta sola.
+  const chapters = useMemo(() => {
+    const built = buildStory(movies, new Date(), storySeed);
+    return isPhone ? trimChaptersForPhone(built) : built;
+  }, [movies, storySeed, isPhone]);
   // Il "colore della settimana": la tinta d'accento della storia segue il
   // genere dominante del cartellone, così la home cambia con la programmazione.
   const mood = buildMood(movies);
@@ -853,6 +953,7 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
                     flip={j % 2 === 1}
                     backdropIndex={chapter.backdropIndex}
                     reduced={reduced}
+                    parallax={parallax}
                   />
                 ))}
               </section>
@@ -881,7 +982,7 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
           case 'festival':
             return <FestivalChapter key={i} groups={chapter.groups} reduced={reduced} />;
           case 'mosaic':
-            return <MosaicChapter key={i} movies={chapter.movies} reduced={reduced} />;
+            return <MosaicChapter key={i} movies={chapter.movies} parallax={parallax} />;
           case 'marquee':
             return <MarqueeChapter key={i} movies={chapter.movies} reduced={reduced} />;
         }

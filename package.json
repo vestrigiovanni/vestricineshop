@@ -2,6 +2,14 @@
   "name": "vestricinemashop",
   "version": "0.1.0",
   "private": true,
+  "//browserslist": "Next 16 compila per Safari 16.4+ (marzo 2023): sui Mac e sugli iPhone fermi a versioni precedenti il bundle non veniva eseguito e le parti interattive — trailer, prenotazione — restavano morte. Safari 15.4 è la soglia minima coerente con le funzioni CSS già usate nel sito (svh/dvh, :focus-visible).",
+  "browserslist": [
+    "chrome 111",
+    "edge 111",
+    "firefox 111",
+    "safari 15.4",
+    "ios_saf 15.4"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",

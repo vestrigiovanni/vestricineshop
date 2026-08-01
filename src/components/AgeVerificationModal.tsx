@@ -27,7 +27,7 @@ export default function AgeVerificationModal({ onConfirm }: AgeVerificationModal
         
         <p className={styles.message}>
           Questo film è vietato ai minori di 18 anni. <br />
-          Si prega di confermare la maggiore età per procedere all'acquisto.
+          Si prega di confermare la maggiore età per procedere alla prenotazione.
         </p>
         
         <div className={styles.actions}>

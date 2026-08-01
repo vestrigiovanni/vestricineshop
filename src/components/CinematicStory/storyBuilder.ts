@@ -617,3 +617,38 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?
 
   return chapters;
 }
+
+/**
+ * Quanti elementi restano nelle sezioni collettive sul telefono.
+ *
+ * La storia completa arriva a una novantina di immagini: sul desktop non si
+ * sente, su uno schermo piccolo è la ragione per cui lo scorrimento va a
+ * scatti. Qui si taglia solo la versione telefono — il desktop riceve i
+ * capitoli esattamente come li costruisce `buildStory`.
+ */
+export const PHONE_LIMITS = {
+  logos: 6,
+  mosaic: 6,
+  marquee: 8,
+  reveal: 3,
+  stripes: 2,
+} as const;
+
+export function trimChaptersForPhone(chapters: StoryChapter[]): StoryChapter[] {
+  return chapters.map(chapter => {
+    switch (chapter.kind) {
+      case 'logos':
+        return { ...chapter, movies: chapter.movies.slice(0, PHONE_LIMITS.logos) };
+      case 'mosaic':
+        return { ...chapter, movies: chapter.movies.slice(0, PHONE_LIMITS.mosaic) };
+      case 'marquee':
+        return { ...chapter, movies: chapter.movies.slice(0, PHONE_LIMITS.marquee) };
+      case 'reveal':
+        return { ...chapter, movies: chapter.movies.slice(0, PHONE_LIMITS.reveal) };
+      case 'stripes':
+        return { ...chapter, movies: chapter.movies.slice(0, PHONE_LIMITS.stripes) };
+      default:
+        return chapter;
+    }
+  });
+}

@@ -26,6 +26,14 @@
   content-visibility: auto;
 }
 
+/* Il mosaico era escluso perché le colonne in parallax dipingono oltre i
+   bordi della sezione. Senza parallax — cioè sui telefoni — quel vincolo
+   cade e anche le sue locandine possono restare fuori dal disegno. */
+.mosaicStatic {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+
 .quoteChapter { contain-intrinsic-size: auto 640px; }
 .stripe { contain-intrinsic-size: auto 480px; }
 .statsChapter { contain-intrinsic-size: auto 420px; }
@@ -165,7 +173,9 @@
 .stripeBg {
   position: absolute;
   inset: -18% 0;
-  will-change: transform;
+  /* Niente `will-change` fisso: teneva promosso a livello GPU un fondale a
+     tutta pagina per OGNI striscia, per sempre, saturando la memoria video
+     dei telefoni. Framer Motion lo attiva da sé mentre l'animazione corre. */
 }
 
 .stripeShade {
@@ -797,12 +807,20 @@
 /* --- Reveal: dissolvenze a schermo pieno --- */
 .reveal {
   position: relative;
+  /* Un viewport per slide. L'altezza sta qui, e non nello style inline, per
+     poter dare il ripiego in `vh` ai browser che non conoscono `svh`. */
+  height: calc(var(--reveal-count, 1) * 100vh);
+  height: calc(var(--reveal-count, 1) * 100svh);
 }
 
 .revealSticky {
   position: sticky;
   top: 0;
+  /* `svh` è l'altezza del viewport con le barre del browser VISIBILI: il
+     riquadro sta dentro lo schermo di iPhone in ogni momento dello scroll,
+     invece di sbordare sotto la barra e tagliare il logo del film. */
   height: 100vh;
+  height: 100svh;
   overflow: hidden;
 }
 
@@ -815,7 +833,8 @@
 .revealBg {
   position: absolute;
   inset: 0;
-  will-change: transform;
+  /* Come per .stripeBg: la promozione permanente a livello GPU costava più
+     di quanto rendesse, con quattro fondali a schermo pieno sovrapposti. */
 }
 
 .revealVignette {
@@ -972,6 +991,15 @@
 .marqueeItem:focus-visible .posterOverlay {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Su iPhone e iPad il passaggio del mouse non esiste: titolo e anno del film
+   restavano invisibili per sempre. Dove non c'è hover, si mostrano e basta. */
+@media (hover: none) {
+  .posterOverlay {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .posterOverlayTitle {

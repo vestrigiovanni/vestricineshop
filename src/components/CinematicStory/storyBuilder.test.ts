@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFestivalGroups, buildMood, buildSoireeHook, buildSoirees, buildStory, buildWeekend, excerptOverview, StoryChapter } from './storyBuilder';
+import { buildFestivalGroups, buildMood, buildSoireeHook, buildSoirees, buildStory, buildWeekend, excerptOverview, PHONE_LIMITS, StoryChapter, trimChaptersForPhone } from './storyBuilder';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 
 type MarqueeChapter = Extract<StoryChapter, { kind: 'marquee' }>;
@@ -487,5 +487,45 @@ describe('buildFestivalGroups', () => {
 
   it('senza premi non produce gruppi', () => {
     expect(buildFestivalGroups([mk(1), mk(2)])).toEqual([]);
+  });
+});
+
+describe('trimChaptersForPhone', () => {
+  const many = Array.from({ length: 16 }, (_, i) => mk(i + 1, { tagline: `Voce ${i + 1}` }));
+
+  it('taglia le sezioni collettive ai limiti del telefono', () => {
+    const trimmed = trimChaptersForPhone([
+      { kind: 'logos', movies: many },
+      { kind: 'mosaic', movies: many },
+      { kind: 'marquee', movies: many },
+      { kind: 'reveal', movies: many },
+      { kind: 'stripes', movies: many, backdropIndex: 0 },
+    ]);
+
+    const sizes = trimmed.map(c => (c as { movies: unknown[] }).movies.length);
+    expect(sizes).toEqual([
+      PHONE_LIMITS.logos,
+      PHONE_LIMITS.mosaic,
+      PHONE_LIMITS.marquee,
+      PHONE_LIMITS.reveal,
+      PHONE_LIMITS.stripes,
+    ]);
+  });
+
+  it('lascia intatti i capitoli senza elenchi di film', () => {
+    const calendar: StoryChapter = { kind: 'calendar' };
+    const quote: StoryChapter = { kind: 'quote', movie: mk(1), text: 'Una voce' };
+    expect(trimChaptersForPhone([calendar, quote])).toEqual([calendar, quote]);
+  });
+
+  it('conserva gli altri campi del capitolo strisce', () => {
+    const [chapter] = trimChaptersForPhone([{ kind: 'stripes', movies: many, backdropIndex: 2 }]);
+    expect((chapter as StripesChapter).backdropIndex).toBe(2);
+  });
+
+  it('non allunga i capitoli già corti', () => {
+    const short = [mk(1), mk(2)];
+    const [chapter] = trimChaptersForPhone([{ kind: 'mosaic', movies: short }]);
+    expect((chapter as MosaicChapter).movies).toHaveLength(2);
   });
 });

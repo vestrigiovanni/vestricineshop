@@ -32,10 +32,15 @@ export default function VideoPlayerModal() {
         <div className={styles.videoWrapper}>
           {videoId && (
             <iframe
-              src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&loop=1&playlist=${videoId}&origin=${window.location.origin}`}
+              // `mute=1` e `playsinline=1` non sono opzionali: senza il muto
+              // Safari e i browser mobile rifiutano l'avvio automatico e
+              // mostrano un riquadro fermo; senza playsinline iOS apre il
+              // video a tutto schermo scavalcando il modale. I controlli
+              // YouTube restano visibili per alzare l'audio.
+              src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&loop=1&playlist=${videoId}&origin=${window.location.origin}`}
               title="Movie Trailer"
               frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen
             ></iframe>
           )}

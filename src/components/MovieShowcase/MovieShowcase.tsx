@@ -14,9 +14,12 @@ import { useTrailer } from '@/context/TrailerContext';
 import CustomVideoPlayer from '../CustomVideoPlayer/CustomVideoPlayer';
 import LanguageBadge from '../LanguageBadge';
 import MovieAwards from '../MovieAwards/MovieAwards';
+import { formatShowDayLabel, formatShowTime } from '@/utils/cinemaDate';
 
 
-const AUTO_SCROLL_INTERVAL = 5000;
+// Nove secondi: cinque non bastavano a leggere trama e orari prima che la
+// hero cambiasse film sotto gli occhi.
+const AUTO_SCROLL_INTERVAL = 9000;
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 // Defining our expected data struct
@@ -28,6 +31,8 @@ export interface GroupedMovie {
   backdrop_path: string | null;
   logo_path?: string | null;
   release_date: string;
+  /** Anno già estratto lato server, per non calcolarlo dopo l'hydration. */
+  release_year?: string;
   director?: string;
   runtime?: number;
   isSoldOut?: boolean;
@@ -63,9 +68,14 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
   const [checkoutSubeventId, setCheckoutSubeventId] = useState<number | null>(null);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
   const [isImmersiveMode, setIsImmersiveMode] = useState(false);
+  // Solo mouse: su touch `pointerleave` può non arrivare mai e la rotazione
+  // resterebbe bloccata per sempre.
+  const [isPointerOverHero, setIsPointerOverHero] = useState(false);
   const [timerKey, setTimerKey] = useState(0);
-  const [isMounted, setIsMounted] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  // Locandine già caricate: serve a spegnere lo shimmer, che altrimenti
+  // continua a ridipingere ogni card per tutta la permanenza sulla pagina.
+  const [loadedPosters, setLoadedPosters] = useState<Set<number>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
@@ -88,7 +98,7 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
 
   
   const { openTrailer } = useTrailer();
-  const { isAutoScrollEnabled, disableAutoScroll } = useAutoScroll();
+  const { isAutoScrollEnabled, suspendAutoScroll, holdAutoScroll, releaseAutoScroll } = useAutoScroll();
 
   const liveMovies: GroupedMovie[] = useMemo(() => {
     if (!availabilityData) return initialMovies;
@@ -143,7 +153,6 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
 
 
   useEffect(() => {
-    setIsMounted(true);
     setIsHydrated(true);
   }, []);
 
@@ -162,15 +171,16 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
 
   useEffect(() => {
     const current = scrollRef.current;
-    if (current) {
-      current.addEventListener('scroll', checkScroll);
-      window.addEventListener('resize', checkScroll);
-    }
+    if (!current) return;
+
+    // `passive`: il browser non deve attendere l'handler per decidere se lo
+    // scorrimento può partire.
+    current.addEventListener('scroll', checkScroll, { passive: true });
+    window.addEventListener('resize', checkScroll, { passive: true });
+
     return () => {
-      if (current) {
-        current.removeEventListener('scroll', checkScroll);
-        window.removeEventListener('resize', checkScroll);
-      }
+      current.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
     };
   }, [checkScroll]);
 
@@ -205,20 +215,37 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
   }, [availableMovies]);
 
   useEffect(() => {
-    if (availableMovies.length <= 1 || !isAutoScrollEnabled || isImmersiveMode || !heroInView) return;
+    // Il puntatore sopra la hero è uno stato locale e non passa dal context:
+    // farlo transitare dal provider avrebbe ridisegnato l'intero showcase a
+    // ogni entrata e uscita del mouse.
+    if (availableMovies.length <= 1 || !isAutoScrollEnabled || !heroInView || isPointerOverHero) return;
 
     const interval = setInterval(() => {
       goToNextMovie();
     }, AUTO_SCROLL_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [goToNextMovie, availableMovies.length, timerKey, isAutoScrollEnabled, heroInView]);
+  }, [goToNextMovie, availableMovies.length, timerKey, isAutoScrollEnabled, heroInView, isPointerOverHero]);
+
+  // Finché una di queste condizioni è vera la hero non cambia film: c'è
+  // qualcosa che l'utente sta leggendo o guardando. Al rilascio la rotazione
+  // riprende da sola, senza bisogno di ricaricare la pagina.
+  const AUTO_SCROLL_BLOCKS = useMemo(() => ({
+    drawer: drawerOpen,
+    overview: isOverviewExpanded,
+    trailer: isImmersiveMode,
+  }), [drawerOpen, isOverviewExpanded, isImmersiveMode]);
 
   useEffect(() => {
-    if (drawerOpen || isOverviewExpanded) {
-      disableAutoScroll();
+    for (const [reason, active] of Object.entries(AUTO_SCROLL_BLOCKS)) {
+      if (active) holdAutoScroll(reason);
+      else releaseAutoScroll(reason);
     }
-  }, [drawerOpen, isOverviewExpanded, disableAutoScroll]);
+  }, [AUTO_SCROLL_BLOCKS, holdAutoScroll, releaseAutoScroll]);
+
+  useEffect(() => () => {
+    ['drawer', 'overview', 'trailer'].forEach(releaseAutoScroll);
+  }, [releaseAutoScroll]);
 
   useEffect(() => {
     setIsOverviewExpanded(false);
@@ -228,7 +255,7 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
   const handleMovieSelect = (movieId: number) => {
     setActiveMovieId(movieId);
     setTimerKey(prev => prev + 1); // Reset timer on manual selection
-    disableAutoScroll();
+    suspendAutoScroll();
   };
 
   // Selezione film richiesta dallo scrollytelling (CinematicStory) in fondo alla pagina.
@@ -238,11 +265,11 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
       if (Number.isNaN(movieId)) return;
       setActiveMovieId(movieId);
       setTimerKey(prev => prev + 1);
-      disableAutoScroll();
+      suspendAutoScroll();
     };
     window.addEventListener('vestri:select-movie', handler);
     return () => window.removeEventListener('vestri:select-movie', handler);
-  }, [disableAutoScroll]);
+  }, [suspendAutoScroll]);
 
   if (liveMovies.length === 0) {
     return (
@@ -265,9 +292,14 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
   };
 
   return (
-    <div ref={showcaseRef} className={styles.showcase} onClick={disableAutoScroll}>
+    <div ref={showcaseRef} className={styles.showcase}>
       {/* Hero Section */}
-      <div className={styles.hero}>
+      <div
+        className={styles.hero}
+        onPointerEnter={(e) => { if (e.pointerType === 'mouse') setIsPointerOverHero(true); }}
+        onPointerLeave={(e) => { if (e.pointerType === 'mouse') setIsPointerOverHero(false); }}
+        onFocusCapture={suspendAutoScroll}
+      >
         <div className={styles.heroBackdrop}>
           <Image 
             src={getTMDBImageUrl(activeMovie.backdrop_path, 'original') || getTMDBImageUrl(activeMovie.poster_path, 'original') || ''} 
@@ -304,8 +336,8 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                 <h1 className={styles.title}>{activeMovie.title}</h1>
               )}
               <div className={styles.meta}>
-                <span className={styles.metaValue} suppressHydrationWarning>
-                  {isMounted ? (activeMovie.release_date ? (activeMovie.release_date.includes('-') ? activeMovie.release_date.split('-')[0] : new Date(activeMovie.release_date).getFullYear()) : 'N/D') : ''}
+                <span className={styles.metaValue}>
+                  {activeMovie.release_year || 'N/D'}
                 </span>
                 {activeMovie.runtime && activeMovie.runtime > 0 && (
                   <div className={styles.metaGroup}>
@@ -321,7 +353,7 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                     <div className={styles.metaGroup}>
                       <span className={styles.metaLabel}>REGIA:</span>
                       <span className={styles.metaValue}>{activeMovie.director.toUpperCase()}</span>
-                      {isMounted && (activeMovie.trailerKey || (activeMovie.trailerKeys && activeMovie.trailerKeys.length > 0)) && (
+                      {(activeMovie.trailerKey || (activeMovie.trailerKeys && activeMovie.trailerKeys.length > 0)) && (
                         <button 
                           className={styles.trailerBtn} 
                           onClick={() => setIsImmersiveMode(true)}
@@ -374,18 +406,23 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
             <h3 className={styles.showtimesTitle}>Scegli orario e prenota</h3>
             <div className={styles.showtimesGrid}>
               {activeMovie.subevents.map((se: any) => {
-                const dateObj = new Date(se.date);
-                const isToday = isMounted && dateObj.toDateString() === new Date().toDateString();
-                const dayStr = isToday ? 'Oggi' : (isMounted ? dateObj.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }) : '');
-                
+                // Le etichette arrivano già scritte dal server; il calcolo qui
+                // è solo una rete di sicurezza e usa lo stesso fuso di sala.
+                const dayStr = se.dayLabel || formatShowDayLabel(se.date);
+                const timeStr = se.timeLabel || formatShowTime(se.date);
+
                 const tags = getMovieTags(se.language || '', se.subtitles || '', se.format || (activeMovie.title.toUpperCase().includes('3D') ? '3D' : ''));
 
                 return (
-                  <button 
-                    key={se.id} 
+                  <button
+                    key={se.id}
+                    type="button"
                     className={se.isSoldOut ? `${styles.showtimeButton} ${styles.showtimeSoldOut}` : styles.showtimeButton}
                     onClick={() => handleShowtimeClick(se.id, se.isSoldOut || false)}
                     disabled={se.isSoldOut}
+                    aria-label={se.isSoldOut
+                      ? `${activeMovie.title}, ${dayStr} alle ${timeStr}: posti esauriti`
+                      : `Prenota ${activeMovie.title}, ${dayStr} alle ${timeStr}`}
                   >
                     <div className={styles.showtimeLabels}>
                       <RatingBadge rating={activeMovie.rating || 'T'} size="xs" />
@@ -399,10 +436,10 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                     </div>
 
                     <span className={styles.showtimeDate}>
-                      {isMounted ? dayStr : ''}
+                      {dayStr}
                     </span>
                     <span className={styles.showtimeTime}>
-                      {se.isSoldOut ? `ESAURITO` : (isMounted ? dateObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '')}
+                      {se.isSoldOut ? `ESAURITO` : timeStr}
                     </span>
                   </button>
                 );
@@ -425,25 +462,43 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
         <div className={styles.carouselContainer}>
           <div className={styles.galleryScroll} ref={scrollRef}>
             {sortedMovies.map((movie, index) => (
-              <div 
-                key={movie.id} 
+              <div
+                key={movie.id}
+                // Le locandine sono selezionabili: senza ruolo e senza tabIndex
+                // chi naviga da tastiera non poteva cambiare film.
+                role="button"
+                tabIndex={0}
+                aria-pressed={movie.id === activeMovie.id}
+                aria-label={movie.isSoldOut ? `${movie.title} — esaurito` : movie.title}
                 className={[
-                  styles.cardWrapper, 
-                  movie.id === activeMovie.id ? styles.active : '', 
+                  styles.cardWrapper,
+                  movie.id === activeMovie.id ? styles.active : '',
                   movie.isSoldOut ? styles.soldOutCard : ''
                 ].filter(Boolean).join(' ')}
                 onClick={() => handleMovieSelect(movie.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleMovieSelect(movie.id);
+                  }
+                }}
               >
-                <div className={styles.imageContainer}>
+                <div className={`${styles.imageContainer} ${loadedPosters.has(movie.id) ? styles.imageLoaded : ''}`}>
                   {movie.poster_path ? (
-                    <Image 
-                      src={getTMDBImageUrl(movie.poster_path, 'w342')!} 
+                    <Image
+                      src={getTMDBImageUrl(movie.poster_path, 'w342')!}
                       alt={movie.title}
                       fill
                       sizes="(max-width: 768px) 140px, 200px"
                       style={{ objectFit: 'cover' }}
                       className={styles.cardImage}
-                      priority={isHydrated && index < 2}
+                      priority={index < 2}
+                      onLoad={() => setLoadedPosters(prev => {
+                        if (prev.has(movie.id)) return prev;
+                        const next = new Set(prev);
+                        next.add(movie.id);
+                        return next;
+                      })}
                       suppressHydrationWarning
                     />
                   ) : (
