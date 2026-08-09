@@ -882,6 +882,259 @@ export async function planningDeleteShow(
   return { deleted: true, soldTickets };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SPOSTARE CIÒ CHE È GIÀ IN CARTELLONE
+// Un'altra cosa dal creare: qui il pubblico c'è già, e ogni scrittura si vede
+// online nell'istante dopo. Perciò il controllo e l'azione sono separati — si
+// guarda, si decide, e solo allora si scrive.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface MoveCheck extends ManualSlotCheck {
+  /**
+   * Biglietti già venduti sullo spettacolo **che si sta spostando**.
+   *
+   * `null` quando il conteggio non è riuscito, e la differenza da zero conta:
+   * chi ha pagato si presenterà all'orario vecchio, e Pretix non lo avvisa da
+   * solo. Dire «nessuno» senza saperlo sarebbe la rassicurazione peggiore.
+   */
+  movingShowSoldTickets: number | null;
+}
+
+/**
+ * Si può portare questo spettacolo a quel giorno, a quell'ora?
+ *
+ * Non sposta niente. Risponde con la stessa forma di `planningCheckManualSlot`
+ * — che la UI sa già leggere — più i biglietti venduti su ciò che si muove.
+ *
+ * La durata non si chiede a TMDB: il film è già in sala, e `runtimeOfSubEvent`
+ * l'ha già ricavata dal commento JSON, dagli override o dalla distanza fra
+ * `date_from` e `date_to`.
+ */
+export async function planningCheckMove(input: {
+  seatingPlanId: number;
+  pretixId: number;
+  /** Giorno di programmazione di destinazione, 'YYYY-MM-DD'. */
+  day: string;
+  /** Orario di destinazione, 'HH:mm'. */
+  time: string;
+  /** Origine dei minuti globali, come nel resto del wizard. */
+  fromDate: string;
+}): Promise<MoveCheck> {
+  const { planMove } = await import('@/services/scheduling/move');
+
+  const nothing = (message: string): MoveCheck => ({
+    free: false, usable: false, slot: null, conflicts: [], soldTickets: 0, message,
+    outsideHours: false, warning: null, movingShowSoldTickets: null,
+  });
+
+  const clock = /^(\d{1,2}):(\d{2})$/.exec(input.time.trim());
+  if (!clock) return nothing('Orario non valido: scrivilo come 21:00.');
+  const hh = Number(clock[1]);
+  const mm = Number(clock[2]);
+  if (hh > 23 || mm > 59) return nothing('Quest\'ora non esiste.');
+
+  const dayIndex = daysBetweenISO(input.fromDate, input.day);
+  // La finestra deve contenere il giorno scelto, e la nottata che lo segue.
+  const span = Math.min(Math.max(dayIndex + 2, 1), 60);
+  const { shows } = await readRoomOccupancy(input.seatingPlanId, input.fromDate, span);
+
+  const moving = shows.find((s) => s.pretixId === input.pretixId);
+  if (!moving) {
+    return nothing('Questo spettacolo non è più in sala: ricarica il palinsesto.');
+  }
+
+  const occupied = shows.map((s) => ({
+    start: s.startMinute,
+    end: s.endMinute + MIN_GAP_MINUTES,
+    show: s,
+  }));
+  const notBefore = msToGlobalMinute(Date.now() + 30 * 60000, input.fromDate);
+
+  const check = planMove({
+    runtime: moving.runtime,
+    dayIndex,
+    clock: hh * 60 + mm,
+    occupied,
+    isMoving: (o) => o.show.pretixId === input.pretixId,
+    notBefore,
+  });
+
+  let movingShowSoldTickets: number | null = null;
+  try {
+    movingShowSoldTickets = await countSoldTickets(input.pretixId);
+  } catch {
+    movingShowSoldTickets = null;
+  }
+
+  const slot: SlotProposal = {
+    day: input.day,
+    date: addDaysISO(input.fromDate, Math.floor(check.startMinute / MINUTES_PER_DAY)),
+    time: formatClock(check.startMinute),
+    endTime: formatClock(check.endMinute),
+    startMinute: check.startMinute,
+    endMinute: check.endMinute,
+    band: check.band,
+  };
+
+  const no = (message: string): MoveCheck => ({
+    free: false, usable: false, slot, conflicts: [], soldTickets: 0, message,
+    outsideHours: false, warning: null, movingShowSoldTickets,
+  });
+
+  if (check.problem === 'past') return no('Quest\'orario è già passato, o sta per esserlo.');
+
+  // Fuori orario si avverte, non si vieta: apertura e chiusura sono una
+  // decisione di chi il cinema lo gestisce. Le 21:00 di ieri no.
+  const warning =
+    check.problem === 'afterClosing'
+      ? `«${moving.title}» dura ${moving.runtime}′: partendo alle ${slot.time} finisce alle ` +
+        `${slot.endTime}, oltre la chiusura dell'${formatClock(CLOSING_MINUTE)}.`
+      : check.problem === 'beforeOpening'
+        ? `Il cinema apre alle ${formatClock(OPENING_MINUTE)}: le ${slot.time} vengono prima ` +
+          'dell\'apertura.'
+        : null;
+  const outsideHours = warning !== null;
+
+  if (check.ok || (outsideHours && check.clashes.length === 0)) {
+    return {
+      free: true, usable: true, slot, conflicts: [], soldTickets: 0,
+      outsideHours, warning, movingShowSoldTickets,
+      message: warning
+        ? `${warning} Non c'è altro in sala: se vuoi farlo lo stesso, si può.`
+        : `Libero: ${slot.time}–${slot.endTime}.`,
+    };
+  }
+
+  let countFailed = false;
+  const conflicts: SlotConflict[] = await Promise.all(
+    check.clashes.map(async ({ show }) => {
+      const { dayIndex: _d, ...rest } = show;
+      let soldTickets = 0;
+      if (rest.pretixId) {
+        try {
+          soldTickets = await countSoldTickets(rest.pretixId);
+        } catch {
+          countFailed = true;
+        }
+      }
+      return { ...rest, soldTickets };
+    })
+  );
+
+  // Senza il conteggio la sostituzione non si propone. Un «nessuno resta a
+  // piedi» falso, detto a chi sta per cancellare uno spettacolo, è la bugia
+  // peggiore possibile.
+  if (countFailed) {
+    return {
+      free: false, usable: false, slot, conflicts, soldTickets: 0, outsideHours, warning,
+      movingShowSoldTickets,
+      message: 'Non sono riuscito a controllare i biglietti venduti su ciò che occupa '
+        + "quest'orario. Riprova: non ti propongo una sostituzione senza sapere chi ha già pagato.",
+    };
+  }
+
+  const unremovable = conflicts.filter((c) => c.pretixId == null);
+  if (conflicts.length === 0 || unremovable.length > 0) {
+    return {
+      free: false, usable: false, slot, conflicts, soldTickets: 0, outsideHours, warning,
+      movingShowSoldTickets,
+      message: 'Quest\'orario è occupato da qualcosa che non posso rimuovere da qui.',
+    };
+  }
+
+  const soldTickets = conflicts.reduce((sum, c) => sum + c.soldTickets, 0);
+  const titles = conflicts.map((c) => `«${c.title}» delle ${c.time}`).join(' e ');
+
+  return {
+    free: false,
+    usable: true,
+    slot,
+    conflicts,
+    soldTickets,
+    outsideHours,
+    warning,
+    movingShowSoldTickets,
+    message: soldTickets > 0
+      ? `Qui c'è ${titles}, con ${soldTickets} bigliett${soldTickets === 1 ? 'o venduto' : 'i venduti'}. ` +
+        'Sostituirlo lascia orfani ordini di gente che ha pagato: andranno rimborsati a mano da Pretix.'
+      : `Qui c'è ${titles}. Nessun biglietto venduto: sostituirlo non lascia nessuno a piedi.`,
+  };
+}
+
+/**
+ * Sposta lo spettacolo, eliminando se serve ciò che occupa la destinazione.
+ *
+ * **Ricontrolla prima di agire.** Fra il momento in cui l'utente ha letto il
+ * pannello e quello in cui ha premuto possono essere passati minuti, e in quei
+ * minuti si vendono biglietti: il pannello serve a far decidere, non è ciò su
+ * cui il server si fida.
+ *
+ * **Prima elimina, poi sposta.** All'inverso, un errore a metà strada
+ * lascerebbe due film sovrapposti entrambi in vendita sulla stessa sala. Così
+ * il peggio che resta è un buco in palinsesto: un buco si riempie, un doppio
+ * incasso sugli stessi posti no. È anche l'ordine che tiene `commitRunner`.
+ */
+export async function planningMoveShow(input: {
+  seatingPlanId: number;
+  pretixId: number;
+  day: string;
+  time: string;
+  fromDate: string;
+  /** Consenso a eliminare ciò che occupa la destinazione. */
+  replaces?: number[];
+  /** Consenso a eliminarlo anche con biglietti venduti sopra. */
+  force?: boolean;
+  /** Consenso a uscire dagli orari di apertura. */
+  allowOutsideHours?: boolean;
+}): Promise<{ moved: boolean; deleted: number[]; error?: string }> {
+  const { adminUpdateEventDate } = await import('@/actions/adminActions');
+
+  const check = await planningCheckMove(input);
+  if (!check.slot) return { moved: false, deleted: [], error: check.message };
+
+  if (check.outsideHours && !input.allowOutsideHours) {
+    return { moved: false, deleted: [], error: check.warning ?? check.message };
+  }
+
+  const conflictIds = check.conflicts
+    .map((c) => c.pretixId)
+    .filter((v): v is number => v != null);
+
+  // Un conflitto senza id Pretix non si può togliere: è un impegno della sala
+  // che il sito non governa, e spostarci sopra creerebbe una sovrapposizione.
+  if (conflictIds.length !== check.conflicts.length) {
+    return { moved: false, deleted: [], error: check.message };
+  }
+
+  // Si elimina solo ciò che l'utente ha visto e accettato di eliminare. Un
+  // conflitto comparso nel frattempo ferma tutto: non era nella decisione.
+  const consented = new Set(input.replaces ?? []);
+  const unexpected = conflictIds.filter((id) => !consented.has(id));
+  if (unexpected.length > 0) {
+    return {
+      moved: false,
+      deleted: [],
+      error: 'Nel frattempo quest\'orario è cambiato. Ricontrolla il palinsesto e riprova.',
+    };
+  }
+
+  if (check.soldTickets > 0 && !input.force) {
+    return { moved: false, deleted: [], error: check.message };
+  }
+
+  const deleted: number[] = [];
+  for (const id of conflictIds) {
+    const removal = await planningDeleteShow(id, input.force ?? false);
+    if (!removal.deleted) {
+      return { moved: false, deleted, error: removal.error };
+    }
+    deleted.push(id);
+  }
+
+  await adminUpdateEventDate(input.pretixId, `${check.slot.date}T${check.slot.time}`);
+  return { moved: true, deleted };
+}
+
 /** Il primo giorno programmabile: oggi, se non è già troppo tardi. */
 export async function planningDefaultStartDate(): Promise<string> {
   const now = new Date();
