@@ -725,6 +725,7 @@ export default function ProgrammazionePage() {
           onDaysChange={setDays}
           occupancy={occupancy}
           loading={loadingOccupancy}
+          onReload={() => setOccupancyTick((t) => t + 1)}
         />
       )}
 

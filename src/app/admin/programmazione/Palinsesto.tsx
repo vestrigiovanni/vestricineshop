@@ -10,11 +10,18 @@
  * solo dopo una conferma esplicita.
  */
 
-import React from 'react';
-import { CalendarRange, Clapperboard, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { CalendarRange, Clapperboard, GripVertical, Loader2, Pencil, Trash2 } from 'lucide-react';
 import styles from './Programmazione.module.css';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
-import type { PeriodOccupancy } from '@/actions/planningActions';
+import {
+  planningCheckMove,
+  planningDeleteShow,
+  planningMoveShow,
+  type ExistingShow,
+  type PeriodOccupancy,
+} from '@/actions/planningActions';
+import MovePanel, { type Pending } from './MovePanel';
 import { shortDayLabel } from './types';
 
 interface Props {
@@ -27,6 +34,8 @@ interface Props {
   onDaysChange: (d: number) => void;
   occupancy: PeriodOccupancy | null;
   loading: boolean;
+  /** Da chiamare dopo ogni modifica: la sala non è più quella che avevamo letto. */
+  onReload: () => void;
 }
 
 function saturationClass(s: number): string {
@@ -35,13 +44,130 @@ function saturationClass(s: number): string {
   return styles.satLow;
 }
 
+/** 'HH:mm' → minuti dalla mezzanotte, o null se non è un orario. */
+function parseClock(v: string): number | null {
+  const m = v.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return h * 60 + min;
+}
+
 export default function Palinsesto({
   rooms, roomId, onRoomChange,
   startDate, onStartDateChange,
   days, onDaysChange,
-  occupancy, loading,
+  occupancy, loading, onReload,
 }: Props) {
   const total = occupancy?.totalShows ?? 0;
+
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [editing, setEditing] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /** Chiede al server cosa comporta, e apre il pannello mentre lo chiede. */
+  const askMove = async (show: ExistingShow, fromDay: string, toDay: string, time: string) => {
+    if (!show.pretixId || !roomId) return;
+    setError(null);
+    setPending({ kind: 'move', show, fromDay, toDay, time, check: null });
+    try {
+      const check = await planningCheckMove({
+        seatingPlanId: roomId,
+        pretixId: show.pretixId,
+        day: toDay,
+        time,
+        fromDate: startDate,
+      });
+      // Se nel frattempo il pannello è stato chiuso o riaperto su un altro
+      // spettacolo, questa risposta non riguarda più ciò che si sta guardando.
+      setPending((p) =>
+        p && p.kind === 'move' && p.show.pretixId === show.pretixId && p.time === time
+          ? { ...p, check }
+          : p
+      );
+    } catch (e) {
+      console.error('[Palinsesto] controllo spostamento', e);
+      setError('Non sono riuscito a leggere la sala. Riprova.');
+    }
+  };
+
+  const confirmMove = async (opts: { replaces: number[]; force: boolean; allowOutsideHours: boolean }) => {
+    if (!pending || pending.kind !== 'move' || !pending.show.pretixId || !roomId) return;
+    setWorking(true);
+    setError(null);
+    try {
+      const res = await planningMoveShow({
+        seatingPlanId: roomId,
+        pretixId: pending.show.pretixId,
+        day: pending.toDay,
+        time: pending.time,
+        fromDate: startDate,
+        replaces: opts.replaces,
+        force: opts.force,
+        allowOutsideHours: opts.allowOutsideHours,
+      });
+      if (!res.moved) {
+        setError(res.error ?? 'Lo spostamento non è riuscito.');
+        // Qualcosa può essere già stato eliminato: la vista va riletta comunque.
+        if (res.deleted.length > 0) onReload();
+        return;
+      }
+      setPending(null);
+      onReload();
+    } catch (e) {
+      console.error('[Palinsesto] spostamento', e);
+      setError('Lo spostamento non è riuscito. Ricarica il palinsesto e controlla.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const confirmDelete = async (force: boolean) => {
+    if (!pending || pending.kind !== 'delete' || !pending.show.pretixId) return;
+    setWorking(true);
+    setError(null);
+    try {
+      const res = await planningDeleteShow(pending.show.pretixId, force);
+      if (!res.deleted) {
+        // Non è un errore: è la rete di sicurezza. Il pannello ora sa quanti
+        // biglietti ci sono sopra e può chiedere il consenso.
+        setPending({ ...pending, refusal: { message: res.error ?? '', soldTickets: res.soldTickets } });
+        return;
+      }
+      setPending(null);
+      onReload();
+    } catch (e) {
+      console.error('[Palinsesto] eliminazione', e);
+      setError("L'eliminazione non è riuscita. Ricarica il palinsesto e controlla.");
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const commitTime = (show: ExistingShow, day: string) => {
+    const value = editValue.trim();
+    setEditing(null);
+    if (parseClock(value) == null || value === show.time) return;
+    askMove(show, day, day, value);
+  };
+
+  const dropOnDay = (targetDay: string) => {
+    const id = dragging;
+    setDragging(null);
+    if (id == null) return;
+    for (const d of occupancy?.daysDetail ?? []) {
+      const show = d.shows.find((s) => s.pretixId === id);
+      if (show) {
+        if (d.date === targetDay) return;
+        askMove(show, d.date, targetDay, show.time);
+        return;
+      }
+    }
+  };
 
   return (
     <main className={styles.stepBody}>
@@ -88,6 +214,7 @@ export default function Palinsesto({
 
         <p className={styles.sideHint}>
           Qui non si crea niente: si sposta e si elimina ciò che è già in cartellone.
+          Trascina uno spettacolo su un altro giorno, o clicca l&apos;orario per riscriverlo.
           Ogni modifica è immediata e si vede online.
         </p>
       </section>
@@ -113,7 +240,9 @@ export default function Palinsesto({
               return (
                 <section
                   key={d.date}
-                  className={`${styles.dayCol} ${d.isWeekend ? styles.dayWeekend : ''} ${d.isPast ? styles.dayPast : ''}`}
+                  className={`${styles.dayCol} ${d.isWeekend ? styles.dayWeekend : ''} ${d.isPast ? styles.dayPast : ''} ${dragging && !d.isPast ? styles.calDayDroppable : ''}`}
+                  onDragOver={(e) => { if (dragging && !d.isPast) e.preventDefault(); }}
+                  onDrop={() => { if (!d.isPast) dropOnDay(d.date); }}
                 >
                   <div className={styles.dayColHead}>
                     <span className={styles.dayColName}>{shortDayLabel(d.date)}</span>
@@ -131,11 +260,42 @@ export default function Palinsesto({
 
                     {d.shows.map((s, i) => {
                       const poster = getTMDBImageUrl(s.posterPath ?? null, 'w92');
+                      // Senza id Pretix non è nostro: si vede, non si tocca.
+                      const touchable = Boolean(s.pretixId) && !d.isPast;
                       return (
-                        <article key={s.pretixId ?? `x-${i}`} className={styles.calShow}>
+                        <article
+                          key={s.pretixId ?? `x-${i}`}
+                          className={`${styles.calShow} ${touchable ? '' : styles.palLocked} ${dragging === s.pretixId ? styles.calShowDragging : ''}`}
+                          draggable={touchable}
+                          onDragStart={() => { if (touchable) setDragging(s.pretixId!); }}
+                          onDragEnd={() => setDragging(null)}
+                        >
                           <div className={styles.calShowTop}>
-                            <span className={styles.calShowTime}>{s.time}</span>
+                            {editing === s.pretixId ? (
+                              <input
+                                className={styles.timeInput}
+                                autoFocus
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => commitTime(s, d.date)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') commitTime(s, d.date);
+                                  if (e.key === 'Escape') setEditing(null);
+                                }}
+                              />
+                            ) : (
+                              <button
+                                className={styles.calShowTime}
+                                disabled={!touchable}
+                                title={touchable ? 'Cambia orario' : undefined}
+                                onClick={() => { setEditing(s.pretixId!); setEditValue(s.time); }}
+                              >
+                                {s.time}
+                              </button>
+                            )}
+                            {touchable && <GripVertical size={13} opacity={0.4} />}
                           </div>
+
                           <div className={styles.calShowMain}>
                             <div className={styles.calShowPoster}>
                               {poster ? <img src={poster} alt="" loading="lazy" /> : <Clapperboard size={14} />}
@@ -145,6 +305,24 @@ export default function Palinsesto({
                               <span>{s.runtime}′ · fine {s.endTime}</span>
                             </div>
                           </div>
+
+                          {touchable && (
+                            <div className={styles.calShowActions}>
+                              <button
+                                onClick={() => { setEditing(s.pretixId!); setEditValue(s.time); }}
+                                title="Cambia orario"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                className={styles.actionDanger}
+                                title="Elimina questo spettacolo"
+                                onClick={() => { setError(null); setPending({ kind: 'delete', show: s, day: d.date, refusal: null }); }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
                         </article>
                       );
                     })}
@@ -161,6 +339,20 @@ export default function Palinsesto({
           </div>
         )}
       </section>
+
+      {pending && (
+        <MovePanel
+          // Rimontato a ogni apertura: senza, la spunta di consenso resterebbe
+          // segnata da una decisione precedente.
+          key={`${pending.kind}-${pending.show.pretixId}`}
+          pending={pending}
+          working={working}
+          error={error}
+          onCancel={() => { setPending(null); setError(null); }}
+          onConfirmMove={confirmMove}
+          onConfirmDelete={confirmDelete}
+        />
+      )}
     </main>
   );
 }
