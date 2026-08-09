@@ -84,21 +84,29 @@ Quindi è il Mac del cinema a **spingere** i dati, non il server a tirarli.
 
 ```
 Plex (localhost:32400)
-  GET /library/sections                    → trova la sezione "Film"
-  GET /library/sections/{key}/all          → tutti i film
+  GET /library/sections                    → trova le sezioni "Film" e "4K"
+  GET /library/sections/{key}/all          → tutti i film, sezione per sezione
        ↓ normalizza
   { title, originalTitle, year, durationMin, director,
-    tmdbId, imdbId, plexKey, addedAt, summary, contentRating }
+    tmdbId, imdbId, plexKey, addedAt, summary, contentRating, libraries }
+       ↓ fonde le copie: un film in due librerie resta UNA riga
        ↓ POST  Authorization: Bearer CATALOG_SYNC_SECRET
 https://vestricinema.com/api/catalog/plex-sync
 ```
+
+Le librerie lette sono un **elenco esplicito** (`PLEX_LIBRARIES`, default
+`Film,4K`): sul server ne convivono altre di servizio, e una libreria creata
+domani non deve finire in catalogo solo perché è nata. La prima dell'elenco dà
+l'identità alla riga quando lo stesso film sta in entrambe. La fusione vive in
+`scripts/plexMerge.mjs` ed è testata (`scripts/plexMerge.test.mjs`): sbagliarla
+riempie il catalogo di doppioni, e ce ne si accorgerebbe solo programmando.
 
 Il pezzo prezioso è che Plex conosce già il **tmdbId** (`Guid[]` contiene
 `tmdb://12345`): l'abbinamento fuzzy titolo→TMDB sparisce per tutti i film in cui
 Plex ha già l'ID, e con lui spariscono i `verifyStatus: suspect`.
 
 Variabili nuove in `.env.local` (solo sul Mac, per lo script):
-`PLEX_URL`, `PLEX_TOKEN`, `PLEX_LIBRARY`. Sul sito serve solo
+`PLEX_URL`, `PLEX_TOKEN`, `PLEX_LIBRARIES`. Sul sito serve solo
 `CATALOG_SYNC_SECRET`.
 
 ### 3.2 L'endpoint
@@ -331,6 +339,37 @@ Guscio sottile sopra le stesse funzioni usate dal wizard. Auth: header
 
 `commit` è asincrono perché creare 30 sub-eventi Pretix richiede minuti: supera
 il limite di durata di una singola richiesta e va seguito con polling.
+
+Ogni proiezione già in sala (`DayOccupancy.shows`, e `existing` dentro
+`/slots`) porta con sé il suo `tmdbId`, quando si riesce a saperlo — sta nel
+`comment` del sub-evento, quindi c'è solo per ciò che è nato dalla
+programmazione. È il campo che permette di **spostare** uno spettacolo invece
+di poterlo solo cancellare: spostarlo significa ricrearlo altrove, e per
+ricrearlo bisogna sapere quale film è. Quando è `null` lo spettacolo si può
+ancora eliminare, ma non spostare — indovinare il film dal titolo vuol dire,
+prima o poi, programmare l'omonimo sbagliato.
+
+Spostare ha la sua rotta, in due verbi sullo stesso indirizzo:
+
+| Metodo | Rotta | Cosa fa |
+|---|---|---|
+| GET | `/api/planning/shows/{id}/move` | `room, day, time, from?` → `MoveCheck`. Non tocca niente. |
+| POST | `/api/planning/shows/{id}/move` | `{ room, day, time, from?, replaces[], force?, allowOutsideHours? }` → `{ moved, deleted }`, oppure **409** con `{ error, deleted }`. |
+
+Sono due chiamate e non una perché qui il pubblico c'è già: si guarda, si
+decide, si scrive. Il pannello serve a far decidere l'utente e non è ciò su cui
+il server si fida — al POST `planningMoveShow` ricontrolla tutto da capo, e se
+nel frattempo la destinazione è cambiata si ferma invece di eliminare qualcosa
+che non era nella decisione. Per questo `replaces` non è un'opzione ma una
+dichiarazione: sono gli id che l'utente ha *visto*.
+
+**Lo spettacolo non viene ricreato.** `adminUpdateEventDate` cambia la data al
+sub-evento Pretix che esiste già, quindi chi ha comprato il biglietto se lo
+tiene: gli cambia l'orario, non gli sparisce lo spettacolo. `force` riguarda
+solo ciò che si elimina per liberare la destinazione, e `movingShowSoldTickets`
+nel `MoveCheck` è informativo — dice quanta gente troverà un orario diverso da
+quello che aveva letto, non un ostacolo. `null` lì significa «non sono riuscito
+a contarli», e non va confuso con zero.
 
 ---
 
