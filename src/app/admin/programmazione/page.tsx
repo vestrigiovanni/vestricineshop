@@ -14,8 +14,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  CalendarCheck, CalendarClock, ChevronLeft, ChevronRight, Clapperboard, Loader2,
-  Sparkles, Wand2, X,
+  CalendarCheck, CalendarClock, CalendarRange, ChevronLeft, ChevronRight, Clapperboard,
+  Loader2, Sparkles, Wand2, X,
 } from 'lucide-react';
 import styles from './Programmazione.module.css';
 import StepSlot from './StepSlot';
@@ -23,6 +23,7 @@ import StepCatalog from './StepCatalog';
 import StepCalendar from './StepCalendar';
 import StepFilm from './StepFilm';
 import StepFreeSlots from './StepFreeSlots';
+import Palinsesto from './Palinsesto';
 import StepCommit, { type CommitFailure, type CommitProgress } from './StepCommit';
 import {
   planningDefaultStartDate,
@@ -43,11 +44,13 @@ import type { ScheduledShow } from '@/services/scheduling/engine';
 import type { Intensity } from '@/services/scheduling/engine';
 import { MINUTES_PER_DAY, daysBetweenISO, type Band } from '@/services/scheduling/times';
 import {
-  commitKey, runtimeOf, showKey, slotKey,
+  commitKey, defaultSpecsFor, runtimeOf, showKey, slotKey,
   type CatalogItem, type ChosenSlot, type Pick, type PlanningMode, type WizardStep,
 } from './types';
+import { normalizeProjectionSpecs } from '@/constants/projectionSpecs';
 
-const STEP_LABELS: Record<PlanningMode, string[]> = {
+/** Il palinsesto non è qui perché di passi non ne ha: è una vista sola. */
+const STEP_LABELS: Record<'period' | 'film', string[]> = {
   period: ['Lo slot', 'I film', 'Il calendario', 'In sala'],
   film: ['Il film', 'Gli orari', 'Il calendario', 'In sala'],
 };
@@ -64,6 +67,12 @@ const MODES: { key: PlanningMode; label: string; hint: string; icon: React.React
     label: 'Dal film',
     hint: 'Scegli il titolo, e ti propongo gli orari liberi dal giorno più vicino.',
     icon: <CalendarClock size={16} />,
+  },
+  {
+    key: 'palinsesto',
+    label: 'Il palinsesto',
+    hint: 'Cosa c\'è già in cartellone: spostalo, eliminalo, riordina la settimana.',
+    icon: <CalendarRange size={16} />,
   },
 ];
 
@@ -87,6 +96,12 @@ export default function ProgrammazionePage() {
   const [minDate, setMinDate] = useState('');
   const [days, setDays] = useState(7);
   const [occupancy, setOccupancy] = useState<PeriodOccupancy | null>(null);
+  /**
+   * Dopo uno spostamento o un'eliminazione la sala non è più quella che
+   * avevamo letto: sala, data e giorni non sono cambiati, quindi serve qualcosa
+   * che dica all'effetto di rileggerla lo stesso.
+   */
+  const [occupancyTick, setOccupancyTick] = useState(0);
   const [loadingOccupancy, setLoadingOccupancy] = useState(false);
 
   // ── Passo 2: i film ───────────────────────────────────────────────────
@@ -99,12 +114,17 @@ export default function ProgrammazionePage() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlots, setSelectedSlots] = useState<Map<string, ChosenSlot>>(new Map());
   /**
-   * Le sostituzioni decise al passo 2, indicizzate per `commitKey`. Sono l'unica
-   * parte del piano che elimina qualcosa, e restano fuori da `shows` perché
-   * `ScheduledShow` appartiene al motore, che di Pretix non sa niente.
+   * Ciò che il passo 2 ha deciso e il motore non sa portarsi dietro, indicizzato
+   * per `commitKey`: le sostituzioni — l'unica parte del piano che elimina
+   * qualcosa — e il permesso di sforare l'orario d'apertura. Stanno fuori da
+   * `shows` perché `ScheduledShow` appartiene al motore, che di Pretix e di
+   * orari d'apertura non sa niente.
    */
   const [replacements, setReplacements] = useState<
-    Map<string, { replaces: number[]; force: boolean; label?: string; soldTickets: number }>
+    Map<string, {
+      replaces: number[]; force: boolean; label?: string; soldTickets: number;
+      outsideHours?: boolean;
+    }>
   >(new Map());
   const [slotBand, setSlotBand] = useState<Band | ''>('');
   const [slotDays, setSlotDays] = useState(SLOT_DAYS_STEP);
@@ -151,7 +171,8 @@ export default function ProgrammazionePage() {
         if (wantedFilm) {
           const film = await catalogEnsureByTmdbId(wantedFilm);
           if (film && !cancelled) {
-            setPicks((prev) => new Map(prev).set(wantedFilm, { film: film as unknown as CatalogItem }));
+            const item = film as unknown as CatalogItem;
+            setPicks((prev) => new Map(prev).set(wantedFilm, { film: item, specs: defaultSpecsFor(item) }));
           }
         }
       } catch (e) {
@@ -163,11 +184,12 @@ export default function ProgrammazionePage() {
   }, []);
 
   // Ogni cambio di sala o periodo rilegge l'occupazione: è l'informazione su
-  // cui si appoggia tutto il resto del wizard. Programmando al contrario non
-  // serve — lì il periodo non esiste ancora — e sarebbe una lettura di Pretix
-  // buttata a ogni tasto premuto sulla data.
+  // cui si appoggia tutto il resto del wizard, ed è tutto ciò che il palinsesto
+  // mostra. Programmando al contrario non serve — lì il periodo non esiste
+  // ancora — e sarebbe una lettura di Pretix buttata a ogni tasto premuto sulla
+  // data.
   useEffect(() => {
-    if (mode !== 'period') return;
+    if (mode === 'film') return;
     if (!roomId || !startDate) return;
     let cancelled = false;
     async function loadOccupancy() {
@@ -183,7 +205,7 @@ export default function ProgrammazionePage() {
     }
     loadOccupancy();
     return () => { cancelled = true; };
-  }, [mode, roomId, startDate, days]);
+  }, [mode, roomId, startDate, days, occupancyTick]);
 
   const gaps = useMemo(
     () => (occupancy?.daysDetail ?? []).flatMap((d) => d.gaps.map((g) => g.minutes)),
@@ -197,7 +219,7 @@ export default function ProgrammazionePage() {
     setPicks((prev) => {
       const next = new Map(prev);
       if (next.has(film.tmdbId!)) next.delete(film.tmdbId!);
-      else next.set(film.tmdbId!, { film });
+      else next.set(film.tmdbId!, { film, specs: defaultSpecsFor(film) });
       return next;
     });
   }, []);
@@ -345,20 +367,31 @@ export default function ProgrammazionePage() {
     // riscrivendone il formato a mano: le due stringhe devono coincidere, e un
     // duplicato del formato si sfalserebbe in silenzio alla prima modifica,
     // lasciando la sostituzione senza effetto e nessun errore a dirlo.
+    // Lo stesso vale per il permesso di sforare l'orario: viaggia con la stessa
+    // chiave e si perde alla stessa condizione — se sposti lo spettacolo, la
+    // ragione per cui sforava non c'è più, e la creazione lo ricontrolla.
     setReplacements(new Map(
       chosen
         .map((c, i) => [c, fresh[i]] as const)
-        .filter(([c]) => c.replaces.length > 0)
+        .filter(([c]) => c.replaces.length > 0 || c.outsideHours)
         .map(([c, show]) => [
           commitKey(show),
-          { replaces: c.replaces, force: c.force, label: c.replacesLabel, soldTickets: c.soldTickets },
+          {
+            replaces: c.replaces, force: c.force, label: c.replacesLabel,
+            soldTickets: c.soldTickets, outsideHours: c.outsideHours,
+          },
         ])
     ));
 
     setBusy(true);
     setStartDate(windowStart);
     setDays(span);
-    setPicks(new Map([[reverseFilm.tmdbId!, { film: reverseFilm }]]));
+    // Se il film era già stato scelto — arrivando da `?tmdb=` — le specifiche
+    // spuntate fin lì restano: rifare la voce da zero le butterebbe via.
+    setPicks((prev) => new Map([[
+      reverseFilm.tmdbId!,
+      prev.get(reverseFilm.tmdbId!) ?? { film: reverseFilm, specs: defaultSpecsFor(reverseFilm) },
+    ]]));
     setShows(fresh);
     setWarnings([]);
 
@@ -530,12 +563,23 @@ export default function ProgrammazionePage() {
           // stata registrata: uno spettacolo spostato nel frattempo non la
           // ritrova, e quindi non cancella niente.
           const replacing = replacements.get(commitKey(s));
+          // Le specifiche stanno sul film e si copiano su ogni suo spettacolo:
+          // al commit ogni spettacolo viaggia da solo, e da lì in poi resta
+          // modificabile uno per uno senza toccare gli altri.
+          const pick = picks.get(s.tmdbId);
+          const specs = normalizeProjectionSpecs(pick?.specs);
+          const specsNote = pick?.specsNote?.trim();
           return {
             tmdbId: s.tmdbId,
             date: s.date,
             time: s.time,
             title: s.title,
-            ...(replacing ? { replaces: replacing.replaces, forceReplace: replacing.force } : {}),
+            ...(specs.length ? { specs } : {}),
+            ...(specsNote ? { specsNote } : {}),
+            ...(replacing?.replaces.length
+              ? { replaces: replacing.replaces, forceReplace: replacing.force }
+              : {}),
+            ...(replacing?.outsideHours ? { allowOutsideHours: true } : {}),
           };
         }),
       });
@@ -569,7 +613,7 @@ export default function ProgrammazionePage() {
     } finally {
       setRunning(false);
     }
-  }, [roomId, replacements]);
+  }, [roomId, replacements, picks]);
 
   const restart = () => {
     setPicks(new Map());
@@ -605,21 +649,23 @@ export default function ProgrammazionePage() {
           </div>
         </div>
 
-        <nav className={styles.steps}>
-          {STEP_LABELS[mode].map((label, i) => (
-            <React.Fragment key={label}>
-              {i > 0 && <ChevronRight size={13} className={styles.stepArrow} />}
-              <button
-                type="button"
-                className={`${styles.step} ${i + 1 === step ? styles.stepActive : ''} ${i + 1 < step ? styles.stepDone : ''}`}
-                onClick={() => { if (i + 1 < step && !running) setStep((i + 1) as WizardStep); }}
-                disabled={i + 1 >= step || running}
-              >
-                <b>{i + 1 < step ? '✓' : i + 1}</b> {label}
-              </button>
-            </React.Fragment>
-          ))}
-        </nav>
+        {mode !== 'palinsesto' && (
+          <nav className={styles.steps}>
+            {STEP_LABELS[mode].map((label, i) => (
+              <React.Fragment key={label}>
+                {i > 0 && <ChevronRight size={13} className={styles.stepArrow} />}
+                <button
+                  type="button"
+                  className={`${styles.step} ${i + 1 === step ? styles.stepActive : ''} ${i + 1 < step ? styles.stepDone : ''}`}
+                  onClick={() => { if (i + 1 < step && !running) setStep((i + 1) as WizardStep); }}
+                  disabled={i + 1 >= step || running}
+                >
+                  <b>{i + 1 < step ? '✓' : i + 1}</b> {label}
+                </button>
+              </React.Fragment>
+            ))}
+          </nav>
+        )}
 
         <Link className={styles.exitBtn} href="/admin" title="Torna all'admin"><X size={19} /></Link>
       </header>
@@ -668,6 +714,20 @@ export default function ProgrammazionePage() {
         />
       )}
 
+      {mode === 'palinsesto' && (
+        <Palinsesto
+          rooms={rooms}
+          roomId={roomId}
+          onRoomChange={(id) => { setRoomId(id); localStorage.setItem('defaultSalaId', String(id)); }}
+          startDate={startDate}
+          onStartDateChange={setStartDate}
+          days={days}
+          onDaysChange={setDays}
+          occupancy={occupancy}
+          loading={loadingOccupancy}
+        />
+      )}
+
       {step === 2 && mode === 'period' && (
         <StepCatalog
           picks={picks}
@@ -707,6 +767,7 @@ export default function ProgrammazionePage() {
           onDelete={deleteShow}
           onMove={moveShow}
           onReplicasChange={changeReplicas}
+          onSpecsChange={updatePick}
           onRegenerate={regenerate}
           replacements={replacements}
         />
@@ -723,7 +784,7 @@ export default function ProgrammazionePage() {
         />
       )}
 
-      {step < 4 && (
+      {step < 4 && mode !== 'palinsesto' && (
         <footer className={styles.footer}>
           {step > 1 && (
             <button className={styles.ghostBtn} onClick={() => setStep((step - 1) as WizardStep)}>

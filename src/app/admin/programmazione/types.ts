@@ -1,6 +1,7 @@
 import type { ScheduledShow } from '@/services/scheduling/engine';
 import type { Band } from '@/services/scheduling/times';
 import type { PlanningFilmInfo, SlotProposal } from '@/actions/planningActions';
+import type { ProjectionSpecCode } from '@/constants/projectionSpecs';
 
 /** Un film del catalogo, come lo vede il wizard. */
 export interface CatalogItem {
@@ -16,6 +17,8 @@ export interface CatalogItem {
   voteAverage: number | null;
   awardLabels: string[];
   inPlex: boolean;
+  /** Le librerie Plex in cui esiste: `["Film"]`, `["4K"]` o entrambe. */
+  plexLibraries?: string[];
   verifyStatus: string;
   scheduledCount: number;
   /**
@@ -28,13 +31,15 @@ export interface CatalogItem {
 }
 
 /**
- * I due versi del wizard.
+ * I tre modi della programmazione.
  *
  * `period` — dal periodo al film: scegli dove e quando, il motore riempie.
  * `film` — dal film al periodo: scegli il titolo, e sono gli orari liberi a
  * farsi avanti, dal giorno più vicino.
+ * `palinsesto` — né l'uno né l'altro: qui non si crea niente, si guarda cosa
+ * c'è già e lo si sposta o si elimina. Non è un wizard, è una vista sola.
  */
-export type PlanningMode = 'period' | 'film';
+export type PlanningMode = 'period' | 'film' | 'palinsesto';
 
 /**
  * Un orario scelto, con quello che comporta.
@@ -56,6 +61,13 @@ export interface ChosenSlot {
   force: boolean;
   /** Scelto a mano invece che fra le proposte. */
   manual: boolean;
+  /**
+   * Sfora la fascia d'apertura: comincia prima delle 10:00, oppure il film
+   * finisce dopo l'01:00. Le proposte automatiche non lo sono mai; un orario
+   * deciso a mano può esserlo, e allora al commit va chiesto esplicitamente
+   * (`allowOutsideHours`), altrimenti la creazione lo rifiuta.
+   */
+  outsideHours?: boolean;
 }
 
 /** Identità di un orario: il minuto d'inizio è già unico dentro la finestra. */
@@ -69,6 +81,31 @@ export interface Pick {
   /** `undefined` = decide il motore. */
   replicas?: number;
   preferredBand?: Band;
+  /**
+   * Come lo si proietta: 4K, Dolby Vision, Atmos, versione IMAX.
+   *
+   * Vale per **tutti** gli spettacoli di quel film in questo piano. Programmare
+   * lo stesso titolo con specifiche diverse a orari diversi si fa in due
+   * passaggi, ed è la scelta giusta: nel caso normale — un film, una copia — la
+   * spunta si dà una volta invece che dieci.
+   */
+  specs?: ProjectionSpecCode[];
+  /** La riga libera, per ciò che le caselle non prevedono. */
+  specsNote?: string;
+}
+
+/**
+ * Le specifiche con cui un film si presenta la prima volta che lo scegli.
+ *
+ * Se la copia in libreria è quella 4K, il 4K parte spuntato: è l'unica cosa che
+ * il catalogo sa già con certezza, e ripetergliela a ogni programmazione
+ * sarebbe lavoro inutile. Tutto il resto — Dolby Vision, Atmos, IMAX — dipende
+ * da com'è la copia e da come si proietta quella sera, e nessuno lo sa al posto
+ * di chi programma. Resta comunque una proposta: si toglie con un clic.
+ */
+export function defaultSpecsFor(film: CatalogItem): ProjectionSpecCode[] {
+  const libraries = film.plexLibraries ?? [];
+  return libraries.some((l) => l.trim().toUpperCase() === '4K') ? ['4K'] : [];
 }
 
 export type WizardStep = 1 | 2 | 3 | 4;
