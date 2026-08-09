@@ -51,6 +51,28 @@ export interface ExistingShow {
   runtime: number;
   startMinute: number;
   endMinute: number;
+  /**
+   * Che film è, quando si riesce a saperlo: sta nel `comment` del sub-evento
+   * Pretix, e c'è solo per gli spettacoli nati da qui.
+   *
+   * Senza questo, uno spettacolo già in sala è solo un titolo: si può
+   * eliminare, ma non **spostare** — spostarlo vuol dire ricrearlo altrove, e
+   * per ricrearlo bisogna sapere quale film è. Indovinarlo dal titolo è
+   * esattamente il modo di programmare l'omonimo sbagliato.
+   *
+   * `null` per ciò che è stato creato fuori dalla programmazione: l'app deve
+   * trattarlo come «questo non lo posso spostare», non come un errore.
+   */
+  tmdbId?: string | null;
+  /**
+   * Poster dal catalogo, quando il film c'è.
+   *
+   * Non è una chiamata a TMDB per spettacolo: lo riempie chi legge già il
+   * catalogo per altri motivi — `planningGetPeriodOccupancy` lo fa per i generi
+   * del periodo. Dove nessuno lo riempie resta assente, ed è giusto così: una
+   * lista di orari non ha bisogno delle locandine.
+   */
+  posterPath?: string | null;
 }
 
 // `FreeGap` non viene ri-esportato da qui: in un file `'use server'` ogni
@@ -211,7 +233,24 @@ export async function planningGetPeriodOccupancy(
   const today = todayInRome();
 
   const daysDetail: DayOccupancy[] = [];
-  const tmdbIdsInPeriod = new Set<string>();
+
+  // Gli spettacoli della finestra si conoscono già tutti: raccogliere qui i
+  // film permette di leggere il catalogo **una volta**, prima del giro sui
+  // giorni, e di appoggiare il poster su ogni proiezione mentre la si scrive.
+  const inWindow = shows.filter((s) => s.dayIndex >= 0 && s.dayIndex < dayCount);
+  const tmdbIdsInPeriod = new Set(
+    inWindow.map((s) => s.tmdbId).filter((v): v is string => Boolean(v))
+  );
+
+  const catalogRows = tmdbIdsInPeriod.size
+    ? await prisma.catalogFilm.findMany({
+        where: { tmdbId: { in: [...tmdbIdsInPeriod] } },
+        select: { tmdbId: true, genres: true, posterPath: true },
+      })
+    : [];
+  const posterByTmdb = new Map(
+    catalogRows.filter((f) => f.tmdbId).map((f) => [f.tmdbId!, f.posterPath ?? null])
+  );
 
   for (let d = 0; d < dayCount; d++) {
     const date = addDaysISO(startDate, d);
@@ -219,7 +258,6 @@ export async function planningGetPeriodOccupancy(
     const dayShows = shows
       .filter((s) => s.dayIndex === d)
       .sort((a, b) => a.startMinute - b.startMinute);
-    dayShows.forEach((s) => { if (s.tmdbId) tmdbIdsInPeriod.add(s.tmdbId); });
 
     // La saturazione e i buchi li calcola il modulo puro, quello che ha i test.
     const summary = summarizeDay(
@@ -232,7 +270,14 @@ export async function planningGetPeriodOccupancy(
       weekday: new Date(`${date}T12:00:00Z`).toLocaleDateString('it-IT', { weekday: 'long', timeZone: 'UTC' }),
       isWeekend: isWeekend(date),
       isPast: date < today,
-      shows: dayShows.map(({ dayIndex: _d, tmdbId: _t, ...rest }) => rest),
+      // `tmdbId` resta: è ciò che permette a un client di spostare uno
+      // spettacolo già in sala invece di poterlo solo cancellare. `dayIndex`
+      // no — è l'indice interno della finestra, e fuori di qui non vuol dire
+      // niente.
+      shows: dayShows.map(({ dayIndex: _d, ...rest }) => ({
+        ...rest,
+        posterPath: rest.tmdbId ? posterByTmdb.get(rest.tmdbId) ?? null : null,
+      })),
       busyMinutes: summary.busyMinutes,
       saturation: summary.saturation,
       gaps: summary.gaps,
@@ -240,25 +285,13 @@ export async function planningGetPeriodOccupancy(
   }
 
   const freeSlotsEstimate = daysDetail.reduce((sum, d) => sum + estimateFreeSlots(d.gaps), 0);
-
-  const genresInSchedule = tmdbIdsInPeriod.size
-    ? [
-        ...new Set(
-          (
-            await prisma.catalogFilm.findMany({
-              where: { tmdbId: { in: [...tmdbIdsInPeriod] } },
-              select: { genres: true },
-            })
-          ).flatMap((f) => f.genres)
-        ),
-      ]
-    : [];
+  const genresInSchedule = [...new Set(catalogRows.flatMap((f) => f.genres))];
 
   return {
     startDate,
     days: dayCount,
     daysDetail,
-    totalShows: shows.filter((s) => s.dayIndex >= 0 && s.dayIndex < dayCount).length,
+    totalShows: inWindow.length,
     freeSlotsEstimate,
     genresInSchedule,
     occupied,
@@ -573,7 +606,8 @@ export async function planningFindSlots(
       weekday: new Date(`${day}T12:00:00Z`).toLocaleDateString('it-IT', { weekday: 'long', timeZone: 'UTC' }),
       isWeekend: isWeekend(day),
       saturation: summary.saturation,
-      existing: dayShows.map(({ dayIndex: _d, tmdbId: _t, ...rest }) => rest),
+      // Come in `/occupancy`: `tmdbId` resta, `dayIndex` no. Vedi `ExistingShow`.
+      existing: dayShows.map(({ dayIndex: _d, ...rest }) => rest),
       slots: slots.map((s) => ({
         day,
         // Uno spettacolo che comincia dopo la mezzanotte appartiene a questa
@@ -618,6 +652,19 @@ export interface ManualSlotCheck {
   soldTickets: number;
   /** Spiegazione leggibile: perché non si può, o cosa comporta sostituire. */
   message: string;
+  /**
+   * L'orario esce dalla fascia d'apertura: comincia prima delle 10:00 o il film
+   * finisce dopo l'01:00.
+   *
+   * Non è un rifiuto. Le proposte automatiche restano dentro l'orario — è lì
+   * che deve stare un palinsesto normale — ma una serata decisa a mano, un film
+   * lungo, una maratona, sono scelte di chi il cinema lo apre: si avvertono, non
+   * si impediscono. Chi conferma uno slot così deve mandare `allowOutsideHours`
+   * al commit, altrimenti la creazione lo rifiuta.
+   */
+  outsideHours: boolean;
+  /** Cosa comporta uscire dall'orario, in italiano. Nil se si sta dentro. */
+  warning: string | null;
 }
 
 /**
@@ -644,6 +691,7 @@ export async function planningCheckManualSlot(input: {
 }): Promise<ManualSlotCheck> {
   const nothing = (message: string): ManualSlotCheck => ({
     free: false, usable: false, slot: null, conflicts: [], soldTickets: 0, message,
+    outsideHours: false, warning: null,
   });
 
   const clock = /^(\d{1,2}):(\d{2})$/.exec(input.time.trim());
@@ -691,20 +739,35 @@ export async function planningCheckManualSlot(input: {
   if (check.problem === 'past') {
     return nothing('Quest\'orario è già passato, o sta per esserlo.');
   }
-  if (check.problem === 'beforeOpening') {
-    return nothing(`Il cinema apre alle ${formatClock(OPENING_MINUTE)}.`);
-  }
-  if (check.problem === 'afterClosing') {
-    return nothing(
-      `«${film.title}» dura ${film.runtime}′: partendo alle ${slot.time} finirebbe alle ` +
-      `${slot.endTime}, oltre la chiusura dell'${formatClock(CLOSING_MINUTE)}.`
-    );
-  }
 
-  if (check.ok) {
+  // ── Fuori orario: si avverte, non si vieta ──────────────────────────────
+  // Un orario passato è passato per tutti, e non c'è consenso che lo riporti
+  // indietro. L'apertura e la chiusura invece sono una decisione di chi il
+  // cinema lo gestisce, e qui sta scegliendo a mano un singolo film in un
+  // singolo giorno: il sito dice cosa comporta — a che ora finirebbe, di quanto
+  // si sfora — e poi si fa da parte.
+  const warning =
+    check.problem === 'afterClosing'
+      ? `«${film.title}» dura ${film.runtime}′: partendo alle ${slot.time} finisce alle ` +
+        `${slot.endTime}, oltre la chiusura dell'${formatClock(CLOSING_MINUTE)}.`
+      : check.problem === 'beforeOpening'
+        ? `Il cinema apre alle ${formatClock(OPENING_MINUTE)}: le ${slot.time} vengono prima ` +
+          'dell\'apertura.'
+        : null;
+  const outsideHours = warning !== null;
+
+  // Senza niente davanti l'orario è utilizzabile: fuori orario, ma libero. Il
+  // controllo dei conflitti è già stato fatto — `checkSlot` riporta le
+  // sovrapposizioni anche quando si ferma prima, sul limite d'orario — quindi
+  // qui non si sta saltando nessuna verifica: si sta solo declassando il
+  // divieto sull'orario ad avvertimento.
+  if (check.ok || (outsideHours && check.clashes.length === 0)) {
     return {
       free: true, usable: true, slot, conflicts: [], soldTickets: 0,
-      message: `Libero: ${slot.time}–${slot.endTime}.`,
+      outsideHours, warning,
+      message: warning
+        ? `${warning} Non c'è altro in sala: se vuoi farlo lo stesso, si può.`
+        : `Libero: ${slot.time}–${slot.endTime}.`,
     };
   }
 
@@ -735,7 +798,7 @@ export async function planningCheckManualSlot(input: {
   // falsa.
   if (countFailed) {
     return {
-      free: false, usable: false, slot, conflicts, soldTickets: 0,
+      free: false, usable: false, slot, conflicts, soldTickets: 0, outsideHours, warning,
       message: 'Non sono riuscito a controllare i biglietti venduti su ciò che occupa '
         + "quest'orario. Riprova: non ti propongo una sostituzione senza sapere chi ha già pagato.",
     };
@@ -747,7 +810,7 @@ export async function planningCheckManualSlot(input: {
   const unremovable = conflicts.filter((c) => c.pretixId == null);
   if (conflicts.length === 0 || unremovable.length > 0) {
     return {
-      free: false, usable: false, slot, conflicts, soldTickets: 0,
+      free: false, usable: false, slot, conflicts, soldTickets: 0, outsideHours, warning,
       message: 'Quest\'orario è occupato da qualcosa che non posso rimuovere da qui.',
     };
   }
@@ -761,6 +824,8 @@ export async function planningCheckManualSlot(input: {
     slot,
     conflicts,
     soldTickets,
+    outsideHours,
+    warning,
     message: soldTickets > 0
       ? `Qui c'è ${titles}, con ${soldTickets} bigliett${soldTickets === 1 ? 'o venduto' : 'i venduti'}. ` +
         'Sostituirlo lascia orfani ordini di gente che ha pagato: andranno rimborsati a mano da Pretix.'
