@@ -1499,6 +1499,11 @@ export async function adminPrepareMetadata(tmdbId: string) {
         customBackdropPath: existing?.customBackdropPath || metadata.backdrop_path || '',
         customLogoPath: existing?.customLogoPath || metadata.logo_path || '',
         customTrailerUrl: existing?.customTrailerUrl || metadata.trailerUrl || '',
+        // L'elenco completo, non solo il primo: è quello che la home usa come
+        // scorta quando YouTube rifiuta l'incorporamento del trailer migliore.
+        customTrailerKeys: (existing?.customTrailerKeys?.length)
+          ? existing.customTrailerKeys
+          : (metadata.trailerKeys || []),
         customRating: existing?.customRating || metadata.rating || 'T',
         customDirector: existing?.customDirector || (Array.isArray(metadata.director) ? metadata.director.join(', ') : (metadata.director || '')),
         customCast: existing?.customCast || (Array.isArray(metadata.cast) ? metadata.cast.join(', ') : (metadata.cast || '')),

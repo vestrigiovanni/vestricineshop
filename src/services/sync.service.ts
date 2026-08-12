@@ -564,6 +564,14 @@ export async function syncNewlyCreatedEvents(pretixIds: number[]) {
                   customDirector: existingMovie?.customDirector || (Array.isArray(tmdbData.director) ? tmdbData.director.join(', ') : tmdbData.director),
                   customCast: existingMovie?.customCast || (Array.isArray(tmdbData.cast) ? tmdbData.cast.join(', ') : tmdbData.cast),
                   customRating: existingMovie?.customRating || tmdbData.rating || 'T',
+                  // Il trailer nasce qui insieme al resto: ometterlo lasciava la
+                  // scheda senza pulsante per sempre, perché l'idratazione
+                  // profonda che lo scrive gira solo su record mancanti o stub —
+                  // e questo record, appena creato, non è né l'uno né l'altro.
+                  customTrailerUrl: existingMovie?.customTrailerUrl || tmdbData.trailerUrl || null,
+                  customTrailerKeys: ((existingMovie as any)?.customTrailerKeys?.length)
+                    ? (existingMovie as any).customTrailerKeys
+                    : (tmdbData.trailerKeys || []),
                   releaseDate: existingMovie?.releaseDate || tmdbData.release_date,
                   runtime: existingMovie?.runtime || tmdbData.runtime,
                   tagline: existingMovie?.tagline || tmdbData.tagline || null,
@@ -597,6 +605,8 @@ export async function syncNewlyCreatedEvents(pretixIds: number[]) {
                   customDirector: Array.isArray(tmdbData.director) ? tmdbData.director.join(', ') : (tmdbData.director || ''),
                   customCast: Array.isArray(tmdbData.cast) ? tmdbData.cast.join(', ') : (tmdbData.cast || ''),
                   customRating: tmdbData.rating || 'T',
+                  customTrailerUrl: tmdbData.trailerUrl || null,
+                  customTrailerKeys: tmdbData.trailerKeys || [],
                   isManualOverride: false,
                   isDraft: false,
                   releaseDate: tmdbData.release_date,
