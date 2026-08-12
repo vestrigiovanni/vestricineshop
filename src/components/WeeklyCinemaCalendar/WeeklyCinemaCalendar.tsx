@@ -7,6 +7,7 @@ import styles from './WeeklyCinemaCalendar.module.css';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import RatingBadge from '../RatingBadge';
 import LanguageBadge from '../LanguageBadge';
+import ProjectionSpecs from '../ProjectionSpecs';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import {
   cinemaToday,
@@ -32,7 +33,21 @@ interface SubEvent {
   date_to?: string;
   seating_plan?: number;
   roomName?: string;
-  meta_data?: Record<string, string>;
+  /**
+   * I metadati dello spettacolo. Erano `Record<string, string>` finché erano
+   * tutti stringhe: le specifiche di proiezione sono un elenco, e vanno
+   * dichiarate una per una invece di allargare l'indice a `unknown`.
+   */
+  meta_data?: {
+    lingua?: string;
+    sottotitoli?: string;
+    format?: string;
+    versionLanguage?: string;
+    subtitles?: string;
+    rating?: string;
+    specs?: string[];
+    specsNote?: string;
+  };
   comment?: string;
   isSoldOut?: boolean;
   calculatedRating?: string;
@@ -246,6 +261,11 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
                           version={se.meta_data?.format}
                           size="xs"
                           showLabel={false}
+                        />
+                        <ProjectionSpecs
+                          specs={se.meta_data?.specs}
+                          note={se.meta_data?.specsNote}
+                          size="xs"
                         />
                       </span>
                     </span>

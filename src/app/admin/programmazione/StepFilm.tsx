@@ -10,14 +10,17 @@
  * lo dicono gli orari liberi al passo dopo.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarRange, Clapperboard, Globe, Loader2, Search, X } from 'lucide-react';
 import styles from './Programmazione.module.css';
 import FilmCard from './FilmCard';
+import Pager from './Pager';
 import TmdbSearchModal from './TmdbSearchModal';
 import { catalogList } from '@/actions/catalogActions';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { runtimeOf, type CatalogItem } from './types';
+
+const PAGE_SIZE = 24;
 
 interface Props {
   rooms: { id: number; name: string; isFavorite: boolean }[];
@@ -39,6 +42,7 @@ export default function StepFilm({
   const [debounced, setDebounced] = useState('');
   const [results, setResults] = useState<CatalogItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [tmdbOpen, setTmdbOpen] = useState(false);
 
@@ -46,6 +50,15 @@ export default function StepFilm({
     const t = setTimeout(() => setDebounced(search.trim()), 350);
     return () => clearTimeout(t);
   }, [search]);
+
+  // Una ricerca nuova è un elenco nuovo: si riparte dalla prima pagina. Si
+  // azzera durante il render, così non parte prima una richiesta con la pagina
+  // vecchia e subito dopo un'altra con quella giusta.
+  const [querySeen, setQuerySeen] = useState(debounced);
+  if (querySeen !== debounced) {
+    setQuerySeen(debounced);
+    setPage(1);
+  }
 
   // Senza ricerca si mostrano i film mai programmati: è il caso più frequente,
   // e una griglia vuota in attesa che tu scriva sarebbe solo una schermata morta.
@@ -57,7 +70,8 @@ export default function StepFilm({
         const r = await catalogList({
           search: debounced || undefined,
           hideScheduled: !debounced,
-          pageSize: 24,
+          page,
+          pageSize: PAGE_SIZE,
           sort: debounced ? 'titleAsc' : 'yearDesc',
         });
         if (cancelled) return;
@@ -71,10 +85,16 @@ export default function StepFilm({
     }
     load();
     return () => { cancelled = true; };
-  }, [debounced]);
+  }, [debounced, page]);
 
   const usable = (f: CatalogItem) => Boolean(f.tmdbId) && f.verifyStatus !== 'missing';
   const shown = useMemo(() => results.filter(usable), [results]);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const gridRef = useRef<HTMLDivElement>(null);
+  const goToPage = (n: number) => {
+    setPage(n);
+    gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const pickedIds = useMemo(
     () => new Set(film?.tmdbId ? [film.tmdbId] : []),
     [film]
@@ -134,7 +154,7 @@ export default function StepFilm({
           {loading && <Loader2 size={15} className={styles.spin} />}
         </div>
 
-        <div className={styles.filmGrid}>
+        <div className={styles.filmGrid} ref={gridRef}>
           {shown.map((f) => (
             <FilmCard
               key={f.id}
@@ -155,11 +175,14 @@ export default function StepFilm({
             </p>
           </div>
         )}
-        {total > shown.length && (
-          <p className={styles.gridMore}>
-            Mostrati {shown.length} di {total}: scrivi qualche lettera per trovare il resto.
-          </p>
-        )}
+        <Pager
+          page={page}
+          pageCount={pageCount}
+          onChange={goToPage}
+          info={debounced
+            ? `${total} film per «${debounced}»`
+            : `${total} film mai programmati`}
+        />
       </section>
 
       <section className={styles.panel}>

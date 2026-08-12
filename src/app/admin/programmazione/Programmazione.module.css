@@ -287,6 +287,37 @@
 }
 .gridMore { font-size: 0.76rem; opacity: 0.45; margin: 0.9rem 0 0; text-align: center; }
 
+/* ── Paginatore ─────────────────────────────────────────────────────────── */
+.pager {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 0.35rem;
+  margin-top: 1.1rem; padding-top: 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.pagerNums { display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; }
+.pagerBtn, .pagerNum, .pagerNumOn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 2rem; height: 2rem; padding: 0 0.5rem;
+  border-radius: 8px; font-family: inherit; font-size: 0.78rem;
+  cursor: pointer; color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.pagerBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+.pagerNum { opacity: 0.65; }
+.pagerNum:hover, .pagerBtn:not(:disabled):hover { background: rgba(255, 255, 255, 0.12); opacity: 1; }
+.pagerNumOn {
+  font-weight: 650;
+  background: rgba(255, 255, 255, 0.9);
+  border-color: transparent;
+  color: #111;
+}
+.pagerGap { padding: 0 0.15rem; opacity: 0.35; font-size: 0.78rem; }
+.pagerInfo {
+  flex-basis: 100%; text-align: center;
+  font-size: 0.74rem; opacity: 0.42; margin-top: 0.25rem;
+}
+
 /* Ripiego su TMDB per i film non ancora in catalogo. */
 .tmdbFallback {
   margin-top: 1rem; padding: 0.9rem;

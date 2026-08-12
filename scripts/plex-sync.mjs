@@ -19,7 +19,7 @@
  * VARIABILI (in .env.local, solo su questa macchina)
  *   PLEX_URL            es. http://localhost:32400
  *   PLEX_TOKEN          il token del server Plex
- *   PLEX_LIBRARY        nome della libreria film (default: la prima di tipo "movie")
+ *   PLEX_LIBRARIES      librerie da leggere, separate da virgola (default: "Film,4K")
  *   CATALOG_SYNC_URL    es. https://vestricinema.com/api/catalog/plex-sync
  *   CATALOG_SYNC_SECRET lo stesso segreto configurato sul sito
  */
@@ -27,6 +27,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { mergeAcrossLibraries } from './plexMerge.mjs';
 
 const BATCH_SIZE = 150;
 
@@ -73,7 +74,21 @@ function readLocalPlexToken() {
 
 const PLEX_URL = (process.env.PLEX_URL || 'http://localhost:32400').replace(/\/+$/, '');
 const PLEX_TOKEN = process.env.PLEX_TOKEN || readLocalPlexToken();
-const PLEX_LIBRARY = process.env.PLEX_LIBRARY || '';
+
+/**
+ * Le librerie da leggere, per nome ed **elencate a mano**.
+ *
+ * Un elenco esplicito e non "tutte quelle di tipo film": sul server del cinema
+ * convivono anche librerie di servizio, e una libreria creata domani non deve
+ * finire in catalogo — e sotto gli occhi del pubblico — solo perché è nata.
+ *
+ * L'ordine conta: quando lo stesso film sta in più librerie, la prima
+ * dell'elenco è quella che dà l'identità alla riga di catalogo.
+ */
+const PLEX_LIBRARIES = (process.env.PLEX_LIBRARIES || 'Film,4K')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 const SYNC_URL = process.env.CATALOG_SYNC_URL;
 const SYNC_SECRET = process.env.CATALOG_SYNC_SECRET;
 
@@ -108,7 +123,15 @@ async function plexGet(pathname, params = {}) {
   return res.json();
 }
 
-async function findMovieSection() {
+/**
+ * Le sezioni Plex che corrispondono alle librerie chieste, nell'ordine chiesto.
+ *
+ * Una libreria dell'elenco che non esiste **ferma tutto** invece di essere
+ * saltata: sincronizzare metà catalogo credendo di averlo fatto tutto è peggio
+ * che non sincronizzare, perché poi il passo finale marca come "uscito dalla
+ * libreria" tutto ciò che non è arrivato.
+ */
+async function findMovieSections() {
   const data = await plexGet('/library/sections');
   const sections = data?.MediaContainer?.Directory ?? [];
   const movieSections = sections.filter((s) => s.type === 'movie');
@@ -116,16 +139,20 @@ async function findMovieSection() {
   if (movieSections.length === 0) {
     throw new Error('Nessuna libreria di tipo "film" trovata su questo server Plex.');
   }
-  if (!PLEX_LIBRARY) return movieSections[0];
 
-  const wanted = movieSections.find(
-    (s) => s.title.toLowerCase() === PLEX_LIBRARY.toLowerCase()
-  );
-  if (!wanted) {
-    const names = movieSections.map((s) => `"${s.title}"`).join(', ');
-    throw new Error(`Libreria "${PLEX_LIBRARY}" non trovata. Disponibili: ${names}`);
+  const found = [];
+  for (const wanted of PLEX_LIBRARIES) {
+    const hit = movieSections.find((s) => s.title.toLowerCase() === wanted.toLowerCase());
+    if (!hit) {
+      const names = movieSections.map((s) => `"${s.title}"`).join(', ');
+      throw new Error(
+        `Libreria "${wanted}" non trovata. Su questo Plex ci sono: ${names}.\n` +
+        `  Correggi PLEX_LIBRARIES in .env.local (ora vale "${PLEX_LIBRARIES.join(',')}").`
+      );
+    }
+    found.push(hit);
   }
-  return wanted;
+  return found;
 }
 
 /** Estrae l'id di un provider dai Guid di Plex (`tmdb://550` → "550"). */
@@ -157,9 +184,10 @@ function isUnmatchedInPlex(item) {
   return !guid && !(item?.Guid?.length > 0);
 }
 
-function normalizeFilm(item) {
+function normalizeFilm(item, libraryTitle) {
   return {
     plexKey: String(item.ratingKey),
+    libraries: [libraryTitle],
     plexUnmatched: isUnmatchedInPlex(item),
     title: (item.title || '').trim(),
     originalTitle: (item.originalTitle || '').trim() || null,
@@ -205,15 +233,26 @@ async function post(body) {
 async function main() {
   console.log(`\n🎬 Sincronizzazione catalogo da Plex\n   ${PLEX_URL}\n`);
 
-  const section = await findMovieSection();
-  console.log(`   Libreria: "${section.title}" (sezione ${section.key})`);
+  const sections = await findMovieSections();
 
-  const data = await plexGet(`/library/sections/${section.key}/all`, {
-    includeGuids: '1',
-    type: '1', // solo film
-  });
-  const raw = data?.MediaContainer?.Metadata ?? [];
-  const films = raw.map(normalizeFilm).filter((f) => f.title);
+  // Le copie così come stanno su Plex: una voce per file, doppioni compresi.
+  const copies = [];
+  for (const section of sections) {
+    const data = await plexGet(`/library/sections/${section.key}/all`, {
+      includeGuids: '1',
+      type: '1', // solo film
+    });
+    const raw = data?.MediaContainer?.Metadata ?? [];
+    const fromHere = raw.map((item) => normalizeFilm(item, section.title)).filter((f) => f.title);
+    console.log(`   Libreria "${section.title}": ${fromHere.length} film`);
+    copies.push(...fromHere);
+  }
+
+  const films = mergeAcrossLibraries(copies);
+  const inBoth = films.filter((f) => f.libraries.length > 1).length;
+  if (inBoth > 0) {
+    console.log(`   ${inBoth} presenti in più di una libreria: uniti in una riga sola`);
+  }
 
   const withTmdb = films.filter((f) => f.tmdbId).length;
   const homeVideo = films.filter((f) => f.plexUnmatched && (f.durationMin ?? 999) < 60);
@@ -225,7 +264,7 @@ async function main() {
     );
   }
 
-  if (films.length === 0) die('La libreria è vuota: non mando nulla.');
+  if (films.length === 0) die('Le librerie sono vuote: non mando nulla.');
 
   if (withTmdb === 0 && films.length > 0) {
     console.log(
@@ -263,7 +302,10 @@ async function main() {
   // quali film sono spariti dalla libreria. Non vengono cancellati — potrebbero
   // essere già programmati — ma solo marcati come non più in Plex.
   process.stdout.write('   Segnalo i film usciti dalla libreria… ');
-  const finale = await post({ finalize: true, allPlexKeys: films.map((f) => f.plexKey) });
+  // Tutte le chiavi viste, comprese quelle delle copie che la fusione ha messo
+  // da parte: una riga di catalogo agganciata alla copia 4K non deve risultare
+  // "uscita dalla libreria" solo perché stavolta ha vinto la copia normale.
+  const finale = await post({ finalize: true, allPlexKeys: copies.map((c) => c.plexKey) });
   console.log(`✓ ${finale.removedFromPlex} usciti`);
 
   console.log(

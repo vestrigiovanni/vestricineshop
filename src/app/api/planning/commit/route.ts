@@ -7,8 +7,13 @@ export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/planning/commit
- * { seatingPlanId, shows: [{ tmdbId, date, time, replaces?, forceReplace? }] }
- *   → { jobId }
+ * { seatingPlanId, shows: [{ tmdbId, date, time, replaces?, forceReplace?,
+ *   allowOutsideHours?, specs?, specsNote? }] } → { jobId }
+ *
+ * `specs` sono le specifiche di proiezione — "4K", "DOLBY_VISION", "ATMOS",
+ * "IMAX" — e diventano i bollini che il pubblico vede su quello spettacolo.
+ * I codici sconosciuti vengono scartati senza far fallire la creazione.
+ * `specsNote` è la riga libera, per ciò che i codici non prevedono.
  *
  * Risponde subito: la creazione prosegue in sottofondo e si segue con
  * GET /api/planning/commit/{jobId}.
@@ -25,6 +30,12 @@ export const dynamic = 'force-dynamic';
  * scavalca il rifiuto e lascia orfani gli ordini di chi ha pagato, che vanno
  * poi rimborsati a mano da Pretix. Non mandarlo senza un consenso esplicito
  * dell'utente, raccolto mostrando quanti biglietti sono in gioco.
+ *
+ * `allowOutsideHours` è un'altra cosa: permette a *quel* singolo spettacolo di
+ * cominciare prima dell'apertura o di finire dopo la chiusura. Non tocca i
+ * conflitti di sala, che restano rifiutati. Mandalo quando
+ * GET /api/planning/slots/check ha risposto `outsideHours: true` e l'utente ha
+ * visto l'avvertimento e ha voluto procedere lo stesso.
  */
 export async function POST(request: Request) {
   const denied = requireApiKey(request);

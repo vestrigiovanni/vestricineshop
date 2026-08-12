@@ -63,6 +63,14 @@ model PretixSync {
   metaLingua      String?
   metaSottotitoli String?
   metaFormat      String?
+
+  // --- Specifiche di proiezione (scelte in programmazione) ---
+  // Vivono qui e NON in Pretix di proposito: sono un fatto editoriale del sito.
+  // Attenzione a non aggiungerle a `syncData` in sync.service.ts — il sync
+  // notturno riscrive da Pretix, e Pretix di queste non sa niente: finirebbero
+  // azzerate ogni notte, esattamente come succederebbe usando `metaFormat`.
+  projectionSpecs     String[] @default([]) // codici da constants/projectionSpecs
+  projectionSpecsNote String? // la riga libera, per ciò che il vocabolario non prevede
   active          Boolean        @default(true)
   isHidden        Boolean        @default(false)
   updatedAt       DateTime       @updatedAt
@@ -95,6 +103,9 @@ model CatalogFilm {
   // --- Dalla libreria Plex (push dal Mac del cinema) ---
   plexKey      String?   @unique // ratingKey Plex: identifica il film nella libreria
   inPlex       Boolean   @default(false) // false = sparito dalla libreria, MAI cancellato
+  // In quali librerie vive: ["Film"], ["4K"] o entrambe. Un film che sta in due
+  // librerie resta UNA riga — il catalogo elenca opere, non copie.
+  plexLibraries String[] @default([])
   addedAt      DateTime? // quando è entrato in libreria → corsia "Novità"
 
   // --- Anagrafica estesa TMDB (arriva dalla stessa chiamata dell'arricchimento) ---

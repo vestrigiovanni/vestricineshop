@@ -107,6 +107,7 @@ export default function StepFreeSlots({
       console.error('[Programmazione] verifica orario manuale', e);
       setCheck({
         free: false, usable: false, slot: null, conflicts: [], soldTickets: 0,
+        outsideHours: false, warning: null,
         message: 'Non sono riuscito a controllare la sala. Riprova.',
       });
     } finally {
@@ -126,6 +127,7 @@ export default function StepFreeSlots({
       soldTickets: check.soldTickets,
       force: check.soldTickets > 0 && consent,
       manual: true,
+      outsideHours: check.outsideHours,
     });
     setCheck(null);
     setConsent(false);
@@ -226,15 +228,24 @@ export default function StepFreeSlots({
         {check && (
           <div
             className={`${styles.manualResult} ${
-              check.free ? styles.manualFree
+              check.free && !check.outsideHours ? styles.manualFree
               : check.usable ? styles.manualBusy
               : styles.manualNo
             }`}
           >
             <p className={styles.manualMessage}>
-              {check.usable && !check.free && <TriangleAlert size={15} />}
+              {check.usable && (!check.free || check.outsideHours) && <TriangleAlert size={15} />}
               {check.message}
             </p>
+
+            {/* Fuori orario si può, ma va detto qui e ridetto al riepilogo:
+                non è un dettaglio tecnico, è il cinema che resta aperto oltre
+                l'orario — con chi ci lavora dentro. */}
+            {check.outsideHours && check.usable && (
+              <p className={styles.manualMessage}>
+                Fuori dalla fascia d&apos;apertura: si può fare lo stesso, ma decidilo tu.
+              </p>
+            )}
 
             {check.conflicts.length > 0 && (
               <div className={styles.manualConflicts}>
@@ -268,7 +279,7 @@ export default function StepFreeSlots({
                 <p className={styles.manualDone}><Check size={14} /> Già fra gli orari scelti.</p>
               ) : (
                 <button
-                  className={check.free ? styles.ctaBtnSmall : styles.dangerBtnSmall}
+                  className={check.free && !check.outsideHours ? styles.ctaBtnSmall : styles.dangerBtnSmall}
                   onClick={addManual}
                   disabled={check.soldTickets > 0 && !consent}
                 >

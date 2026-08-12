@@ -1,5 +1,11 @@
 /**
- * Riceve la libreria Plex dal Mac del cinema (`scripts/plex-sync.mjs`).
+ * Riceve le librerie Plex dal Mac del cinema (`scripts/plex-sync.mjs`).
+ *
+ * Le librerie sono più d'una — "Film" e "4K" — ma i film arrivano già fusi:
+ * lo stesso titolo in due librerie è **una** riga di catalogo che si porta
+ * dietro l'elenco delle librerie in cui esiste. Il catalogo elenca opere, non
+ * copie, ed è quello che rende possibile programmarne una senza scegliere ogni
+ * volta fra due voci identiche.
  *
  * Il flusso è a blocchi: N chiamate con `{ films }`, poi una chiamata con
  * `{ finalize: true, allPlexKeys }` che marca come usciti dalla libreria i film
@@ -28,6 +34,13 @@ interface PlexFilm {
   tmdbId?: string | null;
   /** Plex non ha riconosciuto il film: guid `local://` o agente "none". */
   plexUnmatched?: boolean;
+  /**
+   * In quali librerie vive il film: `["Film"]`, `["4K"]` o entrambe. Lo script
+   * fonde le copie prima di mandarle, quindi qui arriva un film per opera.
+   * Assente sulle versioni vecchie dello script — e in quel caso ciò che è già
+   * scritto in catalogo resta, invece di essere azzerato.
+   */
+  libraries?: string[];
 }
 
 /**
@@ -104,6 +117,9 @@ async function ingestFilms(films: PlexFilm[]) {
       const fromPlex = {
         plexKey: film.plexKey,
         inPlex: true,
+        plexLibraries: Array.isArray(film.libraries)
+          ? film.libraries.filter((l): l is string => typeof l === 'string' && l.trim() !== '')
+          : match?.row.plexLibraries ?? [],
         addedAt: film.addedAt ? new Date(film.addedAt) : null,
         durationMin: film.durationMin ?? match?.row.durationMin ?? null,
         originalTitle: film.originalTitle ?? match?.row.originalTitle ?? null,

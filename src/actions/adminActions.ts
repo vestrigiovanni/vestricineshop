@@ -569,7 +569,19 @@ export async function adminScheduleMovie(
    * confrontato con gli esistenti E con quelli creati poco prima — ma Pretix
    * viene letto una volta sola per l'intero lotto.
    */
-  knownBlocked?: { start: number; end: number; title: string; runtime: number }[]
+  knownBlocked?: { start: number; end: number; title: string; runtime: number }[],
+  /**
+   * Consente lo sconfinamento dall'orario d'apertura — inizio prima delle
+   * 10:00, fine del film dopo l'01:00 — e **soltanto** quello.
+   *
+   * A differenza di `override`, che spegne anche il controllo delle
+   * sovrapposizioni, questo lascia in piedi ogni verifica sulla sala: due film
+   * insieme restano impossibili. Serve a chi programma a mano un singolo
+   * spettacolo sapendo già cosa comporta, perché il sito gliel'ha detto e lui
+   * ha risposto di sì; l'orario d'apertura è una regola di chi gestisce il
+   * cinema, non una legge fisica.
+   */
+  allowOutsideHours: boolean = false
 ) {
   try {
     // ── TRACCIAMENTO ESECUZIONE (visibile nei log Vercel) ──────────────────────
@@ -579,6 +591,7 @@ export async function adminScheduleMovie(
       timeStr,
       seatingPlanId,
       override,
+      allowOutsideHours,
       serverTime: new Date().toISOString()
     });
 
@@ -696,8 +709,13 @@ export async function adminScheduleMovie(
     const dayStartMs = getRomeDayStartMs(startDate);
     const dayMap = getDayOccupancyMap(blockedIntervals, startDate);
 
-    // Enforce opening hours for non-overridden requests
-    if (!override) {
+    // Enforce opening hours for non-overridden requests.
+    // `allowOutsideHours` salta questo blocco e nient'altro: il controllo dei
+    // conflitti qui sotto vale anche per gli spettacoli fuori orario.
+    if (allowOutsideHours) {
+      console.log(`[adminScheduleMovie] 🌙 Fuori orario consentito su richiesta esplicita`, { dateStr, timeStr });
+    }
+    if (!override && !allowOutsideHours) {
       const transitionDateMs = getRomeDayStartMs(new Date('2026-06-09'));
       if (dayStartMs >= transitionDateMs) {
         // Apertura e chiusura vengono dal motore: se un giorno cambiano, cambiano

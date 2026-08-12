@@ -1,0 +1,87 @@
+/*
+ * I bollini della qualità di proiezione.
+ *
+ * Stessa famiglia dei badge di lingua (`LanguageBadge.module.css`) — stesso
+ * font, stesse spaziature, stessi tagli d'angolo — ma un colore diverso e solo
+ * quello: questi parlano di come si vede, non di che lingua si sente, e chi
+ * guarda deve poterli distinguere senza leggerli.
+ */
+
+.badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-family: var(--font-outfit, 'Outfit', sans-serif);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.badge {
+  background: rgba(168, 85, 247, 0.16);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.38);
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  line-height: 1.25;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sm {
+  gap: 4px;
+}
+.sm .badge {
+  padding: 2px 6px;
+  font-size: 0.6rem;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.xs {
+  gap: 2px;
+}
+.xs .badge {
+  padding: 1px 4px;
+  font-size: 0.53rem;
+  border-radius: 2px;
+  letter-spacing: 0.02em;
+}
+
+/* ── La riga estesa della scheda film ─────────────────────────────────────── */
+
+.line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+  font-family: var(--font-outfit, 'Outfit', sans-serif);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+}
+
+.lineLabel {
+  color: rgba(255, 255, 255, 0.42);
+  font-weight: 600;
+}
+
+.lineItem {
+  color: #d8b4fe;
+  text-transform: uppercase;
+  cursor: help;
+}
+
+.lineSep {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 768px) {
+  .line {
+    font-size: 0.68rem;
+    gap: 5px;
+    margin-top: 8px;
+  }
+}

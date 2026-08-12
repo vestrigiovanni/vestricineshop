@@ -8,13 +8,14 @@
  * durate dei buchi liberi e propone film che ci incastrano.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Clapperboard, Dices, Globe, Loader2, Search, X } from 'lucide-react';
 import styles from './Programmazione.module.css';
 import { catalogGetFacets, catalogGetRails, catalogList } from '@/actions/catalogActions';
 import { CATALOG_RAIL_HINTS, RUNTIME_BUCKETS, type RuntimeBucketKey } from '@/constants/catalogRails';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import FilmCard from './FilmCard';
+import Pager from './Pager';
 import TmdbSearchModal from './TmdbSearchModal';
 import { BAND_CHOICES, runtimeOf, type CatalogItem, type Pick } from './types';
 import type { Band } from '@/services/scheduling/times';
@@ -30,6 +31,8 @@ interface Props {
 
 type Rail = { rail: string; label: string; films: CatalogItem[] };
 
+const GRID_PAGE_SIZE = 60;
+
 export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genresInSchedule }: Props) {
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -43,6 +46,7 @@ export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genre
   const [rails, setRails] = useState<Rail[]>([]);
   const [grid, setGrid] = useState<CatalogItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loadingRails, setLoadingRails] = useState(true);
   const [loadingGrid, setLoadingGrid] = useState(true);
   const [railNonce, setRailNonce] = useState(0);
@@ -71,6 +75,16 @@ export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genre
     onlyInPlex,
   }), [debounced, genre, decade, bucket, hideScheduled, onlyInPlex]);
 
+  // Cambiare filtro riporta a pagina 1: restare alla nona pagina di un elenco
+  // che ora ne ha due significherebbe guardare il vuoto. Si azzera durante il
+  // render e non in un effetto, così la griglia non fa prima una richiesta con
+  // la pagina vecchia e poi subito un'altra con quella giusta.
+  const [paramsSeen, setParamsSeen] = useState(params);
+  if (paramsSeen !== params) {
+    setParamsSeen(params);
+    setPage(1);
+  }
+
   // Le corsie sono cinque query: senza il flag di annullamento, una risposta
   // lenta arrivata in ritardo sovrascriverebbe quella dei filtri più recenti.
   useEffect(() => {
@@ -95,7 +109,7 @@ export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genre
     async function loadGrid() {
       setLoadingGrid(true);
       try {
-        const r = await catalogList({ ...params, pageSize: 60, sort: 'titleAsc' });
+        const r = await catalogList({ ...params, page, pageSize: GRID_PAGE_SIZE, sort: 'titleAsc' });
         if (cancelled) return;
         setGrid(r.films as unknown as CatalogItem[]);
         setTotal(r.total);
@@ -107,12 +121,21 @@ export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genre
     }
     loadGrid();
     return () => { cancelled = true; };
-  }, [params]);
+  }, [params, page]);
 
   const isPicked = useCallback((f: CatalogItem) => Boolean(f.tmdbId && picks.has(f.tmdbId)), [picks]);
   const usable = (f: CatalogItem) => Boolean(f.tmdbId) && f.verifyStatus !== 'missing';
 
   const hasFilters = Boolean(debounced || genre || decade || bucket || onlyInPlex);
+
+  const pageCount = Math.max(1, Math.ceil(total / GRID_PAGE_SIZE));
+  const gridRef = useRef<HTMLElement>(null);
+  // Cambiando pagina si resta dove si era, cioè in fondo alla griglia: senza
+  // questo salto si guarderebbe la coda della pagina nuova invece della testa.
+  const goToPage = (n: number) => {
+    setPage(n);
+    gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
     <main className={styles.stepBody}>
@@ -198,10 +221,11 @@ export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genre
       </section>
 
       {/* ── Griglia completa ───────────────────────────────────────────── */}
-      <section className={styles.panel}>
+      <section className={styles.panel} ref={gridRef}>
         <h2 className={styles.panelTitle}>
           Tutto il catalogo
           <span className={styles.countPill}>{total} film</span>
+          {pageCount > 1 && <span className={styles.countPill}>pagina {page} di {pageCount}</span>}
           {loadingGrid && <Loader2 size={15} className={styles.spin} />}
         </h2>
         <div className={styles.filmGrid}>
@@ -227,11 +251,12 @@ export default function StepCatalog({ picks, onToggle, onUpdatePick, gaps, genre
             </button>
           </div>
         )}
-        {total > grid.length && (
-          <p className={styles.gridMore}>
-            Mostrati i primi {grid.filter(usable).length} di {total}: restringi la ricerca per trovare il resto.
-          </p>
-        )}
+        <Pager
+          page={page}
+          pageCount={pageCount}
+          onChange={goToPage}
+          info={`${total} film in tutto — puoi sfogliarli tutti, o restringere con i filtri`}
+        />
       </section>
 
       {/* ── Vassoio dei selezionati ────────────────────────────────────── */}

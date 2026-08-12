@@ -21,6 +21,12 @@ const MAX_DAY_OFFSET = 58;
  * Non tocca niente: la rimozione dei conflitti avviene solo alla conferma,
  * dentro POST /api/planning/commit.
  *
+ * Un orario fuori dalla fascia d'apertura — prima delle 10:00, o con il film
+ * che finisce dopo l'01:00 — non è più un rifiuto: torna `outsideHours: true`
+ * con un `warning` già scritto in italiano, da mostrare tale e quale. Chi
+ * decide di procedere manda poi `allowOutsideHours: true` su quello spettacolo
+ * al commit; senza, la creazione lo rifiuta.
+ *
  * `from` è l'origine dell'asse dei minuti, non un filtro: passa lo stesso
  * `fromDate` che ti ha restituito /api/planning/slots, così `startMinute` e
  * `endMinute` di questo slot sono confrontabili con quelli delle proposte. Se

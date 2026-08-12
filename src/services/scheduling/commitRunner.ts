@@ -9,6 +9,7 @@
  */
 
 import { createJob, getJob, updateJob, type CommitError } from './commitJobs';
+import { normalizeProjectionSpecs, normalizeProjectionSpecsNote } from '@/constants/projectionSpecs';
 
 export interface CommitShowInput {
   tmdbId: string;
@@ -31,6 +32,27 @@ export interface CommitShowInput {
    * Senza, la rimozione si rifiuta e lo spettacolo nuovo non viene creato.
    */
   forceReplace?: boolean;
+  /**
+   * Creare anche se lo spettacolo esce dalla fascia d'apertura: comincia prima
+   * delle 10:00, oppure il film finisce dopo l'01:00.
+   *
+   * Vale **solo** sull'orario d'apertura. Le sovrapposizioni con ciò che è già
+   * in sala restano rifiutate come sempre: questo non è un lasciapassare
+   * generale, è il permesso di tenere aperto più a lungo per una serata decisa
+   * a mano — la maratona, il film di tre ore, l'ultimo spettacolo lungo.
+   */
+  allowOutsideHours?: boolean;
+  /**
+   * Come si proietta: codici da `constants/projectionSpecs` (4K, DOLBY_VISION,
+   * ATMOS, IMAX). Diventano i bollini che il pubblico vede sullo spettacolo.
+   *
+   * Si scrivono sul database del sito **dopo** il sync e non passano da Pretix:
+   * il sync notturno riscrive da Pretix tutto ciò che Pretix conosce, e queste
+   * lì non esistono. Ciò che non conosce, non lo tocca.
+   */
+  specs?: string[];
+  /** La riga libera, per ciò che le caselle non prevedono. */
+  specsNote?: string;
 }
 
 export interface CommitInput {
@@ -119,6 +141,8 @@ async function run(jobId: string, input: CommitInput): Promise<void> {
   const created: number[] = [];
   const createdFilms = new Set<string>();
   const errors: CommitError[] = [];
+  /** Le specifiche di proiezione, in attesa che il sync crei le righe locali. */
+  const specsToWrite: { pretixId: number; specs: string[]; note: string | null }[] = [];
 
   // Il palinsesto viaggia di spettacolo in spettacolo: si legge da Pretix una
   // volta sola (dentro la prima creazione) e poi si passa avanti aggiornato.
@@ -231,12 +255,18 @@ async function run(jobId: string, input: CommitInput): Promise<void> {
       0,
       true, // il sync si fa una volta sola, alla fine
       meta[s.tmdbId] ?? undefined,
-      blocked
+      blocked,
+      // Solo l'orario d'apertura si piega, e solo se l'ha chiesto chi ha
+      // scelto questo spettacolo a mano: i conflitti di sala no, mai.
+      s.allowOutsideHours ?? false
     );
 
     if (res.success && res.subeventId) {
       created.push(res.subeventId);
       createdFilms.add(s.tmdbId);
+      const specs = normalizeProjectionSpecs(s.specs);
+      const note = normalizeProjectionSpecsNote(s.specsNote);
+      if (specs.length > 0 || note) specsToWrite.push({ pretixId: res.subeventId, specs, note });
       blocked = (res as { blockedAfter?: typeof blocked }).blockedAfter ?? blocked;
     } else {
       errors.push({ key: showKeyOf(s), label, error: res.error || 'errore sconosciuto' });
@@ -256,6 +286,34 @@ async function run(jobId: string, input: CommitInput): Promise<void> {
     const sync = await adminSyncNewlyCreatedEvents(created);
     if (!sync.success) {
       errors.push({ key: 'sync', label: 'Sincronizzazione database', error: sync.error ?? 'errore' });
+    }
+  }
+
+  // ── 3-bis. Le specifiche di proiezione, dopo il sync ──────────────────────
+  // Dopo e non prima: è il sync a creare le righe `PretixSync`, e scrivere su
+  // una riga che non c'è ancora non scriverebbe niente. Il sync non le può
+  // sovrascrivere — legge da Pretix, e Pretix di queste colonne non sa nulla —
+  // quindi una volta posate restano.
+  //
+  // Un fallimento qui non invalida lo spettacolo: è già in sala e già in
+  // vendita. Si segnala come errore riportabile e il resto del lotto prosegue.
+  if (specsToWrite.length > 0) {
+    updateJob(jobId, { step: 'Scrivo le specifiche di proiezione', done });
+    const prisma = (await import('@/lib/prisma')).default;
+    for (const { pretixId, specs, note } of specsToWrite) {
+      try {
+        await prisma.pretixSync.update({
+          where: { pretixId },
+          data: { projectionSpecs: specs, projectionSpecsNote: note },
+        });
+      } catch (err) {
+        console.error('[commitRunner] specifiche non scritte per', pretixId, err);
+        errors.push({
+          key: `specs-${pretixId}`,
+          label: `Specifiche di proiezione · spettacolo ${pretixId}`,
+          error: 'Lo spettacolo è stato creato, ma i bollini non sono stati salvati.',
+        });
+      }
     }
   }
 

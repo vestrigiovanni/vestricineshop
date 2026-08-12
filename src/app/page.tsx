@@ -6,6 +6,7 @@ import { formatShowDayLabel, formatShowTime, formatYear } from '@/utils/cinemaDa
 import styles from './page.module.css';
 import { unstable_noStore as noStore } from 'next/cache';
 import type { MovieOverride, PretixSync } from '@prisma/client';
+import { commonProjectionSpecs, normalizeProjectionSpecs } from '@/constants/projectionSpecs';
 
 // Define the type for the projection with the included movie
 type ProjectionWithMovie = PretixSync & {
@@ -88,6 +89,10 @@ export default async function Home() {
       language: p.metaLingua || '',
       subtitles: p.metaSottotitoli || '',
       format: p.metaFormat || '',
+      // Come si proietta *questo* spettacolo: due repliche dello stesso film
+      // possono avere bollini diversi, ed è tutto il senso di tenerli qui.
+      specs: normalizeProjectionSpecs(p.projectionSpecs),
+      specsNote: p.projectionSpecsNote || '',
       rating: p.movie.customRating || 'T',
       roomName: roomName
     });
@@ -106,6 +111,12 @@ export default async function Home() {
   const movies: GroupedMovie[] = Object.values(groupedRecord).map(({ movie, subevents }) => {
     // Il film è considerato Sold Out se TUTTE le sue proiezioni future lo sono
     const isMovieSoldOut = subevents.length > 0 && subevents.every((se: any) => se.isSoldOut);
+
+    // I bollini della *scheda* film sono solo quelli veri per ogni suo
+    // spettacolo: le differenze fra una replica e l'altra si leggono sull'orario.
+    const commonSpecs = commonProjectionSpecs(
+      subevents.map((se: { specs: string[] }) => se.specs)
+    );
 
     const m = movie as any;
     // Se è Anora, stampiamo TUTTE le chiavi del record per capire come si chiamano le colonne
@@ -143,6 +154,7 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
       versionLanguage: movie.versionLanguage || '',
       subtitles: movie.subtitles || '',
       format: (movie as any).customVersion || '',
+      specs: commonSpecs,
       awards: (movie as any).awards || [],
       tagline: ((movie as any).tagline || '').trim(),
       extraBackdrops: Array.isArray((movie as any).extraBackdrops) ? (movie as any).extraBackdrops : [],
@@ -179,6 +191,8 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
       lingua: p.metaLingua || p.movie?.versionLanguage || '',
       sottotitoli: p.metaSottotitoli || p.movie?.subtitles || '',
       format: p.metaFormat || p.movie?.customVersion || '',
+      specs: normalizeProjectionSpecs(p.projectionSpecs),
+      specsNote: p.projectionSpecsNote || '',
       versionLanguage: p.metaLingua || p.movie?.versionLanguage || '',
       subtitles: p.metaSottotitoli || p.movie?.subtitles || '',
       rating: p.movie?.customRating || 'T'

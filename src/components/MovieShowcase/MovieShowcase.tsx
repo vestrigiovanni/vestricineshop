@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import styles from './MovieShowcase.module.css';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
-import { getMovieTags, TagInfo } from '@/utils/languageUtils';
+import ProjectionSpecs from '../ProjectionSpecs';
 import { useAutoScroll } from '@/context/AutoScrollContext';
 import { Video, ChevronLeft, ChevronRight } from 'lucide-react';
 import useSWR from 'swr';
@@ -43,6 +43,8 @@ export interface GroupedMovie {
   versionLanguage?: string;
   subtitles?: string;
   format?: string;
+  /** Le specifiche comuni a tutti gli spettacoli del film. Vedi `app/page.tsx`. */
+  specs?: string[];
   subevents: any[];
   awards?: any[];
   tagline?: string;
@@ -366,7 +368,12 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                   </div>
                 )}
               </div>
-              
+
+              {/* Come si proietta: solo ciò che vale per *tutti* gli spettacoli
+                  del film — le differenze fra una replica e l'altra si leggono
+                  sul singolo orario, qui sotto. */}
+              <ProjectionSpecs specs={activeMovie.specs} variant="line" />
+
               <div className={styles.overviewContainer}>
                 <p className={isOverviewExpanded ? `${styles.overview} ${styles.expanded}` : styles.overview}>
                   {activeMovie.overview}
@@ -411,8 +418,6 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                 const dayStr = se.dayLabel || formatShowDayLabel(se.date);
                 const timeStr = se.timeLabel || formatShowTime(se.date);
 
-                const tags = getMovieTags(se.language || '', se.subtitles || '', se.format || (activeMovie.title.toUpperCase().includes('3D') ? '3D' : ''));
-
                 return (
                   <button
                     key={se.id}
@@ -430,9 +435,10 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
                         language={se.language || activeMovie.versionLanguage} 
                         subtitles={se.subtitles || activeMovie.subtitles} 
                         version={se.format || activeMovie.format}
-                        size="sm" 
+                        size="sm"
                         showLabel={false}
                       />
+                      <ProjectionSpecs specs={se.specs} note={se.specsNote} size="xs" />
                     </div>
 
                     <span className={styles.showtimeDate}>

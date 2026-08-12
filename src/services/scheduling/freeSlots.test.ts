@@ -156,6 +156,20 @@ describe('checkSlot', () => {
     expect(checkSlot({ runtime, startMinute: 23 * 60 + 30, occupied: [] }).problem).toBe('afterClosing');
   });
 
+  it('fuori orario riporta lo stesso chi occupa la sala', () => {
+    // `planningCheckManualSlot` declassa il fuori orario ad avvertimento e in
+    // quel caso decide sui `clashes` di questo stesso esito: se qui le
+    // sovrapposizioni sparissero, un orario notturno sopra un altro spettacolo
+    // risulterebbe «libero, solo tardi» e il conflitto salterebbe fuori solo
+    // alla creazione.
+    const altro = { start: 23 * 60, end: 24 * 60 + 30 }; // 23:00–00:20 + pausa
+    const c = checkSlot({ runtime, startMinute: 23 * 60 + 30, occupied: [altro] });
+    expect(c.problem).toBe('afterClosing');
+    expect(c.clashes).toEqual([altro]);
+    // E senza niente in sala, fuori orario e basta: nessuna sovrapposizione.
+    expect(checkSlot({ runtime, startMinute: 23 * 60 + 30, occupied: [] }).clashes).toEqual([]);
+  });
+
   it('rifiuta il passato, e il passato viene prima di tutto', () => {
     const c = checkSlot({ runtime, startMinute: 11 * 60, occupied: [], notBefore: 12 * 60 });
     expect(c.problem).toBe('past');

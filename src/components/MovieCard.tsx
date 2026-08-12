@@ -5,6 +5,7 @@ import { Calendar, Clock } from 'lucide-react';
 import styles from './MovieCard.module.css';
 import LanguageBadge from './LanguageBadge';
 import RatingBadge from './RatingBadge';
+import ProjectionSpecs from './ProjectionSpecs';
 
 interface MovieCardProps {
   movie: any; // Allow for extended movie object with isSoldOut
@@ -79,6 +80,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
                   version={movie.format}
                   size="xs"
                 />
+                <ProjectionSpecs specs={movie.specs} size="xs" />
               </div>
             </div>
           </div>

@@ -22,6 +22,7 @@ import {
   BAND_LABELS, MINUTES_PER_DAY, OPENING_MINUTE, daysBetweenISO, type Band,
 } from '@/services/scheduling/times';
 import { commitKey, dayLabel, showKey, type Pick } from './types';
+import { PROJECTION_SPECS, type ProjectionSpecCode } from '@/constants/projectionSpecs';
 
 const BAND_CLASS: Record<Band, string> = {
   matinee: styles.bandMatinee,
@@ -40,6 +41,11 @@ interface Props {
   onDelete: (key: string) => void;
   onMove: (show: ScheduledShow, desiredStartMinute: number) => void;
   onReplicasChange: (tmdbId: string, replicas: number) => void;
+  /**
+   * Come si proietta quel film. Vale per tutti i suoi spettacoli nel piano:
+   * niente ricalcolo, è un'etichetta, non un vincolo sugli orari.
+   */
+  onSpecsChange: (tmdbId: string, patch: { specs?: ProjectionSpecCode[]; specsNote?: string }) => void;
   onRegenerate: () => void;
   /**
    * Gli spettacoli che, confermando, ne elimineranno un altro. Indicizzati per
@@ -61,7 +67,7 @@ function parseClock(v: string): number | null {
 
 export default function StepCalendar({
   shows, warnings, existing, picks, busy,
-  onToggleLock, onDelete, onMove, onReplicasChange, onRegenerate, replacements,
+  onToggleLock, onDelete, onMove, onReplicasChange, onSpecsChange, onRegenerate, replacements,
 }: Props) {
   const [dragging, setDragging] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -126,35 +132,73 @@ export default function StepCalendar({
         {/* ── Pannello laterale: repliche per film ────────────────────── */}
         <aside className={styles.sidePanel}>
           <div className={styles.sidePanelHead}>
-            <h3>Repliche</h3>
+            <h3>Repliche e proiezione</h3>
             <button className={styles.ghostBtnSmall} onClick={onRegenerate} disabled={busy}>
               {busy ? <Loader2 size={13} className={styles.spin} /> : <RefreshCw size={13} />} Rigenera
             </button>
           </div>
           <p className={styles.sideHint}>
             Cambiare un numero ricalcola il piano lasciando fermo tutto ciò che hai bloccato con 🔒.
+            Le specifiche sotto ogni film finiscono sulla home, sugli spettacoli di quel film.
           </p>
           {perFilm.map(({ pick, count }) => {
             const poster = getTMDBImageUrl(pick.film.posterPath, 'w92');
+            const tmdbId = pick.film.tmdbId!;
+            const specs = pick.specs ?? [];
             return (
-              <div key={pick.film.tmdbId} className={styles.sideFilm}>
-                <div className={styles.sidePoster}>
-                  {poster ? <img src={poster} alt="" /> : <Clapperboard size={14} />}
+              <div key={tmdbId} className={styles.sideFilmBlock}>
+                <div className={styles.sideFilm}>
+                  <div className={styles.sidePoster}>
+                    {poster ? <img src={poster} alt="" /> : <Clapperboard size={14} />}
+                  </div>
+                  <span className={styles.sideTitle} title={pick.film.title}>{pick.film.title}</span>
+                  <div className={styles.stepper}>
+                    <button
+                      onClick={() => onReplicasChange(tmdbId, Math.max(count - 1, 0))}
+                      disabled={busy || count === 0}
+                      aria-label="Una replica in meno"
+                    >−</button>
+                    <b>{count}</b>
+                    <button
+                      onClick={() => onReplicasChange(tmdbId, count + 1)}
+                      disabled={busy}
+                      aria-label="Una replica in più"
+                    >+</button>
+                  </div>
                 </div>
-                <span className={styles.sideTitle} title={pick.film.title}>{pick.film.title}</span>
-                <div className={styles.stepper}>
-                  <button
-                    onClick={() => onReplicasChange(pick.film.tmdbId!, Math.max(count - 1, 0))}
-                    disabled={busy || count === 0}
-                    aria-label="Una replica in meno"
-                  >−</button>
-                  <b>{count}</b>
-                  <button
-                    onClick={() => onReplicasChange(pick.film.tmdbId!, count + 1)}
-                    disabled={busy}
-                    aria-label="Una replica in più"
-                  >+</button>
+
+                <div className={styles.specRow}>
+                  {PROJECTION_SPECS.map((spec) => {
+                    const on = specs.includes(spec.code);
+                    return (
+                      <button
+                        key={spec.code}
+                        type="button"
+                        className={`${styles.specChip} ${on ? styles.specChipOn : ''}`}
+                        aria-pressed={on}
+                        title={spec.description}
+                        onClick={() =>
+                          onSpecsChange(tmdbId, {
+                            specs: on
+                              ? specs.filter((c) => c !== spec.code)
+                              : [...specs, spec.code],
+                          })
+                        }
+                      >
+                        {spec.adminLabel}
+                      </button>
+                    );
+                  })}
                 </div>
+
+                <input
+                  className={styles.specNote}
+                  type="text"
+                  maxLength={120}
+                  placeholder="Altro (es. copia 35mm restaurata)"
+                  value={pick.specsNote ?? ''}
+                  onChange={(e) => onSpecsChange(tmdbId, { specsNote: e.target.value })}
+                />
               </div>
             );
           })}
