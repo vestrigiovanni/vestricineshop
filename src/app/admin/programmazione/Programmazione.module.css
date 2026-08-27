@@ -843,6 +843,18 @@
 .tmdbRow {
   border-radius: 11px; border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.035); overflow: hidden;
+  /*
+   * Non restringersi: l'elenco scorre, le righe no.
+   *
+   * `overflow: hidden` serve agli angoli arrotondati, ma toglie alla riga la
+   * sua altezza minima automatica — e in una colonna flessibile alta al
+   * massimo 56vh dodici risultati finiscono schiacciati invece di far
+   * scorrere l'elenco. Schiacciati e tagliati: sparisce la locandina, sparisce
+   * l'anno, e soprattutto spariscono i due bottoni che compaiono sotto il film
+   * scelto. Il film si illumina e non si può confermare: sembra che scegliere
+   * non funzioni, mentre è solo invisibile.
+   */
+  flex-shrink: 0;
 }
 .tmdbRowOpen { border-color: rgba(168, 85, 247, 0.6); background: rgba(124, 58, 237, 0.14); }
 .tmdbRowMain {

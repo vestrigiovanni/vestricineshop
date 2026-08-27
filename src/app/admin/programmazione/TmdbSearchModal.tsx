@@ -73,6 +73,12 @@ export default function TmdbSearchModal({
   const [busy, setBusy] = useState<'pick' | 'save' | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  /**
+   * I bottoni del film scelto. Aprendo l'ultimo risultato dell'elenco nascono
+   * sotto il bordo inferiore della lista, e da lì non si vedono: chi ha appena
+   * cliccato il film non ha motivo di sospettare che ci sia qualcosa più giù.
+   */
+  const actionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -97,6 +103,11 @@ export default function TmdbSearchModal({
     const t = setTimeout(() => setDebounced(query.trim()), 350);
     return () => clearTimeout(t);
   }, [query]);
+
+  useEffect(() => {
+    if (!chosen) return;
+    actionsRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [chosen]);
 
   useEffect(() => {
     if (!open || debounced.length < 2) { setHits([]); return; }
@@ -242,7 +253,7 @@ export default function TmdbSearchModal({
                 </button>
 
                 {isChosen && (
-                  <div className={styles.tmdbActions}>
+                  <div className={styles.tmdbActions} ref={actionsRef}>
                     <button
                       className={styles.ctaBtnSmall}
                       onClick={() => takeFilm(hit, false)}
