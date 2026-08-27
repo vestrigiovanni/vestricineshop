@@ -1,14 +1,21 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, ComponentProps, CSSProperties } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, ComponentProps, CSSProperties } from 'react';
 import Image from 'next/image';
 import { animate, motion, MotionValue, useInView, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
+import { formatShowDayLong, formatShowTime, toCinemaDayKey } from '@/utils/cinemaDate';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
 import RatingBadge from '../RatingBadge';
 import { Clock } from 'lucide-react';
 import { buildMood, buildStory, trimChaptersForPhone, FestivalGroup, SoireeItem, StoryStats, WeekendDay } from './storyBuilder';
+import DriftWall, { type DriftWallItem } from '../DriftWall/DriftWall';
+import TextFlippingBoard, { BOARD_COLS, BOARD_ROWS } from '../TextFlippingBoard/TextFlippingBoard';
+import EncryptedText from '../TextEffects/EncryptedText';
+import SquigglyText from '../TextEffects/SquigglyText';
+import ParticleText from '../TextEffects/ParticleText';
+import StrokeText from '../TextEffects/StrokeText';
 import styles from './CinematicStory.module.css';
 
 interface CinematicStoryProps {
@@ -287,6 +294,13 @@ function LogoWallChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced:
   );
 }
 
+/**
+ * Dai festival alla nostra sala.
+ *
+ * Le locandine erano grandi come quelle della galleria e ogni festival si
+ * mangiava una schermata intera. Qui sono piccole e accostate in griglia:
+ * ci stanno tutte, in poche righe, con sotto il premio vinto.
+ */
 function FestivalChapter({ groups, reduced }: { groups: FestivalGroup[]; reduced: boolean }) {
   return (
     <section className={styles.festivalChapter}>
@@ -300,54 +314,53 @@ function FestivalChapter({ groups, reduced }: { groups: FestivalGroup[]; reduced
         Dai festival alla nostra sala
       </motion.span>
       {groups.map(group => (
-        <div key={group.festival.key} className={styles.festivalBlock}>
-          <motion.div
-            className={styles.festivalHeader}
-            initial={reduced ? false : { opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 0.8, ease: easeApple }}
-          >
+        <motion.div
+          key={group.festival.key}
+          className={styles.festivalBlock}
+          initial={reduced ? false : { opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.7, ease: easeApple }}
+        >
+          <div className={styles.festivalHeader}>
             <Image
               src={group.festival.logo}
               alt=""
               aria-hidden="true"
-              width={Math.round(group.festival.logoWidth * 1.6)}
-              height={Math.round(group.festival.logoHeight * 1.6)}
+              width={group.festival.logoWidth}
+              height={group.festival.logoHeight}
               className={styles.festivalLogo}
               unoptimized
             />
             <h3 className={styles.festivalName}>{group.festival.name}</h3>
-          </motion.div>
-          <div className={styles.festivalFilms}>
-            {group.films.map((film, i) => (
-              <motion.button
-                key={film.movie.id}
-                className={styles.festivalFilm}
-                onClick={() => selectMovie(film.movie.id)}
-                aria-label={`Vai a ${film.movie.title}`}
-                initial={reduced ? false : { opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.7, delay: i * 0.08, ease: easeApple }}
-              >
-                <span className={styles.festivalPoster}>
-                  {film.movie.poster_path && (
-                    <Image
-                      src={getTMDBImageUrl(film.movie.poster_path, 'w342')!}
-                      alt={film.movie.title}
-                      fill
-                      sizes="(max-width: 768px) 40vw, 200px"
-                      style={{ objectFit: 'cover' }}
-                    />
-                  )}
-                </span>
-                <span className={styles.festivalFilmTitle}>{film.movie.title}</span>
-                <span className={styles.festivalAward}>{film.awardLabel}</span>
-              </motion.button>
-            ))}
           </div>
-        </div>
+          <ul className={styles.festivalFilms}>
+            {group.films.map(film => (
+              <li key={film.movie.id} className={styles.festivalFilmCell}>
+                <button
+                  className={styles.festivalFilm}
+                  onClick={() => selectMovie(film.movie.id)}
+                  aria-label={`Vai a ${film.movie.title}`}
+                >
+                  <span className={styles.festivalPoster}>
+                    {film.movie.poster_path ? (
+                      <Image
+                        src={getTMDBImageUrl(film.movie.poster_path, 'w342')!}
+                        alt={film.movie.title}
+                        fill
+                        sizes="(max-width: 768px) 22vw, 120px"
+                        style={{ objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <span className={styles.festivalPosterFallback}>{film.movie.title}</span>
+                    )}
+                  </span>
+                  <span className={styles.festivalAward}>{film.awardLabel}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </motion.div>
       ))}
     </section>
   );
@@ -783,117 +796,239 @@ function RevealChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: b
   );
 }
 
-/** Le locandine di una colonna del mosaico: identiche con e senza parallax. */
-function MosaicPosters({ col }: { col: GroupedMovie[] }) {
-  return (
-    <>
-      {col.map(m => (
-        <button
-          key={m.id}
-          className={styles.mosaicPoster}
-          onClick={() => selectMovie(m.id)}
-          aria-label={`Vai a ${m.title}`}
-        >
-          <Image
-            src={getTMDBImageUrl(m.poster_path, 'w342')!}
-            alt={m.title}
-            fill
-            sizes="(max-width: 768px) 33vw, 260px"
-            style={{ objectFit: 'cover' }}
-          />
-          <span className={styles.posterOverlay} aria-hidden="true">
-            <span className={styles.posterOverlayTitle}>{m.title}</span>
-            <span className={styles.posterOverlayMeta}>
-              {[m.release_date?.slice(0, 4), (m.genres || [])[0]].filter(Boolean).join(' · ')}
-            </span>
-          </span>
-        </button>
-      ))}
-    </>
-  );
-}
-
-/** Variante con le tre colonne a velocità diverse (solo desktop). */
-function MosaicChapterParallax({ columns }: { columns: GroupedMovie[][] }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  const ySlow = useTransform(scrollYProgress, [0, 1], [40, -40]);
-  const yFast = useTransform(scrollYProgress, [0, 1], [120, -120]);
-  const yMid = useTransform(scrollYProgress, [0, 1], [70, -70]);
-  const speeds = [ySlow, yFast, yMid];
-
-  return (
-    <section ref={ref} className={styles.mosaic}>
-      {columns.map((col, i) => (
-        <motion.div key={i} className={styles.mosaicColumn} style={{ y: speeds[i] }}>
-          <MosaicPosters col={col} />
-        </motion.div>
-      ))}
-    </section>
-  );
-}
-
-function MosaicChapter({ movies, parallax }: { movies: GroupedMovie[]; parallax: boolean }) {
-  const columns: GroupedMovie[][] = [[], [], []];
-  movies.forEach((m, i) => columns[i % 3].push(m));
-
-  if (parallax) return <MosaicChapterParallax columns={columns} />;
-
-  // Senza parallax niente hook di scorrimento: il mosaico è una griglia ferma
-  // e il browser può saltarne del tutto il disegno quando è fuori schermo.
-  return (
-    <section className={`${styles.mosaic} ${styles.mosaicStatic}`}>
-      {columns.map((col, i) => (
-        <div key={i} className={styles.mosaicColumn}>
-          <MosaicPosters col={col} />
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function MarqueeRow({ movies, reverse, reduced }: { movies: GroupedMovie[]; reverse: boolean; reduced: boolean }) {
-  const items = reduced ? movies : [...movies, ...movies];
-  return (
-    <div className={styles.marqueeViewport}>
-      <div
-        className={`${styles.marqueeTrack} ${reverse ? styles.marqueeReverse : ''} ${reduced ? styles.marqueeStatic : ''}`}
-      >
-        {items.map((m, i) => (
-          <button
-            key={`${m.id}-${i}`}
-            className={styles.marqueeItem}
-            onClick={() => selectMovie(m.id)}
-            aria-label={`Vai a ${m.title}`}
-            tabIndex={i >= movies.length ? -1 : 0}
-          >
-            <Image
-              src={getTMDBImageUrl(m.poster_path, 'w342')!}
-              alt={i >= movies.length ? '' : m.title}
-              fill
-              sizes="190px"
-              style={{ objectFit: 'cover' }}
-            />
-            <span className={styles.posterOverlay} aria-hidden="true">
-              <span className={styles.posterOverlayTitle}>{m.title}</span>
-              <span className={styles.posterOverlayMeta}>
-                {[m.release_date?.slice(0, 4), (m.genres || [])[0]].filter(Boolean).join(' · ')}
-              </span>
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
+/**
+ * Il muro di locandine in deriva: colonne che scorrono su un piano inclinato
+ * in prospettiva. Sostituisce il nastro orizzontale che stava qui prima.
+ */
 function MarqueeChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: boolean }) {
-  const mid = Math.ceil(movies.length / 2);
-  const rowB = [...movies.slice(mid), ...movies.slice(0, mid)];
+  const isPhone = useIsPhone();
+
+  const items: DriftWallItem[] = useMemo(
+    () =>
+      movies
+        .filter(m => m.poster_path)
+        .map(m => ({
+          id: m.id,
+          image: getTMDBImageUrl(m.poster_path, 'w342')!,
+          title: m.title,
+          meta: [m.release_date?.slice(0, 4), (m.genres || [])[0]].filter(Boolean).join(' \u00b7 '),
+        })),
+    [movies]
+  );
+
+  if (items.length === 0) return null;
+
+  // Sul telefono il muro si stringe e resta più leggibile: meno colonne,
+  // riquadri più piccoli e locandine meno spente, visto che l'hover non c'è.
+  const tileWidth = isPhone ? 104 : 168;
+
   return (
-    <section className={styles.marqueeChapter}>
-      <MarqueeRow movies={movies} reverse={false} reduced={reduced} />
-      <MarqueeRow movies={rowB} reverse reduced={reduced} />
+    <section className={styles.driftChapter}>
+      <DriftWall
+        items={items}
+        columns={isPhone ? 3 : 5}
+        tileWidth={tileWidth}
+        tileHeight={Math.round(tileWidth * 1.5)}
+        gap={isPhone ? 12 : 16}
+        radius={12}
+        tilt={14}
+        turn={-12}
+        perspective={1100}
+        depth={110}
+        speed={reduced ? 0 : 34}
+        direction="up"
+        variance={0.45}
+        parallax={isPhone || reduced ? 0 : 0.6}
+        lift={56}
+        fade={0.62}
+        dim={isPhone ? 0.82 : 0.5}
+        overlayColor="#05050a"
+        onItemSelect={item => {
+          if (typeof item.id === 'number') selectMovie(item.id);
+        }}
+      />
+    </section>
+  );
+}
+
+/**
+ * Gli stacchi fra un capitolo e l'altro: un titolo del cartellone scritto in
+ * grande, ogni volta con un effetto diverso. Il film e l'effetto si scelgono
+ * dal seed della storia, così server e browser disegnano la stessa cosa e la
+ * pagina cambia a ogni ricarica.
+ */
+const INTERSTITIAL_STYLES = ['encrypted', 'squiggly', 'particles', 'stroke'] as const;
+type InterstitialStyle = (typeof INTERSTITIAL_STYLES)[number];
+
+/** Un capitolo su due porta uno stacco; mai in coda, dove c'è il tabellone. */
+const INTERSTITIAL_EVERY = 2;
+
+function TitleInterstitial({
+  movie,
+  variant,
+  accent,
+}: {
+  movie: GroupedMovie;
+  variant: InterstitialStyle;
+  accent: string;
+}) {
+  const title = movie.title;
+
+  const body = (() => {
+    switch (variant) {
+      case 'encrypted':
+        return (
+          <span className={styles.interstitialWord}>
+            <EncryptedText text={title} revealDelayMs={70} flipDelayMs={45} />
+          </span>
+        );
+      case 'squiggly':
+        return (
+          <span className={styles.interstitialWord} style={{ color: accent }}>
+            <SquigglyText stepDuration={70} scale={[5, 8]}>
+              {title}
+            </SquigglyText>
+          </span>
+        );
+      case 'particles':
+        return (
+          <ParticleText
+            text={title}
+            className={styles.interstitialParticles}
+            particleSize={2}
+            density={4}
+            color="#ffffff"
+            highlightColor={accent}
+            trigger="hover"
+            fontSize="clamp(2.2rem, 9vw, 6rem)"
+            fontWeight={800}
+          />
+        );
+      case 'stroke':
+        return (
+          <StrokeText
+            text={title}
+            strokeColor={accent}
+            fillColor="#f8fafc"
+            strokeWidth={1.2}
+            drawDuration={1.5}
+            fontSize={128}
+            letterSpacing={-3}
+          />
+        );
+    }
+  })();
+
+  return (
+    <section className={styles.interstitial}>
+      <button
+        className={styles.interstitialButton}
+        onClick={() => selectMovie(movie.id)}
+        aria-label={`Vai a ${title}`}
+      >
+        {body}
+      </button>
+    </section>
+  );
+}
+
+/**
+ * Il tabellone di sala, alla maniera degli aeroporti: le palette girano e
+ * scrivono gli spettacoli in cartellone, una schermata alla volta. Chiude la
+ * storia dopo l'ultima citazione.
+ *
+ * A sera tardi la giornata è finita e non resta niente da scrivere: invece di
+ * far sparire il tabellone per mezza notte, mostra il primo giorno utile e lo
+ * dichiara nel titolino.
+ */
+const BOARD_PAGE_MS = 6000;
+
+function TodayBoardChapter({ movies }: { movies: GroupedMovie[] }) {
+  const isPhone = useIsPhone();
+  // Meno colonne dove il tabellone è stretto: caselle grandi il doppio,
+  // al titolo restano comunque dodici caratteri.
+  const cols = isPhone ? 18 : BOARD_COLS;
+
+  const board = useMemo(() => {
+    const now = new Date();
+    const todayKey = toCinemaDayKey(now);
+    const tomorrowKey = toCinemaDayKey(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+
+    const shows: { dayKey: string; date: string; time: string; title: string; movieId: number }[] = [];
+    for (const movie of movies) {
+      for (const se of movie.subevents || []) {
+        if (!se.date) continue;
+        shows.push({
+          dayKey: toCinemaDayKey(se.date),
+          date: se.date,
+          time: formatShowTime(se.date),
+          title: movie.title,
+          movieId: movie.id,
+        });
+      }
+    }
+
+    if (shows.length === 0) return null;
+
+    shows.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Oggi se c'è ancora qualcosa, altrimenti il primo giorno in cartellone.
+    const dayKey = shows.some(s => s.dayKey === todayKey) ? todayKey : shows[0].dayKey;
+    const dayShows = shows.filter(s => s.dayKey === dayKey);
+
+    const kicker =
+      dayKey === todayKey
+        ? 'Oggi in sala'
+        : dayKey === tomorrowKey
+          ? 'Domani in sala'
+          : `In sala ${formatShowDayLong(dayShows[0].date)}`;
+
+    // Le caselle sono monospazio e in numero fisso: l'orario prende sei
+    // colonne, al titolo restano le altre sedici.
+    const titleCols = cols - 6;
+    const rows = dayShows.map(show => {
+      const title = show.title.toUpperCase();
+      const clipped = title.length > titleCols ? `${title.slice(0, titleCols - 1)}.` : title;
+      return {
+        text: `${show.time} ${clipped}`,
+        label: `${show.title}, ore ${show.time}`,
+        movieId: show.movieId,
+      };
+    });
+
+    // Più spettacoli di quante righe ha il tabellone: si gira pagina.
+    const pages: typeof rows[] = [];
+    for (let i = 0; i < rows.length; i += BOARD_ROWS) {
+      pages.push(rows.slice(i, i + BOARD_ROWS));
+    }
+
+    return { kicker, pages };
+  }, [movies, cols]);
+
+  const pageCount = board?.pages.length ?? 0;
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    if (pageCount <= 1) return;
+    setPage(0);
+    const id = setInterval(() => setPage(p => (p + 1) % pageCount), BOARD_PAGE_MS);
+    return () => clearInterval(id);
+  }, [pageCount]);
+
+  if (!board || pageCount === 0) return null;
+
+  const rows = board.pages[Math.min(page, pageCount - 1)];
+
+  return (
+    <section className={styles.boardChapter}>
+      <span className={styles.chapterKicker}>{board.kicker}</span>
+      <TextFlippingBoard
+        cols={cols}
+        rows={rows.map(r => r.text)}
+        rowLabels={rows.map(r => r.label)}
+        onRowSelect={i => selectMovie(rows[i].movieId)}
+        ariaLabel={board.kicker}
+      />
     </section>
   );
 }
@@ -934,6 +1069,19 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
     // Nessun film: mostriamo comunque il calendario, come faceva la home prima.
     return <WeeklyCinemaCalendar subEvents={subEvents} />;
   }
+
+  // Un titolo diverso per ogni stacco, scelto dal seed: niente `Math.random`
+  // in render, che darebbe un risultato diverso fra server e browser.
+  const interstitialAt = (index: number) => {
+    const pool = movies.filter(m => m.title);
+    if (pool.length === 0) return null;
+    const slot = Math.floor(index / INTERSTITIAL_EVERY);
+    const base = (storySeed ?? 0) + slot;
+    return {
+      movie: pool[(base * 7 + slot) % pool.length],
+      variant: INTERSTITIAL_STYLES[base % INTERSTITIAL_STYLES.length],
+    };
+  };
 
   return (
     <div className={styles.story} style={{ '--story-accent': mood.accent } as CSSProperties}>
@@ -981,12 +1129,28 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
             );
           case 'festival':
             return <FestivalChapter key={i} groups={chapter.groups} reduced={reduced} />;
-          case 'mosaic':
-            return <MosaicChapter key={i} movies={chapter.movies} parallax={parallax} />;
           case 'marquee':
             return <MarqueeChapter key={i} movies={chapter.movies} reduced={reduced} />;
         }
+      }).map((rendered, i) => {
+        // Lo stacco arriva dopo il capitolo, non dopo l'ultimo: là c'è già il
+        // tabellone a chiudere.
+        const wantsInterstitial =
+          i % INTERSTITIAL_EVERY === INTERSTITIAL_EVERY - 1 && i < chapters.length - 1;
+        const pick = wantsInterstitial ? interstitialAt(i) : null;
+
+        return (
+          <Fragment key={`chapter-${i}`}>
+            {rendered}
+            {pick && (
+              <TitleInterstitial movie={pick.movie} variant={pick.variant} accent={mood.accent} />
+            )}
+          </Fragment>
+        );
       })}
+
+      {/* Ultimo respiro della pagina: il tabellone degli spettacoli di oggi. */}
+      <TodayBoardChapter movies={movies} />
     </div>
   );
 }

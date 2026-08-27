@@ -11,8 +11,8 @@
 
 /* Le sezioni lontane dal viewport non vengono renderizzate né composite:
    meno layer attivi e meno lavoro per frame durante lo scroll. Escluse le
-   sezioni con position:sticky (reveal), il calendario (contiene il drawer
-   fixed) e il mosaico (i poster in parallax dipingono oltre i bordi).
+   sezioni con position:sticky (reveal) e il calendario (contiene il drawer
+   fixed).
    `auto` in contain-intrinsic-size memorizza l'altezza reale dopo il primo
    render, così la scrollbar non salta. */
 .quoteChapter,
@@ -22,26 +22,22 @@
 .festivalChapter,
 .soireeStage,
 .weekendChapter,
-.marqueeChapter {
+.driftChapter,
+.boardChapter,
+.interstitial {
   content-visibility: auto;
-}
-
-/* Il mosaico era escluso perché le colonne in parallax dipingono oltre i
-   bordi della sezione. Senza parallax — cioè sui telefoni — quel vincolo
-   cade e anche le sue locandine possono restare fuori dal disegno. */
-.mosaicStatic {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 900px;
 }
 
 .quoteChapter { contain-intrinsic-size: auto 640px; }
 .stripe { contain-intrinsic-size: auto 480px; }
 .statsChapter { contain-intrinsic-size: auto 420px; }
 .logoWall { contain-intrinsic-size: auto 520px; }
-.festivalChapter { contain-intrinsic-size: auto 900px; }
+.festivalChapter { contain-intrinsic-size: auto 520px; }
 .soireeStage { contain-intrinsic-size: auto 700px; }
 .weekendChapter { contain-intrinsic-size: auto 950px; }
-.marqueeChapter { contain-intrinsic-size: auto 700px; }
+.driftChapter { contain-intrinsic-size: auto 700px; }
+.boardChapter { contain-intrinsic-size: auto 560px; }
+.interstitial { contain-intrinsic-size: auto 320px; }
 
 /* --- Elementi condivisi --- */
 .chapterKicker {
@@ -325,34 +321,36 @@
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  padding: 4rem 1.5rem;
+  padding: 3.5rem 1.5rem;
 }
 
 .festivalBlock {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
-  margin-top: 2.5rem;
+  gap: 1rem;
+  margin-top: 2rem;
   width: min(1100px, 100%);
 }
 
 .festivalBlock:first-of-type {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
 }
 
+/* Logo e nome del festival su una riga sola: prima erano incolonnati e da
+   soli valevano mezza schermata per ogni blocco. */
 .festivalHeader {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 1rem;
-  text-align: center;
+  justify-content: center;
+  gap: 0.9rem;
+  text-align: left;
 }
 
-/* Il logo del festival è il protagonista del blocco */
 .festivalLogo {
   width: auto;
-  height: clamp(110px, 15vw, 160px);
+  height: clamp(48px, 6vw, 72px);
   filter:
     drop-shadow(0 6px 26px rgba(0, 0, 0, 0.55))
     drop-shadow(0 0 26px rgba(255, 255, 255, 0.08));
@@ -361,7 +359,7 @@
 .festivalName {
   margin: 0;
   font-family: var(--font-apple);
-  font-size: clamp(1.4rem, 3.2vw, 2.2rem);
+  font-size: clamp(1rem, 2.1vw, 1.5rem);
   font-weight: 700;
   letter-spacing: -0.01em;
   background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.6) 100%);
@@ -370,19 +368,29 @@
   color: transparent;
 }
 
+/* Locandine piccole e accostate: tutte visibili in poche righe. */
 .festivalFilms {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: clamp(1.2rem, 3vw, 2.4rem);
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+}
+
+.festivalFilmCell {
+  width: clamp(84px, 9vw, 116px);
 }
 
 .festivalFilm {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
-  width: clamp(130px, 16vw, 190px);
+  gap: 0.35rem;
+  width: 100%;
   border: none;
   background: none;
   padding: 0;
@@ -392,31 +400,40 @@
 }
 
 .festivalFilm:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
 }
 
 .festivalPoster {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   aspect-ratio: 2 / 3;
-  border-radius: var(--radius-md);
+  border-radius: 6px;
   overflow: hidden;
   background: var(--surface);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
-.festivalFilmTitle {
+/* Senza locandina resta il titolo, dentro lo stesso riquadro. */
+.festivalPosterFallback {
+  padding: 0.4rem;
   font-family: var(--font-apple);
-  font-size: 0.92rem;
+  font-size: 0.72rem;
   font-weight: 600;
+  line-height: 1.2;
   color: var(--foreground);
-  line-height: 1.25;
 }
 
 .festivalAward {
   color: var(--text-muted);
-  font-size: 0.78rem;
-  line-height: 1.3;
+  font-size: 0.64rem;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 /* --- Il palcoscenico delle serate (apertura) --- */
@@ -887,132 +904,77 @@
   padding: 2rem 0 0.5rem;
 }
 
-/* --- Mosaico poster --- */
-.mosaic {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: clamp(10px, 2vw, 24px);
-  align-items: start;
-  padding: 4rem clamp(1rem, 6vw, 5rem);
-}
-
-.mosaicColumn {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(10px, 2vw, 24px);
-}
-
-.mosaicColumn:nth-child(2) {
-  margin-top: 3.5rem;
-}
-
-.mosaicPoster {
+/* --- Muro di locandine in deriva (DriftWall) --- */
+.driftChapter {
   position: relative;
-  aspect-ratio: 2 / 3;
-  border: none;
-  padding: 0;
-  border-radius: var(--radius-md);
+  height: clamp(440px, 66vh, 760px);
+  padding: 2.5rem 0;
   overflow: hidden;
-  background: var(--surface);
-  cursor: pointer;
-  display: block;
-  width: 100%;
 }
 
-/* --- Nastro di poster in scorrimento continuo --- */
-.marqueeChapter {
+.driftChapter > * {
+  height: 100%;
+}
+
+/* --- Stacchi: un titolo del cartellone, in grande --- */
+.interstitial {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 3.5rem 0;
-  overflow: hidden;
-}
-
-.marqueeViewport {
-  overflow: hidden;
-}
-
-.marqueeTrack {
-  display: flex;
-  width: max-content;
-  animation: marqueeScroll 45s linear infinite;
-}
-
-.marqueeReverse {
-  animation-direction: reverse;
-}
-
-.marqueeStatic {
-  animation: none;
-  width: 100%;
-  flex-wrap: wrap;
   justify-content: center;
+  padding: clamp(3rem, 7vw, 6rem) 1.5rem;
 }
 
-.marqueeItem {
-  position: relative;
-  width: clamp(120px, 16vw, 190px);
-  aspect-ratio: 2 / 3;
-  margin-right: 14px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  flex-shrink: 0;
+.interstitialButton {
+  display: block;
+  width: min(1100px, 100%);
   border: none;
+  background: none;
   padding: 0;
   cursor: pointer;
-  background: var(--surface);
+  text-align: center;
+  transition: var(--transition-snappy);
 }
 
-@keyframes marqueeScroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+.interstitialButton:hover .interstitialWord,
+.interstitialButton:focus-visible .interstitialWord {
+  opacity: 0.82;
 }
 
-/* --- Overlay titolo/anno su poster (mosaico e marquee) --- */
-.posterOverlay {
-  position: absolute;
-  inset: 0;
+.interstitialWord {
+  display: block;
+  font-family: var(--font-apple);
+  font-size: clamp(1.9rem, 6.5vw, 4.6rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  word-break: break-word;
+  transition: opacity 0.35s ease;
+}
+
+.interstitialParticles {
+  height: clamp(220px, 34vh, 340px);
+}
+
+/* --- Tabellone split-flap degli spettacoli di oggi --- */
+.boardChapter {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  gap: 0.15rem;
-  padding: 0.8rem;
-  background: linear-gradient(180deg, transparent 55%, rgba(5, 5, 7, 0.9) 100%);
-  opacity: 0;
-  transform: translateY(8px);
-  transition: var(--transition-smooth);
-  text-align: left;
-  pointer-events: none;
+  align-items: center;
+  gap: 1.6rem;
+  padding: 5rem 1rem 6rem;
+  text-align: center;
 }
 
-.mosaicPoster:hover .posterOverlay,
-.mosaicPoster:focus-visible .posterOverlay,
-.marqueeItem:hover .posterOverlay,
-.marqueeItem:focus-visible .posterOverlay {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Su iPhone e iPad il passaggio del mouse non esiste: titolo e anno del film
-   restavano invisibili per sempre. Dove non c'è hover, si mostrano e basta. */
-@media (hover: none) {
-  .posterOverlay {
-    opacity: 1;
-    transform: none;
+@media (max-width: 768px) {
+  .driftChapter {
+    height: clamp(380px, 58vh, 560px);
+    padding: 1.5rem 0;
   }
-}
 
-.posterOverlayTitle {
-  font-family: var(--font-apple);
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: #ffffff;
-  line-height: 1.2;
-}
-
-.posterOverlayMeta {
-  font-size: 0.72rem;
-  color: var(--text-muted);
+  .boardChapter {
+    gap: 1.1rem;
+    padding: 3.2rem 0.6rem 4rem;
+  }
 }
 
 /* --- Mobile --- */
@@ -1054,15 +1016,15 @@
   }
 
   .festivalLogo {
-    height: clamp(90px, 22vw, 120px);
+    height: clamp(40px, 11vw, 60px);
   }
 
-  .festivalFilm {
-    width: clamp(120px, 38vw, 160px);
+  .festivalHeader {
+    gap: 0.6rem;
   }
 
-  .marqueeChapter {
-    padding: 2.5rem 0;
+  .festivalFilmCell {
+    width: clamp(74px, 21vw, 100px);
   }
 
   .soireeStage {
@@ -1133,11 +1095,4 @@
     padding: 0 6%;
   }
 
-  .mosaic {
-    padding: 2.5rem 1rem;
-  }
-
-  .mosaicColumn:nth-child(2) {
-    margin-top: 2rem;
-  }
 }

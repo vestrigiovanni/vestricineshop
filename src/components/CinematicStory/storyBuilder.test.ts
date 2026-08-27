@@ -8,7 +8,6 @@ type StripesChapter = Extract<StoryChapter, { kind: 'stripes' }>;
 type StatsChapter = Extract<StoryChapter, { kind: 'stats' }>;
 type LogosChapter = Extract<StoryChapter, { kind: 'logos' }>;
 type FestivalChapterT = Extract<StoryChapter, { kind: 'festival' }>;
-type MosaicChapter = Extract<StoryChapter, { kind: 'mosaic' }>;
 type RevealChapter = Extract<StoryChapter, { kind: 'reveal' }>;
 
 const mk = (id: number, opts: Partial<GroupedMovie> = {}): GroupedMovie => ({
@@ -254,7 +253,7 @@ describe('buildStory', () => {
     const chapters = buildStory(movies);
     expect(kinds(chapters)).toEqual([
       'quote', 'stripes', 'stats', 'logos', 'calendar',
-      'stripes', 'mosaic', 'marquee', 'quote',
+      'stripes', 'marquee', 'quote',
     ]);
 
     const opening = chapters[0] as QuoteChapter;
@@ -346,12 +345,11 @@ describe('buildStory', () => {
     expect(firstIds.size).toBeGreaterThan(1);
   });
 
-  it('con cataloghi grandi applica i tetti: 12 loghi, 12 mosaico, 16 marquee', () => {
+  it('con cataloghi grandi applica i tetti: 12 loghi, 16 marquee', () => {
     const now = new Date('2026-07-15T10:00:00Z');
     const movies = Array.from({ length: 20 }, (_, i) => mk(i + 1));
     const chapters = buildStory(movies, now, 42);
     expect((chapters.find(c => c.kind === 'logos') as LogosChapter).movies).toHaveLength(12);
-    expect((chapters.find(c => c.kind === 'mosaic') as MosaicChapter).movies).toHaveLength(12);
     expect((chapters.find(c => c.kind === 'marquee') as MarqueeChapter).movies).toHaveLength(16);
   });
 
@@ -370,7 +368,6 @@ describe('buildStory', () => {
     const chapters = buildStory(movies);
     expect(kinds(chapters)).not.toContain('logos');
     expect(kinds(chapters)).not.toContain('marquee');
-    expect(kinds(chapters)).toContain('mosaic');
   });
 
   it('con un solo film resta una sequenza minima senza capitoli vuoti', () => {
@@ -386,13 +383,13 @@ describe('buildStory', () => {
     expect(stripes.movies).toHaveLength(3);
   });
 
-  it('il mosaico esclude i film senza poster e richiede almeno 3 poster', () => {
-    const conMosaico = buildStory([mk(1), mk(2), mk(3), mk(4, { poster_path: null })]);
-    const mosaic = conMosaico.find(c => c.kind === 'mosaic') as MosaicChapter;
-    expect(mosaic.movies).toHaveLength(3);
+  it('il muro di locandine esclude i film senza poster e ne richiede almeno 4', () => {
+    const conMuro = buildStory([mk(1), mk(2), mk(3), mk(4), mk(5, { poster_path: null })]);
+    const marquee = conMuro.find(c => c.kind === 'marquee') as MarqueeChapter;
+    expect(marquee.movies).toHaveLength(4);
 
-    const senzaMosaico = buildStory([mk(1), mk(2, { poster_path: null }), mk(3, { poster_path: null })]);
-    expect(kinds(senzaMosaico)).not.toContain('mosaic');
+    const senzaMuro = buildStory([mk(1), mk(2), mk(3), mk(4, { poster_path: null })]);
+    expect(kinds(senzaMuro)).not.toContain('marquee');
   });
 
   it('inserisce il capitolo weekend subito prima del calendario', () => {
@@ -496,7 +493,6 @@ describe('trimChaptersForPhone', () => {
   it('taglia le sezioni collettive ai limiti del telefono', () => {
     const trimmed = trimChaptersForPhone([
       { kind: 'logos', movies: many },
-      { kind: 'mosaic', movies: many },
       { kind: 'marquee', movies: many },
       { kind: 'reveal', movies: many },
       { kind: 'stripes', movies: many, backdropIndex: 0 },
@@ -505,7 +501,6 @@ describe('trimChaptersForPhone', () => {
     const sizes = trimmed.map(c => (c as { movies: unknown[] }).movies.length);
     expect(sizes).toEqual([
       PHONE_LIMITS.logos,
-      PHONE_LIMITS.mosaic,
       PHONE_LIMITS.marquee,
       PHONE_LIMITS.reveal,
       PHONE_LIMITS.stripes,
@@ -525,7 +520,7 @@ describe('trimChaptersForPhone', () => {
 
   it('non allunga i capitoli già corti', () => {
     const short = [mk(1), mk(2)];
-    const [chapter] = trimChaptersForPhone([{ kind: 'mosaic', movies: short }]);
-    expect((chapter as MosaicChapter).movies).toHaveLength(2);
+    const [chapter] = trimChaptersForPhone([{ kind: 'marquee', movies: short }]);
+    expect((chapter as MarqueeChapter).movies).toHaveLength(2);
   });
 });

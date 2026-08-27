@@ -1,0 +1,257 @@
+/* Tabellone a palette, versione scura: il sito non ha tema chiaro. */
+.board {
+  position: relative;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  /* Più largo del `max-w-3xl` originale: con 22 colonne le caselle a 768px
+     erano troppo piccole per leggerci un titolo. */
+  max-width: min(1180px, 96vw);
+  padding: 0.5rem;
+  border-radius: 12px;
+  background: #171717;
+  box-shadow: 0 20px 70px -15px rgba(0, 0, 0, 0.6);
+  /* Riferimento per i `cqw` del testo nelle caselle. */
+  container-type: inline-size;
+}
+
+/* Ogni riga è un pulsante: porta al film di quello spettacolo. */
+.row {
+  display: grid;
+  gap: 1px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), filter 0.25s ease;
+}
+
+.rowClickable {
+  cursor: pointer;
+}
+
+.rowClickable:hover,
+.rowClickable:focus-visible {
+  transform: translateX(3px);
+  filter: brightness(1.35);
+}
+
+.rowClickable:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@media (min-width: 768px) {
+  .board,
+  .row {
+    gap: 3px;
+  }
+
+  .board {
+    padding: 1rem;
+    border-radius: 16px;
+  }
+}
+
+/* --- La singola casella --- */
+.cell {
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 3 / 6;
+  overflow: hidden;
+  border: 1px solid #000;
+  border-radius: 2px;
+}
+
+.colorCell {
+  aspect-ratio: 3 / 5;
+  border: 2px solid #000;
+  border-radius: 3px;
+}
+
+@media (min-width: 768px) {
+  .cell {
+    border-width: 2px;
+    border-radius: 3px;
+  }
+}
+
+.flapArea {
+  position: relative;
+  flex: 1;
+  perspective: 100px;
+  transform-style: preserve-3d;
+}
+
+/* I due perni e la barra della cerniera: solo da tablet in su, sotto sono
+   pixel sporchi. */
+.hinge {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .hinge {
+    display: flex;
+  }
+}
+
+.hingePin {
+  height: 50%;
+  width: 1px;
+  background: #000;
+}
+
+.hingePinLeft {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+.hingePinRight {
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+
+.hingeLine {
+  display: flex;
+  flex: 1;
+  height: 1px;
+  background: #000;
+}
+
+.staticTop,
+.staticBottom,
+.flapTop,
+.flapBottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: calc(50% - 0.5px);
+  overflow: hidden;
+}
+
+.staticTop,
+.flapTop {
+  top: 0;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+}
+
+.staticBottom,
+.flapBottom {
+  bottom: 0;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+}
+
+.flapTop,
+.flapBottom {
+  z-index: 10;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.flapTop {
+  transform-origin: bottom;
+}
+
+.flapBottom {
+  transform-origin: top;
+}
+
+/* Il carattere è alto il doppio della mezza casella: la metà che serve
+   resta visibile, l'altra esce dal ritaglio. */
+.text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  font-family: 'SFMono-Regular', 'Roboto Mono', Menlo, monospace;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  /* Il carattere si misura sulla casella (larghezza tabellone / colonne), non
+     sulla finestra: nel pannello stretto restava alto sei pixel. */
+  font-size: clamp(10px, calc(96cqw / var(--board-cols, 22) * 0.72), 42px);
+}
+
+.textTop {
+  top: 0;
+}
+
+.textBottom {
+  bottom: 0;
+}
+
+/* --- Luci e ombre del ribaltamento --- */
+.shine {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.shineSettle {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 60%);
+}
+
+.shineFalling {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1));
+}
+
+.shineRising {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.6));
+}
+
+.splitLine {
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  z-index: 20;
+  height: 1px;
+  transform: translateY(-0.5px);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Le righe decorative sotto la casella, come sui tabelloni veri. */
+.stripes {
+  height: 8px;
+  width: 100%;
+  color: #000;
+  background: repeating-linear-gradient(
+    to bottom,
+    currentColor 0,
+    currentColor 1px,
+    transparent 1px,
+    transparent 0.15rem
+  );
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 50%);
+  mask-image: linear-gradient(to bottom, transparent, #000 50%);
+}
+
+@media (min-width: 768px) {
+  .stripes {
+    height: 16px;
+    background: repeating-linear-gradient(
+      to bottom,
+      currentColor 0,
+      currentColor 1px,
+      transparent 1px,
+      transparent 0.2rem
+    );
+  }
+}

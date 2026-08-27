@@ -73,13 +73,11 @@ export type StoryChapter =
   | { kind: 'reveal'; movies: GroupedMovie[] }
   | { kind: 'calendar' }
   | { kind: 'festival'; groups: FestivalGroup[] }
-  | { kind: 'mosaic'; movies: GroupedMovie[] }
   | { kind: 'marquee'; movies: GroupedMovie[] };
 
 // Quanti film al massimo per le sezioni collettive: con cataloghi grandi
 // la rotazione del seed decide quali entrano a ogni refresh.
 const MAX_LOGOS = 12;
-const MAX_MOSAIC = 12;
 const MAX_MARQUEE = 16;
 const MAX_REVEAL = 4;
 const MIN_REVEAL = 2;
@@ -594,11 +592,7 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?
     stripesB.forEach(m => featured.add(m.id));
   }
 
-  // Mosaico in parallax
   const posterMovies = pool.filter(m => m.poster_path);
-  if (posterMovies.length >= 3) {
-    chapters.push({ kind: 'mosaic', movies: posterMovies.slice(0, MAX_MOSAIC) });
-  }
 
   // Nastro di poster in scorrimento continuo
   if (posterMovies.length >= 4) {
@@ -628,7 +622,6 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?
  */
 export const PHONE_LIMITS = {
   logos: 6,
-  mosaic: 6,
   marquee: 8,
   reveal: 3,
   stripes: 2,
@@ -639,8 +632,6 @@ export function trimChaptersForPhone(chapters: StoryChapter[]): StoryChapter[] {
     switch (chapter.kind) {
       case 'logos':
         return { ...chapter, movies: chapter.movies.slice(0, PHONE_LIMITS.logos) };
-      case 'mosaic':
-        return { ...chapter, movies: chapter.movies.slice(0, PHONE_LIMITS.mosaic) };
       case 'marquee':
         return { ...chapter, movies: chapter.movies.slice(0, PHONE_LIMITS.marquee) };
       case 'reveal':

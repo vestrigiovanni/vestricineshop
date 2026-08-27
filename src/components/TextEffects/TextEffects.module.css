@@ -1,0 +1,66 @@
+/* --- Testo cifrato --- */
+.encrypted {
+  color: var(--text-muted);
+}
+
+/* --- Testo ondeggiante --- */
+.squiggly {
+  display: inline-block;
+}
+
+.squigglyDefs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* --- Testo a particelle --- */
+.particleText {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  overflow: hidden;
+  touch-action: none;
+  isolation: isolate;
+}
+
+.particleCanvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Titolo a contorno --- */
+.strokeText {
+  display: block;
+  width: 100%;
+  line-height: 0;
+}
+
+.strokeSvg {
+  display: block;
+  width: 100%;
+  height: var(--stroke-text-height, 160px);
+}
+
+.strokeSvg text {
+  user-select: none;
+}
