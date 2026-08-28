@@ -3,8 +3,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Info } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+/**
+ * `html2canvas` e `jspdf` non si importano in cima di proposito: insieme fanno
+ * 436 KB, e servono soltanto dentro `generateTicketPDF()`, cioè dopo che
+ * qualcuno ha premuto "scarica". Importati qui sopra finivano invece nel primo
+ * bundle della home — MovieShowcase → BookingDrawer → BookingFlow →
+ * CheckoutButton → questo file — e ogni visitatore li scaricava per una
+ * funzione che quasi nessuno raggiunge. Ora entrano al momento del clic.
+ */
 import styles from './TicketPDF.module.css';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import RatingBadge from './RatingBadge';
@@ -387,6 +393,11 @@ export async function generateTicketPDF(elementIds: string[], fileName: string =
   }
 
   try {
+    const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+      import('jspdf'),
+      import('html2canvas'),
+    ]);
+
     const pdf = new jsPDF({
       orientation: 'landscape',
       unit: 'mm',

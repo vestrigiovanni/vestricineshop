@@ -9,12 +9,33 @@ const inter = Inter({
   display: 'swap',
 });
 
-// Serif da grande schermo per le citazioni della storia cinematica.
+/**
+ * Serif da grande schermo per le citazioni della storia cinematica.
+ *
+ * `preload: false` non è una svista. Fra tondo e corsivo sono 87 KB, e l'unico
+ * posto che li mostra è la storia cinematica, in fondo alla home. Ma il font
+ * nasce qui — nella radice, cioè nel grafo di *ogni* pagina — e Next ne metteva
+ * il `<link rel="preload">` in testa a tutte le schermate: 87 KB ad altissima
+ * priorità, in gara con il JavaScript per la banda, anche sul login e sul
+ * pannello admin, dove il serif non compare mai. Con una connessione incerta
+ * erano secondi di attesa per niente.
+ *
+ * Senza preload il file viene chiesto solo quando il browser incontra del testo
+ * che lo usa, e cioè solo sulla home. Le citazioni stanno dopo qualche schermata
+ * di scorrimento, quindi c'è tutto il tempo perché arrivi; e nel frattempo tiene
+ * la riga il Georgia già dichiarato come ripiego in CinematicStory.
+ *
+ * (Spostare il font in un modulo a parte, come suggerisce la guida, qui non
+ * serve: il manifest dei font di Turbopack elenca comunque ogni font dell'app su
+ * ogni rotta, e togliere il CSS dei font dal chunk condiviso della radice fa
+ * ricadere lì dentro un foglio di stile del pannello film da 116 KB.)
+ */
 const playfair = Playfair_Display({
   subsets: ['latin'],
   style: ['normal', 'italic'],
   variable: '--font-serif-display',
   display: 'swap',
+  preload: false,
 });
 
 export const metadata: Metadata = {

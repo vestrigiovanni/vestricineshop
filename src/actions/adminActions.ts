@@ -1374,9 +1374,27 @@ export async function adminGetProgrammedMovies() {
   const prisma = (await import('@/lib/prisma')).default;
   
   // Get unique movies from PretixSync table (synced by cron)
+  //
+  // Il `select` non e' cosmetico: senza, la riga arriva intera — e dentro c'e'
+  // `comment`, il blob JSON di metadati che spingiamo su Pretix. Moltiplicato
+  // per ogni proiezione mai sincronizzata diventa la risposta che il pannello
+  // aspetta prima di mostrare qualsiasi cosa. Qui sotto ci sono esattamente i
+  // campi che il pannello legge, e nient'altro.
   const syncProjections = await prisma.pretixSync.findMany({
     where: { active: true },
-    orderBy: { dateFrom: 'asc' }
+    orderBy: { dateFrom: 'asc' },
+    select: {
+      pretixId: true,
+      name: true,
+      tmdbId: true,
+      dateFrom: true,
+      startTime: true,
+      endTime: true,
+      roomName: true,
+      isSoldOut: true,
+      availableSeats: true,
+      totalSeats: true,
+    },
   });
 
   const uniqueMovies: Record<string, { tmdbId: string; title: string; lastDate: string; projections: any[] }> = {};

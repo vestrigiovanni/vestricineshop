@@ -18,8 +18,14 @@ import {
   RefreshCw,
   Ticket,
 } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+/**
+ * La cassa è una pagina d'amministrazione, e queste due librerie insieme fanno
+ * 436 KB: importate in cima le scaricava chiunque aprisse il terminale, prima
+ * ancora di poter vendere un biglietto. Servono solo quando si stampa o si
+ * scarica un PDF, quindi entrano lì.
+ */
+const loadHtml2Canvas = () => import('html2canvas').then(m => m.default);
+const loadJsPDF = () => import('jspdf').then(m => m.default);
 
 import styles from './CassaInterface.module.css';
 import ThermalTicket, { parseSeatName, ThermalTicketData } from './ThermalTicket';
@@ -376,6 +382,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     // Buffer per il rendering
     await new Promise(res => setTimeout(res, 400));
 
+    const html2canvas = await loadHtml2Canvas();
     const canvas = await html2canvas(element, {
       scale: 1, // 1:1 capture since we set width to 384px (printer pixels)
       useCORS: true,
@@ -435,6 +442,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     if (!result || !result.records.length || !selectedScreening) return;
     setGeneratingPdf(true);
     try {
+      const [jsPDF, html2canvas] = await Promise.all([loadJsPDF(), loadHtml2Canvas()]);
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [148, 105] });
 
       
