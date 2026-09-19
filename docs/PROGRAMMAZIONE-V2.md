@@ -3,10 +3,15 @@
 Sostituisce i 5 percorsi di programmazione con un unico wizard, un motore di
 scheduling puro e testabile, e un catalogo alimentato da Plex.
 
-> **Stato: realizzato.** Tutte e sei le fasi sono state costruite. Le deviazioni
-> dal piano iniziale — quasi tutte imposte dai dati veri — sono raccolte in
-> fondo, nella sezione 9. Leggila: contiene le cose che il piano non poteva
-> sapere prima di toccare la libreria e la sala.
+> **Stato: realizzato, e poi corretto dall'uso.** Tutte e sei le fasi sono state
+> costruite. Le deviazioni dal piano iniziale — quasi tutte imposte dai dati
+> veri — stanno nella sezione 9.
+>
+> **Poi è stato usato per una programmazione vera da due settimane, e si è
+> rotto.** Cosa si è rotto e come è stato aggiustato sta nella sezione 11, che è
+> la più importante del documento: contiene un errore di architettura che
+> nessuna ottimizzazione avrebbe potuto salvare. Se leggi una sezione sola,
+> leggi quella.
 
 ---
 
@@ -334,11 +339,13 @@ Guscio sottile sopra le stesse funzioni usate dal wizard. Auth: header
 | GET | `/api/planning/occupancy` | `room, start, days` | `DayOccupancy[]` |
 | GET | `/api/planning/catalog` | `search, genre, decade, minRuntime, maxRuntime, rail, page` | `{ films, total, hasMore }` |
 | POST | `/api/planning/generate` | `{ roomId, startDate, days, intensity, films[], locked[], seed? }` | `{ shows, warnings, stats }` |
-| POST | `/api/planning/commit` | `{ roomId, shows[] }` | `{ jobId }` |
-| GET | `/api/planning/commit/{jobId}` | — | `{ state, done, total, step, created[], errors[] }` |
+| POST | `/api/planning/commit` | `{ roomId, shows[] }` | `{ jobId }` — registra, non crea |
+| POST | `/api/planning/commit/{jobId}` | `{ retry? }` | fa avanzare di un lotto → `{ state, phase, done, total, step, created[], errors[], pending }` |
+| GET | `/api/planning/commit/{jobId}` | — | lo stesso, ma **senza** far avanzare |
 
-`commit` è asincrono perché creare 30 sub-eventi Pretix richiede minuti: supera
-il limite di durata di una singola richiesta e va seguito con polling.
+`commit` non crea niente: scrive il piano come righe su database. La creazione
+avviene a lotti, un lotto per ogni POST sul jobId, e si ripete fino a `done`.
+Vedi la sezione 11: è la correzione più importante fatta dopo il primo uso vero.
 
 Ogni proiezione già in sala (`DayOccupancy.shows`, e `existing` dentro
 `/slots`) porta con sé il suo `tmdbId`, quando si riesce a saperlo — sta nel
@@ -463,10 +470,8 @@ sequenza — esattamente il difetto di `adminBulkScheduleMovie`. Ora esiste un
 solo `commitRunner`: il wizard avvia un lavoro e ne segue l'avanzamento come
 farebbe l'app Swift.
 
-Il registro dei lavori vive **in memoria**, quindi su Vercel un polling può
-finire su un'istanza che non conosce il job. Un 404 significa "non lo so", non
-"è fallito", ed è documentato in entrambi i client: rilanciare un commit crea
-doppioni che nessuno può rilevare a posteriori.
+Il registro dei lavori viveva **in memoria**, ed è stato l'errore più costoso di
+tutto il progetto: vedi la sezione 11. Ora sta su Postgres.
 
 ### 9.6 Cose che il modale sapeva fare e il wizard doveva imparare
 
@@ -581,3 +586,149 @@ Conseguenza da accettare: la corsia "Premiati dalla critica" all'inizio non
 compare, e cresce con l'uso. Nel frattempo il lavoro lo fa "Acclamati"
 (`voteAverage >= 7.5 && voteCount >= 500`), che è gratis perché il voto arriva
 dalla stessa chiamata TMDB di tutto il resto.
+
+---
+
+## 11. Quello che si è rotto davvero, e come è stato aggiustato
+
+Le sezioni sopra descrivono il sistema come era stato pensato. Questa descrive
+cosa è successo usandolo per una programmazione vera da due settimane — cento e
+passa spettacoli — e cosa è cambiato di conseguenza. È la parte più importante
+del documento, perché contiene l'unica cosa che il piano aveva sbagliato in
+modo grave.
+
+### 11.1 Il lavoro in sottofondo che non esisteva
+
+`startCommit` faceva così:
+
+```ts
+void run(job.id, input).catch(…);   // niente await: "il lavoro vive per conto suo"
+return job.id;                      // e si risponde subito
+```
+
+Su un server con un processo che resta acceso, funziona. **Su Vercel no.**
+L'istanza viene congelata appena la risposta è partita, e quella promessa muore
+dove si trova. Sommato al fatto che il registro dei job stava in una `Map` di
+processo — quindi spariva al cambio d'istanza — il risultato era esattamente
+ciò che si vedeva:
+
+- la creazione si fermava a metà senza dire perché;
+- la pagina doveva restare aperta per ore, perché era il polling a tenere
+  sveglia l'istanza — per caso, non per progetto;
+- un wifi caduto portava via tutto, e non restava modo di sapere cosa fosse
+  stato creato davvero;
+- e la sola difesa possibile era «non rilanciare mai», perché rilanciare
+  duplicava.
+
+Non era un problema di prestazioni. Cento spettacoli creati uno alla volta non
+entrano nella vita di una richiesta serverless, punto: nessuna ottimizzazione
+avrebbe salvato quell'architettura.
+
+**Ora** il lavoro è una riga (`PlanningCommitJob`) e ogni spettacolo da creare è
+una riga sua (`PlanningCommitItem`). `POST /commit` scrive l'elenco e basta.
+Ogni `POST /commit/{jobId}` prende un lotto di righe `todo`, le crea, ne scrive
+l'esito e torna. Chi guarda la barra è anche chi fa avanzare il lavoro.
+
+Le conseguenze sono tutte quelle che servivano:
+
+| | Prima | Ora |
+|---|---|---|
+| Istanza che muore | lavoro perso a metà | le righe prenotate scadono e tornano disponibili |
+| Wifi caduto / pagina chiusa | tutto perso | si riapre e si riprende da dove era |
+| Riprovare | crea doppioni | una riga con `pretixId` non viene mai ripresa in mano |
+| Due schede aperte | due creazioni in volo | le righe si prenotano: una sola lavora |
+| Cosa è stato creato | ignoto | è scritto riga per riga |
+
+### 11.2 La sequenzialità non serviva più da un pezzo
+
+Gli spettacoli si creavano rigorosamente uno alla volta, con questa
+motivazione: *«due creazioni in volo insieme non si vedono a vicenda»*. Vera
+quando ogni creazione andava a rileggersi il palinsesto da sola.
+
+Ma il piano è noto **per intero** prima di cominciare. Quindi: l'occupazione
+della sala si legge una volta per lotto, e a ogni spettacolo si passa come
+`knownBlocked` la sala **più tutti i suoi fratelli del piano, tranne sé stesso**.
+Ogni creazione vede così più di quanto vedesse prima — anche gli spettacoli che
+verranno dopo, non solo quelli già fatti — e il parallelismo diventa sicuro
+senza allentare un solo controllo.
+
+Cinque spettacoli per ondata, dieci per lotto. Il cancello delle richieste
+verso Pretix è passato da 3 a 10, perché a tre era lui il collo di bottiglia; la
+gestione del 429 resta dov'era e continua a fermare tutto quando serve.
+
+### 11.3 I metadati non si perdono più fra un lotto e l'altro
+
+Fra un tick e l'altro non sopravvive niente in memoria, e rifare lo scraping
+MUBI a ogni lotto sarebbe assurdo. Ma `adminPrepareMetadata` ha già scritto
+tutto su `MovieOverride`: `loadPreparedMetadata` rimette insieme da lì lo stesso
+oggetto che la creazione si aspetta, senza una chiamata di rete.
+
+I premi si fotografano **prima** del sync e si riscrivono dopo. Il codice
+precedente li riscriveva da un oggetto tenuto in memoria; leggerli dopo il sync
+avrebbe letto il vuoto, perché è il sync a ricreare le schede da TMDB e a
+portarsi via i premi con la cascata.
+
+Un film senza metadati non blocca più niente: c'è un tetto di venti secondi, e
+scaduto quello lo spettacolo si crea comunque. I premi si recuperano dal
+pannello film.
+
+### 11.4 Scegliere i film era il vero costo
+
+Il wizard chiedeva di spuntare venti titoli prima di mostrare un solo orario.
+Non è difficile — è **lungo**, ed è lungo perché inventare da zero costa più che
+correggere. Due aggiunte, entrambe pure e testate:
+
+- **`autoPick`** (`services/scheduling/autoPick.ts`) sceglie *chi* va in sala e
+  in che fascia; `buildSchedule` continua a decidere *quando*. Restano separati
+  apposta: cambiare un film non deve rimettere in discussione gli orari.
+  Il giro è **per fascia, non per film**: si guarda quanti spettacoli servono la
+  mattina e si cerca chi ci sta bene, invece di prendere i venti film migliori e
+  spalmarli — che è ciò che produceva matinée fatte di drammi da due ore e mezza.
+  La prima serata si serve per prima, perché è la fascia che vale di più e i
+  film forti non devono essere già stati spesi altrove.
+- **Il tabellone**: cento locandine dalla libreria, si scelgono quelle che
+  piacciono, si aggiorna e cambiano *tranne quelle scelte*. Si fanno più giri.
+
+Il pulsante principale del passo 1 non è più «scegli i film» ma **«Programma
+tu»**, che porta dritto al calendario pieno.
+
+Il catalogo da cui si pesca è **solo `inPlex`**. Proporre un film che non hai
+più in libreria significa scoprirlo la sera della proiezione.
+
+### 11.5 Cambiare un film: due clic
+
+Il ⇄ su una card del calendario apre le alternative **per quello slot**: non il
+catalogo, ma i film che ci stanno davvero — durata compatibile con lo spazio
+fino allo spettacolo successivo, ordinati per affinità con la fascia. Un clic e
+il film è cambiato.
+
+Di default cambia **tutti** gli spettacoli di quel film, perché chi apre quel
+pannello di solito pensa «questo film non mi piace», non «questa replica delle
+16:10 non mi piace». Il singolo resta a un clic di distanza.
+
+I film scartati finiscono in un elenco che l'autoprogrammazione non ripropone:
+una risposta già data non va richiesta due volte.
+
+### 11.6 La bozza
+
+`PlanningDraft`, una per sala, riscritta a ogni modifica con 1,2 secondi di
+attesa. All'apertura, se c'è, si può riprendere. Non è un salvataggio di cui
+fidarsi ciecamente — è una rete: se fallisce non succede niente e non lo si dice,
+perché il lavoro vero prosegue lo stesso.
+
+### 11.7 Un difetto trovato per strada
+
+`adminScheduleMovie` faceva `details.genres?.map(g => g.name)` sia sui dettagli
+grezzi di TMDB (dove i generi sono `{ id, name }`) sia sui metadati arricchiti
+(dove sono già stringhe). Programmando a lotti — cioè sempre — il biglietto
+souvenir riportava «undefined, undefined» al posto dei generi. Ora accetta
+entrambe le forme.
+
+### 11.8 Prima di usarlo
+
+```bash
+npx prisma db push
+```
+
+Le tabelle nuove sono tre: `PlanningCommitJob`, `PlanningCommitItem`,
+`PlanningDraft`. Finché non esistono, la conferma non parte.

@@ -999,3 +999,123 @@
 
 /* Una giornata passata si legge, non si tocca. */
 .palLocked { cursor: default; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   IL TABELLONE E IL CAMBIO FILM
+
+   Le due schermate nate per togliere di mezzo la parte lenta: guardare cento
+   locandine invece di filtrare, e sostituire un film con un clic invece di
+   tornare al catalogo e rigenerare tutto.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.viewToggle {
+  display: flex; gap: 0.25rem; padding: 0.25rem;
+  margin: 0 1.6rem; border-radius: 11px; align-self: flex-start;
+  background: rgba(255, 255, 255, 0.05);
+}
+.viewToggle button {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.42rem 0.85rem; border-radius: 9px;
+  background: none; border: none; cursor: pointer;
+  color: #fff; opacity: 0.55; font-size: 0.82rem; font-family: inherit;
+}
+.viewToggle button:hover { opacity: 0.85; }
+.viewToggleOn {
+  background: rgba(168, 85, 247, 0.22) !important;
+  border: 1px solid rgba(168, 85, 247, 0.4) !important;
+  opacity: 1 !important;
+}
+
+.boardWrap {
+  flex: 1; display: flex; flex-direction: column; gap: 0.9rem;
+  padding: 0.4rem 1.6rem 1rem;
+  max-width: 1700px; width: 100%; margin: 0 auto;
+}
+.boardBar {
+  display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+  padding-bottom: 0.2rem;
+}
+.boardTitle { display: flex; flex-direction: column; gap: 0.1rem; margin-right: auto; }
+.boardTitle b {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.95rem; font-weight: 650; letter-spacing: -0.01em;
+}
+.boardTitle span { font-size: 0.74rem; opacity: 0.45; }
+.boardHint { font-size: 0.74rem; opacity: 0.4; margin: 0.2rem 0 0; }
+
+.checkField {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.79rem; opacity: 0.75; cursor: pointer; white-space: nowrap;
+}
+.checkField input { accent-color: #a855f7; }
+
+.emptyNote {
+  display: flex; align-items: center; gap: 0.5rem; justify-content: center;
+  padding: 2.2rem 1rem; font-size: 0.85rem; opacity: 0.5; text-align: center;
+}
+.emptyNote code {
+  background: rgba(255, 255, 255, 0.09); border-radius: 5px;
+  padding: 0.1rem 0.35rem; font-size: 0.8rem;
+}
+
+/* ── Il pannello del cambio film ────────────────────────────────────────── */
+
+.swapBackdrop {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.2rem;
+  background: rgba(8, 8, 12, 0.72);
+  backdrop-filter: blur(6px);
+}
+.swapPanel {
+  display: flex; flex-direction: column; gap: 0.9rem;
+  width: min(880px, 100%); max-height: min(86vh, 760px);
+  overflow: auto;
+  padding: 1.2rem 1.3rem;
+  border-radius: 16px;
+  background: #16161d;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+.swapHead { display: flex; align-items: flex-start; gap: 0.8rem; }
+.swapHead h3 {
+  display: flex; align-items: center; gap: 0.45rem;
+  margin: 0; font-size: 1.02rem; font-weight: 650; letter-spacing: -0.015em;
+}
+.swapHead p { margin: 0.25rem 0 0; font-size: 0.79rem; opacity: 0.5; }
+.swapClose {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  color: #fff; opacity: 0.45; display: flex; padding: 0.2rem;
+}
+.swapClose:hover { opacity: 0.9; }
+
+.swapScope {
+  display: flex; gap: 0.25rem; padding: 0.22rem; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05); align-self: flex-start;
+}
+.swapScope button {
+  padding: 0.38rem 0.75rem; border-radius: 8px;
+  background: none; border: none; cursor: pointer;
+  color: #fff; opacity: 0.55; font-size: 0.79rem; font-family: inherit;
+}
+.swapScopeOn {
+  background: rgba(168, 85, 247, 0.22); opacity: 1 !important;
+}
+
+.swapGrid {
+  display: grid; gap: 0.7rem;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+}
+.swapFoot {
+  display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+  padding-top: 0.2rem; border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0.2rem;
+}
+.swapFoot span { font-size: 0.74rem; opacity: 0.42; }
+
+@media (max-width: 720px) {
+  .viewToggle { margin: 0 0.9rem; }
+  .boardWrap { padding: 0.4rem 0.9rem 1rem; }
+  .swapBackdrop { padding: 0.6rem; align-items: flex-end; }
+  .swapPanel { max-height: 90vh; }
+}

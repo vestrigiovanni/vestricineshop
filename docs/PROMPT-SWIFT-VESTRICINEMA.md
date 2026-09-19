@@ -255,34 +255,51 @@ rifiuto e lascia orfani ordini pagati, da rimborsare a mano da Pretix. Non
 mandarlo senza un sì esplicito dell'utente, raccolto mostrandogli quanti
 biglietti sono in gioco.
 
-Se rimandi in commit gli spettacoli falliti, ricordati di rimettergli i
-`replaces`: le chiavi in `errors[].key` non li portano, e uno spettacolo
-rimandato nudo tornerebbe a sbattere contro lo stesso conflitto.
+Per riprovare i falliti **non** ricostruire un commit nuovo: manda
+`{ "retry": true }` sul job (vedi sotto). Il lavoro conserva i `replaces` di
+ogni spettacolo, che le chiavi in `errors[].key` non porterebbero — uno
+spettacolo rimandato nudo tornerebbe a sbattere contro lo stesso conflitto.
 
-### GET /api/planning/commit/{jobId}
+### POST /api/planning/commit/{jobId}  ← è questa che fa il lavoro
 → { "id": "cj_…", "state": "running",     // pending | running | done | error
-    "step": "Spettacolo 7/22 · Perfect Days · 2026-08-01 20:30",
+    "phase": "shows",                     // metadata | shows | sync | done
+    "step": "Creo 10 spettacoli · dal 2026-08-01 14:00 al 2026-08-02 22:30",
     "done": 7, "total": 29,
     "created": [ 991, 992 ],
     "errors": [ { "key": "12345@2026-08-01T20:30",
                   "label": "Perfect Days · 2026-08-01 20:30",
                   "error": "Conflitto rilevato: …" } ],
-    "startedAt": 1785000000000 }
+    "startedAt": 1785000000000, "pending": 22 }
 
-Il commit dura minuti (crea sub-eventi su Pretix uno per uno). Fai polling ogni
-2 secondi finché `state` è `pending` o `running`.
+**Il commit non va avanti da solo: lo fai avanzare tu.** `POST /commit` registra
+soltanto il piano — un elenco di intenzioni su database — e non tocca Pretix.
+Ogni `POST /commit/{jobId}` crea un lotto vero di spettacoli e torna con
+l'avanzamento. Si ripete finché `state` non è `done` o `error`, senza attesa fra
+una chiamata e l'altra (ognuna lavora per secondi, non risponde al volo).
+
+Non è una stranezza: una promessa lasciata correre su un server serverless muore
+appena la risposta è partita, e cento spettacoli non entrano nella durata di una
+richiesta. Facendolo a lotti, l'app può chiudersi e riprendere domani.
+
+`{ "retry": true }` nel corpo rimette prima in gioco gli spettacoli falliti.
+
+`GET /api/planning/commit/{jobId}` restituisce la stessa cosa ma **non fa
+avanzare niente**: serve a guardare com'è andata, non a portare a termine.
 
 TRE REGOLE SUL COMMIT, e sono quelle che evitano danni veri:
 
-1. **Non rilanciare mai un commit già avviato.** Crea spettacoli doppi, e
-   nessuno se ne accorge al posto tuo. Persisti il `jobId` appena lo ricevi.
-2. **Un 404 sul job significa "non lo so", non "è fallito".** Il registro dei
-   lavori vive in memoria e il server ha più istanze: il tuo polling può
-   finire su una che non conosce quel job. In quel caso richiama
-   `/occupancy` e mostra all'utente cosa risulta creato — non ricommittare.
-3. **Il riprova manda SOLO gli spettacoli in errore**, ricostruiti dagli
-   `errors[].key` (formato `tmdbId@YYYY-MM-DDTHH:mm`). Quelli riusciti sono già
-   in sala.
+1. **Non chiamare `POST /commit` due volte per lo stesso piano.** Creerebbe un
+   secondo lavoro, e quindi spettacoli doppi. Persisti il `jobId` appena lo
+   ricevi. Ripetere i `POST /commit/{jobId}` invece è sicuro quanto vuoi: ogni
+   spettacolo è una riga con chiave unica che, appena creata, si porta dietro
+   il suo id Pretix, e una riga creata non viene mai ripresa in mano.
+2. **Un 404 sul job significa che quel lavoro non esiste** (id sbagliato, o
+   passata una settimana). Non è "è fallito": richiama `/occupancy` e mostra
+   all'utente cosa risulta in sala — non ricommittare.
+3. **Il riprova non si fa a mano.** Manda `{ "retry": true }` sul job: rimette
+   in coda solo i falliti, e quelli già creati restano dove sono. Ricostruire
+   gli spettacoli dagli `errors[].key` e rimandarli in un commit nuovo è il modo
+   di fabbricare doppioni.
 
 ## Flusso da realizzare — 4 schermate
 

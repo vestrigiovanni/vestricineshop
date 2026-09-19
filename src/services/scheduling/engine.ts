@@ -121,6 +121,29 @@ const SHOWS_PER_DAY: Record<Intensity, { weekday: number; weekend: number }> = {
   festival: { weekday: 7, weekend: 8 },
 };
 
+/**
+ * Quanti spettacoli ci stanno in un periodo, con un dato ritmo.
+ *
+ * È la stessa aritmetica che `buildSchedule` usa internamente per dividere le
+ * repliche, esposta perché serve **prima**: chi sceglie i film al posto tuo
+ * deve sapere quanti spettacoli deve coprire, e ricavarlo con una formula
+ * parallela vorrebbe dire due conti diversi della stessa cosa.
+ */
+export function plannedCapacity(
+  startDate: string,
+  days: number,
+  intensity: Intensity = 'normal',
+  alreadyPlaced = 0
+): number {
+  const span = Math.min(Math.max(Math.trunc(days), 1), MAX_DAYS);
+  let total = 0;
+  for (let d = 0; d < span; d++) {
+    const iso = addDaysISO(startDate, d);
+    total += isWeekend(iso) ? SHOWS_PER_DAY[intensity].weekend : SHOWS_PER_DAY[intensity].weekday;
+  }
+  return Math.max(total - Math.max(alreadyPlaced, 0), 0);
+}
+
 /** Quanto lontano dal punto d'arrivo della catena si cerca un orario elegante. */
 const CHAIN_LOOKAHEAD = 75;
 

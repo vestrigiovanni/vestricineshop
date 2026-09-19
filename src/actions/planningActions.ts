@@ -14,11 +14,13 @@ import { countSoldTickets, listSubEvents } from '@/services/pretix';
 import { getMovieDetails } from '@/services/tmdb';
 import {
   buildSchedule,
+  plannedCapacity,
   snapShowTo,
   type BuildScheduleInput,
   type Interval,
   type ScheduledShow,
 } from '@/services/scheduling/engine';
+import { autoPick, bandAffinity, type AutoPickFilm } from '@/services/scheduling/autoPick';
 import {
   CLOSING_MINUTE,
   MINUTES_PER_DAY,
@@ -38,8 +40,8 @@ import {
 } from '@/services/scheduling/occupancy';
 import { checkSlot, findFreeSlots, SLOTS_PER_DAY } from '@/services/scheduling/freeSlots';
 import { msToGlobalMinute, romeClock, todayInRome } from '@/services/scheduling/rome';
-import { getJob, type CommitJob } from '@/services/scheduling/commitJobs';
-import { startCommit, type CommitInput } from '@/services/scheduling/commitRunner';
+import { findOpenJob, getJob, type CommitJob } from '@/services/scheduling/commitJobs';
+import { retryCommit, startCommit, tickCommit, type CommitInput } from '@/services/scheduling/commitRunner';
 
 export interface ExistingShow {
   pretixId: number | null;
@@ -431,6 +433,312 @@ export async function planningGenerate(input: PlanningGenerateInput): Promise<Pl
     seed,
     existing: occupancy.daysDetail,
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTOPROGRAMMAZIONE — il piano che c'è già quando arrivi
+//
+// Il wizard chiedeva di spuntare venti titoli prima di mostrare un solo orario,
+// ed era lì che se ne andavano le ore. Qui la scelta la fa il sistema: si legge
+// il catalogo in libreria, si guarda quanto spazio c'è, e si arriva al
+// calendario con la settimana già scritta. Da quel momento in poi il lavoro è
+// solo togliere ciò che non piace — che è veloce, perché si giudica qualcosa
+// invece di inventarlo.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Un film del catalogo come lo mostra il wizard. */
+export interface PlanningCatalogFilm {
+  id: number;
+  title: string;
+  year: number | null;
+  durationMin: number | null;
+  runtime: number | null;
+  director: string | null;
+  tmdbId: string | null;
+  posterPath: string | null;
+  genres: string[];
+  voteAverage: number | null;
+  /** Quanti voti ci sono dietro la media: un 8,4 con quaranta voti non è un 8,4. */
+  voteCount: number | null;
+  awardLabels: string[];
+  inPlex: boolean;
+  plexLibraries: string[];
+  verifyStatus: string;
+  scheduledCount: number;
+  /** Quando è entrato in libreria, in millisecondi. Le novità pesano di più. */
+  addedAt: number | null;
+}
+
+export interface PlanningAutoPlanInput {
+  seatingPlanId: number;
+  startDate: string;
+  days: number;
+  intensity?: BuildScheduleInput['intensity'];
+  seed?: number;
+  /** Film che l'utente ha già approvato e vuole rivedere nel piano. */
+  keep?: string[];
+  /** Film scartati: non devono ripresentarsi a ogni rigenerazione. */
+  exclude?: string[];
+}
+
+export interface PlanningAutoPlanResult extends PlanningGenerateResult {
+  /** I film scelti, con la ragione per cui sono stati scelti. */
+  chosen: {
+    film: PlanningCatalogFilm;
+    preferredBand: Band;
+    replicas: number;
+    reason: string;
+  }[];
+}
+
+/**
+ * Il catalogo utilizzabile per programmare: solo ciò che è davvero in libreria.
+ *
+ * `inPlex` è il filtro che conta. Proporre un film che non hai più in libreria
+ * significa scoprirlo la sera della proiezione, ed è il tipo di errore che non
+ * si recupera.
+ */
+async function usableCatalog(limit = 1200): Promise<PlanningCatalogFilm[]> {
+  // Le colonne si elencano: senza `select` arriverebbero anche `overview` e
+  // `backdropPath` per milleduecento righe, cioè un megabyte buttato addosso a
+  // un pannello che mostra dodici locandine.
+  const rows = await prisma.catalogFilm.findMany({
+    where: {
+      inPlex: true,
+      tmdbId: { not: null },
+      verifyStatus: { not: 'missing' },
+      OR: [{ runtime: { gt: 0 } }, { durationMin: { gt: 0 } }],
+    },
+    select: {
+      id: true, title: true, tmdbTitle: true, year: true, durationMin: true, runtime: true,
+      director: true, tmdbId: true, posterPath: true, genres: true, voteAverage: true,
+      voteCount: true, awardLabels: true, inPlex: true, plexLibraries: true,
+      verifyStatus: true, addedAt: true,
+    },
+    orderBy: [{ voteCount: 'desc' }, { id: 'asc' }],
+    take: limit,
+  });
+
+  const tmdbIds = rows.map((f) => f.tmdbId).filter((v): v is string => Boolean(v));
+  const grouped = tmdbIds.length
+    ? await prisma.pretixSync.groupBy({
+        by: ['tmdbId'],
+        where: { tmdbId: { in: tmdbIds } },
+        _count: { _all: true },
+      })
+    : [];
+  const countMap = new Map(grouped.map((g) => [g.tmdbId, g._count._all]));
+
+  return rows.map((f) => ({
+    id: f.id,
+    title: f.tmdbTitle || f.title,
+    year: f.year,
+    durationMin: f.durationMin,
+    runtime: f.runtime,
+    director: f.director,
+    tmdbId: f.tmdbId,
+    posterPath: f.posterPath,
+    genres: f.genres,
+    voteAverage: f.voteAverage,
+    voteCount: f.voteCount,
+    awardLabels: f.awardLabels,
+    inPlex: f.inPlex,
+    plexLibraries: f.plexLibraries,
+    verifyStatus: f.verifyStatus,
+    scheduledCount: f.tmdbId ? countMap.get(f.tmdbId) ?? 0 : 0,
+    addedAt: f.addedAt?.getTime() ?? null,
+  }));
+}
+
+/** Da riga di catalogo a candidato per il selettore. */
+function toCandidate(f: PlanningCatalogFilm): AutoPickFilm {
+  return {
+    tmdbId: f.tmdbId!,
+    title: f.title,
+    runtime: f.runtime ?? f.durationMin ?? 0,
+    genres: f.genres,
+    year: f.year,
+    voteAverage: f.voteAverage,
+    voteCount: f.voteCount,
+    awardLabels: f.awardLabels,
+    addedAt: f.addedAt,
+    scheduledCount: f.scheduledCount,
+    posterPath: f.posterPath,
+    director: f.director,
+  };
+}
+
+/**
+ * Costruisce una programmazione completa senza chiedere niente.
+ *
+ * Due passaggi, entrambi puri e testati: `autoPick` decide **chi** va in sala e
+ * in che fascia, `buildSchedule` decide **quando**. Sono separati apposta —
+ * cambiare film non deve rimettere in discussione gli orari, e spostare un
+ * orario non deve rimettere in discussione i film.
+ */
+export async function planningAutoPlan(
+  input: PlanningAutoPlanInput
+): Promise<PlanningAutoPlanResult> {
+  const days = Math.min(Math.max(Math.trunc(input.days), 1), 30);
+  const seed = input.seed ?? Math.floor(Math.random() * 1_000_000);
+  const intensity = input.intensity ?? 'normal';
+
+  const [occupancy, catalog] = await Promise.all([
+    planningGetPeriodOccupancy(input.seatingPlanId, input.startDate, days),
+    usableCatalog(),
+  ]);
+
+  // Quanto spazio c'è davvero: il ritmo scelto, meno ciò che è già in sala.
+  const capacity = Math.min(
+    plannedCapacity(input.startDate, days, intensity, occupancy.totalShows),
+    // Non ha senso proporre più spettacoli di quanti buchi esistano: la sala
+    // potrebbe essere già mezza piena, e il motore li scarterebbe uno a uno.
+    Math.max(occupancy.freeSlotsEstimate, 1)
+  );
+
+  const picked = autoPick({
+    pool: catalog.filter((f) => f.tmdbId).map(toCandidate),
+    capacity,
+    seed,
+    keep: input.keep,
+    exclude: input.exclude,
+    genresInSchedule: occupancy.genresInSchedule,
+  });
+
+  const byId = new Map(catalog.map((f) => [f.tmdbId!, f]));
+
+  const plan = await planningGenerate({
+    seatingPlanId: input.seatingPlanId,
+    startDate: input.startDate,
+    days,
+    intensity,
+    seed,
+    films: picked.films.map((f) => ({
+      tmdbId: f.tmdbId,
+      replicas: f.replicas,
+      preferredBand: f.preferredBand,
+    })),
+  });
+
+  return {
+    ...plan,
+    warnings: [...picked.warnings, ...plan.warnings],
+    chosen: picked.films
+      .map((f) => {
+        const film = byId.get(f.tmdbId);
+        if (!film) return null;
+        return { film, preferredBand: f.preferredBand, replicas: f.replicas, reason: f.reason };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null),
+  };
+}
+
+/**
+ * I film che potrebbero prendere il posto di questo, in questo slot.
+ *
+ * È il cuore del cambio in due clic: si chiede cosa ci sta *qui*, non cosa c'è
+ * in catalogo. Quindi la durata deve incastrarsi nello spazio disponibile — o
+ * il sostituto andrebbe a sbattere contro lo spettacolo dopo — e l'affinità con
+ * la fascia decide l'ordine, perché alle 22:30 e alle 10:30 non serve la stessa
+ * lista.
+ */
+export async function planningAlternatives(input: {
+  /** Fascia dello slot da riempire. */
+  band: Band;
+  /** Quanto dura al massimo il film che ci sta, pausa esclusa. */
+  maxRuntime: number;
+  /** Film già nel piano: non si ripropongono, o si finirebbe a duplicare. */
+  exclude?: string[];
+  /** Quanti proporne. */
+  count?: number;
+  /** Cambia il seed per vederne altri senza cambiare nient'altro. */
+  seed?: number;
+}): Promise<PlanningCatalogFilm[]> {
+  const count = Math.min(Math.max(Math.trunc(input.count ?? 8), 1), 40);
+  const maxRuntime = Math.max(Math.trunc(input.maxRuntime), 30);
+  const excluded = new Set(input.exclude ?? []);
+  const now = Date.now();
+
+  const catalog = await usableCatalog();
+
+  // Un pizzico di caso, fisso per film: chiedere "altri" deve dare altri, ma
+  // senza stravolgere l'ordine di merito.
+  const salt = (input.seed ?? 0) + 1;
+  const jitter = (id: string) => {
+    let h = salt >>> 0;
+    for (let i = 0; i < id.length; i++) h = (Math.imul(h ^ id.charCodeAt(i), 0x01000193) >>> 0);
+    return (h % 1000) / 1000;
+  };
+
+  return catalog
+    .filter((f) => {
+      if (!f.tmdbId || excluded.has(f.tmdbId)) return false;
+      const runtime = f.runtime ?? f.durationMin ?? 0;
+      return runtime > 0 && runtime <= maxRuntime;
+    })
+    .map((f) => ({
+      film: f,
+      score:
+        bandAffinity(toCandidate(f), input.band, now) +
+        jitter(f.tmdbId!) * 1.2,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count)
+    .map((x) => x.film);
+}
+
+/**
+ * Il tabellone: cento film pescati dalla libreria, da guardare e sfoltire.
+ *
+ * `keep` sono quelli che hai già scelto e restano in cima a ogni ricarica: è
+ * ciò che permette di fare più giri — guardo cento titoli, ne tengo sei,
+ * aggiorno, ne tengo altri quattro — senza ricominciare ogni volta da zero.
+ */
+export async function planningCatalogBoard(input: {
+  count?: number;
+  seed?: number;
+  keep?: string[];
+  exclude?: string[];
+  /** Solo film mai programmati. */
+  onlyNever?: boolean;
+  search?: string;
+} = {}): Promise<PlanningCatalogFilm[]> {
+  const count = Math.min(Math.max(Math.trunc(input.count ?? 100), 1), 200);
+  const keep = new Set(input.keep ?? []);
+  const excluded = new Set(input.exclude ?? []);
+  const search = input.search?.trim().toLowerCase();
+
+  const catalog = await usableCatalog();
+
+  const eligible = catalog.filter((f) => {
+    if (!f.tmdbId || excluded.has(f.tmdbId)) return false;
+    if (input.onlyNever && f.scheduledCount > 0) return false;
+    if (search) {
+      const hay = `${f.title} ${f.director ?? ''}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  const chosen = eligible.filter((f) => keep.has(f.tmdbId!));
+  const rest = eligible.filter((f) => !keep.has(f.tmdbId!));
+
+  // Mescolata riproducibile: lo stesso seed ridà lo stesso tabellone, così
+  // ricaricare la pagina non fa sparire i film che stavi guardando.
+  const seed = (input.seed ?? 1) >>> 0;
+  let a = seed;
+  const rng = () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [rest[i], rest[j]] = [rest[j], rest[i]];
+  }
+
+  return [...chosen, ...rest].slice(0, Math.max(count, chosen.length));
 }
 
 /**
@@ -839,14 +1147,50 @@ export async function planningCheckManualSlot(input: {
 // durare una singola richiesta. Si avvia e si segue.
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** Avvia la creazione degli spettacoli e restituisce l'id del lavoro. */
+/**
+ * Registra la creazione degli spettacoli e restituisce l'id del lavoro.
+ *
+ * Non crea niente su Pretix: scrive l'elenco delle intenzioni. Il lavoro
+ * comincia davvero alla prima `planningCommitTick`, e va avanti un lotto per
+ * chiamata finché non è finito.
+ */
 export async function planningCommitStart(input: CommitInput): Promise<{ jobId: string }> {
-  return { jobId: startCommit(input) };
+  return { jobId: await startCommit(input) };
 }
 
-/** Come sta andando il lavoro. `null` se non lo conosciamo (vedi `commitJobs`). */
+/**
+ * Fa avanzare il lavoro di un lotto e dice a che punto è.
+ *
+ * È questa la chiamata da ripetere: `planningCommitStatus` guarda soltanto.
+ * Chiamarla da due parti insieme è sicuro — le righe si prenotano, e una riga
+ * già presa da qualcun altro non viene lavorata due volte.
+ */
+export async function planningCommitTick(jobId: string): Promise<CommitJob | null> {
+  return tickCommit(jobId);
+}
+
+/** Come sta andando il lavoro, senza farlo avanzare. `null` se non esiste. */
 export async function planningCommitStatus(jobId: string): Promise<CommitJob | null> {
   return getJob(jobId);
+}
+
+/**
+ * Rimette in gioco gli spettacoli falliti. Quelli già creati non si toccano:
+ * riprovare non può in nessun caso produrre un doppione.
+ */
+export async function planningCommitRetry(jobId: string): Promise<{ requeued: number }> {
+  return { requeued: await retryCommit(jobId) };
+}
+
+/**
+ * Il lavoro rimasto a metà su questa sala, se c'è.
+ *
+ * Serve alla riapertura della pagina: un wifi caduto o un portatile chiuso non
+ * annullano la creazione, la mettono in pausa — e al ritorno va ripresa, non
+ * rilanciata da capo.
+ */
+export async function planningFindOpenCommit(seatingPlanId: number): Promise<string | null> {
+  return findOpenJob(seatingPlanId);
 }
 
 /**
@@ -1133,6 +1477,71 @@ export async function planningMoveShow(input: {
 
   await adminUpdateEventDate(input.pretixId, `${check.slot.date}T${check.slot.time}`);
   return { moved: true, deleted };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LA BOZZA — il piano che non si perde
+//
+// Il wizard teneva tutto nello stato del browser: un ricaricamento, una scheda
+// chiusa o un wifi caduto e due ore di scelte sparivano. Qui c'è l'ultima
+// fotografia del piano, riscritta mentre lavori e ripescata all'apertura. Una
+// per sala, perché programmare due periodi diversi sulla stessa sala nello
+// stesso momento non è una cosa che si fa — e tenere una cronologia di bozze
+// significherebbe chiedere "quale?" a chi voleva solo riprendere.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface PlanningDraftPayload {
+  startDate: string;
+  days: number;
+  intensity: string;
+  /** Lo stato del wizard, così com'è: film scelti, spettacoli, passo. */
+  state: unknown;
+  showCount: number;
+}
+
+/** Salva (o sostituisce) la bozza di questa sala. */
+export async function planningSaveDraft(
+  seatingPlanId: number,
+  draft: PlanningDraftPayload
+): Promise<void> {
+  const data = {
+    startDate: draft.startDate,
+    days: Math.min(Math.max(Math.trunc(draft.days), 1), 30),
+    intensity: draft.intensity,
+    state: (draft.state ?? {}) as object,
+    showCount: Math.max(Math.trunc(draft.showCount), 0),
+  };
+  // Se il salvataggio fallisce non succede niente di grave: è una rete di
+  // sicurezza, non il piano. Farlo esplodere interromperebbe il lavoro vero.
+  await prisma.planningDraft
+    .upsert({ where: { roomId: seatingPlanId }, create: { roomId: seatingPlanId, ...data }, update: data })
+    .catch((err) => {
+      console.error('[planning] bozza non salvata', err);
+      return null;
+    });
+}
+
+/** La bozza di questa sala, se ce n'è una. */
+export async function planningLoadDraft(
+  seatingPlanId: number
+): Promise<(PlanningDraftPayload & { updatedAt: string }) | null> {
+  const row = await prisma.planningDraft
+    .findUnique({ where: { roomId: seatingPlanId } })
+    .catch(() => null);
+  if (!row) return null;
+  return {
+    startDate: row.startDate,
+    days: row.days,
+    intensity: row.intensity,
+    state: row.state,
+    showCount: row.showCount,
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+/** Butta la bozza: si fa a piano confermato, o quando si ricomincia da capo. */
+export async function planningDropDraft(seatingPlanId: number): Promise<void> {
+  await prisma.planningDraft.deleteMany({ where: { roomId: seatingPlanId } }).catch(() => null);
 }
 
 /** Il primo giorno programmabile: oggi, se non è già troppo tardi. */

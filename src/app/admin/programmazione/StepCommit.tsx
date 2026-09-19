@@ -6,10 +6,16 @@
  * Il resoconto degli errori è per spettacolo e non per lotto, e il riprova
  * rifà **solo i falliti**: rilanciare l'intero piano creerebbe doppioni di
  * tutto ciò che era già andato a buon fine.
+ *
+ * La creazione non vive più in questa pagina. Ogni spettacolo è una riga su
+ * database e questa schermata la fa avanzare un lotto per volta: chiudere il
+ * portatile, perdere il wifi o ricaricare non annulla niente — al ritorno la
+ * pagina ritrova il lavoro dov'era e riprende. È il motivo per cui qui non c'è
+ * più scritto "non chiudere la pagina".
  */
 
 import React from 'react';
-import { Check, CalendarCheck, Loader2, RotateCcw, TriangleAlert, Wand2 } from 'lucide-react';
+import { Check, CalendarCheck, Loader2, RotateCcw, ShieldCheck, TriangleAlert, Wand2 } from 'lucide-react';
 import styles from './Programmazione.module.css';
 
 export interface CommitProgress {
@@ -31,9 +37,13 @@ interface Props {
   failures: CommitFailure[];
   onRetry: () => void;
   onRestart: () => void;
+  /** Il lavoro è stato ritrovato e ripreso invece che avviato adesso. */
+  resumed?: boolean;
 }
 
-export default function StepCommit({ running, progress, created, failures, onRetry, onRestart }: Props) {
+export default function StepCommit({
+  running, progress, created, failures, onRetry, onRestart, resumed,
+}: Props) {
   const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
   const done = !running;
 
@@ -41,18 +51,23 @@ export default function StepCommit({ running, progress, created, failures, onRet
     <main className={styles.stepBody}>
       <section className={styles.runCard}>
         <h2>
-          {running ? <><Loader2 size={20} className={styles.spin} /> Sto creando gli spettacoli…</> : '🍿 Programmazione in sala'}
+          {running
+            ? <><Loader2 size={20} className={styles.spin} /> {resumed ? 'Riprendo da dove eravamo…' : 'Sto creando gli spettacoli…'}</>
+            : '🍿 Programmazione in sala'}
         </h2>
 
         <div className={styles.progressTrack}>
           <div className={styles.progressFill} style={{ width: `${pct}%` }} />
         </div>
-        <p className={styles.progressStep}>{progress.step} · {pct}%</p>
+        <p className={styles.progressStep}>
+          {progress.step} · {progress.done}/{progress.total} · {pct}%
+        </p>
 
         {running && (
           <p className={styles.runNote}>
-            Gli spettacoli vengono creati uno alla volta: Pretix non gradisce le richieste in parallelo,
-            ed è la ragione per cui questa schermata non è istantanea. Non chiudere la pagina.
+            <ShieldCheck size={14} /> Puoi chiudere la pagina: ogni spettacolo è già scritto come
+            impegno sul database, e riaprendo la programmazione il lavoro riparte da qui.
+            Nessuno spettacolo può essere creato due volte.
           </p>
         )}
 

@@ -39,7 +39,20 @@ export async function limitConcurrency<T>(tasks: (() => Promise<T>)[], limit: nu
 
 let activeRequests = 0;
 const requestQueue: (() => void)[] = [];
-const MAX_CONCURRENT_REQUESTS = 3;
+/**
+ * Quante richieste possono essere in volo insieme verso Pretix.
+ *
+ * Era 3, tarato su un'epoca in cui gli spettacoli si creavano uno alla volta e
+ * il parallelismo serviva solo a sovrapporre le tre chiamate di configurazione
+ * di un singolo sub-evento. Ora la creazione va a lotti (vedi `commitRunner`) e
+ * un cancello da tre era diventato il collo di bottiglia: cinque spettacoli in
+ * parallelo restavano in fila a due per volta.
+ *
+ * Dieci è prudente: il 429 di Pretix resta gestito qui sotto — ferma tutto,
+ * aspetta il `Retry-After` e riprende — quindi alzare il cancello non può
+ * trasformarsi in una raffica che si prende un blocco.
+ */
+const MAX_CONCURRENT_REQUESTS = 10;
 
 // Global halt for rate-limiting
 let isRateLimited = false;

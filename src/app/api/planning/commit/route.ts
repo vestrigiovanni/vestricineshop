@@ -15,13 +15,17 @@ export const dynamic = 'force-dynamic';
  * I codici sconosciuti vengono scartati senza far fallire la creazione.
  * `specsNote` è la riga libera, per ciò che i codici non prevedono.
  *
- * Risponde subito: la creazione prosegue in sottofondo e si segue con
- * GET /api/planning/commit/{jobId}.
+ * Risponde subito e **non crea niente**: registra il piano come elenco di
+ * intenzioni su database. La creazione vera avviene un lotto per volta, a ogni
+ * POST /api/planning/commit/{jobId}, che è la chiamata da ripetere fino alla
+ * fine. Nessuno porta avanti il lavoro in sottofondo, ed è deliberato: una
+ * promessa lasciata correre su un server serverless muore appena la risposta è
+ * partita, e cento spettacoli non entrano nella durata di una richiesta.
  *
- * ATTENZIONE, LATO CLIENT — questa chiamata **crea spettacoli veri**. Se la
- * risposta si perde per strada, non rilanciarla: chiedi prima l'occupazione
- * della sala e guarda se ci sono già. Un commit ripetuto crea doppioni, e
- * niente qui può accorgersene al posto tuo.
+ * ATTENZIONE, LATO CLIENT — se la risposta si perde per strada non rilanciare
+ * *questa*: creerebbe un secondo lavoro, e quindi spettacoli doppi. Chiedi
+ * prima l'occupazione della sala. Ripetere invece i POST sul jobId è sicuro
+ * quanto si vuole: le righe già create non vengono mai riprese in mano.
  *
  * ATTENZIONE, DI PIÙ — con `replaces` questa rotta **elimina anche**. Sono id
  * Pretix, rimossi subito prima di creare lo spettacolo che li sostituisce; se

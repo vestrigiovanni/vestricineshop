@@ -135,3 +135,112 @@ model CatalogFilm {
   @@index([addedAt])
   @@index([awardsCheckedAt])
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LA CREAZIONE DEGLI SPETTACOLI, SU DISCO
+//
+// PERCHÉ QUI E NON IN MEMORIA — la versione precedente teneva i lavori in una
+// `Map` di processo e li faceva avanzare con una promessa lasciata correre
+// dopo aver già risposto (`void run(...)`). Su Vercel quella promessa muore:
+// l'istanza viene congelata appena la risposta è partita, e una programmazione
+// da cento spettacoli non entra comunque nella vita di una singola richiesta.
+// Il risultato era il lavoro che si fermava a metà, il registro che spariva
+// cambiando istanza, e nessun modo di sapere cosa fosse stato creato davvero.
+//
+// Ora il lavoro è una riga, e ogni spettacolo da creare è una riga sua. Chi
+// segue il lavoro lo fa **avanzare**: ogni richiesta prende un lotto di righe
+// `todo`, le crea e ne scrive l'esito. Qualsiasi istanza può servire
+// qualsiasi tick, quindi chiudere il portatile o perdere il wifi non perde
+// niente: alla riapertura il lavoro riprende da dove era.
+// ═══════════════════════════════════════════════════════════════════════════
+
+model PlanningCommitJob {
+  id            String    @id @default(cuid())
+  seatingPlanId Int
+  /** pending | running | done | error */
+  state         String    @default("pending")
+  /** metadata | shows | sync | done — le fasi si attraversano in quest'ordine. */
+  phase         String    @default("metadata")
+  /** L'ultima cosa fatta, in parole: è ciò che la barra mostra. */
+  step          String    @default("In coda")
+  /** Quanti spettacoli in tutto. */
+  total         Int
+  /**
+   * Quanti film distinti: entrano nel denominatore dell'avanzamento.
+   *
+   * La preparazione dei metadati è la parte lenta del lavoro — è uno scraping —
+   * e senza contarla la barra resterebbe a zero per un minuto buono mentre il
+   * server lavora, che è indistinguibile da un blocco.
+   */
+  filmTotal     Int      @default(0)
+  /** Metadati e premi già preparati, per film: non si rifanno a ogni tick. */
+  metaDone      String[]  @default([])
+  /** Errori che non appartengono a un singolo spettacolo (sync, avvio). */
+  errors        Json      @default("[]")
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  items PlanningCommitItem[]
+
+  @@index([state])
+  @@index([updatedAt])
+}
+
+model PlanningCommitItem {
+  id      String            @id @default(cuid())
+  jobId   String
+  job     PlanningCommitJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  /** `tmdbId@YYYY-MM-DDTHH:mm`: la stessa chiave che il wizard usa per i falliti. */
+  key     String
+  tmdbId  String
+  /** Data di calendario da mandare a Pretix. */
+  date    String
+  /** 'HH:mm' in ora di Roma. */
+  time    String
+  title   String?
+  /** Durata in minuti, per il calcolo dei conflitti senza rileggere TMDB. */
+  runtime Int?
+  /** replaces, forceReplace, allowOutsideHours, specs, specsNote. */
+  payload Json              @default("{}")
+
+  /** todo | running | done | failed | skipped */
+  state    String   @default("todo")
+  attempts Int      @default(0)
+  /** Chi sta lavorando su questa riga adesso: evita che due tick la creino due volte. */
+  lease      String?
+  leaseUntil DateTime?
+  /** Il sub-evento nato da questa riga. Presente = creato, e non si ricrea mai. */
+  pretixId Int?
+  error    String?
+  updatedAt DateTime @updatedAt
+
+  @@unique([jobId, key])
+  @@index([jobId, state])
+}
+
+/**
+ * La bozza di programmazione, salvata mentre lavori.
+ *
+ * Il wizard teneva tutto nello stato del browser: un ricaricamento, una
+ * scheda chiusa o un wifi caduto e due ore di scelte sparivano. Qui c'è
+ * l'ultima fotografia del piano, riscritta mentre si lavora e ripescata
+ * all'apertura.
+ */
+model PlanningDraft {
+  id        String   @id @default(cuid())
+  /** Una bozza per sala: quella nuova sostituisce la vecchia. */
+  roomId    Int      @unique
+  startDate String
+  days      Int
+  intensity String   @default("normal")
+  /** Lo stato del wizard: picks, shows, warnings, sostituzioni, passo. */
+  state     Json
+  /** Quanti spettacoli conteneva: per mostrarlo nell'invito a riprendere. */
+  showCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+}

@@ -11,15 +11,17 @@
  * matematica degli orari non è né qui né lì, ma in `services/scheduling`.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   CalendarCheck, CalendarClock, CalendarRange, ChevronLeft, ChevronRight, Clapperboard,
-  Loader2, Sparkles, Wand2, X,
+  LayoutGrid, Loader2, Rows3, Sparkles, Wand2, X, Zap,
 } from 'lucide-react';
 import styles from './Programmazione.module.css';
 import StepSlot from './StepSlot';
 import StepCatalog from './StepCatalog';
+import StepBoard from './StepBoard';
+import SwapPanel, { type SwapTarget } from './SwapPanel';
 import StepCalendar from './StepCalendar';
 import StepFilm from './StepFilm';
 import StepFreeSlots from './StepFreeSlots';
@@ -27,13 +29,20 @@ import Palinsesto from './Palinsesto';
 import StepCommit, { type CommitFailure, type CommitProgress } from './StepCommit';
 import {
   planningDefaultStartDate,
+  planningDropDraft,
+  planningLoadDraft,
+  planningSaveDraft,
   planningFindSlots,
+  planningAutoPlan,
   planningGenerate,
   planningGetPeriodOccupancy,
   planningGetRooms,
   planningSnapShow,
   planningCommitStart,
+  planningCommitRetry,
   planningCommitStatus,
+  planningCommitTick,
+  planningFindOpenCommit,
   type DayOccupancy,
   type PeriodOccupancy,
   type PlanningFindSlotsResult,
@@ -42,7 +51,7 @@ import {
 import { catalogEnsureByTmdbId } from '@/actions/catalogActions';
 import type { ScheduledShow } from '@/services/scheduling/engine';
 import type { Intensity } from '@/services/scheduling/engine';
-import { MINUTES_PER_DAY, daysBetweenISO, type Band } from '@/services/scheduling/times';
+import { MINUTES_PER_DAY, daysBetweenISO, formatClock, type Band } from '@/services/scheduling/times';
 import {
   commitKey, defaultSpecsFor, runtimeOf, showKey, slotKey,
   type CatalogItem, type ChosenSlot, type Pick, type PlanningMode, type WizardStep,
@@ -76,6 +85,15 @@ const MODES: { key: PlanningMode; label: string; hint: string; icon: React.React
   },
 ];
 
+/**
+ * Dove si tiene l'id del lavoro di creazione in corso.
+ *
+ * Basta questo perché ricaricare la pagina, o riaprirla domani, ritrovi la
+ * creazione dov'era invece di ricominciarla: il lavoro vero vive sul database,
+ * qui c'è solo il filo per ripescarlo.
+ */
+const JOB_STORAGE_KEY = 'programmazione:job';
+
 /** Quante giornate con spazio mostrare, e fin dove spingersi a cercarle. */
 const SLOT_DAYS_STEP = 7;
 
@@ -106,6 +124,12 @@ export default function ProgrammazionePage() {
 
   // ── Passo 2: i film ───────────────────────────────────────────────────
   const [picks, setPicks] = useState<Map<string, Pick>>(new Map());
+  /**
+   * Come si guarda il catalogo. Il tabellone è il primo perché è il modo più
+   * veloce di riconoscere cosa si vuole proiettare: cento locandine insieme si
+   * scorrono in mezzo minuto, i filtri servono quando cerchi qualcosa di preciso.
+   */
+  const [catalogView, setCatalogView] = useState<'board' | 'rails'>('board');
   const [intensity, setIntensity] = useState<Intensity>('normal');
 
   // ── Al contrario: il film prima, gli orari poi ────────────────────────
@@ -130,6 +154,16 @@ export default function ProgrammazionePage() {
   const [slotDays, setSlotDays] = useState(SLOT_DAYS_STEP);
 
   // ── Passo 3: il calendario ────────────────────────────────────────────
+  /** Lo spettacolo di cui si sta cambiando il film, se il pannello è aperto. */
+  const [swapTarget, setSwapTarget] = useState<SwapTarget | null>(null);
+  /**
+   * I film che hai scartato cambiandoli.
+   *
+   * Serve perché "rigenera" non te li rimetta davanti: una risposta già data
+   * non va richiesta, e senza questo elenco l'autoprogrammazione riproporrebbe
+   * ogni volta gli stessi titoli che stavi togliendo.
+   */
+  const [rejected, setRejected] = useState<Set<string>>(new Set());
   const [shows, setShows] = useState<ScheduledShow[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [existingDays, setExistingDays] = useState<DayOccupancy[]>([]);
@@ -140,6 +174,17 @@ export default function ProgrammazionePage() {
   const [progress, setProgress] = useState<CommitProgress>({ step: '', done: 0, total: 1 });
   const [created, setCreated] = useState(0);
   const [failures, setFailures] = useState<CommitFailure[]>([]);
+  /** Il lavoro in corso: è ciò che permette di riprenderlo dopo un ricaricamento. */
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [resumed, setResumed] = useState(false);
+  /**
+   * Il controllo sul lavoro interrotto è stato fatto.
+   *
+   * Le due domande "riprendo la creazione?" e "riprendo la bozza?" non possono
+   * arrivare insieme, e nemmeno nell'ordine sbagliato: se una creazione era in
+   * corso, quella bozza è già superata dai fatti.
+   */
+  const [commitChecked, setCommitChecked] = useState(false);
 
   // ── Avvio ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -435,11 +480,20 @@ export default function ProgrammazionePage() {
     locked?: ScheduledShow[];
     replicaOverrides?: Map<string, number>;
     seed?: number;
+    /**
+     * I film da usare, quando non sono ancora quelli nello stato.
+     *
+     * `setPicks` non è immediato: chi cambia la selezione e ricalcola nello
+     * stesso gesto — il cambio film, per esempio — leggerebbe qui la selezione
+     * di prima e rigenererebbe il piano che stava cercando di cambiare.
+     */
+    picks?: Map<string, Pick>;
   } = {}) => {
-    if (!roomId || !startDate || picks.size === 0) return;
+    const source = opts.picks ?? picks;
+    if (!roomId || !startDate || source.size === 0) return;
     setBusy(true);
     try {
-      const films = [...picks.values()]
+      const films = [...source.values()]
         .map((p) => ({
           tmdbId: p.film.tmdbId!,
           replicas: opts.replicaOverrides?.get(p.film.tmdbId!) ?? p.replicas,
@@ -468,6 +522,141 @@ export default function ProgrammazionePage() {
       setBusy(false);
     }
   }, [roomId, startDate, days, picks, intensity]);
+
+  // ── Autoprogrammazione ────────────────────────────────────────────────
+  /**
+   * La settimana già scritta.
+   *
+   * Scegliere venti titoli prima di vedere un solo orario era la parte che
+   * costava le ore, e non perché fosse difficile: perché è un lavoro che si fa
+   * meglio **correggendo** che inventando. Qui si arriva al calendario con il
+   * periodo già pieno, scelto dalla libreria in base a cosa sta bene in che
+   * fascia, e da lì in poi si toglie ciò che non piace.
+   *
+   * `keep` ed `exclude` fanno sì che rigenerare non ricominci da zero: i film
+   * che hai tenuto restano, quelli che hai scartato non si ripresentano.
+   */
+  const autoPlan = useCallback(async (opts: { keepCurrent?: boolean } = {}) => {
+    if (!roomId || !startDate) return;
+    setBusy(true);
+    try {
+      const res = await planningAutoPlan({
+        seatingPlanId: roomId,
+        startDate,
+        days,
+        intensity,
+        keep: opts.keepCurrent ? [...picks.keys()] : undefined,
+        exclude: [...rejected],
+      });
+
+      const next = new Map<string, Pick>();
+      for (const c of res.chosen) {
+        if (!c.film.tmdbId) continue;
+        const item = c.film as unknown as CatalogItem;
+        next.set(c.film.tmdbId, {
+          film: item,
+          replicas: c.replicas,
+          preferredBand: c.preferredBand,
+          specs: defaultSpecsFor(item),
+        });
+      }
+
+      setPicks(next);
+      setShows(res.shows);
+      setWarnings(res.warnings);
+      setExistingDays(res.existing);
+      setStep(3);
+      window.scrollTo({ top: 0 });
+    } catch (e) {
+      console.error('[Programmazione] autoprogrammazione', e);
+      window.alert('Non sono riuscito a costruire il piano. Vedi la console per il dettaglio.');
+    } finally {
+      setBusy(false);
+    }
+  }, [roomId, startDate, days, intensity, picks, rejected]);
+
+  // ── Cambio film in due clic ───────────────────────────────────────────
+  /**
+   * Sostituisce il film di uno spettacolo, o di tutti i suoi spettacoli.
+   *
+   * I due casi non passano dalla stessa strada, ed è voluto:
+   *
+   * - **uno solo** si può sostituire sul posto, perché il pannello ha già
+   *   verificato che il film nuovo ci sta in quell'orario. Resta bloccato lì.
+   * - **tutti** no: le altre repliche stanno in orari con spazi diversi, e un
+   *   film più lungo non è detto che ci entri. Quindi si cambia la selezione e
+   *   si richiama il motore, lasciando fermo tutto il resto del piano. È più
+   *   lento di un decimo di secondo e non può produrre un piano impossibile.
+   */
+  const applySwap = useCallback(async (film: CatalogItem, scope: 'one' | 'all') => {
+    const target = swapTarget;
+    if (!target || !film.tmdbId) return;
+
+    const runtime = runtimeOf(film) ?? 0;
+    if (runtime <= 0) return;
+
+    setSwapTarget(null);
+    // Il film scartato non deve tornare alla prossima rigenerazione: è una
+    // risposta che hai già dato.
+    setRejected((prev) => new Set(prev).add(target.tmdbId));
+
+    if (scope === 'one') {
+      const replaced = shows.map((s) =>
+        showKey(s) === target.key
+          ? {
+              ...s,
+              tmdbId: film.tmdbId!,
+              title: film.title,
+              runtime,
+              posterPath: film.posterPath ?? undefined,
+              endMinute: s.startMinute + runtime,
+              endTime: formatClock(s.startMinute + runtime),
+              locked: true,
+            }
+          : s
+      );
+      setShows(replaced);
+
+      // La selezione segue il piano: il film nuovo entra, quello vecchio esce
+      // solo se non gli è rimasto nessuno spettacolo.
+      setPicks((prev) => {
+        const next = new Map(prev);
+        if (!next.has(film.tmdbId!)) {
+          next.set(film.tmdbId!, { film, specs: defaultSpecsFor(film) });
+        }
+        if (!replaced.some((s) => s.tmdbId === target.tmdbId)) next.delete(target.tmdbId);
+        return next;
+      });
+      return;
+    }
+
+    // Tutti gli spettacoli di quel film: via il vecchio, dentro il nuovo con le
+    // stesse repliche, e si rigenera lasciando fermo il resto.
+    const old = picks.get(target.tmdbId);
+    const nextPicks = new Map(picks);
+    nextPicks.delete(target.tmdbId);
+    nextPicks.set(film.tmdbId, {
+      film,
+      replicas: target.occurrences,
+      preferredBand: old?.preferredBand,
+      specs: defaultSpecsFor(film),
+    });
+    setPicks(nextPicks);
+
+    const keepLocked = shows.filter((s) => s.tmdbId !== target.tmdbId);
+    await generate({
+      picks: nextPicks,
+      locked: keepLocked,
+      replicaOverrides: new Map(
+        [...nextPicks.keys()].map((id) => [
+          id,
+          id === film.tmdbId
+            ? target.occurrences
+            : keepLocked.filter((s) => s.tmdbId === id).length,
+        ])
+      ),
+    });
+  }, [swapTarget, shows, picks, generate]);
 
   const goToCalendar = async () => {
     await generate();
@@ -538,25 +727,86 @@ export default function ProgrammazionePage() {
 
   // ── Conferma ──────────────────────────────────────────────────────────
   /**
-   * Avvia la creazione e la segue.
+   * Segue un lavoro di creazione **facendolo avanzare**.
+   *
+   * Non esiste nessuno che lo porti avanti in sottofondo, ed è voluto: una
+   * promessa lasciata correre su un server serverless muore appena la risposta
+   * è partita, ed era esattamente il motivo per cui la creazione di cento
+   * spettacoli si fermava a metà. Qui ogni giro fa un lotto vero di lavoro.
+   *
+   * Ripetere è sicuro: ogni spettacolo è una riga con chiave unica che, appena
+   * creata, si porta dietro il suo id Pretix. Un giro di troppo non ricrea
+   * niente, e due schede aperte insieme nemmeno — le righe si prenotano.
+   */
+  const followJob = useCallback(async (id: string, opts: { resumed?: boolean } = {}) => {
+    setRunning(true);
+    setResumed(Boolean(opts.resumed));
+    setJobId(id);
+    setStep(4);
+    window.localStorage.setItem(JOB_STORAGE_KEY, id);
+    window.scrollTo({ top: 0 });
+
+    try {
+      for (;;) {
+        const job = await planningCommitTick(id);
+
+        if (!job) {
+          // L'id non esiste più. Non si rilancia: si va a guardare la sala.
+          setProgress({ step: 'Non trovo più questo lavoro: ricontrolla la sala.', done: 1, total: 1 });
+          window.localStorage.removeItem(JOB_STORAGE_KEY);
+          break;
+        }
+
+        setProgress({ step: job.step, done: job.done, total: job.total });
+        setCreated(job.created.length);
+        setFailures(job.errors);
+
+        if (job.state === 'done' || job.state === 'error') {
+          // Gli spettacoli creati escono dal piano: se poi si riprova, si
+          // riprovano solo i falliti.
+          const failedKeys = new Set(job.errors.map((e) => e.key));
+          setShows((prev) => prev.filter((s) => failedKeys.has(commitKey(s))));
+          window.localStorage.removeItem(JOB_STORAGE_KEY);
+          // Il piano è in sala: la bozza non serve più, e lasciarla farebbe
+          // proporre di "riprendere" qualcosa che è già stato creato.
+          if (job.errors.length === 0 && roomId) planningDropDraft(roomId).catch(() => null);
+          break;
+        }
+
+        // Un respiro fra un lotto e l'altro: serve a far vedere la barra che
+        // avanza, non al server.
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    } catch (e) {
+      console.error('[Programmazione] avanzamento', e);
+      setFailures((prev) => [
+        ...prev,
+        { key: 'tick', label: 'Avanzamento della creazione', error: String(e) },
+      ]);
+    } finally {
+      setRunning(false);
+    }
+  }, [roomId]);
+
+  /**
+   * Avvia la creazione.
    *
    * La sequenza vera (metadati, sub-eventi, sync) sta in `commitRunner`, la
-   * stessa che serve l'app Swift: qui si avvia il lavoro e si chiede come va.
-   * Averne una copia sul client avrebbe significato due implementazioni della
-   * stessa cosa, pronte a divergere alla prima correzione fatta su una sola.
+   * stessa che serve l'app Swift: qui si registra il lavoro e lo si fa
+   * avanzare. Averne una copia sul client avrebbe significato due
+   * implementazioni della stessa cosa, pronte a divergere alla prima
+   * correzione fatta su una sola.
    */
   const runCommit = useCallback(async (targets: ScheduledShow[]) => {
     if (!roomId || targets.length === 0) return;
-    setRunning(true);
     setFailures([]);
-    setStep(4);
-    window.scrollTo({ top: 0 });
+    setCreated(0);
 
     const sent = [...targets].sort((a, b) => a.startMinute - b.startMinute);
-    setProgress({ step: 'Avvio…', done: 0, total: sent.length + 1 });
+    setProgress({ step: 'Registro il piano…', done: 0, total: sent.length });
 
     try {
-      const { jobId } = await planningCommitStart({
+      const { jobId: id } = await planningCommitStart({
         seatingPlanId: roomId,
         shows: sent.map((s) => {
           // La sostituzione si riattacca qui, alla stessa chiave con cui era
@@ -584,38 +834,181 @@ export default function ProgrammazionePage() {
         }),
       });
 
-      // Il lavoro procede sul server: qui si chiede periodicamente a che punto è.
-      for (;;) {
-        await new Promise((r) => setTimeout(r, 1200));
-        const job = await planningCommitStatus(jobId);
-        if (!job) {
-          // Il registro vive in memoria: se l'istanza cambia, il lavoro sparisce
-          // dalla vista. Non si rilancia — creerebbe doppioni.
-          setProgress({ step: 'Ho perso di vista il lavoro: ricontrolla la sala.', done: 1, total: 1 });
-          break;
-        }
-
-        setProgress({ step: job.step, done: job.done, total: job.total });
-
-        if (job.state === 'done' || job.state === 'error') {
-          setCreated((c) => c + job.created.length);
-          setFailures(job.errors);
-          // Gli spettacoli creati escono dal piano: se poi si riprova, si
-          // riprovano solo i falliti.
-          const failedKeys = new Set(job.errors.map((e) => e.key));
-          setShows((prev) => prev.filter((s) => failedKeys.has(commitKey(s))));
-          break;
-        }
-      }
+      await followJob(id);
     } catch (e) {
       console.error('[Programmazione] conferma', e);
-      setFailures([{ key: 'start', label: 'Avvio della creazione', error: String(e) }]);
-    } finally {
+      setStep(4);
       setRunning(false);
+      setFailures([{ key: 'start', label: 'Avvio della creazione', error: String(e) }]);
     }
-  }, [roomId, replacements, picks]);
+  }, [roomId, replacements, picks, followJob]);
+
+  /** Riprova i falliti: quelli già creati non si toccano mai. */
+  const retryFailures = useCallback(async () => {
+    if (!jobId) return;
+    await planningCommitRetry(jobId);
+    await followJob(jobId);
+  }, [jobId, followJob]);
+
+  /**
+   * Il lavoro interrotto, ripreso all'apertura.
+   *
+   * È la ragione per cui la pagina non deve più restare aperta per ore: se la
+   * creazione era a metà — portatile chiuso, wifi caduto, scheda ricaricata —
+   * qui la si ritrova e la si porta a termine. Non si ricrea niente: il lavoro
+   * sa già quali spettacoli sono nati e li salta.
+   *
+   * L'id si cerca prima nel browser e poi, se lì non c'è, nella sala: capita di
+   * riaprire da un altro computer, e un lavoro appeso non deve restare appeso
+   * solo perché il filo era in un `localStorage` che non è questo.
+   */
+  useEffect(() => {
+    if (running || jobId) return;
+    let cancelled = false;
+
+    async function resume() {
+      const stored = window.localStorage.getItem(JOB_STORAGE_KEY);
+      let id = stored;
+
+      if (!id && roomId) {
+        id = await planningFindOpenCommit(roomId).catch(() => null);
+      }
+      if (!id || cancelled) { setCommitChecked(true); return; }
+
+      const job = await planningCommitStatus(id).catch(() => null);
+      if (cancelled) return;
+
+      if (!job || job.state === 'done' || job.state === 'error') {
+        // Finito mentre non guardavamo: il filo non serve più.
+        window.localStorage.removeItem(JOB_STORAGE_KEY);
+        setCommitChecked(true);
+        return;
+      }
+
+      const quanti = job.total - job.done;
+      const ok = window.confirm(
+        `C'è una creazione rimasta a metà: ${job.done} spettacoli su ${job.total} sono già in sala, ` +
+        `ne mancano ${quanti}.\n\nLa riprendo da dove era? Gli spettacoli già creati non verranno rifatti.`
+      );
+      if (!ok || cancelled) {
+        window.localStorage.removeItem(JOB_STORAGE_KEY);
+        setCommitChecked(true);
+        return;
+      }
+
+      await followJob(id, { resumed: true });
+    }
+
+    resume();
+    return () => { cancelled = true; };
+  }, [roomId, running, jobId, followJob]);
+
+  // ── La bozza ──────────────────────────────────────────────────────────
+  /**
+   * Il piano, salvato mentre lo costruisci.
+   *
+   * Tutto lo stato di questo wizard viveva nel browser: un ricaricamento, una
+   * scheda chiusa per sbaglio o un wifi caduto e il lavoro di un pomeriggio
+   * spariva. Qui ne va su una fotografia a ogni modifica — poche centinaia di
+   * byte — e all'apertura si può riprendere.
+   *
+   * Non è un salvataggio automatico di cui fidarsi ciecamente: è una rete. Se
+   * fallisce non succede niente e non lo si dice, perché il lavoro vero
+   * prosegue lo stesso.
+   */
+  const draftReady = useRef(false);
+
+  useEffect(() => {
+    if (!roomId || !draftReady.current) return;
+    if (mode === 'palinsesto') return;
+    // Un piano vuoto non è una bozza: salvarlo cancellerebbe quella buona.
+    if (picks.size === 0 && shows.length === 0) return;
+
+    const snapshot = {
+      mode,
+      step,
+      picks: [...picks.entries()],
+      shows,
+      warnings,
+      replacements: [...replacements.entries()],
+      rejected: [...rejected],
+    };
+
+    const t = setTimeout(() => {
+      planningSaveDraft(roomId, {
+        startDate,
+        days,
+        intensity,
+        state: snapshot,
+        showCount: shows.length,
+      }).catch(() => null);
+    }, 1200);
+
+    return () => clearTimeout(t);
+  }, [roomId, mode, step, picks, shows, warnings, replacements, rejected, startDate, days, intensity]);
+
+  /** All'apertura: c'è una bozza per questa sala? */
+  useEffect(() => {
+    // Prima si guarda se c'era una creazione a metà: se c'era, la bozza è già
+    // superata dai fatti e chiederlo sarebbe una domanda di troppo.
+    if (!roomId || draftReady.current || !commitChecked || jobId) return;
+    let cancelled = false;
+
+    async function offer() {
+      const draft = await planningLoadDraft(roomId!).catch(() => null);
+      if (cancelled) return;
+
+      // Da qui in poi si salva: prima no, o il primo render sovrascriverebbe
+      // la bozza con lo stato vuoto di partenza.
+      draftReady.current = true;
+      if (!draft) return;
+
+      const state = draft.state as {
+        mode?: PlanningMode; step?: WizardStep;
+        picks?: [string, Pick][]; shows?: ScheduledShow[];
+        warnings?: string[];
+        replacements?: [string, { replaces: number[]; force: boolean; label?: string; soldTickets: number; outsideHours?: boolean }][];
+        rejected?: string[];
+      } | null;
+
+      if (!state?.shows?.length && !state?.picks?.length) return;
+
+      const quando = new Date(draft.updatedAt).toLocaleString('it-IT', {
+        day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+      });
+      const ok = window.confirm(
+        `C'è un piano lasciato a metà il ${quando}: ${draft.showCount} spettacoli su ${draft.days} giorni.\n\n` +
+        'Lo riprendo? (Annulla per ricominciare da zero.)'
+      );
+      if (!ok || cancelled) {
+        await planningDropDraft(roomId!).catch(() => null);
+        return;
+      }
+
+      setStartDate(draft.startDate);
+      setDays(draft.days);
+      setIntensity(draft.intensity as Intensity);
+      if (state.mode) setMode(state.mode);
+      if (state.picks) setPicks(new Map(state.picks));
+      if (state.shows) setShows(state.shows);
+      if (state.warnings) setWarnings(state.warnings);
+      if (state.replacements) setReplacements(new Map(state.replacements));
+      if (state.rejected) setRejected(new Set(state.rejected));
+      // Il passo 4 non si riprende da qui: quella è la creazione, e ha un suo
+      // recupero che sa cosa è già stato creato davvero.
+      setStep(state.step && state.step < 4 ? state.step : 3);
+    }
+
+    offer();
+    return () => { cancelled = true; };
+  }, [roomId, commitChecked, jobId]);
 
   const restart = () => {
+    if (roomId) planningDropDraft(roomId).catch(() => null);
+    setRejected(new Set());
+    setJobId(null);
+    setResumed(false);
+    window.localStorage.removeItem(JOB_STORAGE_KEY);
     setPicks(new Map());
     setShows([]);
     setWarnings([]);
@@ -730,13 +1123,36 @@ export default function ProgrammazionePage() {
       )}
 
       {step === 2 && mode === 'period' && (
-        <StepCatalog
-          picks={picks}
-          onToggle={togglePick}
-          onUpdatePick={updatePick}
-          gaps={gaps}
-          genresInSchedule={genresInSchedule}
-        />
+        <>
+          <div className={styles.viewToggle}>
+            <button
+              type="button"
+              className={catalogView === 'board' ? styles.viewToggleOn : ''}
+              onClick={() => setCatalogView('board')}
+            >
+              <LayoutGrid size={15} /> Tabellone · 100 film
+            </button>
+            <button
+              type="button"
+              className={catalogView === 'rails' ? styles.viewToggleOn : ''}
+              onClick={() => setCatalogView('rails')}
+            >
+              <Rows3 size={15} /> Corsie e filtri
+            </button>
+          </div>
+
+          {catalogView === 'board' ? (
+            <StepBoard picks={picks} onToggle={togglePick} />
+          ) : (
+            <StepCatalog
+              picks={picks}
+              onToggle={togglePick}
+              onUpdatePick={updatePick}
+              gaps={gaps}
+              genresInSchedule={genresInSchedule}
+            />
+          )}
+        </>
       )}
 
       {step === 2 && mode === 'film' && reverseFilm && (
@@ -771,6 +1187,17 @@ export default function ProgrammazionePage() {
           onSpecsChange={updatePick}
           onRegenerate={regenerate}
           replacements={replacements}
+          onSwapRequest={setSwapTarget}
+        />
+      )}
+
+      {swapTarget && (
+        <SwapPanel
+          target={swapTarget}
+          exclude={[...new Set(shows.map((s) => s.tmdbId))]}
+          busy={busy}
+          onClose={() => setSwapTarget(null)}
+          onSwap={applySwap}
         />
       )}
 
@@ -780,8 +1207,9 @@ export default function ProgrammazionePage() {
           progress={progress}
           created={created}
           failures={failures}
-          onRetry={() => runCommit(shows)}
+          onRetry={retryFailures}
           onRestart={restart}
+          resumed={resumed}
         />
       )}
 
@@ -814,11 +1242,37 @@ export default function ProgrammazionePage() {
 
           <div className={styles.footerSpacer} />
 
-          {step === 1 && (
+          {step === 1 && mode === 'period' && (
+            <>
+              {/*
+                Il pulsante principale è questo, non "scegli i film": partire da
+                una programmazione già fatta e correggerla è molto più rapido
+                che costruirla da zero, e finché il percorso a mano era l'unico
+                una settimana costava ore. Scegliere i film resta a fianco, per
+                quando hai già in testa cosa vuoi proiettare.
+              */}
+              <button
+                className={styles.ctaBtn}
+                onClick={() => autoPlan()}
+                disabled={!canAdvance || busy}
+                title="Riempio il periodo con i film della tua libreria, poi correggi"
+              >
+                {busy
+                  ? <><Loader2 size={19} className={styles.spin} /> Costruisco la programmazione…</>
+                  : <><Zap size={19} /> Programma tu · {days} giorn{days === 1 ? 'o' : 'i'}</>}
+              </button>
+              <button
+                className={styles.ghostBtn}
+                onClick={() => setStep(2)}
+                disabled={!canAdvance || busy}
+              >
+                <Clapperboard size={17} /> Scelgo io i film
+              </button>
+            </>
+          )}
+          {step === 1 && mode === 'film' && (
             <button className={styles.ctaBtn} onClick={() => setStep(2)} disabled={!canAdvance}>
-              {mode === 'period'
-                ? <><Clapperboard size={19} /> Scegli i film</>
-                : <><CalendarClock size={19} /> Trova gli orari liberi</>}
+              <CalendarClock size={19} /> Trova gli orari liberi
             </button>
           )}
           {step === 2 && mode === 'period' && (

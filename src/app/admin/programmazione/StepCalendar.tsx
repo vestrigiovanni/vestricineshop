@@ -12,16 +12,18 @@
 
 import React, { useMemo, useState } from 'react';
 import {
-  Clapperboard, Lock, LockOpen, Loader2, RefreshCw, Trash2, TriangleAlert,
+  Clapperboard, Lock, LockOpen, Loader2, RefreshCw, Replace, Trash2, TriangleAlert,
 } from 'lucide-react';
 import styles from './Programmazione.module.css';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import type { ScheduledShow } from '@/services/scheduling/engine';
 import type { DayOccupancy } from '@/actions/planningActions';
 import {
-  BAND_LABELS, MINUTES_PER_DAY, OPENING_MINUTE, daysBetweenISO, type Band,
+  BAND_LABELS, CLOSING_MINUTE, MINUTES_PER_DAY, MIN_GAP_MINUTES, OPENING_MINUTE,
+  daysBetweenISO, type Band,
 } from '@/services/scheduling/times';
 import { commitKey, dayLabel, showKey, type Pick } from './types';
+import type { SwapTarget } from './SwapPanel';
 import { PROJECTION_SPECS, type ProjectionSpecCode } from '@/constants/projectionSpecs';
 
 const BAND_CLASS: Record<Band, string> = {
@@ -48,6 +50,15 @@ interface Props {
   onSpecsChange: (tmdbId: string, patch: { specs?: ProjectionSpecCode[]; specsNote?: string }) => void;
   onRegenerate: () => void;
   /**
+   * Cambia il film di uno spettacolo — il ⇄ sulla card.
+   *
+   * Lo spazio utilizzabile (`maxRuntime`) lo calcola questo componente e non
+   * il genitore: è l'unico che sa cosa c'è **subito dopo** quello spettacolo,
+   * fra gli spettacoli nuovi e quelli già in sala. Proporre un film che non ci
+   * sta significherebbe farlo rifiutare alla conferma.
+   */
+  onSwapRequest?: (target: SwapTarget) => void;
+  /**
    * Gli spettacoli che, confermando, ne elimineranno un altro. Indicizzati per
    * `commitKey`: spostare uno spettacolo ne cambia la chiave e fa sparire il
    * contrassegno, che è corretto — spostandolo non stai più sostituendo niente.
@@ -68,6 +79,7 @@ function parseClock(v: string): number | null {
 export default function StepCalendar({
   shows, warnings, existing, picks, busy,
   onToggleLock, onDelete, onMove, onReplicasChange, onSpecsChange, onRegenerate, replacements,
+  onSwapRequest,
 }: Props) {
   const [dragging, setDragging] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -107,6 +119,43 @@ export default function StepCalendar({
       (show.startMinute % MINUTES_PER_DAY) < OPENING_MINUTE ? dayStart - MINUTES_PER_DAY : dayStart;
     const desired = programmingDayStart + parsed + (parsed < OPENING_MINUTE ? MINUTES_PER_DAY : 0);
     if (desired !== show.startMinute) onMove(show, desired);
+  };
+
+  /**
+   * Quanto dura al massimo un film che possa prendere il posto di questo.
+   *
+   * Si guarda cosa comincia **dopo**, fra gli spettacoli nuovi e quelli già in
+   * sala: il sostituto deve finire almeno una pausa prima di quello. Se dopo
+   * non c'è niente, il tetto è la chiusura — il film deve finire entro l'01:00.
+   */
+  const roomAfter = (show: ScheduledShow): number => {
+    const dayStart = show.startMinute - (show.startMinute % MINUTES_PER_DAY);
+    const programmingDayStart =
+      (show.startMinute % MINUTES_PER_DAY) < OPENING_MINUTE ? dayStart - MINUTES_PER_DAY : dayStart;
+    const dayClose = programmingDayStart + CLOSING_MINUTE;
+
+    const starts: number[] = [
+      ...shows.filter((s) => showKey(s) !== showKey(show)).map((s) => s.startMinute),
+      ...existing.flatMap((d) => d.shows.map((s) => s.startMinute)),
+    ].filter((m) => m > show.startMinute);
+
+    const next = starts.length > 0 ? Math.min(...starts) : Number.POSITIVE_INFINITY;
+    const ceiling = Math.min(next - MIN_GAP_MINUTES, dayClose);
+    return Math.max(ceiling - show.startMinute, 0);
+  };
+
+  const requestSwap = (show: ScheduledShow) => {
+    if (!onSwapRequest) return;
+    onSwapRequest({
+      key: showKey(show),
+      title: show.title,
+      time: show.time,
+      day: show.day,
+      band: show.band,
+      tmdbId: show.tmdbId,
+      maxRuntime: roomAfter(show),
+      occurrences: shows.filter((s) => s.tmdbId === show.tmdbId).length,
+    });
   };
 
   const dropOnDay = (targetDate: string) => {
@@ -285,6 +334,15 @@ export default function StepCalendar({
                       </div>
 
                       <div className={styles.calShowActions}>
+                        {onSwapRequest && (
+                          <button
+                            onClick={() => requestSwap(s)}
+                            title="Cambia film: ti mostro cosa ci sta in questo orario"
+                            disabled={busy}
+                          >
+                            <Replace size={13} />
+                          </button>
+                        )}
                         <button
                           onClick={() => onToggleLock(key)}
                           title={s.locked ? 'Sbloccalo: i ricalcoli potranno spostarlo' : 'Bloccalo: i ricalcoli non lo sposteranno'}

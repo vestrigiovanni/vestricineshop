@@ -60,7 +60,7 @@ function formatManualISO(d: Date) {
  * programmazione da quaranta film quelle chiamate si moltiplicavano per
  * quaranta. Il database sa già tutto e risponde in una query sola.
  */
-async function getBlockedIntervals(seatingPlanId: number) {
+export async function getBlockedIntervals(seatingPlanId: number) {
   const events = await listSubEvents(true);
   // La pausa fra due spettacoli ha un'unica definizione, quella del motore.
   // Prima qui erano 15 minuti mentre la creazione ne chiedeva 10: uno
@@ -791,7 +791,15 @@ export async function adminScheduleMovie(
       seatCategoryMapping: seatCategoryMapping,
       // Store additional rich metadata in comment for the Souvenir Ticket
       tagline: details.tagline || '',
-      genres: details.genres?.map((g: any) => g.name).join(', ') || '',
+      // `getEnrichedMovieMetadata` restituisce i generi come stringhe, TMDB
+      // grezzo come oggetti `{ id, name }`. Prima si chiamava `.name` su
+      // entrambi: passando i metadati arricchiti — cioè sempre, quando si
+      // programma a lotti — il biglietto souvenir riportava "undefined,
+      // undefined" al posto dei generi.
+      genres: (details.genres || [])
+        .map((g: any) => (typeof g === 'string' ? g : g?.name))
+        .filter(Boolean)
+        .join(', '),
       year: details.release_date ? details.release_date.split('-')[0] : '',
       rating: movieRating,
       logoPath: enrichedMetadata?.logo_path || getMovieLogo(details) || '',
