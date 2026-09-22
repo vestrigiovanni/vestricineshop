@@ -74,6 +74,12 @@ export default function StepBoard({ picks, onToggle, size = 100 }: Props) {
 
   const chosen = films.filter((f) => f.tmdbId && picks.has(f.tmdbId)).length;
 
+  // Nessuno di questi film risulta in libreria: vuol dire che la
+  // sincronizzazione da Plex non è mai arrivata, e il tabellone sta pescando
+  // dal catalogo. Si programma lo stesso — ma va detto, perché la presenza del
+  // file la garantisce solo Plex.
+  const senzaPlex = films.length > 0 && films.every((f) => !f.inPlex);
+
   return (
     <section className={styles.boardWrap}>
       <header className={styles.boardBar}>
@@ -119,8 +125,8 @@ export default function StepBoard({ picks, onToggle, size = 100 }: Props) {
         <p className={styles.emptyNote}><Loader2 size={15} className={styles.spin} /> Un momento…</p>
       ) : films.length === 0 ? (
         <p className={styles.emptyNote}>
-          Nessun film in libreria con questi filtri. Se il catalogo è vuoto, lancia
-          <code> npm run plex:sync</code> dal Mac del cinema.
+          Nessun film con questi filtri. Se il catalogo è vuoto, lancia
+          <code> npm run plex:sync</code> dalla cartella del sito, sul Mac del cinema.
         </p>
       ) : (
         <div className={styles.filmGrid}>
@@ -139,6 +145,14 @@ export default function StepBoard({ picks, onToggle, size = 100 }: Props) {
         I film che scegli restano in cima anche dopo l&apos;aggiornamento: puoi fare più giri
         senza perdere quelli che ti erano piaciuti.
       </p>
+
+      {senzaPlex && (
+        <p className={styles.boardHint}>
+          Questi titoli vengono dal catalogo: la libreria Plex non è mai stata sincronizzata,
+          quindi controlla di avere il file prima di proiettare. Per allinearla, lancia
+          <code> npm run plex:sync</code> dalla cartella del sito, sul Mac del cinema.
+        </p>
+      )}
     </section>
   );
 }

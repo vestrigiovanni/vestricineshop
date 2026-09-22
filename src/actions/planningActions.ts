@@ -9,6 +9,7 @@
  * spettacoli. Il motore resta puro e testabile perché questo file esiste.
  */
 
+import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { countSoldTickets, listSubEvents } from '@/services/pretix';
 import { getMovieDetails } from '@/services/tmdb';
@@ -497,27 +498,56 @@ export interface PlanningAutoPlanResult extends PlanningGenerateResult {
  * `inPlex` è il filtro che conta. Proporre un film che non hai più in libreria
  * significa scoprirlo la sera della proiezione, ed è il tipo di errore che non
  * si recupera.
+ *
+ * QUANDO PLEX NON HA MAI PARLATO — `inPlex` lo scrive solo la sincronizzazione
+ * dal Mac del cinema. Finché quella non è mai arrivata, la colonna è `false`
+ * ovunque: non perché i film siano spariti, ma perché nessuno ha ancora detto
+ * se ci sono. Filtrarci sopra in quel caso non protegge da niente e lascia il
+ * wizard con zero film — il catalogo intero diventa invisibile e la
+ * programmazione automatica non parte più.
+ *
+ * A distinguere i due casi è `plexKey`, che la sincronizzazione scrive e non
+ * toglie mai: un catalogo senza nemmeno una `plexKey` è un catalogo con cui
+ * Plex non ha mai parlato, e lì si programma su tutto. Se invece una
+ * sincronizzazione c'è stata, `inPlex: false` vuol dire davvero "non ce l'hai
+ * più" e il filtro resta intoccato, anche a costo di non proporre niente.
  */
 async function usableCatalog(limit = 1200): Promise<PlanningCatalogFilm[]> {
+  // Ciò che serve comunque, sincronizzazione o no: un film abbinato a TMDB, non
+  // dichiarato mancante, e con una durata — senza durata non si può orarlo.
+  const programmabile: Prisma.CatalogFilmWhereInput = {
+    tmdbId: { not: null },
+    verifyStatus: { not: 'missing' },
+    OR: [{ runtime: { gt: 0 } }, { durationMin: { gt: 0 } }],
+  };
+
   // Le colonne si elencano: senza `select` arriverebbero anche `overview` e
   // `backdropPath` per milleduecento righe, cioè un megabyte buttato addosso a
   // un pannello che mostra dodici locandine.
-  const rows = await prisma.catalogFilm.findMany({
-    where: {
-      inPlex: true,
-      tmdbId: { not: null },
-      verifyStatus: { not: 'missing' },
-      OR: [{ runtime: { gt: 0 } }, { durationMin: { gt: 0 } }],
-    },
+  const query = {
     select: {
       id: true, title: true, tmdbTitle: true, year: true, durationMin: true, runtime: true,
       director: true, tmdbId: true, posterPath: true, genres: true, voteAverage: true,
       voteCount: true, awardLabels: true, inPlex: true, plexLibraries: true,
       verifyStatus: true, addedAt: true,
     },
-    orderBy: [{ voteCount: 'desc' }, { id: 'asc' }],
+    orderBy: [{ voteCount: 'desc' as const }, { id: 'asc' as const }],
     take: limit,
+  };
+
+  let rows = await prisma.catalogFilm.findMany({
+    where: { inPlex: true, ...programmabile },
+    ...query,
   });
+
+  if (rows.length === 0) {
+    const maiSincronizzato = (await prisma.catalogFilm.count({
+      where: { plexKey: { not: null } },
+    })) === 0;
+    if (maiSincronizzato) {
+      rows = await prisma.catalogFilm.findMany({ where: programmabile, ...query });
+    }
+  }
 
   const tmdbIds = rows.map((f) => f.tmdbId).filter((v): v is string => Boolean(v));
   const grouped = tmdbIds.length
