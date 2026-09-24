@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { CalendarRange, Ellipsis, ExternalLink, Film, LogOut, Search, Sunrise, Ticket } from 'lucide-react';
@@ -17,6 +17,8 @@ const ICONS: Record<RoomKey, React.ComponentType<{ size?: number }>> = {
   cassa: Ticket,
 };
 
+const noSubscribe = () => () => {};
+
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '/admin';
   const router = useRouter();
@@ -24,10 +26,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const compact = isCompactRoom(pathname);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [shortcut, setShortcut] = useState('⌘K');
+  // Sul server non si sa che computer c'è: si scrive ⌘K e si corregge dopo l'idratazione.
+  const shortcut = useSyncExternalStore(
+    noSubscribe,
+    () => (/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘K' : 'Ctrl K'),
+    () => '⌘K',
+  );
 
   useEffect(() => {
-    if (!/Mac|iPhone|iPad/.test(navigator.userAgent)) setShortcut('Ctrl K');
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();

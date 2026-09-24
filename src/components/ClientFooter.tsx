@@ -4,8 +4,8 @@ import Footer from './Footer';
 
 export default function ClientFooter() {
   const pathname = usePathname();
-  // Suppress footer on isolated full-screen pages
-  const isHidden = pathname === '/display-esterno' || pathname.startsWith('/admin/cassa');
+  // Il footer pubblico non entra in cabina né sullo schermo d'ingresso.
+  const isHidden = pathname === '/display-esterno' || pathname.startsWith('/admin');
   
   if (isHidden) return null;
   
