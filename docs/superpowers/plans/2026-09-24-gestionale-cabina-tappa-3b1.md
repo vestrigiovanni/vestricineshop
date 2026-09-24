@@ -1089,7 +1089,11 @@ export default function CatalogDrawer({ gaps, selected, inDraft, onSelect, onDra
           onClick={() => onSelect(f.tmdbId === selected ? null : f)}
           title={draggable ? 'Trascinalo su un giorno, o cliccalo per vedere dove ci sta' : 'Senza durata: non so dove metterlo'}
         >
-          <span className={styles.poster}>{poster && <img src={poster} alt="" loading="lazy" />}</span>
+          <span className={styles.poster}>
+            {/* Miniature da 34px: passarle dall'ottimizzatore costerebbe senza guadagnare niente. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {poster && <img src={poster} alt="" loading="lazy" />}
+          </span>
           <span className={styles.filmText}>
             <span className={styles.filmTitle}>{f.title}</span>
             <span className={styles.filmMeta}>
@@ -1908,6 +1912,13 @@ export default function Tavolo({ data }: { data: TavoloData }) {
       router.replace(`/admin/programma${toSearch({ room: id, from: data.from, days: data.days, onlyEmpty: data.onlyEmpty })}`);
     }
   }, [data.roomFromParam, data.rooms, data.from, data.days, data.onlyEmpty, roomId, router]);
+
+  // Un trascinamento lasciato fuori dalla settimana non deve lasciare le righe accese.
+  useEffect(() => {
+    const reset = () => setDragKey(null);
+    window.addEventListener('dragend', reset);
+    return () => window.removeEventListener('dragend', reset);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

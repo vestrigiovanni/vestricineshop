@@ -76,6 +76,7 @@
 .legendTitle { font-family: var(--c-font-serif); font-size: 18px; color: var(--c-ink); }
 .legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .legend li { display: flex; align-items: center; gap: 8px; }
+/* legenda: oggi dentro il cassetto del catalogo */
 .swatchBlock, .swatchSold, .swatchGap { width: 18px; height: 12px; border-radius: 2px; background: #2a2119; border-left: 2px solid var(--c-amber); }
 .swatchSold { border-left-color: var(--c-ok); }
 .swatchGap { border: 0; background: repeating-linear-gradient(135deg, transparent 0 3px, rgba(232, 163, 61, 0.25) 3px 6px); }
@@ -107,4 +108,41 @@
   .listTitle { font-family: var(--c-font-serif); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .listSeats { font-family: var(--c-font-mono); font-size: 11px; color: var(--c-dim); }
   .dayListEmpty { padding: 10px 4px; border-top: 1px solid var(--c-line); color: var(--c-dim); font-size: 13px; }
+}
+
+.draft {
+  background: rgba(232, 163, 61, 0.08);
+  color: var(--c-amber);
+  border: 1px dashed var(--c-amber);
+  border-left-width: 1px;
+}
+.draft:hover { background: rgba(232, 163, 61, 0.16); }
+.draft[data-selected] { background: rgba(232, 163, 61, 0.22); }
+
+.slot {
+  position: absolute; top: 3px; bottom: 3px; z-index: 3;
+  display: grid; place-items: center; min-width: 0; padding: 0 4px; overflow: hidden;
+  background: rgba(232, 163, 61, 0.05); color: var(--c-amber);
+  border: 1px solid var(--c-amber); border-radius: 3px;
+  font-family: var(--c-font-mono); font-size: 10px; white-space: nowrap; cursor: pointer;
+  animation: glow 1.6s ease-in-out infinite;
+}
+.slot:hover { background: var(--c-amber); color: var(--c-amber-ink); animation: none; }
+@keyframes glow { 50% { box-shadow: 0 0 0 3px var(--c-amber-soft); } }
+
+.filmBar {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  margin-bottom: 10px; padding: 8px 12px; border-radius: var(--c-radius);
+  background: var(--c-amber-soft); border: 1px solid var(--c-amber); font-size: 13px;
+}
+.filmBar b { font-family: var(--c-font-serif); font-weight: 600; }
+.filmBar button { background: none; border: 0; color: var(--c-amber); font: inherit; font-size: 12.5px; cursor: pointer; text-decoration: underline; }
+
+.mobileOnly { display: none; }
+.sheetCatalog { height: 70dvh; }
+
+@media (max-width: 767px) {
+  .mobileOnly { display: inline-flex; }
+  .dayList button[data-draft] { color: var(--c-amber); }
+  .dayList button[data-slot] { color: var(--c-amber); border-top-style: dashed; }
 }

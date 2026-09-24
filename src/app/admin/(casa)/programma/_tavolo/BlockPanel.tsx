@@ -34,6 +34,8 @@ interface Props {
   onClose: () => void;
   /** Qualcosa è cambiato in sala: il tavolo va riletto. */
   onChanged: (opts?: { keepOpen?: boolean }) => void;
+  /** "Replica": il tavolo accende i posti dove questo film ci sta. */
+  onReplica: (tmdbId: string) => void;
 }
 
 const CLOCK = /^([01]?\d|2[0-3]):([0-5]\d)$/;
@@ -47,7 +49,7 @@ function quotaName(q: Quota): string {
   return typeof q.name === 'string' ? q.name : q.name?.it ?? 'Quota';
 }
 
-export default function BlockPanel({ block, day, targetDays, roomId, from, intent, onClose, onChanged }: Props) {
+export default function BlockPanel({ block, day, targetDays, roomId, from, intent, onClose, onChanged, onReplica }: Props) {
   const toast = useToast();
   const [moveDay, setMoveDay] = useState(intent?.day ?? day.date);
   const [moveTime, setMoveTime] = useState(intent?.time ?? block.time);
@@ -244,7 +246,7 @@ export default function BlockPanel({ block, day, targetDays, roomId, from, inten
           <section className={styles.group}>
             <span className={styles.label}>Altro</span>
             {block.tmdbId && (
-              <Button href={`/admin/programma/wizard?room=${roomId}&tmdb=${encodeURIComponent(block.tmdbId)}`} variant="ghost">
+              <Button variant="ghost" onClick={() => onReplica(block.tmdbId!)}>
                 + Aggiungi una replica
               </Button>
             )}
