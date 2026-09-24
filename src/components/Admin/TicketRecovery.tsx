@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { getTicketsByDateAction, startBatchPrintingAction } from '@/actions/ticketRecoveryActions';
 import TicketPDF, { generateTicketPDF } from '@/components/TicketPDF';
+import { useToast } from '@/components/cabina/Toast';
 import styles from './TicketRecovery.module.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -89,6 +90,7 @@ function printViaIframe(url: string) {
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export default function TicketRecoveryButton() {
+  const toast = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [tickets, setTickets] = useState<TicketPosition[]>([]);
   const [loading, setLoading] = useState(false);
@@ -134,11 +136,11 @@ export default function TicketRecoveryButton() {
     } catch (error: any) {
       if (error.name === 'AbortError') return;
       console.error('[TicketRecovery]', error);
-      alert('Errore nel recupero dei biglietti. Controlla la console per i dettagli.');
+      toast('Non sono riuscito a recuperare i biglietti di quel giorno.', 'alarm');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   const handleOpen = () => setIsOpen(true);
 
@@ -161,7 +163,7 @@ export default function TicketRecoveryButton() {
   const handlePrintPretix = (ticket: TicketPosition) => {
     const rawUrl = ticket.downloads?.find((d) => d.output === 'pdf')?.url;
     const pdfUrl = pretixPdfProxy(rawUrl);
-    if (!pdfUrl) { alert('URL PDF non disponibile per questo biglietto.'); return; }
+    if (!pdfUrl) { toast('Per questo biglietto Pretix non ha un PDF.', 'alarm'); return; }
     printViaIframe(pdfUrl);
   };
 
@@ -169,7 +171,7 @@ export default function TicketRecoveryButton() {
     const rawUrl = ticket.downloads?.find((d) => d.output === 'pdf')?.url;
     const pdfUrl = pretixPdfProxy(rawUrl);
     if (pdfUrl) window.open(pdfUrl, '_blank');
-    else alert('URL PDF non disponibile.');
+    else toast('Per questo biglietto Pretix non ha un PDF.', 'alarm');
   };
 
   const handlePrintSouvenir = async (ticket: TicketPosition) => {
@@ -208,7 +210,7 @@ export default function TicketRecoveryButton() {
       );
     } catch (e) {
       console.error('[Souvenir PDF]', e);
-      alert('Errore durante la generazione del PDF.');
+      toast('Non sono riuscito a preparare il PDF.', 'alarm');
     } finally {
       setSouvenirPdfLoading(false);
     }
@@ -225,7 +227,7 @@ export default function TicketRecoveryButton() {
   const handleBatchPrint = async () => {
     if (tickets.length === 0) return;
     if (printMode !== 'pretix') {
-      alert('La stampa batch è disponibile solo per il biglietto Pretix PDF.\nPer Souvenir o Cassa, stampa singolarmente ogni biglietto.');
+      toast('La stampa di tutti insieme vale solo per il PDF di Pretix: souvenir e cassa si stampano uno alla volta.', 'alarm');
       return;
     }
     setBatchLoading(true);
@@ -235,7 +237,7 @@ export default function TicketRecoveryButton() {
       if (downloadUrl) printViaIframe(downloadUrl);
     } catch (error) {
       console.error('[Batch]', error);
-      alert('Errore durante la stampa batch.');
+      toast('La stampa di tutti insieme non è partita.', 'alarm');
     } finally {
       setBatchLoading(false);
     }

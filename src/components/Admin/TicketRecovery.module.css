@@ -25,7 +25,7 @@
 
 /* ── Modal Content ──────────────────────────────────────────────────────────── */
 .modalContent {
-  background: #0d0d12;
+  background: var(--c-bg-raised);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   width: 100%;
@@ -35,7 +35,7 @@
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.7),
-              0 0 0 1px rgba(139, 92, 246, 0.08);
+              0 0 0 1px rgba(232, 163, 61, 0.08);
   animation: slideUp 0.22s ease;
 }
 
@@ -65,7 +65,7 @@
   margin: 0;
   font-size: 1.35rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--c-ink) 0%, var(--c-amber) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -73,8 +73,8 @@
 }
 
 .todayBadge {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  color: #fff;
+  background: linear-gradient(135deg, #c98a2c, #c98a2c);
+  color: var(--c-ink);
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -105,7 +105,7 @@
 }
 
 .navBtn:hover:not(:disabled) {
-  color: #a78bfa;
+  color: var(--c-amber);
   transform: scale(1.12);
 }
 
@@ -118,7 +118,7 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  color: #fff;
+  color: var(--c-ink);
   font-weight: 600;
   font-size: 0.9rem;
   min-width: 240px;
@@ -138,7 +138,7 @@
 }
 
 .closeBtn:hover {
-  color: #fff;
+  color: var(--c-ink);
   transform: scale(1.1);
 }
 
@@ -175,15 +175,15 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 0.55rem 1rem 0.55rem 2.25rem;
-  color: #fff;
+  color: var(--c-ink);
   font-size: 0.875rem;
   outline: none;
   transition: border-color 0.18s, background 0.18s;
 }
 
 .searchInput:focus {
-  border-color: #8b5cf6;
-  background: rgba(139, 92, 246, 0.06);
+  border-color: var(--c-amber);
+  background: rgba(232, 163, 61, 0.06);
 }
 
 .searchInput::placeholder {
@@ -219,15 +219,15 @@
 }
 
 .modeActive {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5) !important;
-  color: #fff !important;
-  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+  background: linear-gradient(135deg, #c98a2c, #c98a2c) !important;
+  color: var(--c-ink) !important;
+  box-shadow: 0 2px 8px rgba(201, 138, 44, 0.35);
 }
 
 /* ── Batch Button ────────────────────────────────────────────────────────────── */
 .batchBtn {
-  background: #8b5cf6;
-  color: #fff;
+  background: var(--c-amber);
+  color: var(--c-ink);
   padding: 0.55rem 1.1rem;
   border-radius: 8px;
   display: flex;
@@ -241,9 +241,9 @@
 }
 
 .batchBtn:hover:not(:disabled) {
-  background: #7c3aed;
+  background: #c98a2c;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 4px 12px rgba(201, 138, 44, 0.3);
 }
 
 .batchBtn:disabled {
@@ -304,7 +304,7 @@
   letter-spacing: 0.06em;
   position: sticky;
   top: 0;
-  background: #0d0d12;
+  background: var(--c-bg-raised);
   z-index: 1;
 }
 
@@ -317,8 +317,8 @@
 
 /* ── Group Row ──────────────────────────────────────────────────────────────── */
 .groupRow td {
-  background: rgba(139, 92, 246, 0.07);
-  border-top: 2px solid rgba(139, 92, 246, 0.15);
+  background: rgba(232, 163, 61, 0.07);
+  border-top: 2px solid rgba(232, 163, 61, 0.15);
   border-bottom: 0;
   padding: 0.5rem 0.75rem;
 }
@@ -326,7 +326,7 @@
 .groupLabel {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #a78bfa;
+  color: var(--c-amber);
   letter-spacing: 0.03em;
 }
 
@@ -341,7 +341,7 @@
 
 .timeCell {
   font-weight: 800;
-  color: #8b5cf6;
+  color: var(--c-amber);
   font-size: 0.95rem;
   font-variant-numeric: tabular-nums;
 }
@@ -359,7 +359,7 @@
 
 .seatBadge {
   background: rgba(244, 63, 94, 0.12);
-  color: #fb7185;
+  color: var(--c-amber);
   padding: 0.2rem 0.55rem;
   border-radius: 5px;
   font-size: 0.78rem;
@@ -395,7 +395,7 @@
   border-radius: 5px;
   font-family: 'SF Mono', 'Fira Code', monospace;
   font-size: 0.8rem;
-  color: #a78bfa;
+  color: var(--c-amber);
   letter-spacing: 0.04em;
 }
 
@@ -424,12 +424,12 @@
 }
 
 .actionBtnPrint {
-  color: #a78bfa;
+  color: var(--c-amber);
 }
 
 .actionBtnPrint:hover {
-  color: #fff;
-  background: rgba(139, 92, 246, 0.25) !important;
+  color: var(--c-ink);
+  background: rgba(232, 163, 61, 0.25) !important;
 }
 
 /* ── Empty State ────────────────────────────────────────────────────────────── */
@@ -800,7 +800,7 @@
 }
 
 .souvenirModalPanel {
-  background: #0a0a0f;
+  background: var(--c-bg-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   width: 100%;
@@ -810,7 +810,7 @@
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8),
-              0 0 0 1px rgba(139, 92, 246, 0.1);
+              0 0 0 1px rgba(232, 163, 61, 0.1);
   animation: slideUp 0.22s ease;
 }
 
@@ -837,7 +837,7 @@
 
 .souvenirModalTitle em {
   font-style: normal;
-  background: linear-gradient(135deg, #a78bfa, #60a5fa);
+  background: linear-gradient(135deg, var(--c-amber), #f3d7a4);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -846,9 +846,9 @@
 .souvenirOrderBadge {
   font-family: 'Courier New', monospace;
   font-size: 0.75rem;
-  background: rgba(139, 92, 246, 0.15);
-  border: 1px solid rgba(139, 92, 246, 0.25);
-  color: #a78bfa;
+  background: rgba(232, 163, 61, 0.15);
+  border: 1px solid rgba(232, 163, 61, 0.25);
+  color: var(--c-amber);
   padding: 0.15rem 0.55rem;
   border-radius: 6px;
   letter-spacing: 0.06em;
@@ -879,7 +879,7 @@
 
 .souvenirActionBtn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  color: var(--c-ink);
   border-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -889,14 +889,14 @@
 }
 
 .souvenirActionBtnPrimary {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5) !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, #c98a2c, #c98a2c) !important;
+  color: var(--c-ink) !important;
   border-color: transparent !important;
-  box-shadow: 0 3px 10px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 3px 10px rgba(201, 138, 44, 0.3);
 }
 
 .souvenirActionBtnPrimary:hover:not(:disabled) {
-  box-shadow: 0 5px 16px rgba(124, 58, 237, 0.45) !important;
+  box-shadow: 0 5px 16px rgba(201, 138, 44, 0.45) !important;
   transform: translateY(-1px);
 }
 
@@ -911,7 +911,7 @@
 }
 
 .souvenirCloseBtn:hover {
-  color: #fff;
+  color: var(--c-ink);
   background: rgba(255, 255, 255, 0.07);
 }
 

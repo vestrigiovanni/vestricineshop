@@ -4,10 +4,10 @@
 
 /* Root wrapper */
 .posRoot {
-  min-height: 100vh;
-  background: #0a0a0f;
-  color: #fff;
-  font-family: var(--font-apple), 'Inter', system-ui, sans-serif;
+  min-height: calc(100dvh - 38px);
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: var(--c-font-sans);
   display: flex;
   flex-direction: column;
 }
@@ -33,7 +33,7 @@
   font-size: 1.1rem;
   font-weight: 900;
   letter-spacing: -0.5px;
-  color: #fff;
+  color: var(--c-ink);
 }
 
 .posSubtitle {
@@ -58,7 +58,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #e2e8f0;
+  color: var(--c-ink);
 }
 
 .btnHistory {
@@ -69,7 +69,7 @@
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 0.5rem;
-  color: #cbd5e1;
+  color: #b9ad9b;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -78,7 +78,7 @@
 
 .btnHistory:hover {
   background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  color: var(--c-ink);
 }
 
 .btnRefresh {
@@ -89,7 +89,7 @@
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.5rem;
-  color: #94a3b8;
+  color: var(--c-dim);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -98,7 +98,7 @@
 
 .btnRefresh:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--c-ink);
 }
 
 .btnPrintTest {
@@ -106,10 +106,10 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.9rem;
-  background: rgba(192, 132, 252, 0.1);
-  border: 1px solid rgba(192, 132, 252, 0.25);
+  background: rgba(232, 163, 61, 0.1);
+  border: 1px solid rgba(232, 163, 61, 0.25);
   border-radius: 0.5rem;
-  color: #c084fc;
+  color: var(--c-amber);
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -117,10 +117,10 @@
 }
 
 .btnPrintTest:hover {
-  background: rgba(192, 132, 252, 0.2);
-  border-color: #c084fc;
-  color: #fff;
-  box-shadow: 0 0 12px rgba(192, 132, 252, 0.2);
+  background: rgba(232, 163, 61, 0.2);
+  border-color: var(--c-amber);
+  color: var(--c-ink);
+  box-shadow: 0 0 12px rgba(232, 163, 61, 0.2);
 }
 
 /* ─── Step Indicator ─────────────────────────────────────── */
@@ -146,8 +146,8 @@
 }
 
 .stepItemActive {
-  color: #c084fc;
-  border-bottom-color: #c084fc;
+  color: var(--c-amber);
+  border-bottom-color: var(--c-amber);
 }
 
 
@@ -170,13 +170,13 @@
 }
 
 .stepNumberActive {
-  background: #c084fc;
-  color: #fff;
+  background: var(--c-amber);
+  color: var(--c-ink);
 }
 
 .stepNumberDone {
-  background: #22c55e;
-  color: #fff;
+  background: var(--c-ok);
+  color: var(--c-ink);
 }
 
 /* ─── Main Content Area ──────────────────────────────────── */
@@ -219,7 +219,7 @@
 .currentDateDisplay {
   font-size: 1.75rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--c-ink);
   letter-spacing: -0.5px;
   margin: 0;
   text-transform: capitalize;
@@ -243,7 +243,7 @@
   padding: 0.7rem 1rem;
   background: transparent;
   border: none;
-  color: #cbd5e1;
+  color: #b9ad9b;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -252,8 +252,8 @@
 }
 
 .navArrow:hover {
-  background: rgba(192, 132, 252, 0.2);
-  color: #fff;
+  background: rgba(232, 163, 61, 0.2);
+  color: var(--c-ink);
 }
 
 .navArrow:first-child {
@@ -262,10 +262,10 @@
 
 .btnToday {
   padding: 0.5rem 1rem;
-  background: rgba(192, 132, 252, 0.1);
-  border: 1px solid rgba(192, 132, 252, 0.3);
+  background: rgba(232, 163, 61, 0.1);
+  border: 1px solid rgba(232, 163, 61, 0.3);
   border-radius: 0.6rem;
-  color: #c084fc;
+  color: var(--c-amber);
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -273,8 +273,8 @@
 }
 
 .btnToday:hover {
-  background: rgba(192, 132, 252, 0.2);
-  color: #fff;
+  background: rgba(232, 163, 61, 0.2);
+  color: var(--c-ink);
 }
 
 /* ─── STEP 1: Film Grid ──────────────────────────────────── */
@@ -296,10 +296,10 @@
 }
 
 .screeningCard:hover {
-  background: rgba(192, 132, 252, 0.12);
-  border-color: rgba(192, 132, 252, 0.4);
+  background: rgba(232, 163, 61, 0.12);
+  border-color: rgba(232, 163, 61, 0.4);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(192, 132, 252, 0.15);
+  box-shadow: 0 8px 24px rgba(232, 163, 61, 0.15);
 }
 
 .screeningCard:active {
@@ -307,8 +307,8 @@
 }
 
 .screeningCardSoldOut {
-  background: rgba(239, 68, 68, 0.05) !important;
-  border-color: rgba(239, 68, 68, 0.3) !important;
+  background: rgba(212, 85, 58, 0.05) !important;
+  border-color: rgba(212, 85, 58, 0.3) !important;
   cursor: not-allowed;
   opacity: 0.8 !important;
 }
@@ -337,38 +337,40 @@
 }
 
 .screeningTime {
+  font-family: var(--c-font-mono);
   font-size: 2rem;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: -1px;
-  color: #FFFFFF;
+  color: var(--c-amber);
   margin-bottom: 0.25rem;
   line-height: 1;
 }
 
 .screeningTimeSoldOut {
   text-decoration: line-through;
-  color: #ef4444;
+  color: var(--c-alarm);
 }
 
 .soldOutBadge {
   display: inline-block;
   padding: 0.2rem 0.6rem;
-  background: #ef4444;
+  background: var(--c-alarm);
   border-radius: 0.35rem;
-  color: #fff;
+  color: var(--c-ink);
   font-size: 0.7rem;
   font-weight: 900;
   letter-spacing: 1px;
   margin-bottom: 0.5rem;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 10px rgba(212, 85, 58, 0.3);
 }
 
 .screeningTitle {
+  font-family: var(--c-font-serif);
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
   line-height: 1.3;
-  color: #FFFFFF;
+  color: var(--c-ink);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -379,13 +381,13 @@
 }
 
 .screeningTitleSoldOut {
-  color: #ef4444;
+  color: var(--c-alarm);
   opacity: 0.7;
 }
 
 .screeningMeta {
   font-size: 0.75rem;
-  color: #E0E0E0;
+  color: var(--c-ink);
   font-weight: 500;
   opacity: 0.9;
 
@@ -397,9 +399,9 @@
 .availBadge {
   margin-top: 0.5rem;
   font-size: 0.75rem;
-  color: #22c55e;
+  color: var(--c-ok);
   font-weight: 800;
-  background: rgba(34, 197, 94, 0.1);
+  background: rgba(155, 176, 122, 0.1);
   padding: 0.2rem 0.5rem;
   border-radius: 0.25rem;
   display: inline-block;
@@ -440,21 +442,21 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  background: rgba(192, 132, 252, 0.2);
+  background: rgba(232, 163, 61, 0.2);
   padding: 0.5rem 1rem;
   border-radius: 0.75rem;
-  border: 1px solid rgba(192, 132, 252, 0.3);
+  border: 1px solid rgba(232, 163, 61, 0.3);
 }
 
 .selectionCount {
   font-size: 0.9rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--c-ink);
 }
 
 .btnContinue {
-  background: #c084fc;
-  color: #fff;
+  background: var(--c-amber);
+  color: var(--c-ink);
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
@@ -467,20 +469,21 @@
 }
 
 .btnContinue:hover {
-  background: #a855f7;
+  background: var(--c-amber);
   transform: translateX(3px);
 }
 
 
 .selectedInfoTitle {
+  font-family: var(--c-font-serif);
   font-size: 1rem;
   font-weight: 800;
-  color: #e9d5ff;
+  color: #f3d7a4;
 }
 
 .selectedInfoMeta {
   font-size: 0.8rem;
-  color: #c084fc;
+  color: var(--c-amber);
 }
 
 .btnBack {
@@ -491,7 +494,7 @@
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 0.5rem;
-  color: #94a3b8;
+  color: var(--c-dim);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -500,7 +503,7 @@
 
 .btnBack:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--c-ink);
 }
 
 /* Seat grid */
@@ -516,29 +519,29 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(34, 197, 94, 0.08);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(155, 176, 122, 0.08);
+  border: 1px solid rgba(155, 176, 122, 0.3);
   border-radius: 0.6rem;
   cursor: pointer;
   transition: all 0.15s;
   gap: 2px;
   font-size: 0.8rem;
   font-weight: 800;
-  color: #22c55e;
+  color: var(--c-ok);
 }
 
 .seatBtn:hover:not(:disabled) {
-  background: rgba(192, 132, 252, 0.15);
-  border-color: #c084fc;
-  color: #e9d5ff;
+  background: rgba(232, 163, 61, 0.15);
+  border-color: var(--c-amber);
+  color: #f3d7a4;
   transform: scale(1.05);
 }
 
 .seatBtnSelected {
-  background: #c084fc !important;
-  border-color: #a855f7 !important;
-  color: #fff !important;
-  box-shadow: 0 0 12px rgba(192, 132, 252, 0.4);
+  background: var(--c-amber) !important;
+  border-color: var(--c-amber) !important;
+  color: var(--c-ink) !important;
+  box-shadow: 0 0 12px rgba(232, 163, 61, 0.4);
 }
 
 .seatBtnBlocked {
@@ -559,7 +562,7 @@
 .seatBtnVip:hover:not(:disabled) {
   background: rgba(251, 191, 36, 0.22) !important;
   border-color: #fbbf24 !important;
-  color: #fff !important;
+  color: var(--c-ink) !important;
   box-shadow: 0 0 14px rgba(251, 191, 36, 0.3) !important;
   transform: scale(1.07);
 }
@@ -668,7 +671,7 @@
 
 .confirmValue {
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--c-ink);
 }
 
 .priceSection {
@@ -715,7 +718,7 @@
 .totalValue {
   font-size: 1.75rem;
   font-weight: 900;
-  color: #86efac;
+  color: #c4d3a8;
 }
 
 .seatListSummary {
@@ -727,9 +730,9 @@
 
 
 .priceInputWrapper:focus-within {
-  border-color: #c084fc;
-  background: rgba(192, 132, 252, 0.07);
-  box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.1);
+  border-color: var(--c-amber);
+  background: rgba(232, 163, 61, 0.07);
+  box-shadow: 0 0 0 3px rgba(232, 163, 61, 0.1);
 }
 
 .eurSymbol {
@@ -745,7 +748,7 @@
   outline: none;
   font-size: 2rem;
   font-weight: 900;
-  color: #fff;
+  color: var(--c-ink);
   font-family: inherit;
   font-variant-numeric: tabular-nums;
 }
@@ -754,10 +757,10 @@
   margin-top: 1rem;
   width: 100%;
   padding: 1.1rem;
-  background: linear-gradient(135deg, #c084fc, #818cf8);
+  background: linear-gradient(135deg, var(--c-amber), var(--c-amber));
   border: none;
   border-radius: 0.85rem;
-  color: #fff;
+  color: var(--c-ink);
   font-size: 1rem;
   font-weight: 800;
   font-family: inherit;
@@ -767,13 +770,13 @@
   justify-content: center;
   gap: 0.6rem;
   letter-spacing: 0.3px;
-  box-shadow: 0 4px 20px rgba(192, 132, 252, 0.35);
+  box-shadow: 0 4px 20px rgba(232, 163, 61, 0.35);
   transition: all 0.2s;
 }
 
 .btnConfirm:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(192, 132, 252, 0.5);
+  box-shadow: 0 8px 28px rgba(232, 163, 61, 0.5);
   filter: brightness(1.05);
 }
 
@@ -818,10 +821,10 @@
 .btnPrint {
   width: 100%;
   padding: 0.9rem 1.2rem;
-  background: #16a34a;
+  background: #7f9660;
   border: none;
   border-radius: 0.7rem;
-  color: #fff;
+  color: var(--c-ink);
   font-size: 0.9rem;
   font-weight: 700;
   font-family: inherit;
@@ -835,7 +838,7 @@
 }
 
 .btnPrint:hover {
-  background: #15803d;
+  background: #6d8352;
   transform: translateY(-1px);
 }
 
@@ -845,7 +848,7 @@
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 0.7rem;
-  color: #cbd5e1;
+  color: #b9ad9b;
   font-size: 0.9rem;
   font-weight: 700;
   font-family: inherit;
@@ -859,7 +862,7 @@
 
 .btnDownload:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--c-ink);
 }
 
 /* ─── Search Bar ─────────────────────────────────────────── */
@@ -884,7 +887,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1rem;
   padding: 1.1rem 1rem 1.1rem 3.5rem;
-  color: #fff;
+  color: var(--c-ink);
   font-size: 1.1rem;
   font-weight: 600;
   outline: none;
@@ -893,12 +896,12 @@
 
 .searchInput:focus {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(192, 132, 252, 0.5);
-  box-shadow: 0 0 20px rgba(192, 132, 252, 0.15);
+  border-color: rgba(232, 163, 61, 0.5);
+  box-shadow: 0 0 20px rgba(232, 163, 61, 0.15);
 }
 
 .searchInput:focus + .searchIcon {
-  color: #c084fc;
+  color: var(--c-amber);
 }
 
 /* ─── Global Search Results ─────────────────────────────── */
@@ -911,8 +914,8 @@
 .globalBadge {
   font-size: 0.65rem;
   font-weight: 800;
-  background: rgba(192, 132, 252, 0.15);
-  color: #c084fc;
+  background: rgba(232, 163, 61, 0.15);
+  color: var(--c-amber);
   padding: 0.2rem 0.6rem;
   border-radius: 2rem;
   letter-spacing: 0.5px;
@@ -946,18 +949,18 @@
 }
 
 .btnFindAltIcon:hover {
-  background: rgba(192, 132, 252, 0.2);
-  color: #fff;
+  background: rgba(232, 163, 61, 0.2);
+  color: var(--c-ink);
 }
 
 .btnNewSale {
   margin-top: 0.5rem;
   width: 100%;
   padding: 1rem 1.2rem;
-  background: linear-gradient(135deg, #c084fc, #818cf8);
+  background: linear-gradient(135deg, var(--c-amber), var(--c-amber));
   border: none;
   border-radius: 0.7rem;
-  color: #fff;
+  color: var(--c-ink);
   font-size: 0.95rem;
   font-weight: 800;
   font-family: inherit;
@@ -966,13 +969,13 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  box-shadow: 0 4px 20px rgba(192, 132, 252, 0.3);
+  box-shadow: 0 4px 20px rgba(232, 163, 61, 0.3);
   transition: all 0.2s;
 }
 
 .btnNewSale:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(192, 132, 252, 0.45);
+  box-shadow: 0 8px 28px rgba(232, 163, 61, 0.45);
 }
 
 .successInfo {
@@ -982,16 +985,17 @@
 }
 
 .successTitle {
+  font-family: var(--c-font-serif);
   font-size: 1.5rem;
   font-weight: 900;
-  color: #86efac;
+  color: #c4d3a8;
 }
 
 .successCode {
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: 2px;
-  color: #c084fc;
+  color: var(--c-amber);
 }
 
 .successDetails {
@@ -1012,7 +1016,7 @@
 }
 
 .successDetailRow span:last-child {
-  color: #e2e8f0;
+  color: var(--c-ink);
   font-weight: 600;
 }
 
@@ -1023,7 +1027,7 @@
   right: 0;
   width: 400px;
   height: 100vh;
-  background: #111118;
+  background: var(--c-bg-raised);
   border-left: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 500;
   display: flex;
@@ -1048,7 +1052,7 @@
 .historyTitle {
   font-size: 1rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--c-ink);
 }
 
 .btnClosePanel {
@@ -1057,7 +1061,7 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  color: var(--c-dim);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1067,7 +1071,7 @@
 
 .btnClosePanel:hover {
   background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  color: var(--c-ink);
 }
 
 .historyList {
@@ -1104,9 +1108,10 @@
 }
 
 .historyMovieTitle {
+  font-family: var(--c-font-serif);
   font-size: 0.85rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--c-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1121,13 +1126,13 @@
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: #c084fc;
+  color: var(--c-amber);
 }
 
 .historyPrice {
   font-size: 0.85rem;
   font-weight: 800;
-  color: #86efac;
+  color: #c4d3a8;
   white-space: nowrap;
 }
 
@@ -1136,7 +1141,7 @@
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.45rem;
-  color: #94a3b8;
+  color: var(--c-dim);
   font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
@@ -1146,9 +1151,9 @@
 }
 
 .btnReprint:hover {
-  background: rgba(192, 132, 252, 0.12);
-  border-color: rgba(192, 132, 252, 0.3);
-  color: #c084fc;
+  background: rgba(232, 163, 61, 0.12);
+  border-color: rgba(232, 163, 61, 0.3);
+  color: var(--c-amber);
 }
 
 .historyEmpty {
@@ -1166,10 +1171,10 @@
 .btnCleanup {
   width: 100%;
   padding: 0.6rem;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(212, 85, 58, 0.08);
+  border: 1px solid rgba(212, 85, 58, 0.2);
   border-radius: 0.5rem;
-  color: #f87171;
+  color: #e07a60;
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
@@ -1178,7 +1183,7 @@
 }
 
 .btnCleanup:hover {
-  background: rgba(239, 68, 68, 0.14);
+  background: rgba(212, 85, 58, 0.14);
 }
 
 /* ─── Empty / Loading States ─────────────────────────────── */
@@ -1195,6 +1200,7 @@
 }
 
 .emptyStateTitle {
+  font-family: var(--c-font-serif);
   font-size: 1rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.4);
@@ -1227,7 +1233,7 @@
 }
 
 .overlayCard {
-  background: #111118;
+  background: var(--c-bg-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -1261,20 +1267,20 @@
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 50%;
-  color: #fff;
+  color: var(--c-ink);
   transition: all 0.2s;
   cursor: pointer;
 }
 
 .btnFindAltIcon:hover {
-  background: #6366f1;
-  border-color: #6366f1;
+  background: #c98a2c;
+  border-color: #c98a2c;
   transform: scale(1.1);
 }
 
 .soldOutBadge {
-  background: #ef4444;
-  color: #fff;
+  background: var(--c-alarm);
+  color: var(--c-ink);
   font-size: 0.65rem;
   font-weight: 900;
   padding: 0.2rem 0.5rem;
@@ -1290,7 +1296,7 @@
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 0.5rem;
-  color: #fff;
+  color: var(--c-ink);
   font-size: 0.75rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
@@ -1299,16 +1305,16 @@
 
 .btnFindAlt:hover {
   background: rgba(255, 255, 255, 0.12);
-  border-color: #fff;
+  border-color: var(--c-ink);
 }
 
 .btnDownloadTicket {
   width: 100%;
   padding: 0.9rem 1.2rem;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--c-bg-raised);
+  border: 1px solid var(--c-line-strong);
   border-radius: 0.7rem;
-  color: #fff;
+  color: var(--c-ink);
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
@@ -1320,7 +1326,7 @@
 }
 
 .btnDownloadTicket:hover:not(:disabled) {
-  background: #334155;
+  background: var(--c-line-strong);
 }
 
 .btnDownloadTicket:disabled {
@@ -1330,8 +1336,8 @@
 
 /* Alternatives Modal */
 .overlayCardAlt {
-  background: #0f172a;
-  border: 1px solid #1e293b;
+  background: var(--c-bg-sunken);
+  border: 1px solid var(--c-bg-raised);
   border-radius: 1.25rem;
   padding: 1.5rem;
   width: 90%;
@@ -1347,19 +1353,20 @@
   justify-content: space-between;
   align-items: start;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--c-bg-raised);
   padding-bottom: 1rem;
 }
 
 .overlayTitle {
+  font-family: var(--c-font-serif);
   font-size: 1.25rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--c-ink);
 }
 
 .overlaySubtitle {
   font-size: 0.9rem;
-  color: #cbd5e1;
+  color: #b9ad9b;
 }
 
 .altList {
@@ -1371,7 +1378,7 @@
 }
 
 .altItem {
-  background: #1e293b;
+  background: var(--c-bg-raised);
   border: 1px solid transparent;
   padding: 1rem;
   border-radius: 0.75rem;
@@ -1384,8 +1391,8 @@
 }
 
 .altItem:hover {
-  background: #334155;
-  border-color: #6366f1;
+  background: var(--c-line-strong);
+  border-color: #c98a2c;
 }
 
 .altTimeInfo {
@@ -1396,14 +1403,14 @@
 .altDay {
   font-size: 0.7rem;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--c-dim);
   font-weight: 700;
 }
 
 .altTime {
   font-size: 1.25rem;
   font-weight: 900;
-  color: #fff;
+  color: var(--c-ink);
 }
 
 .altDetails {
@@ -1414,18 +1421,18 @@
 .altRoom {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--c-ink);
 }
 
 .altSeats {
   font-size: 0.75rem;
-  color: #22c55e;
+  color: var(--c-ok);
   font-weight: 800;
 }
 
 .btnQuickSelect {
-  background: #6366f1;
-  color: #fff;
+  background: #c98a2c;
+  color: var(--c-ink);
   border: none;
   padding: 0.4rem 0.75rem;
   border-radius: 0.5rem;
@@ -1451,7 +1458,7 @@
   color: rgba(255, 255, 255, 0.6);
   margin-left: 0.6rem;
   text-transform: uppercase;
-  font-family: var(--font-apple), sans-serif;
+  font-family: var(--c-font-sans);
   box-shadow: 0 2px 0 rgba(255, 255, 255, 0.1);
   pointer-events: none;
 }
@@ -1459,7 +1466,7 @@
 .shortcutActive {
   transform: scale(0.96) translateY(2px) !important;
   filter: brightness(1.2) !important;
-  box-shadow: 0 0 20px rgba(192, 132, 252, 0.6) !important;
+  box-shadow: 0 0 20px rgba(232, 163, 61, 0.6) !important;
   transition: all 0.05s ease-out !important;
 }
 
@@ -1467,7 +1474,7 @@
   display: block;
   font-size: 0.6rem;
   font-weight: 700;
-  color: rgba(192, 132, 252, 0.5);
+  color: rgba(232, 163, 61, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 0.4rem;
@@ -1499,7 +1506,7 @@
 .downloadOverlayContent h2 {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--c-ink);
   margin: 0;
 }
 
@@ -1510,7 +1517,7 @@
 }
 
 .loadingSpinner {
-  color: #c084fc;
+  color: var(--c-amber);
   animation: spin 1s linear infinite;
 }
 
@@ -1615,7 +1622,7 @@
 
 .ratingAlertBar[data-vm18="true"] {
   background: #e50914 !important;
-  color: #fff !important;
+  color: var(--c-ink) !important;
 }
 
 .closeAlert {

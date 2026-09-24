@@ -27,9 +27,16 @@ import {
 const loadHtml2Canvas = () => import('html2canvas').then(m => m.default);
 const loadJsPDF = () => import('jspdf').then(m => m.default);
 
+import Button from '@/components/cabina/Button';
+import Dialog from '@/components/cabina/Dialog';
+import { useToast } from '@/components/cabina/Toast';
 import styles from './CassaInterface.module.css';
 import ThermalTicket, { parseSeatName, ThermalTicketData } from './ThermalTicket';
 import TicketPDF from '../TicketPDF';
+import dynamic from 'next/dynamic';
+
+/** Il recupero biglietti vive al banco: è lì che arriva chi l'ha perso. */
+const TicketRecoveryButton = dynamic(() => import('../Admin/TicketRecovery'), { ssr: false });
 import RatingBadge from '../RatingBadge';
 import { isVM18, isVM14 } from '@/utils/ratingUtils';
 import {
@@ -77,6 +84,9 @@ function formatSaleTime(isoDate: string): string {
 }
 
 export default function CassaInterface({ screenings, initialRecentSales }: CassaInterfaceProps) {
+  const toast = useToast();
+  /** Prezzo zero: prima di stampare uno scontrino di cortesia lo si chiede. */
+  const [zeroPriceAsk, setZeroPriceAsk] = useState(false);
   const [step, setStep] = useState<Step>('film');
   const [selectedScreening, setSelectedScreening] = useState<CassaScreening | null>(null);
   const [seats, setSeats] = useState<CassaSeat[]>([]);
@@ -245,7 +255,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
       setAltScreenings(results);
     } catch (e) {
       console.error(e);
-      alert('Impossibile trovare alternative.');
+      toast('Non sono riuscito a cercare altri orari per questo film.', 'alarm');
     } finally {
       setIsSearchingAlt(false);
     }
@@ -267,17 +277,18 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     setSelectedSeats(prev => {
       const exists = prev.find(s => s.guid === seat.guid);
       if (exists) return prev.filter(s => s.guid !== seat.guid);
-      if (prev.length >= 10) { alert('Massimo 10 posti'); return prev; }
+      if (prev.length >= 10) { toast('Al massimo 10 posti per vendita.', 'alarm'); return prev; }
       return [...prev, seat];
     });
   };
 
-  const handleConfirmSale = useCallback(async () => {
+  const handleConfirmSale = useCallback(async (opts?: { zeroConfirmed?: boolean }) => {
     if (!selectedScreening || selectedSeats.length === 0) return;
     
-    // Safety check: Clear previous result before starting
-    if (parseFloat(prezzoFisico) === 0) {
-      if (!confirm('Il prezzo è 0.00. Procedere con Scontrino di Cortesia?')) return;
+    // Prezzo zero: lo scontrino di cortesia si fa solo dopo averlo chiesto.
+    if (parseFloat(prezzoFisico) === 0 && !opts?.zeroConfirmed) {
+      setZeroPriceAsk(true);
+      return;
     }
     
     setResult(null);
@@ -325,12 +336,12 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
       
       // Refresh current screening list to update sold out status/availability
       await fetchDateScreenings(viewDate);
-    } catch (e: any) {
-      alert('Errore: ' + e.message);
+    } catch (e) {
+      toast(`Vendita non riuscita: ${e instanceof Error ? e.message : String(e)}`, 'alarm');
     } finally {
       setLoading(false);
     }
-  }, [selectedScreening, selectedSeats, prezzoFisico, viewDate, fetchDateScreenings]);
+  }, [selectedScreening, selectedSeats, prezzoFisico, viewDate, fetchDateScreenings, toast]);
 
   const buildTicketData = useCallback((
     record?: CassaTicketRecord,
@@ -429,10 +440,10 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
     setIsPrinting(true);
     try {
       const ok = await captureAndPrint('thermal-capture-test', 'TEST');
-      if (ok) alert('✅ Test di stampa inviato! Controlla la stampante.');
-      else alert('❌ Errore durante il test di stampa.');
-    } catch (err: any) {
-      alert('❌ Errore: ' + err.message);
+      if (ok) toast('Test di stampa inviato: controlla la stampante.', 'ok');
+      else toast('Il test di stampa non è partito.', 'alarm');
+    } catch (err) {
+      toast(`Il test di stampa non è partito: ${err instanceof Error ? err.message : String(err)}`, 'alarm');
     } finally {
       setIsPrinting(false);
     }
@@ -479,11 +490,11 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
       pdf.save(`biglietto_vestricinema_${result.orderCode}.pdf`);
     } catch (e) {
       console.error(e);
-      alert('Errore PDF.');
+      toast('Non sono riuscito a preparare il PDF dei biglietti.', 'alarm');
     } finally {
       setGeneratingPdf(false);
     }
-  }, [result, selectedScreening]);
+  }, [result, selectedScreening, toast]);
 
   const handleReprint = (record: CassaTicketRecord) => setReprintRecord(record);
   const handleReprintClose = () => setReprintRecord(null);
@@ -536,6 +547,9 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Con una finestra aperta (prezzo zero, ⌘K, avvisi) le scorciatoie del banco tacciono:
+      // Invio deve rispondere alla finestra, non vendere di nuovo.
+      if (document.querySelector('[role="dialog"]')) return;
       // Evita shortcut se l'utente sta scrivendo nella barra di ricerca
       if (document.activeElement?.tagName === 'INPUT' && 
           (document.activeElement as HTMLInputElement).placeholder.toLowerCase().includes('cerca')) {
@@ -697,6 +711,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
             <button className={styles.btnRefresh} onClick={() => window.location.reload()}><RefreshCw size={14} /> Aggiorna</button>
             <button className={styles.btnPrintTest} onClick={handlePrintTest} disabled={isPrinting}>{isPrinting ? <Loader2 size={14} className={styles.loadingSpinner} /> : <Printer size={14} />} Test di Stampa</button>
             <button className={styles.btnHistory} onClick={() => setShowHistory(true)}><History size={15} /> Ultime Vendite ({recentSales.length})</button>
+            <TicketRecoveryButton />
           </div>
         </header>
 
@@ -906,7 +921,7 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
                   <button 
                     className={`${styles.btnConfirm} ${activeShortcut === 'emit' ? styles.shortcutActive : ''}`} 
                     disabled={loading} 
-                    onClick={handleConfirmSale}
+                    onClick={() => handleConfirmSale()}
                   >
                     {loading ? <Loader2 size={20} className={styles.loadingSpinner} /> : <CheckCircle size={20} />} 
                     Emetti Biglietti
@@ -1036,6 +1051,23 @@ export default function CassaInterface({ screenings, initialRecentSales }: Cassa
             <p>Generazione dei PDF in corso, non chiudere la pagina.</p>
           </div>
         </div>
+      )}
+      {zeroPriceAsk && (
+        <Dialog open onClose={() => setZeroPriceAsk(false)} title="Prezzo zero" showTitle>
+          <p style={{ margin: '0 0 14px', fontSize: 14 }}>Il prezzo è 0,00 €. Procedo con uno scontrino di cortesia?</p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button variant="ghost" onClick={() => setZeroPriceAsk(false)}>Annulla</Button>
+            <Button
+              variant="fill"
+              onClick={() => {
+                setZeroPriceAsk(false);
+                void handleConfirmSale({ zeroConfirmed: true });
+              }}
+            >
+              Scontrino di cortesia
+            </Button>
+          </div>
+        </Dialog>
       )}
     </>
   );

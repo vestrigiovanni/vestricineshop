@@ -54,17 +54,17 @@ export const ROOMS: Room[] = [
     label: 'Cassa',
     href: '/admin/cassa',
     mobile: true,
-    keywords: ['vendita', 'biglietti', 'stampa', 'banco'],
+    keywords: ['vendita', 'biglietti', 'stampa', 'banco', 'recupero biglietti', 'ristampa'],
     compact: true,
   },
   {
-    // Provvisoria: il vecchio pannello, finché Sale, Display e Recupero
-    // biglietti non hanno una stanza loro (tappe 5 e 6).
+    // Provvisoria: il vecchio pannello, finché Sale e Display non hanno una
+    // stanza loro (tappa 6).
     key: 'pannello',
     label: 'Pannello',
     href: '/admin/pannello',
     mobile: false,
-    keywords: ['sale', 'display', 'preroll', 'recupero biglietti', 'pretix'],
+    keywords: ['sale', 'display', 'preroll', 'pretix'],
   },
 ];
 

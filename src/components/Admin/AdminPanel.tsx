@@ -14,7 +14,6 @@ import {
 } from '@/actions/adminActions';
 import { Calendar, Trash2, Edit3, Loader2, X, Info, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Settings, BookOpen, Wand2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-const TicketRecoveryButton = dynamic(() => import('./TicketRecovery'), { ssr: false });
 import RoomManagementModal from './RoomManagementModal';
 
 
@@ -362,7 +361,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
             APRI CASSA
           </a>
 
-          <TicketRecoveryButton />
 
           <button
             onClick={() => setShowDisplayModal(true)}
