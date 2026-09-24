@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { CalendarRange, Ellipsis, ExternalLink, Film, LogOut, Search, Sunrise, Ticket } from 'lucide-react';
+import { CalendarRange, Ellipsis, ExternalLink, Film, LayoutGrid, LogOut, Search, Sunrise, Ticket } from 'lucide-react';
 import { logoutAdmin } from '@/actions/authActions';
 import CommandPalette from './CommandPalette';
 import Dialog from './Dialog';
@@ -15,6 +15,7 @@ const ICONS: Record<RoomKey, React.ComponentType<{ size?: number }>> = {
   programma: CalendarRange,
   film: Film,
   cassa: Ticket,
+  pannello: LayoutGrid,
 };
 
 const noSubscribe = () => () => {};
@@ -101,6 +102,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
       <Dialog open={moreOpen} onClose={() => setMoreOpen(false)} title="Altro" variant="sheet">
         <div className={styles.more}>
+          {ROOMS.filter((r) => !r.mobile).map((room) => {
+            const Icon = ICONS[room.key];
+            return (
+              <Link key={room.key} href={room.href} className={styles.moreItem} onClick={() => setMoreOpen(false)}>
+                <Icon size={18} /> {room.label}
+              </Link>
+            );
+          })}
           <button
             type="button"
             className={styles.moreItem}

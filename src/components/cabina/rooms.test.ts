@@ -12,6 +12,7 @@ describe('activeRoom', () => {
     expect(activeRoom('/admin/programma/qualcosa')).toBe('programma');
     expect(activeRoom('/admin/film')).toBe('film');
     expect(activeRoom('/admin/cassa')).toBe('cassa');
+    expect(activeRoom('/admin/pannello')).toBe('pannello');
   });
 
   it('non confonde un prefisso con una stanza', () => {
@@ -41,5 +42,11 @@ describe('ROOMS', () => {
     expect(new Set(keys).size).toBe(keys.length);
     expect(new Set(hrefs).size).toBe(hrefs.length);
     for (const h of hrefs) expect(h === '/admin' || h.startsWith('/admin/')).toBe(true);
+  });
+});
+
+describe('stanze provvisorie', () => {
+  it('il pannello non sta sotto il pollice, ma nel foglio "Altro"', () => {
+    expect(ROOMS.find((r) => r.key === 'pannello')?.mobile).toBe(false);
   });
 });

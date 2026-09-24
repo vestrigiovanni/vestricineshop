@@ -3,10 +3,10 @@
  *
  * Nella barra compaiono solo le stanze che hanno già una pagina: Catalogo, Sale,
  * Display e Attrezzi entrano quando nascono (tappe 4 e 6 del restyling). Fino ad
- * allora le loro funzioni vivono nel vecchio pannello, che sta in "Oggi", e per
- * questo le loro parole chiave, per ora, puntano lì.
+ * allora le loro funzioni vivono nel vecchio pannello, nella stanza provvisoria
+ * "Pannello", e per questo le loro parole chiave, per ora, puntano lì.
  */
-export type RoomKey = 'oggi' | 'programma' | 'film' | 'cassa';
+export type RoomKey = 'oggi' | 'programma' | 'film' | 'cassa' | 'pannello';
 
 export interface Room {
   key: RoomKey;
@@ -26,7 +26,7 @@ export const ROOMS: Room[] = [
     label: 'Oggi',
     href: '/admin',
     mobile: true,
-    keywords: ['home', 'pannello', 'sale', 'display', 'preroll', 'catalogo', 'recupero biglietti', 'pretix'],
+    keywords: ['home', 'oggi', 'adesso', 'in sala', 'avvisi'],
   },
   {
     key: 'programma',
@@ -49,6 +49,15 @@ export const ROOMS: Room[] = [
     mobile: true,
     keywords: ['vendita', 'biglietti', 'stampa', 'banco'],
     compact: true,
+  },
+  {
+    // Provvisoria: il vecchio pannello, finché Sale, Display, Catalogo e
+    // Recupero biglietti non hanno una stanza loro (tappe 4, 5 e 6).
+    key: 'pannello',
+    label: 'Pannello',
+    href: '/admin/pannello',
+    mobile: false,
+    keywords: ['sale', 'display', 'preroll', 'catalogo', 'recupero biglietti', 'pretix', 'pulizia', 'proiezioni vuote'],
   },
 ];
 

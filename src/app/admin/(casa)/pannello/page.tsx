@@ -1,12 +1,12 @@
 'use client';
 
 /**
- * "Oggi", versione provvisoria.
+ * Il vecchio pannello, in attesa di trasloco.
  *
- * Fino alla tappa 2 del restyling qui vive il vecchio pannello: contiene ancora
- * Sale, Display, Catalogo, Recupero biglietti e la lista di Pretix, che non
- * hanno una stanza loro. Prima stava in un overlay sopra la home pubblica;
- * adesso ha un indirizzo, e la X della programmazione non porta più a un 404.
+ * Contiene ancora Sale, Display, Catalogo, Recupero biglietti, la lista di
+ * Pretix e la pulizia delle proiezioni vuote. Ognuna di queste cose si sposta
+ * nella sua stanza nelle prossime tappe; quando l'ultima se ne va, se ne va
+ * anche questa pagina.
  */
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
@@ -16,7 +16,7 @@ const AdminPanel = dynamic(() => import('@/components/Admin/AdminPanel'), { ssr:
 
 type Events = Awaited<ReturnType<typeof adminListEvents>>;
 
-export default function OggiProvvisorio() {
+export default function PannelloProvvisorio() {
   const [events, setEvents] = useState<Events | null>(null);
 
   useEffect(() => {
