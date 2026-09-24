@@ -1,7 +1,7 @@
 # Il gestionale diventa una cabina
 
 **Data:** 2026-09-24
-**Stato:** approvato da Giovanni (conversazione del 24 settembre 2026)
+**Stato:** approvato da Giovanni il 24 settembre 2026, **realizzato** nello stesso giro (tappe 1–7). Le deviazioni stanno in fondo, in "Com'è andata".
 **Fa parte di:** restyling completo del sito, in quattro progetti:
 1. fondamenta visive
 2. **gestionale** (questa specifica, che comprende anche le fondamenta)
@@ -230,3 +230,26 @@ Alla fine di ogni tappa il gestionale funziona per intero. Le parti non ancora r
 - **Il sito pubblico** (home, pagina film, prenotazione, conferma), **il display esterno** e **i biglietti termico e PDF**: hanno i loro progetti, dopo questo. Si cambia solo il link "Admin" del footer.
 - **Il cookie di sessione admin**, che oggi è una stringa fissa nel codice (`src/proxy.ts`). Va sistemato, ma in un lavoro a parte.
 - **Ogni modifica al motore di programmazione e alle azioni sul server**, salvo piccoli aggiustamenti che servono all'interfaccia nuova. Vanno segnalati nel piano.
+
+## Com'è andata
+
+Le sette tappe sono tutte fatte. I piani e i resoconti stanno in `docs/superpowers/plans/2026-09-24-gestionale-cabina-tappa-*.md`. Quello che è cambiato rispetto a questa specifica, e perché:
+
+- **La tappa 3 si è divisa in tre giri** (3a, 3b-1, 3b-2), approvati da Giovanni: prima il tavolo che vede e tocca, poi la programmazione a mano, poi "Riempi i buchi". Il wizard è rimasto vivo fino all'ultimo giro, come rete.
+- **"Scambia" vale solo per gli spettacoli in bozza.** Per uno spettacolo già in vendita non esiste un'azione così: cambiarne il film vuol dire eliminarlo e crearne un altro.
+- **La bozza del tavolo ha la stessa forma di quella del wizard**, così le bozze aperte prima si sono riprese senza perdite.
+- **Oggi legge dal database, non da Pretix**, con una query sola. I "buchi della settimana" sono i giorni senza spettacoli; i buchi ora per ora li mostra il tavolo.
+- **È nata una stanza provvisoria, Pannello**, per le funzioni in attesa di trasloco. Nella tappa 6 è sparita, e `/admin/pannello` porta a Oggi.
+- **Attrezzi è l'unico posto per i lavori su tutto il cinema**: anche i tre lavori che stavano in Film (tutto esaurito, premi, popolamento) sono andati lì. Non è fra le linguette: si apre dall'icona a chiave inglese accanto alla ricerca.
+- **La pulizia delle proiezioni vuote esiste in due forme:** "Solo vuote" sul tavolo, per il periodo che si guarda, e la lista completa in Attrezzi. Tutte e due passano dalla stessa rete dei biglietti venduti.
+- **Il Display mostra un'anteprima presa dal database di Oggi.** Il preroll si ricorda su ciascun computer.
+- **La Cassa ha cambiato tavolozza, non disposizione.** Gli avvisi di età tengono i loro colori.
+- **⌘K trova anche film e spettacoli**, più Riempi i buchi, Pretix e check-in.
+
+**Scoperto strada facendo, e da sistemare a parte:**
+- il cookie di sessione e la password del gestionale sono scritti nel codice;
+- nomi, preferite e sale nascoste stanno in un file in `/tmp`, che su Vercel si perde;
+- il display d'ingresso non vede le quote di Pretix (le chiede senza indicare lo spettacolo);
+- il sync in sottofondo della home è una promessa lasciata correre, lo stesso schema che su Vercel aveva rotto la conferma della programmazione.
+
+Il prossimo progetto del restyling è **il sito pubblico**.
