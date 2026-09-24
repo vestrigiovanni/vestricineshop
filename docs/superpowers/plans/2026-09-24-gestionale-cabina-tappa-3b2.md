@@ -535,7 +535,7 @@ export default function FillDialog({ roomId, from, days, draft, preset, update, 
 - **`Tavolo.module.css`:** `.draft[data-auto] { border-style: dotted; opacity: 0.85; }`.
 - **`query.ts`, `load.ts`, `page.tsx`:** `tmdb` al posto di `wizardRedirect`.
 
-Il codice finale sta nei file: il piano si riallinea a fine tappa.
+Il codice finale sta nei file (commit «Rigenera, Blocca qui, e ?tmdb= accende i posti sul tavolo»). L'effetto di `?tmdb=` legge il film da sé invece di passare da `replica`, che si ricrea a ogni render.
 
 - [ ] test, tipi, lint. **Commit** — `Rigenera, Blocca qui, e ?tmdb= accende i posti sul tavolo`
 
