@@ -359,6 +359,15 @@ export default function Tavolo({ data }: { data: TavoloData }) {
         onClose={close}
         onChanged={changed}
         onReplica={replica}
+        siblings={
+          week && found.block.tmdbId
+            ? week.days.flatMap((d) =>
+                d.blocks
+                  .filter((b) => b.touchable && b.pretixId !== null && b.tmdbId === found.block.tmdbId)
+                  .map((b) => ({ pretixId: b.pretixId!, label: `${dayShort(d.date)} ${b.time}` })),
+              )
+            : []
+        }
       />
     ) : draftShow && draft && roomId !== null ? (
       <DraftPanel

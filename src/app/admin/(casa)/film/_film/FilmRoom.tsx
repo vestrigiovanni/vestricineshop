@@ -9,7 +9,6 @@ import { useToast } from '@/components/cabina/Toast';
 import FilmEditor, { type Projection } from './FilmEditor';
 import { movieIdOf, type MovieLike, type OverrideLike } from './form';
 import QuickLook from './QuickLook';
-import ToolsDialog from './ToolsDialog';
 import styles from './Film.module.css';
 
 interface Programmed {
@@ -35,7 +34,6 @@ export default function FilmRoom({ initialTmdb }: { initialTmdb: string | null }
   const [search, setSearch] = useState('');
   const [dirty, setDirty] = useState(false);
   const [pendingSwitch, setPendingSwitch] = useState<string | null>(null);
-  const [toolsOpen, setToolsOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -106,7 +104,7 @@ export default function FilmRoom({ initialTmdb }: { initialTmdb: string | null }
         </div>
         <div className={styles.headActions}>
           <Button variant="outline" onClick={() => setQuickOpen(true)}>Colpo d’occhio</Button>
-          <Button variant="ghost" onClick={() => setToolsOpen(true)}>Strumenti</Button>
+          <Button variant="ghost" href="/admin/attrezzi">Attrezzi</Button>
         </div>
       </header>
 
@@ -195,7 +193,6 @@ export default function FilmRoom({ initialTmdb }: { initialTmdb: string | null }
         </Dialog>
       )}
 
-      {toolsOpen && <ToolsDialog onClose={() => setToolsOpen(false)} onDone={load} />}
       {quickOpen && <QuickLook onClose={() => setQuickOpen(false)} onSaved={load} />}
     </div>
   );

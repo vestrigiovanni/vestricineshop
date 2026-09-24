@@ -12,7 +12,9 @@ describe('activeRoom', () => {
     expect(activeRoom('/admin/programma/qualcosa')).toBe('programma');
     expect(activeRoom('/admin/film')).toBe('film');
     expect(activeRoom('/admin/cassa')).toBe('cassa');
-    expect(activeRoom('/admin/pannello')).toBe('pannello');
+    expect(activeRoom('/admin/sale')).toBe('sale');
+    expect(activeRoom('/admin/display')).toBe('display');
+    expect(activeRoom('/admin/attrezzi')).toBe('attrezzi');
     expect(activeRoom('/admin/catalogo')).toBe('catalogo');
   });
 
@@ -46,8 +48,14 @@ describe('ROOMS', () => {
   });
 });
 
-describe('stanze provvisorie', () => {
-  it('il pannello non sta sotto il pollice, ma nel foglio "Altro"', () => {
-    expect(ROOMS.find((r) => r.key === 'pannello')?.mobile).toBe(false);
+describe('dove stanno le stanze', () => {
+  it('Attrezzi non è fra le linguette, ma c’è sul telefono in "Altro"', () => {
+    const attrezzi = ROOMS.find((r) => r.key === 'attrezzi');
+    expect(attrezzi?.inBar).toBe(false);
+    expect(attrezzi?.mobile).toBe(false);
+  });
+
+  it('sotto il pollice stanno le quattro stanze di tutti i giorni', () => {
+    expect(ROOMS.filter((r) => r.mobile).map((r) => r.key)).toEqual(['oggi', 'programma', 'film', 'cassa']);
   });
 });

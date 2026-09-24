@@ -1,12 +1,11 @@
 /**
- * Le stanze del gestionale.
+ * Le stanze del gestionale. Ogni funzione ha una stanza sola.
  *
- * Nella barra compaiono solo le stanze che hanno già una pagina: Sale, Display e
- * Attrezzi entrano quando nascono (tappa 6 del restyling). Fino ad
- * allora le loro funzioni vivono nel vecchio pannello, nella stanza provvisoria
- * "Pannello", e per questo le loro parole chiave, per ora, puntano lì.
+ * `mobile` le mette sotto il pollice sul telefono; le altre stanno nel foglio
+ * "Altro". `inBar: false` le toglie dalle linguette in alto: Attrezzi si apre
+ * dall'icona accanto alla ricerca e da ⌘K.
  */
-export type RoomKey = 'oggi' | 'programma' | 'film' | 'catalogo' | 'cassa' | 'pannello';
+export type RoomKey = 'oggi' | 'programma' | 'film' | 'catalogo' | 'cassa' | 'sale' | 'display' | 'attrezzi';
 
 export interface Room {
   key: RoomKey;
@@ -18,6 +17,8 @@ export interface Room {
   keywords: string[];
   /** Schermata da banco: la barra del guscio si riduce. */
   compact?: boolean;
+  /** `false` = non è fra le linguette in alto. */
+  inBar?: boolean;
 }
 
 export const ROOMS: Room[] = [
@@ -33,14 +34,14 @@ export const ROOMS: Room[] = [
     label: 'Programma',
     href: '/admin/programma',
     mobile: true,
-    keywords: ['programmazione', 'palinsesto', 'settimana', 'tavolo', 'planner', 'spettacoli', 'sposta', 'pulizia', 'proiezioni vuote'],
+    keywords: ['programmazione', 'palinsesto', 'settimana', 'tavolo', 'planner', 'spettacoli', 'sposta', 'pulizia', 'proiezioni vuote', 'riempi'],
   },
   {
     key: 'film',
     label: 'Film',
     href: '/admin/film',
     mobile: true,
-    keywords: ['torre di controllo', 'override', 'trama', 'locandina', 'trailer', 'premi', 'lingua'],
+    keywords: ['torre di controllo', 'override', 'trama', 'locandina', 'trailer', 'premi', 'lingua', 'colpo d’occhio'],
   },
   {
     key: 'catalogo',
@@ -58,13 +59,26 @@ export const ROOMS: Room[] = [
     compact: true,
   },
   {
-    // Provvisoria: il vecchio pannello, finché Sale e Display non hanno una
-    // stanza loro (tappa 6).
-    key: 'pannello',
-    label: 'Pannello',
-    href: '/admin/pannello',
+    key: 'sale',
+    label: 'Sale',
+    href: '/admin/sale',
     mobile: false,
-    keywords: ['sale', 'display', 'preroll', 'pretix'],
+    keywords: ['sala', 'posti', 'pianta', 'predefinita', 'preferita', 'nascondi'],
+  },
+  {
+    key: 'display',
+    label: 'Display',
+    href: '/admin/display',
+    mobile: false,
+    keywords: ['schermo', 'ingresso', 'preroll', 'info on screen', 'monitor'],
+  },
+  {
+    key: 'attrezzi',
+    label: 'Attrezzi',
+    href: '/admin/attrezzi',
+    mobile: false,
+    inBar: false,
+    keywords: ['cache', 'pretix', 'sincronizza', 'popola', 'premi', 'check-in', 'pulizia', 'strumenti', 'esci'],
   },
 ];
 

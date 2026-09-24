@@ -1,0 +1,65 @@
+/* Gli stili comuni delle stanze semplici (Sale, Display, Attrezzi). */
+.room { max-width: 1180px; margin: 0 auto; padding: 24px 24px 48px; }
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.title { margin: 6px 0 0; font-family: var(--c-font-serif); font-weight: 600; font-size: 32px; line-height: 1; }
+.headActions { display: flex; gap: 8px; flex-wrap: wrap; }
+.kicker, .section, .field > span {
+  margin: 0; font-family: var(--c-font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--c-dim);
+}
+.kicker { color: var(--c-amber); }
+.section { color: var(--c-amber); margin-bottom: 6px; }
+.hint, .meta { margin: 0; font-size: 12.5px; color: var(--c-dim); line-height: 1.45; }
+.text { margin: 0 0 14px; font-size: 13.5px; line-height: 1.5; }
+.dialogActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+
+.columns { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.panel { display: grid; gap: 12px; padding: 18px; border: 1px solid var(--c-line); border-radius: var(--c-radius-lg); background: var(--c-bg-raised); min-width: 0; }
+
+.list { list-style: none; margin: 0; padding: 0; display: grid; }
+.item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--c-line); flex-wrap: wrap; }
+.item:first-child { border-top: 0; }
+.item[data-muted] .itemMain { opacity: 0.5; }
+.itemMain { display: grid; gap: 3px; min-width: 0; flex: 1 1 200px; }
+.itemActions { display: flex; gap: 6px; align-items: center; }
+.inlineInput {
+  width: 100%; min-height: 34px; padding: 0 8px; background: transparent; color: var(--c-ink);
+  border: 1px solid transparent; border-radius: var(--c-radius); font-family: var(--c-font-serif); font-size: 16px;
+}
+.inlineInput:hover { border-color: var(--c-line); }
+.inlineInput:focus { outline: none; border-color: var(--c-amber); background: var(--c-bg-sunken); }
+
+.iconBtn {
+  display: grid; place-items: center; width: 34px; height: 34px; background: none;
+  border: 1px solid var(--c-line); border-radius: var(--c-radius); color: var(--c-dim); cursor: pointer;
+}
+.iconBtn:hover { color: var(--c-ink); border-color: var(--c-line-strong); }
+.iconBtn[data-on] { color: var(--c-amber); border-color: var(--c-amber); }
+
+.form { display: grid; gap: 12px; }
+.field { display: grid; gap: 5px; }
+.field input {
+  min-height: 38px; padding: 0 10px; background: var(--c-bg-sunken); color: var(--c-ink);
+  border: 1px solid var(--c-line); border-radius: var(--c-radius); font: inherit; font-size: 14px;
+}
+.field input:focus { outline: none; border-color: var(--c-amber); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.tools { list-style: none; margin: 0; padding: 0; display: grid; }
+.tool { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--c-line); }
+.tool:first-child { border-top: 0; }
+.tool b { font-size: 14px; }
+.tool p { margin: 2px 0 0; font-size: 12px; color: var(--c-dim); }
+
+.screen { display: grid; gap: 4px; padding: 16px; border-radius: var(--c-radius); background: #000; border: 1px solid var(--c-line); }
+.screenNow { font-family: var(--c-font-serif); font-size: 24px; font-weight: 600; }
+.screenLine { display: flex; gap: 10px; font-size: 13px; color: var(--c-dim); }
+.screenLine b { font-family: var(--c-font-mono); font-weight: 400; color: var(--c-amber); }
+
+@media (max-width: 900px) {
+  .columns { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 767px) {
+  .room { padding: 18px 16px 32px; }
+  .title { font-size: 26px; }
+}

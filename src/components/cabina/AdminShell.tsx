@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { CalendarRange, Ellipsis, ExternalLink, Film, LayoutGrid, Library, LogOut, Search, Sunrise, Ticket } from 'lucide-react';
+import { Armchair, CalendarRange, Ellipsis, ExternalLink, Film, Library, LogOut, Monitor, Search, Sunrise, Ticket, Wrench } from 'lucide-react';
 import { logoutAdmin } from '@/actions/authActions';
 import CommandPalette from './CommandPalette';
 import Dialog from './Dialog';
@@ -16,7 +16,9 @@ const ICONS: Record<RoomKey, React.ComponentType<{ size?: number }>> = {
   film: Film,
   catalogo: Library,
   cassa: Ticket,
-  pannello: LayoutGrid,
+  sale: Armchair,
+  display: Monitor,
+  attrezzi: Wrench,
 };
 
 const noSubscribe = () => () => {};
@@ -60,7 +62,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           Vestri Cinema<span className={styles.brandTag}>Cabina</span>
         </Link>
         <nav className={styles.tabs} aria-label="Stanze">
-          {ROOMS.map((room) => (
+          {ROOMS.filter((r) => r.inBar !== false).map((room) => (
             <Link
               key={room.key}
               href={room.href}
@@ -71,6 +73,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             </Link>
           ))}
         </nav>
+        <Link
+          href="/admin/attrezzi"
+          className={styles.tool}
+          aria-label="Attrezzi"
+          title="Attrezzi"
+          aria-current={current === 'attrezzi' ? 'page' : undefined}
+        >
+          <Wrench size={15} />
+        </Link>
         <button type="button" className={styles.search} onClick={() => setPaletteOpen(true)}>
           <Search size={14} />
           <span className={styles.searchText}>Cerca o vai a…</span>

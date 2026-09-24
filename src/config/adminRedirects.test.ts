@@ -10,6 +10,7 @@ describe('redirects del gestionale', () => {
     expect(map['/admin/planner']).toBe('/admin/programma');
     expect(map['/admin/movies-control']).toBe('/admin/film');
     expect(map['/admin/programma/wizard']).toBe('/admin/programma');
+    expect(map['/admin/pannello']).toBe('/admin');
   });
 
   it('sono temporanei, così un domani si possono cambiare senza cache nei browser', async () => {

@@ -7,6 +7,7 @@ import { planningCheckMove, planningMoveShow, type MoveCheck } from '@/actions/p
 import Button from '@/components/cabina/Button';
 import { useToast } from '@/components/cabina/Toast';
 import DeleteDialog from './DeleteDialog';
+import GroupDeleteDialog, { type Sibling } from './GroupDeleteDialog';
 import { dayLong, dayShort } from './labels';
 import type { TavoloBlock, TavoloDay } from './week';
 import styles from './BlockPanel.module.css';
@@ -36,6 +37,8 @@ interface Props {
   onChanged: (opts?: { keepOpen?: boolean }) => void;
   /** "Replica": il tavolo accende i posti dove questo film ci sta. */
   onReplica: (tmdbId: string) => void;
+  /** Le repliche dello stesso film nel periodo, questa compresa. */
+  siblings: Sibling[];
 }
 
 const CLOCK = /^([01]?\d|2[0-3]):([0-5]\d)$/;
@@ -49,7 +52,7 @@ function quotaName(q: Quota): string {
   return typeof q.name === 'string' ? q.name : q.name?.it ?? 'Quota';
 }
 
-export default function BlockPanel({ block, day, targetDays, roomId, from, intent, onClose, onChanged, onReplica }: Props) {
+export default function BlockPanel({ block, day, targetDays, roomId, from, intent, onClose, onChanged, onReplica, siblings }: Props) {
   const toast = useToast();
   const [moveDay, setMoveDay] = useState(intent?.day ?? day.date);
   const [moveTime, setMoveTime] = useState(intent?.time ?? block.time);
@@ -60,6 +63,7 @@ export default function BlockPanel({ block, day, targetDays, roomId, from, inten
   const [quotas, setQuotas] = useState<Quota[] | null>(null);
   const [loadingQuotas, setLoadingQuotas] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const request = useRef(0);
 
   const clock = normalizeClock(moveTime);
@@ -251,11 +255,26 @@ export default function BlockPanel({ block, day, targetDays, roomId, from, inten
               </Button>
             )}
             <Button variant="alarm" onClick={() => setDeleting(true)}>Elimina lo spettacolo</Button>
+            {siblings.length > 1 && (
+              <Button variant="ghost" onClick={() => setDeletingAll(true)}>Elimina tutte le {siblings.length} repliche in vista</Button>
+            )}
             <p className={styles.hint}>
               {block.sold ? `${block.sold} biglietti venduti: prima di eliminarlo te lo ricordo.` : 'Si elimina da Pretix e dal sito, dopo una conferma.'}
             </p>
           </section>
         </>
+      )}
+
+      {deletingAll && (
+        <GroupDeleteDialog
+          title={block.title}
+          siblings={siblings}
+          onClose={() => setDeletingAll(false)}
+          onDone={() => {
+            setDeletingAll(false);
+            onChanged();
+          }}
+        />
       )}
 
       {deleting && (
