@@ -1,0 +1,107 @@
+.room { max-width: 1180px; margin: 0 auto; padding: 28px 24px 48px; }
+
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 24px; }
+.kicker, .section, .statLabel, .nowLabel {
+  margin: 0;
+  font-family: var(--c-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-dim);
+}
+.title { margin: 6px 0 0; font-family: var(--c-font-serif); font-weight: 600; font-size: 34px; line-height: 1; }
+.headActions { display: flex; gap: 8px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.main, .side { display: grid; gap: 24px; min-width: 0; }
+.section { margin-bottom: 8px; }
+
+/* In sala adesso */
+.now {
+  padding: 18px 20px;
+  border: 1px solid var(--c-line);
+  border-radius: var(--c-radius-lg);
+  background: linear-gradient(135deg, var(--c-amber-soft), transparent 62%);
+}
+.nowIdle { background: var(--c-bg-raised); }
+.nowLabel { display: flex; align-items: center; gap: 8px; color: var(--c-amber); }
+.nowIdle .nowLabel { color: var(--c-dim); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-amber); box-shadow: 0 0 0 4px var(--c-amber-soft); animation: pulse 2.4s ease-in-out infinite; }
+.nowTitle { margin: 10px 0 6px; font-family: var(--c-font-serif); font-weight: 600; font-size: 28px; line-height: 1.1; }
+.nowMeta { margin: 0; color: var(--c-dim); }
+.bar { height: 3px; margin-top: 16px; border-radius: 2px; background: var(--c-line); overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--c-amber); transition: width var(--c-slow); }
+
+/* La giornata */
+.list { list-style: none; margin: 0; padding: 0; }
+.row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 0;
+  border-top: 1px solid var(--c-line);
+}
+.row[data-state='finito'] { opacity: 0.45; }
+.row[data-state='in-sala'] {
+  margin: 0 -12px;
+  padding: 11px 12px;
+  border-radius: var(--c-radius);
+  background: var(--c-amber-soft);
+  border-top-color: transparent;
+}
+.time { font-family: var(--c-font-mono); font-size: 15px; color: var(--c-amber); }
+.rowMain { display: grid; min-width: 0; }
+.rowTitle { font-family: var(--c-font-serif); font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rowMeta { font-size: 12px; color: var(--c-dim); }
+.rowSide { display: flex; align-items: center; gap: 10px; }
+.seats { font-family: var(--c-font-mono); font-size: 11px; color: var(--c-dim); white-space: nowrap; }
+.pill {
+  font-family: var(--c-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--c-line-strong);
+  color: var(--c-dim);
+}
+.row[data-state='in-sala'] .pill { border-color: var(--c-amber); color: var(--c-amber); }
+.empty, .calm { margin: 0; color: var(--c-dim); }
+
+/* I numeri */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stat { padding: 12px 14px; border: 1px solid var(--c-line); border-radius: var(--c-radius-lg); }
+.stat b { display: block; margin-top: 6px; font-family: var(--c-font-mono); font-size: 26px; font-weight: 600; }
+
+/* Da guardare */
+.alerts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.alert {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: 12px 14px;
+  border-left: 2px solid var(--c-amber);
+  border-radius: 0 var(--c-radius) var(--c-radius) 0;
+  background: var(--c-amber-soft);
+}
+.alert[data-tone='alarm'] { border-left-color: var(--c-alarm); background: var(--c-alarm-soft); }
+.alert p { margin: 0; }
+
+@keyframes pulse { 50% { box-shadow: 0 0 0 7px transparent; } }
+
+/* Sotto i 900 px numeri e avvisi salgono sopra la giornata: in piedi, sono la prima cosa da vedere. */
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+  .side { order: -1; }
+}
+
+@media (max-width: 767px) {
+  .room { padding: 20px 16px 32px; }
+  .head { flex-direction: column; align-items: stretch; }
+  .headActions > * { flex: 1; }
+  .title { font-size: 28px; }
+  .nowTitle { font-size: 23px; }
+  .row { grid-template-columns: 48px minmax(0, 1fr); }
+  .rowSide { grid-column: 2; }
+}

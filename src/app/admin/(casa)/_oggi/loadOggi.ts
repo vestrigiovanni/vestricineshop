@@ -13,7 +13,7 @@ const DEFAULT_RUNTIME_MIN = 120;
  * chiamata per spettacolo. I posti sono quelli che il sync ha scritto; quando
  * mancano, "Da guardare" lo dice e offre di rileggerli.
  */
-export async function loadOggi(nowMs: number): Promise<OggiData> {
+export async function loadOggi(nowMs: number = Date.now()): Promise<OggiData> {
   const today = romeDate(nowMs);
   const from = new Date(romeToMs(today, 0) - NIGHT_TAIL_MS);
   const to = new Date(romeToMs(addDaysISO(today, 7), 0));

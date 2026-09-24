@@ -119,7 +119,7 @@ describe('buildOggi — da guardare', () => {
   it('segnala gli spettacoli delle prossime 24 ore senza biglietti', () => {
     const rows = [row(DAY, 13, 0, 'Mystery train', 110, { available: 2, total: 2 })];
     const a = buildOggi(rows, at(DAY, 9, 0), false).alerts.find((x) => x.id === 'vuoti');
-    expect(a?.text).toBe('1 spettacolo nelle prossime 24 ore senza biglietti venduti: Mystery train, oggi alle 13:00.');
+    expect(a?.text).toBe('1 spettacolo nelle prossime 24 ore senza biglietti venduti, il primo è «Mystery train» oggi alle 13:00.');
   });
 
   it('segnala i film senza lingua e senza trailer salvato, una volta per film', () => {
@@ -128,8 +128,8 @@ describe('buildOggi — da guardare', () => {
       row('2026-09-29', 13, 0, 'Duel', 90, { lingua: null, hasTrailer: false, available: 1 }),
     ];
     const d = buildOggi(rows, at(DAY, 9, 0), false);
-    expect(d.alerts.find((x) => x.id === 'lingua')?.text).toBe('Un film senza lingua: Duel.');
-    expect(d.alerts.find((x) => x.id === 'trailer')?.text).toBe('Un film senza trailer salvato: Duel.');
+    expect(d.alerts.find((x) => x.id === 'lingua')?.text).toBe('Un film senza lingua: «Duel».');
+    expect(d.alerts.find((x) => x.id === 'trailer')?.text).toBe('Un film senza trailer salvato: «Duel».');
   });
 
   it('segnala i giorni scoperti nei prossimi sei', () => {

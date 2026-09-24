@@ -85,8 +85,13 @@ function listIt(items: string[]): string {
   return `${items.slice(0, -1).join(', ')} e ${items[items.length - 1]}`;
 }
 
+/** Fra caporali: molti titoli hanno virgole dentro, e senza non si capisce dove finiscono. */
+function quote(title: string): string {
+  return `«${title}»`;
+}
+
 function filmList(titles: string[]): string {
-  const shown = titles.slice(0, 3).join(', ');
+  const shown = titles.slice(0, 3).map(quote).join(', ');
   return titles.length > 3 ? `${shown} e altri ${titles.length - 3}` : shown;
 }
 
@@ -139,7 +144,7 @@ function buildAlerts(rows: OggiRow[], nowMs: number, today: string, openCommit: 
     alerts.push({
       id: 'vuoti',
       tone: 'info',
-      text: `${spettacoli(empty.length)} nelle prossime 24 ore senza biglietti venduti: ${empty[0].title}, ${when(empty[0])}.`,
+      text: `${spettacoli(empty.length)} nelle prossime 24 ore senza biglietti venduti, il primo è ${quote(empty[0].title)} ${when(empty[0])}.`,
       action: { label: 'Vedi', href: '/admin/pannello' },
     });
   }
