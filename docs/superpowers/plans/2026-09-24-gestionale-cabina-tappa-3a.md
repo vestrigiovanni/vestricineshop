@@ -1095,7 +1095,7 @@ export default function BlockPanel({ block, day, targetDays, roomId, from, inten
 ```tsx
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Button from '@/components/cabina/Button';
@@ -1130,6 +1130,8 @@ export default function Tavolo({ data }: { data: TavoloData }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [intent, setIntent] = useState<MoveIntent | null>(null);
   const [dragKey, setDragKey] = useState<string | null>(null);
+  /** Dove hai afferrato il blocco, in minuti dal suo inizio: il film non "salta" al rilascio. */
+  const grabMinutes = useRef(0);
 
   const { week, roomId } = data;
   const found = selected && week ? findBlock(week, selected) : null;
@@ -1191,7 +1193,8 @@ export default function Tavolo({ data }: { data: TavoloData }) {
     setDragKey(null);
     if (!key || !week || day.isPast) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const minute = minuteAt((e.clientX - rect.left) / rect.width, week.axis);
+    const axisLength = week.axis.end - week.axis.start;
+    const minute = minuteAt((e.clientX - rect.left) / rect.width - grabMinutes.current / axisLength, week.axis);
     setSelected(key);
     setIntent({ day: day.date, time: formatClock(minute) });
   };
@@ -1267,7 +1270,11 @@ export default function Tavolo({ data }: { data: TavoloData }) {
       </header>
 
       {!week ? (
-        <p className={styles.empty}>Nessuna sala disponibile su Pretix.</p>
+        <p className={styles.empty}>
+          {data.rooms.length === 0
+            ? 'Non trovo le sale su Pretix: forse in questo momento non risponde. Riprova fra poco.'
+            : 'Nessuna sala scelta.'}
+        </p>
       ) : (
         <div className={styles.table} data-open={found ? '' : undefined}>
           <div className={styles.timeline}>
@@ -1316,6 +1323,8 @@ export default function Tavolo({ data }: { data: TavoloData }) {
                         data-soldout={b.soldOut || undefined}
                         draggable={b.touchable}
                         onDragStart={(e) => {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          grabMinutes.current = ((e.clientX - r.left) / r.width) * (b.end - b.start);
                           e.dataTransfer.setData('text/plain', b.key);
                           e.dataTransfer.effectAllowed = 'move';
                           setDragKey(b.key);

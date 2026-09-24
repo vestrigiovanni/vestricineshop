@@ -33,7 +33,7 @@ export const ROOMS: Room[] = [
     label: 'Programma',
     href: '/admin/programma',
     mobile: true,
-    keywords: ['programmazione', 'palinsesto', 'settimana', 'wizard', 'planner', 'spettacoli'],
+    keywords: ['programmazione', 'palinsesto', 'settimana', 'wizard', 'planner', 'spettacoli', 'sposta', 'pulizia', 'proiezioni vuote'],
   },
   {
     key: 'film',
@@ -57,7 +57,7 @@ export const ROOMS: Room[] = [
     label: 'Pannello',
     href: '/admin/pannello',
     mobile: false,
-    keywords: ['sale', 'display', 'preroll', 'catalogo', 'recupero biglietti', 'pretix', 'pulizia', 'proiezioni vuote'],
+    keywords: ['sale', 'display', 'preroll', 'catalogo', 'recupero biglietti', 'pretix'],
   },
 ];
 

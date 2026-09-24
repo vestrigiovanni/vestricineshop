@@ -145,7 +145,7 @@ function buildAlerts(rows: OggiRow[], nowMs: number, today: string, openCommit: 
       id: 'vuoti',
       tone: 'info',
       text: `${spettacoli(empty.length)} nelle prossime 24 ore senza biglietti venduti, il primo è ${quote(empty[0].title)} ${when(empty[0])}.`,
-      action: { label: 'Vedi', href: '/admin/pannello' },
+      action: { label: 'Vedi', href: '/admin/programma?vuote=1' },
     });
   }
 
