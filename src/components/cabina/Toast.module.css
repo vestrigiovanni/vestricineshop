@@ -1,0 +1,30 @@
+.stack {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1100;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  pointer-events: none;
+}
+.toast {
+  max-width: 360px;
+  padding: 10px 14px;
+  background: var(--c-bg-raised);
+  border: 1px solid var(--c-line);
+  border-left: 2px solid var(--c-amber);
+  border-radius: var(--c-radius);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+  animation: in var(--c-slow);
+}
+.ok { border-left-color: var(--c-ok); }
+.alarm { border-left-color: var(--c-alarm); }
+
+@media (max-width: 767px) {
+  .stack { left: 16px; right: 16px; bottom: calc(var(--c-bottombar-h) + 12px); justify-items: stretch; }
+  .toast { max-width: none; }
+}
+
+@keyframes in { from { opacity: 0; transform: translateY(8px); } }

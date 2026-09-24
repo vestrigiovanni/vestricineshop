@@ -1,0 +1,43 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: rgba(8, 6, 4, 0.72);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fade var(--c-fast);
+}
+.paletteBackdrop { align-items: flex-start; padding-top: 12vh; }
+.sheetBackdrop { align-items: flex-end; padding: 0; }
+
+.panel {
+  width: 100%;
+  background: var(--c-bg-raised);
+  border: 1px solid var(--c-line);
+  border-radius: var(--c-radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  animation: rise var(--c-slow);
+}
+.center { max-width: 440px; padding: 22px; }
+.palette { max-width: 560px; overflow: hidden; }
+.sheet {
+  max-width: none;
+  border-radius: 14px 14px 0 0;
+  padding: 10px 8px calc(16px + env(safe-area-inset-bottom));
+  animation-name: slideUp;
+}
+
+.title {
+  margin: 0 0 12px;
+  font-family: var(--c-font-serif);
+  font-weight: 600;
+  font-size: 20px;
+}
+
+@keyframes fade { from { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(6px) scale(0.99); } }
+@keyframes slideUp { from { transform: translateY(100%); } }
