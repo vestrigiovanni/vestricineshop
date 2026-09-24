@@ -105,7 +105,7 @@ export default function StepCommit({
               <button className={styles.ghostBtn} onClick={onRestart}>
                 <Wand2 size={16} /> Programma altro
               </button>
-              <a className={failures.length > 0 ? styles.ghostBtn : styles.ctaBtn} href="/admin">
+              <a className={failures.length > 0 ? styles.ghostBtn : styles.ctaBtn} href="/admin/programma">
                 {failures.length > 0 ? <Check size={16} /> : <CalendarCheck size={18} />} Torna all&apos;admin
               </a>
             </div>

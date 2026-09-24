@@ -1060,7 +1060,7 @@ export default function ProgrammazionePage() {
           </nav>
         )}
 
-        <Link className={styles.exitBtn} href="/admin" title="Torna all'admin"><X size={19} /></Link>
+        <Link className={styles.exitBtn} href="/admin/programma" title="Torna al tavolo"><X size={19} /></Link>
       </header>
 
       {step === 1 && (
