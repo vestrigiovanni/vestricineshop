@@ -1,0 +1,72 @@
+/* L'identità del gestionale: nero caldo, ambra come la lampada del proiettore,
+ * grana di pellicola. Tutto vive sotto `.cabina` perché il sito pubblico non
+ * cambi finché non arriva il suo turno nel restyling.
+ */
+.cabina {
+  --c-bg: #100d0a;
+  --c-bg-raised: #17130f;
+  --c-bg-sunken: #0b0907;
+  --c-line: #2a231c;
+  --c-line-strong: #3a3128;
+  --c-ink: #efe6d8;
+  --c-dim: #8a7d6c;
+  --c-amber: #e8a33d;
+  --c-amber-soft: rgba(232, 163, 61, 0.12);
+  --c-amber-ink: #1a130b;
+  --c-alarm: #d4553a;
+  --c-alarm-soft: rgba(212, 85, 58, 0.1);
+  --c-ok: #9bb07a;
+  --c-ok-soft: rgba(155, 176, 122, 0.12);
+
+  --c-font-serif: var(--font-cab-serif), Georgia, serif;
+  --c-font-mono: var(--font-cab-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  --c-font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+
+  --c-radius: 6px;
+  --c-radius-lg: 10px;
+  --c-fast: 150ms cubic-bezier(0.2, 0, 0, 1);
+  --c-slow: 250ms cubic-bezier(0.2, 0, 0, 1);
+  --c-topbar-h: 52px;
+  --c-bottombar-h: 64px;
+
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: var(--c-font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
+}
+
+/* La grana: sopra tutto, sotto nessun clic. */
+.cabina::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.cabina ::selection {
+  background: var(--c-amber);
+  color: var(--c-amber-ink);
+}
+
+.cabina :focus-visible {
+  outline: 2px solid var(--c-amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cabina *,
+  .cabina *::before,
+  .cabina *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+}
