@@ -43,3 +43,12 @@
 .consent input { margin-top: 2px; accent-color: var(--c-alarm); }
 
 .dialogActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+.specs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12.5px; }
+.specs label { display: flex; gap: 6px; align-items: center; }
+.specs input { accent-color: var(--c-amber); }
+.note {
+  min-height: 34px; padding: 0 10px; background: var(--c-bg-sunken); color: var(--c-ink);
+  border: 1px solid var(--c-line); border-radius: var(--c-radius); font: inherit; font-size: 12.5px;
+}
+.note:focus { outline: none; border-color: var(--c-amber); }
