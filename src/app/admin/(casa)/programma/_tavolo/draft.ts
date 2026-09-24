@@ -343,3 +343,93 @@ export function fromSaved(saved: SavedDraftLike): Draft | null {
     rejected: state.rejected ?? [],
   };
 }
+
+/** Lo spettacolo cade nel periodo che il tavolo sta guardando? */
+export function inWindow(show: Pick<ScheduledShow, 'day'>, from: string, days: number): boolean {
+  const i = daysBetweenISO(from, show.day);
+  return i >= 0 && i < days;
+}
+
+export function unlockedIn(draft: Draft, from: string, days: number): number {
+  return draft.shows.filter((s) => !s.locked && inWindow(s, from, days)).length;
+}
+
+export interface FillChoice {
+  film: CatalogItem;
+  /** Quanti spettacoli in più; vuoto = decide il motore. */
+  replicas?: number;
+  band?: Band;
+}
+
+export interface FilmChoice {
+  tmdbId: string;
+  replicas?: number;
+  preferredBand?: Band;
+}
+
+function countsOf(shows: ScheduledShow[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const s of shows) counts.set(s.tmdbId, (counts.get(s.tmdbId) ?? 0) + 1);
+  return counts;
+}
+
+/**
+ * "Riempi i buchi": tutto ciò che è già in bozza resta dov'è — va al motore come
+ * bloccato — e i film scelti prendono solo lo spazio rimasto. Il motore conta
+ * anche i bloccati fra le repliche, quindi a ogni film si somma quello che ha.
+ */
+export function fillRequest(
+  draft: Draft,
+  from: string,
+  days: number,
+  extra: FillChoice[],
+): { films: FilmChoice[]; locked: ScheduledShow[] } {
+  const inside = draft.shows.filter((s) => inWindow(s, from, days));
+  const counts = countsOf(inside);
+  const films: FilmChoice[] = [];
+  const seen = new Set<string>();
+  for (const e of extra) {
+    const id = e.film.tmdbId;
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const already = counts.get(id) ?? 0;
+    films.push({ tmdbId: id, replicas: e.replicas == null ? undefined : already + e.replicas, preferredBand: e.band });
+  }
+  for (const [tmdbId, replicas] of counts) if (!seen.has(tmdbId)) films.push({ tmdbId, replicas });
+  return { films, locked: inside.map((s) => ({ ...rebase(s, from), locked: true })) };
+}
+
+/** "Rigenera": restano fermi solo i bloccati; gli altri si rimescolano, con gli stessi numeri. */
+export function regenerateRequest(draft: Draft, from: string, days: number): { films: FilmChoice[]; locked: ScheduledShow[] } {
+  const inside = draft.shows.filter((s) => inWindow(s, from, days));
+  return {
+    films: [...countsOf(inside)].map(([tmdbId, replicas]) => ({ tmdbId, replicas })),
+    locked: inside.filter((s) => s.locked).map((s) => rebase(s, from)),
+  };
+}
+
+function placeUnlocked(draft: Draft, shows: ScheduledShow[]): Draft {
+  return settle({ ...draft, shows: [...draft.shows, ...shows.map((s) => ({ ...rebase(s, draft.origin), locked: false }))] });
+}
+
+/** Del risultato entra solo ciò che il motore ha aggiunto. */
+export function mergeFilled(draft: Draft, generated: ScheduledShow[], films: CatalogItem[]): Draft {
+  const picks = { ...draft.picks };
+  for (const f of films) if (f.tmdbId && !picks[f.tmdbId]) picks[f.tmdbId] = { film: f, specs: defaultSpecsFor(f) };
+  return placeUnlocked({ ...draft, picks }, generated.filter((s) => !s.locked));
+}
+
+export function mergeRegenerated(draft: Draft, from: string, days: number, generated: ScheduledShow[]): Draft {
+  const kept = draft.shows.filter((s) => s.locked || !inWindow(s, from, days));
+  const dropped = new Set(draft.shows.filter((s) => !kept.includes(s)).map((s) => commitKey(s)));
+  return placeUnlocked(
+    { ...draft, shows: kept, replacements: omit(draft.replacements, dropped) },
+    generated.filter((s) => !s.locked),
+  );
+}
+
+export function setLocked(draft: Draft, key: string, locked: boolean): Draft {
+  const target = findDraft(draft, key);
+  if (!target) return draft;
+  return { ...draft, shows: draft.shows.map((s) => (s === target ? { ...s, locked } : s)) };
+}
