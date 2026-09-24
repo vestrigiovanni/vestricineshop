@@ -1,12 +1,12 @@
 /**
  * Le stanze del gestionale.
  *
- * Nella barra compaiono solo le stanze che hanno già una pagina: Catalogo, Sale,
- * Display e Attrezzi entrano quando nascono (tappe 4 e 6 del restyling). Fino ad
+ * Nella barra compaiono solo le stanze che hanno già una pagina: Sale, Display e
+ * Attrezzi entrano quando nascono (tappa 6 del restyling). Fino ad
  * allora le loro funzioni vivono nel vecchio pannello, nella stanza provvisoria
  * "Pannello", e per questo le loro parole chiave, per ora, puntano lì.
  */
-export type RoomKey = 'oggi' | 'programma' | 'film' | 'cassa' | 'pannello';
+export type RoomKey = 'oggi' | 'programma' | 'film' | 'catalogo' | 'cassa' | 'pannello';
 
 export interface Room {
   key: RoomKey;
@@ -43,6 +43,13 @@ export const ROOMS: Room[] = [
     keywords: ['torre di controllo', 'override', 'trama', 'locandina', 'trailer', 'premi', 'lingua'],
   },
   {
+    key: 'catalogo',
+    label: 'Catalogo',
+    href: '/admin/catalogo',
+    mobile: false,
+    keywords: ['libreria', 'plex', 'tmdb', 'importa', 'verifica', 'abbinamento', 'sorprendimi'],
+  },
+  {
     key: 'cassa',
     label: 'Cassa',
     href: '/admin/cassa',
@@ -51,13 +58,13 @@ export const ROOMS: Room[] = [
     compact: true,
   },
   {
-    // Provvisoria: il vecchio pannello, finché Sale, Display, Catalogo e
-    // Recupero biglietti non hanno una stanza loro (tappe 4, 5 e 6).
+    // Provvisoria: il vecchio pannello, finché Sale, Display e Recupero
+    // biglietti non hanno una stanza loro (tappe 5 e 6).
     key: 'pannello',
     label: 'Pannello',
     href: '/admin/pannello',
     mobile: false,
-    keywords: ['sale', 'display', 'preroll', 'catalogo', 'recupero biglietti', 'pretix'],
+    keywords: ['sale', 'display', 'preroll', 'recupero biglietti', 'pretix'],
   },
 ];
 

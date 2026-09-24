@@ -13,6 +13,7 @@ describe('activeRoom', () => {
     expect(activeRoom('/admin/film')).toBe('film');
     expect(activeRoom('/admin/cassa')).toBe('cassa');
     expect(activeRoom('/admin/pannello')).toBe('pannello');
+    expect(activeRoom('/admin/catalogo')).toBe('catalogo');
   });
 
   it('non confonde un prefisso con una stanza', () => {

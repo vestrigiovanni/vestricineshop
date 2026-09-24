@@ -15,7 +15,6 @@ import {
 import { Calendar, Trash2, Edit3, Loader2, X, Info, Clock, Ticket, TriangleAlert, ChevronRight, ChevronDown, Monitor, ShoppingBag, ExternalLink, QrCode, Settings, BookOpen, Wand2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 const TicketRecoveryButton = dynamic(() => import('./TicketRecovery'), { ssr: false });
-const CatalogBrowser = dynamic(() => import('./CatalogBrowser/CatalogBrowser'), { ssr: false });
 import RoomManagementModal from './RoomManagementModal';
 
 
@@ -42,7 +41,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
     initPlans();
   }, []);
 
-  const [showCatalog, setShowCatalog] = useState(false);
   const [quotasState, setQuotasState] = useState<Record<number, any[]>>({});
   const [availabilityState, setAvailabilityState] = useState<Record<number, any>>({});
   const [loadingQuotas, setLoadingQuotas] = useState<Record<number, boolean>>({});
@@ -395,14 +393,9 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
               <a href="/admin/film" target="_blank" rel="noopener noreferrer" className={styles.btnActionIcon} title="Gestisci Overrides">
                 <Settings size={18} />
               </a>
-              <button
-                type="button"
-                className={styles.btnActionIcon}
-                title="Gestisci il catalogo film"
-                onClick={() => setShowCatalog(true)}
-              >
+              <a href="/admin/catalogo" className={styles.btnActionIcon} title="Il catalogo ha una stanza sua">
                 <BookOpen size={18} />
-              </button>
+              </a>
             </div>
           </div>
 
@@ -782,13 +775,6 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         />
       )}
 
-
-      {showCatalog && (
-        <CatalogBrowser
-          onSelectFilm={(tmdbId: string) => openPlanner(tmdbId)}
-          onClose={() => setShowCatalog(false)}
-        />
-      )}
 
     </div>
   );

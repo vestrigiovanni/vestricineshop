@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { CalendarRange, Ellipsis, ExternalLink, Film, LayoutGrid, LogOut, Search, Sunrise, Ticket } from 'lucide-react';
+import { CalendarRange, Ellipsis, ExternalLink, Film, LayoutGrid, Library, LogOut, Search, Sunrise, Ticket } from 'lucide-react';
 import { logoutAdmin } from '@/actions/authActions';
 import CommandPalette from './CommandPalette';
 import Dialog from './Dialog';
@@ -14,6 +14,7 @@ const ICONS: Record<RoomKey, React.ComponentType<{ size?: number }>> = {
   oggi: Sunrise,
   programma: CalendarRange,
   film: Film,
+  catalogo: Library,
   cassa: Ticket,
   pannello: LayoutGrid,
 };
