@@ -23,7 +23,15 @@
   animation: rise var(--c-slow);
 }
 .center { max-width: 440px; padding: 22px; }
+.large { max-width: 860px; padding: 22px; }
 .palette { max-width: 560px; overflow: hidden; }
+.wide {
+  max-width: 1240px;
+  height: min(88dvh, 960px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .sheet {
   max-width: none;
   border-radius: 14px 14px 0 0;
