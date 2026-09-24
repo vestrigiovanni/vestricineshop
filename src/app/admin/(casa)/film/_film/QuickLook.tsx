@@ -6,7 +6,7 @@ import { adminGetVisualControlData, upsertMovieOverride } from '@/actions/adminA
 import Button from '@/components/cabina/Button';
 import Dialog from '@/components/cabina/Dialog';
 import AssetField from './AssetField';
-import type { MovieLike, OverrideLike } from './form';
+import { nextShowing, type MovieLike, type OverrideLike } from './form';
 import MediaPicker, { type MediaKind } from './MediaPicker';
 import styles from './Film.module.css';
 
@@ -14,6 +14,8 @@ interface Row {
   tmdbId: string;
   title: string;
   lastDate: string | Date;
+  projections?: { dateFrom: string | Date }[];
+  next?: string | null;
   tmdbData: (MovieLike & { trailerKey?: string | null }) | null;
   override: OverrideLike & Record<string, unknown>;
 }
@@ -44,7 +46,9 @@ export default function QuickLook({ onClose, onSaved }: { onClose: () => void; o
     let cancelled = false;
     adminGetVisualControlData()
       .then((data) => {
-        if (!cancelled) setRows(data as unknown as Row[]);
+        if (cancelled) return;
+        const now = Date.now();
+        setRows((data as unknown as Row[]).map((r) => ({ ...r, next: nextShowing(r.projections ?? [], now).next })));
       })
       .catch(() => {
         if (!cancelled) setRows([]);
@@ -118,7 +122,7 @@ export default function QuickLook({ onClose, onSaved }: { onClose: () => void; o
             <div className={styles.quickFilm}>
               <b>{r.title}</b>
               <span className={styles.meta}>
-                prossima {new Date(r.lastDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })}
+                {r.next ? 'prossima' : 'ultima'} {new Date(r.next ?? r.lastDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })}
               </span>
               <span className={styles.quickStatus} data-status={status[r.tmdbId]}>
                 {pending[r.tmdbId] ? 'da salvare…' : status[r.tmdbId] === 'saving' ? 'salvo…' : status[r.tmdbId] === 'saved' ? 'salvato' : status[r.tmdbId] === 'error' ? 'non salvato' : ''}

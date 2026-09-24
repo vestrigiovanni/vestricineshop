@@ -36,7 +36,7 @@ import TicketPDF from '../TicketPDF';
 import dynamic from 'next/dynamic';
 
 /** Il recupero biglietti vive al banco: è lì che arriva chi l'ha perso. */
-const TicketRecoveryButton = dynamic(() => import('../Admin/TicketRecovery'), { ssr: false });
+const TicketRecoveryButton = dynamic(() => import('./TicketRecovery'), { ssr: false });
 import RatingBadge from '../RatingBadge';
 import { isVM18, isVM14 } from '@/utils/ratingUtils';
 import {

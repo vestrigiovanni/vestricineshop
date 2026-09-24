@@ -7,7 +7,7 @@ import Button from '@/components/cabina/Button';
 import Dialog from '@/components/cabina/Dialog';
 import { useToast } from '@/components/cabina/Toast';
 import FilmEditor, { type Projection } from './FilmEditor';
-import { movieIdOf, type MovieLike, type OverrideLike } from './form';
+import { movieIdOf, nextShowing, type MovieLike, type OverrideLike } from './form';
 import QuickLook from './QuickLook';
 import styles from './Film.module.css';
 
@@ -16,6 +16,9 @@ interface Programmed {
   title: string;
   lastDate: string | Date;
   projections: Projection[];
+  /** La prossima proiezione, se ce n'è una: `lastDate` è l'ultima. */
+  next: string | null;
+  upcoming: number;
 }
 
 type Overrides = Record<string, OverrideLike & { customTitle?: string | null; versionLanguage?: string | null; subtitles?: string | null }>;
@@ -40,7 +43,12 @@ export default function FilmRoom({ initialTmdb }: { initialTmdb: string | null }
     try {
       const [ov, prog] = await Promise.all([adminGetOverrides(), adminGetProgrammedMovies()]);
       setOverrides(ov as Overrides);
-      setProgrammed(prog as unknown as Programmed[]);
+      const now = Date.now();
+      setProgrammed(
+        (prog as unknown as Omit<Programmed, 'next' | 'upcoming'>[])
+          .map((p) => ({ ...p, ...nextShowing(p.projections, now) }))
+          .sort((a, b) => (a.next ?? '9999').localeCompare(b.next ?? '9999')),
+      );
     } catch {
       setProgrammed((p) => p ?? []);
       toast('Non riesco a leggere i film dal database.', 'alarm');
@@ -130,7 +138,7 @@ export default function FilmRoom({ initialTmdb }: { initialTmdb: string | null }
                     <button type="button" className={styles.row} data-selected={selectedId === p.tmdbId || undefined} onClick={() => choose(p.tmdbId)}>
                       <span className={styles.rowTitle}>{ov?.customTitle || p.title}</span>
                       <span className={styles.rowMeta}>
-                        prossima {shortDate(p.lastDate)} · {p.projections.length} in sala
+                        {p.next ? `prossima ${shortDate(p.next)} · ${p.upcoming} in arrivo` : `ultima ${shortDate(p.lastDate)}`}
                         {ov?.versionLanguage ? ` · ${ov.versionLanguage}` : ''}
                       </span>
                       {ov?.isManualOverride && <span className={styles.tagCustom}>tuo</span>}

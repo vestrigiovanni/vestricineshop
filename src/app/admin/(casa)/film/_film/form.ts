@@ -138,3 +138,18 @@ export function youtubeThumb(url: string | null | undefined): string | null {
   const id = url ? extractYouTubeId(url) : null;
   return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
 }
+
+/**
+ * La prossima proiezione e quante ne restano. Il database tiene anche quelle
+ * passate (e `lastDate` è l'ultima, non la prossima): qui si guarda avanti.
+ */
+export function nextShowing<T extends { dateFrom: string | Date }>(
+  projections: T[],
+  nowMs: number,
+): { next: string | null; upcoming: number } {
+  const future = projections
+    .map((p) => (typeof p.dateFrom === 'string' ? p.dateFrom : p.dateFrom.toISOString()))
+    .filter((d) => Date.parse(d) >= nowMs)
+    .sort();
+  return { next: future[0] ?? null, upcoming: future.length };
+}

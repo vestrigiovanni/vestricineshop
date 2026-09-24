@@ -75,3 +75,17 @@ describe('immagini e trailer', () => {
     expect(movieIdOf({ tmdbId: '839' })).toBe('839');
   });
 });
+
+describe('le date in sala', () => {
+  it('la prossima è la prima futura, e si contano solo quelle future', async () => {
+    const { nextShowing } = await import('./form');
+    const now = Date.parse('2026-09-29T12:00:00Z');
+    const p = [
+      { pretixId: 1, dateFrom: '2026-09-28T19:00:00Z' },
+      { pretixId: 2, dateFrom: '2026-10-02T19:00:00Z' },
+      { pretixId: 3, dateFrom: '2026-09-30T19:00:00Z' },
+    ];
+    expect(nextShowing(p, now)).toEqual({ next: '2026-09-30T19:00:00Z', upcoming: 2 });
+    expect(nextShowing([{ pretixId: 1, dateFrom: '2026-09-28T19:00:00Z' }], now)).toEqual({ next: null, upcoming: 0 });
+  });
+});
