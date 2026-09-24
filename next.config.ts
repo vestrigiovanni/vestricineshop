@@ -32,6 +32,7 @@ const nextConfig: NextConfig = {
       { source: '/admin/programmazione', destination: '/admin/programma', permanent: false },
       { source: '/admin/planner', destination: '/admin/programma', permanent: false },
       { source: '/admin/movies-control', destination: '/admin/film', permanent: false },
+      { source: '/admin/programma/wizard', destination: '/admin/programma', permanent: false },
     ];
   },
 };

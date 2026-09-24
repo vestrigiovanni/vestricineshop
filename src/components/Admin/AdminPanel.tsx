@@ -70,7 +70,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   };
 
   /**
-   * Apre il wizard di programmazione già puntato su un film.
+   * Apre il tavolo di programmazione con i posti di un film già accesi.
    *
    * Sostituisce `selectMovieForScheduling`, `handleSelectFromCatalog` e
    * `handleReplica`: erano tre strade che finivano tutte nello stesso modale,
@@ -386,7 +386,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
         </div>
       </div>
 
-      {/* PROGRAMMAZIONE: un solo ingresso, il wizard. */}
+      {/* PROGRAMMAZIONE: un solo ingresso, il tavolo. */}
       <div className="flex flex-col gap-8">
         <section className={styles.section}>
           <div className={styles.sectionHeader}>

@@ -33,7 +33,7 @@ export const ROOMS: Room[] = [
     label: 'Programma',
     href: '/admin/programma',
     mobile: true,
-    keywords: ['programmazione', 'palinsesto', 'settimana', 'wizard', 'planner', 'spettacoli', 'sposta', 'pulizia', 'proiezioni vuote'],
+    keywords: ['programmazione', 'palinsesto', 'settimana', 'tavolo', 'planner', 'spettacoli', 'sposta', 'pulizia', 'proiezioni vuote'],
   },
   {
     key: 'film',
