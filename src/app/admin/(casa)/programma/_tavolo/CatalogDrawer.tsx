@@ -5,7 +5,7 @@ import { RotateCw, Search } from 'lucide-react';
 import { catalogGetFacets, catalogGetRails, catalogList } from '@/actions/catalogActions';
 import { CATALOG_RAIL_HINTS, RUNTIME_BUCKETS, type CatalogRail, type RuntimeBucketKey } from '@/constants/catalogRails';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
-import type { CatalogItem } from '../wizard/types';
+import type { CatalogItem } from './types';
 import TmdbDialog from './TmdbDialog';
 import styles from './CatalogDrawer.module.css';
 

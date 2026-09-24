@@ -9,7 +9,7 @@ import {
   type Band,
 } from '@/services/scheduling/times';
 import { normalizeProjectionSpecs, type ProjectionSpecCode } from '@/constants/projectionSpecs';
-import { commitKey, defaultSpecsFor, type CatalogItem, type Pick as FilmPick } from '../wizard/types';
+import { commitKey, defaultSpecsFor, type CatalogItem, type FilmPick } from './types';
 
 export type { FilmPick };
 
@@ -62,7 +62,7 @@ export function rebase(show: ScheduledShow, origin: string): ScheduledShow {
 }
 
 export function draftKey(show: Pick<ScheduledShow, 'tmdbId' | 'date' | 'time'>): string {
-  return `d:${commitKey(show as ScheduledShow)}`;
+  return `d:${commitKey(show)}`;
 }
 
 export function findDraft(draft: Draft, key: string): ScheduledShow | null {

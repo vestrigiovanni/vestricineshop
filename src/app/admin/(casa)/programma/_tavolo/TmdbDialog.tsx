@@ -5,7 +5,7 @@ import { catalogAddByTmdbId, catalogPreviewTmdb, catalogSearchTmdb } from '@/act
 import Button from '@/components/cabina/Button';
 import Dialog from '@/components/cabina/Dialog';
 import { useToast } from '@/components/cabina/Toast';
-import type { CatalogItem } from '../wizard/types';
+import type { CatalogItem } from './types';
 import styles from './CatalogDrawer.module.css';
 
 interface Hit {

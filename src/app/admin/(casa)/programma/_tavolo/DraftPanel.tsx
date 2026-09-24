@@ -7,7 +7,7 @@ import Button from '@/components/cabina/Button';
 import { useToast } from '@/components/cabina/Toast';
 import { PROJECTION_SPECS, type ProjectionSpecCode } from '@/constants/projectionSpecs';
 import type { ScheduledShow } from '@/services/scheduling/engine';
-import { commitKey } from '../wizard/types';
+import { commitKey } from './types';
 import {
   clashesWithDraft,
   draftKey,

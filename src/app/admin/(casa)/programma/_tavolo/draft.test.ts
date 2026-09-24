@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { ScheduledShow } from '@/services/scheduling/engine';
-import type { CatalogItem } from '../wizard/types';
+import type { CatalogItem } from './types';
 import {
   addShow,
   clashesWithDraft,

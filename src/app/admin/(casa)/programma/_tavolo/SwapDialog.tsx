@@ -5,7 +5,7 @@ import { planningAlternatives } from '@/actions/planningActions';
 import Button from '@/components/cabina/Button';
 import Dialog from '@/components/cabina/Dialog';
 import type { ScheduledShow } from '@/services/scheduling/engine';
-import type { CatalogItem } from '../wizard/types';
+import type { CatalogItem } from './types';
 import styles from './CatalogDrawer.module.css';
 
 interface Props {

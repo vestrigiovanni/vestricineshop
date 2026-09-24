@@ -10,7 +10,7 @@ import Dialog from '@/components/cabina/Dialog';
 import { useToast } from '@/components/cabina/Toast';
 import type { ScheduledShow } from '@/services/scheduling/engine';
 import { MINUTES_PER_DAY, OPENING_MINUTE, daysBetweenISO, formatClock } from '@/services/scheduling/times';
-import type { CatalogItem } from '../wizard/types';
+import type { CatalogItem } from './types';
 import BlockPanel, { type MoveIntent } from './BlockPanel';
 import CatalogDrawer from './CatalogDrawer';
 import CommitBar from './CommitBar';
