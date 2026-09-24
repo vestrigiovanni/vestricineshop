@@ -1,0 +1,29 @@
+.field { display: grid; gap: 6px; }
+.label {
+  font-family: var(--c-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-dim);
+}
+.control { position: relative; display: flex; align-items: center; }
+.input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  background: var(--c-bg-sunken);
+  border: 1px solid var(--c-line);
+  border-radius: var(--c-radius);
+  color: var(--c-ink);
+  font: inherit;
+  font-size: 15px;
+  transition: border-color var(--c-fast);
+}
+.input::placeholder { color: var(--c-dim); opacity: 0.7; }
+.input:focus { outline: none; border-color: var(--c-amber); }
+.input[aria-invalid='true'] { border-color: var(--c-alarm); }
+.control:has(.trailing) .input { padding-right: 44px; }
+.trailing { position: absolute; right: 6px; display: flex; }
+.hint, .error { margin: 0; font-size: 12px; }
+.hint { color: var(--c-dim); }
+.error { color: var(--c-alarm); }
