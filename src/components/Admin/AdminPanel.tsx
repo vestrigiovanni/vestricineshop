@@ -79,7 +79,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
   const openPlanner = (tmdbId: string | number, roomId?: string | number) => {
     const params = new URLSearchParams({ tmdb: String(tmdbId) });
     if (roomId) params.set('room', String(roomId));
-    window.location.href = `/admin/programmazione?${params.toString()}`;
+    window.location.href = `/admin/programma?${params.toString()}`;
   };
 
   /** Replica di uno spettacolo esistente: stesso film, stessa sala. */
@@ -338,7 +338,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
         <div className={styles.topBarActions}>
           <a
-            href="/admin/programmazione"
+            href="/admin/programma"
             className={`${styles.toolBtn} ${styles.toolBtnPurple}`}
             title="Scegli sala e periodo, poi i film: il calendario lo costruisce il cinema"
           >
@@ -375,7 +375,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           </button>
 
           <a
-            href="/admin/movies-control"
+            href="/admin/film"
             target="_blank"
             rel="noopener noreferrer"
             className={`${styles.toolBtn} ${styles.toolBtnRed}`}
@@ -392,7 +392,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
           <div className={styles.sectionHeader}>
             <h2 className={styles.title}>Programmazione</h2>
             <div className={styles.headerActions}>
-              <a href="/admin/movies-control" target="_blank" rel="noopener noreferrer" className={styles.btnActionIcon} title="Gestisci Overrides">
+              <a href="/admin/film" target="_blank" rel="noopener noreferrer" className={styles.btnActionIcon} title="Gestisci Overrides">
                 <Settings size={18} />
               </a>
               <button
@@ -406,7 +406,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
             </div>
           </div>
 
-          <a href="/admin/programmazione" className={`${styles.btn} ${styles.btnPrimary} ${styles.scheduleEntry}`}>
+          <a href="/admin/programma" className={`${styles.btn} ${styles.btnPrimary} ${styles.scheduleEntry}`}>
             <Wand2 size={20} />
             <span>
               <b>Programma spettacoli</b>
@@ -611,7 +611,7 @@ export default function AdminDashboard({ initialEvents }: AdminDashboardProps) {
 
 
 
-      {/* La programmazione vive tutta in /admin/programmazione: qui non c'è
+      {/* La programmazione vive tutta in /admin/programma: qui non c'è
           più un modale che duplichi orari, conflitti e slot. */}
 
       {/* 2. EXTERNAL DISPLAY CONFIGURATION MODAL */}

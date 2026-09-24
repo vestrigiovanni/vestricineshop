@@ -853,7 +853,7 @@ export async function adminScheduleMovie(
     }
 
     revalidatePath('/');
-    revalidatePath('/admin/movies-control');
+    revalidatePath('/admin/film');
 
     // Alert logic: if IT was missing or all countries missing, we let the client know
     const isItMissing = !details.release_dates?.results?.some((r: any) => r.iso_3166_1 === 'IT' && r.release_dates.length > 0);
@@ -920,7 +920,7 @@ export async function adminDeleteEvent(subEventId: number) {
   }
 
   revalidatePath('/');
-  revalidatePath('/admin/movies-control');
+  revalidatePath('/admin/film');
   return { success: true };
 }
 
@@ -980,7 +980,7 @@ export async function adminDeleteEventGroup(subEventIds: number[]) {
   }
 
   revalidatePath('/');
-  revalidatePath('/admin/movies-control');
+  revalidatePath('/admin/film');
   return {
     success: true,
     summary: `Eliminati ${successCount} spettacoli. Errori: ${errorCount}.`,
@@ -1033,7 +1033,7 @@ export async function adminUpdateEventDate(subEventId: number, newDate: string) 
     }
 
     revalidatePath('/');
-    revalidatePath('/admin/movies-control');
+    revalidatePath('/admin/film');
     revalidatePath('/[slug]', 'layout');
     return { success: true };
   } catch (error: any) {
@@ -1327,7 +1327,7 @@ export async function upsertMovieOverride(tmdbId: string, override: any) {
     }
     
     revalidatePath('/');
-    revalidatePath('/admin/movies-control');
+    revalidatePath('/admin/film');
     revalidatePath('/[slug]', 'layout'); // Catch-all for movie detail pages if any
     return { success: true };
   } catch (err: any) {
@@ -1344,7 +1344,7 @@ export async function adminSyncAllMovies(forceRefresh: boolean = false): Promise
     const { syncPretixToDatabase } = await import('@/services/sync.service');
     const result = await syncPretixToDatabase({ forceMetadataRefresh: forceRefresh });
     revalidatePath('/');
-    revalidatePath('/admin/movies-control');
+    revalidatePath('/admin/film');
     return { success: true, result };
   } catch (error: any) {
     console.error('[adminSyncAllMovies] ❌ Errore sincronizzazione totale:', error);
@@ -1371,7 +1371,7 @@ export async function adminDeleteOverride(tmdbId: string) {
 
   revalidatePath('/', 'layout');
   revalidatePath('/', 'page');
-  revalidatePath('/admin/movies-control');
+  revalidatePath('/admin/film');
   return { success: true };
 }
 
@@ -1490,7 +1490,7 @@ export async function adminSyncSoldOutStatus() {
 
     revalidatePath('/');
     revalidatePath('/admin');
-    revalidatePath('/admin/movies-control');
+    revalidatePath('/admin/film');
 
     console.log(`[ADMIN-SYNC] Sincronizzazione completata con successo! Aggiornati ${count} eventi.`);
     return { success: true, count };
@@ -1574,7 +1574,7 @@ export async function adminSyncNewlyCreatedEvents(pretixIds: number[]) {
     const { syncNewlyCreatedEvents } = await import('@/services/sync.service');
     await syncNewlyCreatedEvents(pretixIds);
     revalidatePath('/');
-    revalidatePath('/admin/movies-control');
+    revalidatePath('/admin/film');
     return { success: true };
   } catch (error: any) {
     console.error('[adminSyncNewlyCreatedEvents] ❌ Errore sincronizzazione:', error);
@@ -1637,7 +1637,7 @@ export async function adminRefreshAllAwards() {
     }
 
     revalidatePath('/');
-    revalidatePath('/admin/movies-control');
+    revalidatePath('/admin/film');
     return { success: true, updated, failed };
   } catch (error: any) {
     console.error('[adminRefreshAllAwards] ❌ Error:', error);

@@ -344,7 +344,7 @@ export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boo
 
   try {
     revalidatePath('/');
-    revalidatePath('/admin/movies-control');
+    revalidatePath('/admin/film');
   } catch (err) {
     console.warn('[SYNC] revalidatePath skipped (likely running in standalone script):', (err as any).message);
   }

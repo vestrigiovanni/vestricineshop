@@ -21,6 +21,19 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  /**
+   * Gli indirizzi di prima del gestionale-cabina restano vivi: sono nei
+   * segnalibri e nella memoria delle dita. Temporanei (307) di proposito, così
+   * i browser non li mettono in cache per sempre. Le query string passano da
+   * sole: "Replica" apre la programmazione con il film già scelto.
+   */
+  async redirects() {
+    return [
+      { source: '/admin/programmazione', destination: '/admin/programma', permanent: false },
+      { source: '/admin/planner', destination: '/admin/programma', permanent: false },
+      { source: '/admin/movies-control', destination: '/admin/film', permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

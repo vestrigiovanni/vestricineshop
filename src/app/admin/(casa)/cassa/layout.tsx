@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'CASSA — VESTRICINEMA',
+  title: 'Cassa',
   description: 'Terminale di vendita fisica VESTRICINEMA',
   robots: 'noindex, nofollow',
 };
