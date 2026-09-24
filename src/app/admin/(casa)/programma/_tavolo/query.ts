@@ -15,6 +15,8 @@ export interface TavoloQuery {
   from: string | null;
   days: Span;
   onlyEmpty: boolean;
+  /** Un film da accendere sul tavolo: è la "Replica" del vecchio pannello e dei segnalibri. */
+  tmdb: string | null;
 }
 
 export type SearchParams = Record<string, string | string[] | undefined>;
@@ -35,6 +37,7 @@ export function parseQuery(sp: SearchParams): TavoloQuery {
     from: from && ISO_DATE.test(from) ? from : null,
     days: SPANS.some((s) => s.value === days) ? (days as Span) : 7,
     onlyEmpty: first(sp, 'vuote') === '1',
+    tmdb: first(sp, 'tmdb')?.trim() || null,
   };
 }
 
@@ -46,18 +49,4 @@ export function toSearch(q: { room: number; from: string; days: Span; onlyEmpty:
 
 export function shiftFrom(from: string, days: Span, direction: 1 | -1): string {
   return addDaysISO(from, direction * days);
-}
-
-/**
- * Chi arriva con un film in mano (`?tmdb=`) vuole programmarlo: è la "Replica"
- * del vecchio pannello e dei segnalibri. Fino alla tappa 3b lo fa il wizard.
- */
-export function wizardRedirect(sp: SearchParams): string | null {
-  if (!first(sp, 'tmdb')) return null;
-  const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(sp)) {
-    const value = Array.isArray(v) ? v[0] : v;
-    if (value !== undefined) p.set(k, value);
-  }
-  return `/admin/programma/wizard?${p.toString()}`;
 }

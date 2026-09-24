@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseQuery, shiftFrom, toSearch, wizardRedirect } from './query';
+import { parseQuery, shiftFrom, toSearch } from './query';
 
 describe('parseQuery', () => {
   it('legge sala, inizio, durata e filtro', () => {
@@ -8,11 +8,12 @@ describe('parseQuery', () => {
       from: '2026-09-28',
       days: 14,
       onlyEmpty: true,
+      tmdb: null,
     });
   });
 
   it('senza parametri: nessuna sala, nessuna data, una settimana', () => {
-    expect(parseQuery({})).toEqual({ room: null, from: null, days: 7, onlyEmpty: false });
+    expect(parseQuery({})).toEqual({ room: null, from: null, days: 7, onlyEmpty: false, tmdb: null });
   });
 
   it('scarta i valori che non hanno senso', () => {
@@ -21,6 +22,7 @@ describe('parseQuery', () => {
       from: null,
       days: 7,
       onlyEmpty: false,
+      tmdb: null,
     });
   });
 
@@ -43,12 +45,9 @@ describe('shiftFrom', () => {
   });
 });
 
-describe('wizardRedirect', () => {
-  it('manda al wizard chi arriva con un film, con tutti i parametri', () => {
-    expect(wizardRedirect({ tmdb: '550', room: '12' })).toBe('/admin/programma/wizard?tmdb=550&room=12');
-  });
-
-  it('senza film resta sul tavolo', () => {
-    expect(wizardRedirect({ room: '12' })).toBeNull();
+describe('il film da accendere', () => {
+  it('arriva con ?tmdb=, come la Replica del vecchio pannello', () => {
+    expect(parseQuery({ tmdb: '550', room: '12' }).tmdb).toBe('550');
+    expect(parseQuery({ tmdb: '  ' }).tmdb).toBeNull();
   });
 });

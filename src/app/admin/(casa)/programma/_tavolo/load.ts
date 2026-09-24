@@ -21,6 +21,7 @@ export interface TavoloData {
   from: string;
   days: Span;
   onlyEmpty: boolean;
+  tmdb: string | null;
   week: TavoloWeek | null;
 }
 
@@ -36,7 +37,7 @@ export async function loadTavolo(q: TavoloQuery): Promise<TavoloData> {
 
   const chosen = q.room !== null && rooms.some((r) => r.id === q.room) ? q.room : null;
   const roomId = chosen ?? (rooms.find((r) => r.isFavorite) ?? rooms[0])?.id ?? null;
-  const base = { rooms, roomId, roomFromParam: chosen !== null, from, days: q.days, onlyEmpty: q.onlyEmpty };
+  const base = { rooms, roomId, roomFromParam: chosen !== null, from, days: q.days, onlyEmpty: q.onlyEmpty, tmdb: q.tmdb };
   if (roomId === null) return { ...base, week: null };
 
   const occupancy = await planningGetPeriodOccupancy(roomId, from, q.days);

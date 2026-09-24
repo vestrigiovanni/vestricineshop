@@ -118,6 +118,8 @@
 }
 .draft:hover { background: rgba(232, 163, 61, 0.16); }
 .draft[data-selected] { background: rgba(232, 163, 61, 0.22); }
+/* Messo dal motore: "Rigenera" lo può ancora spostare. */
+.draft[data-auto] { border-style: dotted; opacity: 0.85; }
 
 .slot {
   position: absolute; top: 3px; bottom: 3px; z-index: 3;

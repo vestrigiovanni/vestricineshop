@@ -4,11 +4,11 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { catalogPreviewTmdb } from '@/actions/catalogActions';
-import { planningFindSlots, planningSnapShow, type SlotProposal } from '@/actions/planningActions';
+import { planningFindSlots, planningGenerate, planningSnapShow, type SlotProposal } from '@/actions/planningActions';
 import Button from '@/components/cabina/Button';
 import Dialog from '@/components/cabina/Dialog';
 import { useToast } from '@/components/cabina/Toast';
-import type { ScheduledShow } from '@/services/scheduling/engine';
+import type { Intensity, ScheduledShow } from '@/services/scheduling/engine';
 import { MINUTES_PER_DAY, OPENING_MINUTE, daysBetweenISO, formatClock } from '@/services/scheduling/times';
 import type { CatalogItem } from './types';
 import BlockPanel, { type MoveIntent } from './BlockPanel';
@@ -19,13 +19,17 @@ import {
   addShow,
   draftBlocksOn,
   findDraft,
+  mergeRegenerated,
   rebase,
+  regenerateRequest,
   replaceShow,
   showFromSlot,
   showsFor,
+  unlockedIn,
   visibleSlots,
   withoutCommitted,
 } from './draft';
+import FillDialog from './FillDialog';
 import { minuteAt, place, ticks } from './geometry';
 import { dayShort, periodLabel } from './labels';
 import type { TavoloData } from './load';
@@ -63,6 +67,8 @@ export default function Tavolo({ data }: { data: TavoloData }) {
   const [dragKey, setDragKey] = useState<string | null>(null);
   const [film, setFilm] = useState<CatalogItem | null>(null);
   const [catalogSheet, setCatalogSheet] = useState(false);
+  const [fillOpen, setFillOpen] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [slotResult, setSlotResult] = useState<{ key: string; slots: SlotProposal[]; reason?: string } | null>(null);
   /** Dove hai afferrato il blocco, in minuti dal suo inizio: il film non "salta" al rilascio. */
   const grabMinutes = useRef(0);
@@ -270,6 +276,52 @@ export default function Tavolo({ data }: { data: TavoloData }) {
     }
   };
 
+  // `?tmdb=` è la "Replica" del vecchio pannello e dei segnalibri: accende i posti
+  // di quel film, poi si toglie dall'indirizzo perché un ricaricamento non la ripeta.
+  const tmdbHandled = useRef<string | null>(null);
+  useEffect(() => {
+    if (!data.tmdb || tmdbHandled.current === data.tmdb || roomId === null) return;
+    tmdbHandled.current = data.tmdb;
+    catalogPreviewTmdb(data.tmdb)
+      .then((f) => {
+        if (!f) throw new Error('film non trovato');
+        const item = f as unknown as CatalogItem;
+        if (item.tmdbId) films.current.set(item.tmdbId, item);
+        setFilm(item);
+        setSelected(null);
+        toast('Scegli uno dei posti accesi, o trascina il film dal catalogo.');
+      })
+      .catch(() => toast('Non riesco a leggere questo film.', 'alarm'));
+    router.replace(`/admin/programma${toSearch({ room: roomId, from: data.from, days: data.days, onlyEmpty: data.onlyEmpty })}`);
+  }, [data.tmdb, data.from, data.days, data.onlyEmpty, roomId, router, toast]);
+
+  const unlocked = draft ? unlockedIn(draft, data.from, data.days) : 0;
+
+  /** Rimescola gli spettacoli del motore; i tuoi restano dove li hai messi. */
+  const regenerate = async () => {
+    if (!draft || roomId === null) return;
+    setRegenerating(true);
+    try {
+      const req = regenerateRequest(draft, data.from, data.days);
+      const res = await planningGenerate({
+        seatingPlanId: roomId,
+        startDate: data.from,
+        days: data.days,
+        intensity: (draft.intensity as Intensity) || 'normal',
+        films: req.films,
+        locked: req.locked,
+        seed: Math.floor(Math.random() * 1_000_000),
+      });
+      update((d) => mergeRegenerated(d, data.from, data.days, res.shows));
+      toast('Rimescolato: quelli che hai messo tu sono rimasti dov’erano.', 'ok');
+      if (res.warnings.length) toast(res.warnings[0]);
+    } catch {
+      toast('Non sono riuscito a rigenerare. Riprova.', 'alarm');
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   const changed = (opts?: { keepOpen?: boolean }) => {
     if (!opts?.keepOpen) close();
     router.refresh();
@@ -353,7 +405,12 @@ export default function Tavolo({ data }: { data: TavoloData }) {
           </Button>
           <Button variant={data.onlyEmpty ? 'fill' : 'ghost'} onClick={() => go({ onlyEmpty: !data.onlyEmpty }, true)}>Solo vuote</Button>
           <Button href={PRETIX_URL} variant="ghost">Pretix ↗</Button>
-          <Button href={`/admin/programma/wizard${roomId !== null ? `?room=${roomId}` : ''}`} variant="ghost">Wizard</Button>
+          <Button variant="outline" onClick={() => setFillOpen(true)} disabled={!draft || roomId === null}>✦ Riempi i buchi</Button>
+          {unlocked > 0 && (
+            <Button variant="ghost" onClick={() => void regenerate()} disabled={regenerating}>
+              {regenerating ? 'Rimescolo…' : 'Rigenera'}
+            </Button>
+          )}
         </div>
       </header>
 
@@ -437,6 +494,7 @@ export default function Tavolo({ data }: { data: TavoloData }) {
                           className={`${styles.block} ${styles.draft}`}
                           style={{ left: `${pos.left}%`, width: `${pos.width}%` }}
                           data-selected={selected === b.key || undefined}
+                          data-auto={!b.show.locked || undefined}
                           draggable={!day.isPast}
                           onDragStart={(e) => startDrag(e, b.key, b.start, b.end)}
                           onDragEnd={() => setDragKey(null)}
@@ -512,6 +570,18 @@ export default function Tavolo({ data }: { data: TavoloData }) {
           </span>
           <span className={styles.footHint}>Esc chiude il cassetto</span>
         </footer>
+      )}
+
+      {fillOpen && draft && roomId !== null && (
+        <FillDialog
+          roomId={roomId}
+          from={data.from}
+          days={data.days}
+          draft={draft}
+          preset={film}
+          update={update}
+          onClose={() => setFillOpen(false)}
+        />
       )}
 
       {draft && <CommitBar draft={draft} savedAt={savedAt} commit={commit} onDiscard={() => void discard()} />}

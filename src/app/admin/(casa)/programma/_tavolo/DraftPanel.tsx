@@ -15,6 +15,7 @@ import {
   minuteOfDay,
   removeShow,
   replaceShow,
+  setLocked,
   setSpecs,
   showFromSlot,
   swapFilm,
@@ -115,7 +116,7 @@ export default function DraftPanel({ show, draft, roomId, from, targetDays, exis
       </button>
 
       <header>
-        <p className={styles.kicker}>In bozza · non ancora in sala</p>
+        <p className={styles.kicker}>{show.locked ? 'In bozza · non ancora in sala' : 'In bozza · messo dal motore'}</p>
         <h2 className={styles.title}>{show.title}</h2>
         <p className={styles.meta}>
           {dayShort(show.day)} · <span className={styles.clock}>{show.time} – {show.endTime}</span> · {show.runtime}′
@@ -186,6 +187,12 @@ export default function DraftPanel({ show, draft, roomId, from, targetDays, exis
 
       <section className={styles.group}>
         <span className={styles.label}>Altro</span>
+        {!show.locked && (
+          <>
+            <Button variant="outline" onClick={() => update((d) => setLocked(d, key, true))}>Blocca qui</Button>
+            <p className={styles.hint}>L’ha messo il motore: “Rigenera” lo può spostare, finché non lo blocchi o lo sposti tu.</p>
+          </>
+        )}
         <Button variant="ghost" onClick={() => setSwapOpen(true)}>⇄ Scambia il film</Button>
         <Button
           variant="alarm"
