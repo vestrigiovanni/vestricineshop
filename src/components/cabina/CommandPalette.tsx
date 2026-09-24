@@ -1,15 +1,17 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminClearCache } from '@/actions/adminActions';
+import { adminClearCache, adminGetProgrammedMovies } from '@/actions/adminActions';
 import { logoutAdmin } from '@/actions/authActions';
 import Dialog from './Dialog';
 import { useToast } from './Toast';
 import { rankCommands, type Command } from './commandIndex';
-import { ADMIN_COMMANDS } from './commands';
+import { ADMIN_COMMANDS, dynamicCommands, type ProgrammedLike } from './commands';
 import { ROOMS } from './rooms';
 import styles from './CommandPalette.module.css';
+
+const KIND_LABEL: Record<Command['kind'], string> = { stanza: 'Stanza', azione: 'Azione', film: 'Film', spettacolo: 'Spettacolo' };
 
 interface Props {
   open: boolean;
@@ -21,8 +23,29 @@ export default function CommandPalette({ open, onClose }: Props) {
   const toast = useToast();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(0);
+  /** Film e spettacoli: si leggono la prima volta che la ricerca si apre. */
+  const [extra, setExtra] = useState<Command[] | null>(null);
 
-  const results = useMemo(() => rankCommands(query, ADMIN_COMMANDS), [query]);
+  useEffect(() => {
+    if (!open || extra !== null) return;
+    let cancelled = false;
+    adminGetProgrammedMovies()
+      .then((list) => {
+        if (!cancelled) setExtra(dynamicCommands(list as unknown as ProgrammedLike[], Date.now()));
+      })
+      .catch(() => {
+        if (!cancelled) setExtra([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, extra]);
+
+  // A ricerca vuota solo stanze e azioni; scrivendo entrano anche film e spettacoli.
+  const results = useMemo(
+    () => (query.trim() ? rankCommands(query, [...ADMIN_COMMANDS, ...(extra ?? [])]).slice(0, 12) : ADMIN_COMMANDS),
+    [query, extra],
+  );
   const current = Math.min(selected, Math.max(results.length - 1, 0));
 
   const close = () => {
@@ -33,6 +56,11 @@ export default function CommandPalette({ open, onClose }: Props) {
 
   const run = async (cmd: Command) => {
     close();
+    if (cmd.href) {
+      if (/^https?:\/\//.test(cmd.href)) window.open(cmd.href, '_blank', 'noopener');
+      else router.push(cmd.href);
+      return;
+    }
     if (cmd.kind === 'stanza') {
       const room = ROOMS.find((r) => `stanza:${r.key}` === cmd.id);
       if (room) router.push(room.href);
@@ -78,7 +106,7 @@ export default function CommandPalette({ open, onClose }: Props) {
     <Dialog open={open} onClose={close} title="Cerca o vai a…" variant="palette">
       <input
         className={styles.input}
-        placeholder="Cerca una stanza o un'azione…"
+        placeholder="Una stanza, un'azione, un film, uno spettacolo…"
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -102,7 +130,7 @@ export default function CommandPalette({ open, onClose }: Props) {
             onClick={() => void run(cmd)}
           >
             <span className={styles.label}>{cmd.label}</span>
-            <span className={styles.hint}>{cmd.hint ?? (cmd.kind === 'stanza' ? 'Stanza' : 'Azione')}</span>
+            <span className={styles.hint}>{cmd.hint ?? KIND_LABEL[cmd.kind]}</span>
           </li>
         ))}
       </ul>

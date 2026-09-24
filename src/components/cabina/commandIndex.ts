@@ -3,7 +3,7 @@
  * Il punteggio preferisce ciò che si digita di solito, cioè l'inizio del nome,
  * ma perdona le abbreviazioni ("prgm" trova Programma).
  */
-export type CommandKind = 'stanza' | 'azione';
+export type CommandKind = 'stanza' | 'azione' | 'film' | 'spettacolo';
 
 export interface Command {
   id: string;
@@ -11,6 +11,8 @@ export interface Command {
   kind: CommandKind;
   hint?: string;
   keywords?: string[];
+  /** Dove porta: un indirizzo del gestionale, o uno esterno (si apre in una scheda nuova). */
+  href?: string;
 }
 
 export function normalize(s: string): string {
