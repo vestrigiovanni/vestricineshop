@@ -1,0 +1,45 @@
+.panel { position: relative; display: grid; gap: 16px; padding: 18px; }
+.close {
+  position: absolute; top: 12px; right: 12px; display: grid; place-items: center;
+  width: 30px; height: 30px; background: none; border: 0; border-radius: var(--c-radius);
+  color: var(--c-dim); cursor: pointer;
+}
+.close:hover { color: var(--c-ink); background: var(--c-amber-soft); }
+
+.kicker, .label {
+  margin: 0; font-family: var(--c-font-mono); font-size: 10px;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--c-dim);
+}
+.kicker { color: var(--c-amber); }
+.title { margin: 6px 32px 4px 0; font-family: var(--c-font-serif); font-weight: 600; font-size: 22px; line-height: 1.15; }
+.meta { margin: 0; color: var(--c-dim); }
+.clock, .mono { font-family: var(--c-font-mono); }
+.clock { color: var(--c-amber); }
+
+.group { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--c-line); }
+.row { display: flex; justify-content: space-between; align-items: baseline; }
+.seatBar { height: 4px; border-radius: 2px; background: var(--c-line); overflow: hidden; }
+.seatBar span { display: block; height: 100%; background: var(--c-ok); }
+.quotas { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 12px; color: var(--c-dim); }
+.quotas b { font-family: var(--c-font-mono); font-weight: 400; color: var(--c-ink); margin-left: 6px; }
+
+.fields { display: grid; grid-template-columns: 1fr 88px; gap: 6px; }
+.fields select, .fields input {
+  min-height: 38px; padding: 0 10px; background: var(--c-bg-sunken); color: var(--c-ink);
+  border: 1px solid var(--c-line); border-radius: var(--c-radius); font-family: var(--c-font-mono); font-size: 13px;
+}
+.fields input:focus, .fields select:focus { outline: none; border-color: var(--c-amber); }
+.fields input[aria-invalid='true'] { border-color: var(--c-alarm); }
+
+.text, .hint, .okText, .warnText, .alarmText { margin: 0; font-size: 12.5px; line-height: 1.45; }
+.hint { color: var(--c-dim); }
+.okText { color: var(--c-ok); }
+.warnText { color: var(--c-amber); }
+.alarmText { color: var(--c-alarm); }
+.alarm { margin: 0 0 12px; padding: 10px 12px; border-left: 2px solid var(--c-alarm); background: var(--c-alarm-soft); font-size: 13px; }
+.text { margin-bottom: 12px; }
+
+.consent { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; }
+.consent input { margin-top: 2px; accent-color: var(--c-alarm); }
+
+.dialogActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
