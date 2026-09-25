@@ -1,99 +1,84 @@
+/* La conferma dell'età: una finestra Cabina sopra la sala. */
+
 .overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  z-index: 10000;
+  inset: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.3s ease-out;
+  padding: 16px;
+  background: rgba(16, 13, 10, 0.92);
+  animation: fadeIn var(--c-slow, 250ms) ease-out;
 }
 
 .modal {
-  background: #0f0f13; /* Deep black / dark gray */
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px; /* Elegant sharp corners */
-  padding: 3rem 2.5rem;
-  max-width: 450px; /* Smaller, medium banner */
-  width: 90%;
-  text-align: center;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
-  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+  padding: 28px 24px 24px;
+  border: 1px solid var(--c-line, #2a231c);
+  border-radius: var(--c-radius-lg, 10px);
+  background: var(--c-bg-raised, #17130f);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
 }
 
+.kicker {
+  margin: 0;
+  font-family: var(--c-font-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-alarm, #d4553a);
+}
 
 .title {
-  font-family: var(--font-apple), sans-serif;
-  font-size: 1.5rem;
-  font-weight: 300;
-  color: #ffffff;
-  margin-bottom: 1.5rem;
-  text-transform: uppercase;
-  letter-spacing: 4px;
+  margin: 0;
+  font-family: var(--c-font-serif, Georgia, serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--c-ink, #efe6d8);
 }
 
-
 .message {
-  font-family: var(--font-apple), sans-serif;
-  font-size: 1rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 2.5rem;
-  font-weight: 300;
-  letter-spacing: 0.5px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #cbbfae;
 }
 
 .actions {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
 }
 
+.rejectBtn,
 .confirmBtn {
-  background: #ffffff;
-  color: #000000;
-  border: none;
-  padding: 1rem;
-  border-radius: 4px;
-  font-family: var(--font-apple), sans-serif;
-  font-size: 0.9rem;
-  font-weight: 600;
-  letter-spacing: 2px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  padding: 12px 14px;
+  border-radius: var(--c-radius, 6px);
+  font-family: var(--c-font-mono, monospace);
+  font-size: 12px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-}
-
-.confirmBtn:hover {
-  background: #e6e6e6;
-  transform: translateY(-2px);
+  cursor: pointer;
 }
 
 .rejectBtn {
-  background: transparent;
-  color: rgba(255, 255, 255, 0.5);
-  border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 0.5rem;
-  font-family: var(--font-apple), sans-serif;
-  font-size: 0.8rem;
-  font-weight: 300;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  width: fit-content;
-  margin: 0 auto;
+  border: 1px solid var(--c-line-strong, #3a3128);
+  background: none;
+  color: var(--c-ink, #efe6d8);
 }
 
-.rejectBtn:hover {
-  color: #ffffff;
-  border-bottom-color: #ffffff;
+.confirmBtn {
+  border: 1px solid var(--c-amber, #e8a33d);
+  background: var(--c-amber, #e8a33d);
+  color: var(--c-amber-ink, #1a130b);
+  font-weight: 600;
 }
 
 @keyframes fadeIn {
@@ -101,7 +86,8 @@
   to { opacity: 1; }
 }
 
-@keyframes slideUp {
-  from { transform: translateY(40px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
 }

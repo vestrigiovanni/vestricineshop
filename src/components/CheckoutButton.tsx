@@ -500,7 +500,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
           required
         />
         <button 
-          className={`btn-primary ${styles.button}`} 
+          className={styles.button} 
           onClick={() => handleCheckout()} 
           disabled={loading || !email}
         >

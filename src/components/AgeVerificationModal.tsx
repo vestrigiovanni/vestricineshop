@@ -1,41 +1,28 @@
 'use client';
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
-import { AlertCircle } from 'lucide-react';
 import styles from './AgeVerificationModal.module.css';
 
 interface AgeVerificationModalProps {
   onConfirm: () => void;
 }
 
+/**
+ * Per gli spettacoli 18+ o VM18 (vedi `isVM18`): un sì o un no, niente di più.
+ * "Annulla" torna alla home, come prima.
+ */
 export default function AgeVerificationModal({ onConfirm }: AgeVerificationModalProps) {
-  const router = useRouter();
-
-  const handleConfirm = () => {
-    onConfirm();
-  };
-
-  const handleReject = () => {
-    window.location.href = '/';
-  };
-
   return (
-    <div className={styles.overlay}>
+    <div className={styles.overlay} role="alertdialog" aria-modal="true" aria-labelledby="age-title" aria-describedby="age-text">
       <div className={styles.modal}>
-        <h2 className={styles.title}>Verifica Età</h2>
-        
-        <p className={styles.message}>
-          Questo film è vietato ai minori di 18 anni. <br />
-          Si prega di confermare la maggiore età per procedere alla prenotazione.
-        </p>
-        
+        <p className={styles.kicker}>Vietato ai minori di 18 anni</p>
+        <h2 id="age-title" className={styles.title}>Hai compiuto 18 anni?</h2>
+        <p id="age-text" className={styles.message}>Per prenotare questo film serve la maggiore età.</p>
         <div className={styles.actions}>
-          <button className={styles.confirmBtn} onClick={handleConfirm}>
-            CONFERMO
+          <button type="button" className={styles.rejectBtn} onClick={() => { window.location.href = '/'; }}>
+            Annulla
           </button>
-          <button className={styles.rejectBtn} onClick={handleReject}>
-            ANNULLA
+          <button type="button" className={styles.confirmBtn} onClick={onConfirm}>
+            Sì, confermo
           </button>
         </div>
       </div>
