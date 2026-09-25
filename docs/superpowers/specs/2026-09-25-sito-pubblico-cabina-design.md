@@ -142,7 +142,7 @@ La logica di `SeatMap` non cambia: lettura della pianta, stati dei posti, messag
 **La colonna, a destra:**
 - in alto "‹ torna" e ✕, e anche Esc chiude;
 - il logo del film, oppure il titolo in Fraunces; sala, lingua e sottotitoli;
-- **Quando**: data e ora in mono ambra, con "cambia orario". Un clic apre l'elenco degli spettacoli di quel film dentro la colonna, cioè l'elenco che oggi sta sotto "Cambia orario";
+- **Quando**: data e ora in mono ambra, con "cambia orario". Un clic apre dentro la colonna l'elenco degli altri spettacoli **di quel film**. Oggi, aprendo dalla home, l'orario non si può cambiare: il bottone esiste solo quando la prenotazione parte senza spettacolo. Gli spettacoli del film li passa al cassetto chi lo apre, cioè l'hero o il calendario, che li hanno già;
 - **Posti**: i codici dei posti scelti, in mono;
 - **Costo**: "Gratuito", come oggi;
 - il bottone "Prenota N posti →", spento finché non c'è almeno un posto, con il suggerimento "Seleziona almeno un posto" come oggi;
@@ -159,9 +159,18 @@ La logica di `SeatMap` non cambia: lettura della pianta, stati dei posti, messag
 
 Serve solo la conferma sì/no della maggiore età, e compare per gli spettacoli 18+ o VM18: vale la regola di oggi, `isVM18` in `utils/ratingUtils.ts`, che riconosce VM18, 18+ e 18. Sotto il titolo c'è una sola frase: "Per prenotare questo film serve la maggiore età." La frase del mockup sul documento all'ingresso **non entra**.
 
-Dal checkout in poi non cambia niente: Pretix, e il ritorno su `/success`.
+**La conferma avviene nella colonna, non su Pretix.** La specifica diceva "Pretix e ritorno su `/success`", ma non è così: dopo "Prenota N posti →" la colonna chiede l'email oppure "Continua senza email" (`CheckoutButton`), la prenotazione si chiude sul server (`finalizeBooking`) e il cassetto mostra il biglietto. `/success` si apre solo dal link "Vedi riepilogo dettagliato". In questa tappa:
+- la richiesta dell'email si veste da Cabina, nella colonna, con la sala ancora visibile e i posti bloccati;
+- si aggiunge "‹ Cambia posti", che oggi manca: una volta partita la conferma non si poteva tornare indietro;
+- la logica della conferma non cambia.
+
+Il biglietto mostrato dopo la conferma è della tappa 5 (sezione 4).
+
+**Una piccola aggiunta sul server:** `getTrustedSubeventMetadata` restituisce anche il logo del film (`customLogoPath`), che serve alla colonna.
 
 ## 4. La conferma: il biglietto è la pagina
+
+La conferma si vede in due posti: **nel cassetto, subito dopo "Conferma"**, ed è il momento vero, e **su `/success`**, il riepilogo che si apre dal link. Tutti e due usano lo stesso componente nuovo, `TicketCard`, così il biglietto è disegnato in un posto solo. Nel cassetto la sala sparisce e resta il biglietto.
 
 `/success` si avvolge in `.cabina`, con il fondale del film sfumato.
 
@@ -177,7 +186,7 @@ Dal checkout in poi non cambia niente: Pretix, e il ritorno su `/success`.
   - con email: "Ti arriva anche una copia via email.";
   - sempre: "All'ingresso mostra il QR."
 
-**Cosa sparisce:** il bottone "Visualizza anteprima" e la sua finestra, perché l'anteprima adesso è la pagina.
+**Cosa sparisce:** il bottone "Visualizza anteprima" e la sua finestra, in tutti e due i posti, perché l'anteprima adesso è il biglietto che si vede.
 
 Il PDF si genera come oggi, da `TicketPDF` nascosto fuori schermo. **`TicketPDF` non cambia**: è del progetto 4.
 
@@ -197,7 +206,7 @@ Alla fine di ogni tappa il sito funziona per intero. Le parti non ancora rifatte
 2. **Hero:** divisione di `MovieShowcase`, tabella degli orari, striscia al posto del carosello, `?film=`.
 3. **Racconto:** capitoli, stacchi e tabellone in veste Cabina, calendario al secondo posto, bollini di lingua e proiezione, test aggiornati.
 4. **Prenotazione:** sala a tutto schermo, divisione di `BookingFlow`, `SeatMap` e verifica dell'età rivestite.
-5. **Conferma e pulizia:** biglietto nella pagina, reindirizzamento di `/movie/[id]`, eliminazione dei file che nessuno usa più, ultimi resti di viola e rosa sulle pagine pubbliche.
+5. **Conferma e pulizia:** `TicketCard` nel cassetto e su `/success`, reindirizzamento di `/movie/[id]`, eliminazione dei file che nessuno usa più, ultimi resti di viola e rosa sulle pagine pubbliche.
 
 ## 7. Verifica
 
