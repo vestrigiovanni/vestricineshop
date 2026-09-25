@@ -1,791 +1,117 @@
+/* L'hero della Sala buia: il fondale del film a tutto schermo e sopra, in
+ * basso a sinistra, tutto quello che serve a scegliere. I colori sono quelli
+ * di Cabina, ereditati da <main className="cabina pubblico">. */
+
 .showcase {
-  width: 100%;
   position: relative;
+  width: 100%;
+}
+
+.empty {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  font-family: var(--c-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-dim);
 }
 
 .hero {
   position: relative;
-  min-height: 80vh;
-  width: 100%;
-  overflow: hidden;
-  background: #000;
-  display: flex;
-  align-items: center;
-  padding-top: 80px;
-  padding-bottom: 150px; /* Provide extra space for the overlapped gallery and expanded texts */
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  z-index: 1;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow: hidden;
+  background: var(--c-bg);
+  isolation: isolate;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; filter: blur(10px); }
-  to { transform: translateY(0); opacity: 1; filter: blur(0); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.animateIn {
-  animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-
-.heroBackdrop {
+.backdrop {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   z-index: 0;
 }
 
-.heroImage {
+.backdropImage {
   object-fit: cover;
   object-position: center 20%;
-  transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 0;
 }
 
-.heroOverlayText {
+/* Due sfumature verso il nero caldo: da sinistra, dove sta il testo, e dal
+ * basso, dove l'hero si scioglie nel racconto. */
+.shadeSide {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
+  pointer-events: none;
   background: linear-gradient(
     90deg,
-    rgba(15, 17, 21, 1) 0%,
-    rgba(15, 17, 21, 0.8) 30%,
-    rgba(15, 17, 21, 0) 100%
+    rgba(16, 13, 10, 0.96) 0%,
+    rgba(16, 13, 10, 0.78) 32%,
+    rgba(16, 13, 10, 0.2) 70%,
+    rgba(16, 13, 10, 0) 100%
   );
-  pointer-events: none;
-  z-index: 60;
 }
 
-.heroOverlayBottom {
+.shadeBottom {
   position: absolute;
-  bottom: 0;
   left: 0;
-  width: 100%;
-  height: 15%; /* Ridotto ulteriormente a filo scritta */
-  background: linear-gradient(
-    0deg,
-    rgba(15, 17, 21, 1) 0%,
-    rgba(15, 17, 21, 0.8) 50%,
-    transparent 100%
-  );
+  right: 0;
+  bottom: 0;
+  height: 35%;
   pointer-events: none;
-  z-index: 70;
+  background: linear-gradient(0deg, var(--c-bg) 0%, rgba(16, 13, 10, 0.7) 45%, transparent 100%);
 }
 
-.heroContent {
+.content {
   position: relative;
   z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 32px;
+  box-sizing: border-box;
   width: 100%;
-  max-width: 1100px; /* Redotto per centrare di più */
-  padding: 0 5%;
+  max-width: 1200px;
   margin: 0 auto;
-  transition: all 0.5s ease-in-out;
+  padding: 72px 40px 28px;
 }
 
-.heroLayout {
-  display: flex;
-  justify-content: center; /* Centra il blocco totale */
-  align-items: center; /* Allinea verticalmente i bollini al testo */
-  gap: 4rem; /* Spazio generoso ma controllato */
-  width: 100%;
-}
-
-.heroContentMain {
-  flex: 0 1 700px; /* Dimensione fissa massima per mantenere la forma */
-}
-
-.awardsColumn {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center; /* Centra verticalmente */
-  align-self: stretch; /* Occupa tutta l'altezza del genitore */
-  gap: 1rem;
-}
-
-.title {
-  font-family: inherit;
-  font-size: clamp(3rem, 5vw, 6rem);
-  font-weight: 700;
-  line-height: 1.1;
-  margin: 0 0 1rem;
-  color: #FFFFF0;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.logoContainer {
-  position: relative;
-  width: 100%;
-  max-width: 400px;
-  height: 120px;
-  margin-bottom: 1rem;
-}
-
-.movieLogo {
-  object-fit: contain;
-  object-position: left bottom;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
-}
-
-
-.meta {
-  display: flex;
-  flex-wrap: nowrap; /* Impone una riga sola su desktop */
-  gap: 0.8rem;
-  align-items: center;
-  margin-bottom: 2rem;
-  font-family: 'Inter', -apple-system, system-ui, sans-serif;
-  font-size: clamp(0.85rem, 1.1vw, 1.05rem); 
-
-  font-weight: 600;
-  color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  white-space: nowrap;
-}
-
-
-.metaValue {
-  color: #ffffff;
-}
-
-.metaGroup {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  white-space: nowrap; /* Impedisce al testo di andare a capo a metà gruppo */
-}
-
-.metaSeparator {
-  opacity: 0.4;
-  font-weight: 300;
-  margin: 0 0.1rem;
-}
-
-
-.metaLabel {
-  font-weight: 700;
-  opacity: 0.6;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  margin-right: 0.2rem;
-  color: #ffffff;
-}
-
-.metaSeparator {
-  opacity: 0.4;
-  font-weight: 300;
-  color: #ffffff;
-  font-size: 0.9rem;
-}
-
-.versionBadge {
-  font-weight: 700;
-  color: #FFFFF0;
-  border: 1px solid rgba(255, 255, 240, 0.3);
-  padding: 0.15rem 0.5rem;
-  border-radius: 2px;
-  font-size: 0.7rem;
-  /* Reset gradient for badge */
-  -webkit-text-fill-color: #FFFFF0;
-  background: none;
-}
-
-.directorMeta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  white-space: nowrap;
-}
-
-.badge {
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  padding: 0.2rem 0.6rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
-}
-
-.overviewContainer {
-  margin-bottom: 2rem;
-  max-width: 600px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.overview {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 0.5rem;
-  display: -webkit-box;
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.overview.expanded {
-  line-clamp: unset;
-  -webkit-line-clamp: unset;
-  display: block;
+/* Il trailer prende la scena: l'hero sparisce piano, come le luci in sala. */
+.backdrop,
+.content {
+  transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .uiHidden {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  transform: scale(1.05) !important;
-  transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), 
-              visibility 1.2s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 1.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.castList {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin-top: 0.75rem;
-  line-height: 1.4;
-  animation: fadeIn 0.4s ease forwards;
-}
-
-.readMoreBtn {
-  background: rgba(255, 255, 255, 0.08); /* glassmorphism base */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 6px 16px;
-  border-radius: 40px; /* highly rounded pill shape */
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 4px;
-}
-
-.readMoreBtn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  transform: translateY(-2px);
-}
-
-.chevron {
-  transition: transform 0.3s ease;
-}
-
-.chevronUp {
-  transform: rotate(180deg);
-}
-
-.readMoreText {
-  line-height: 1;
-}
-
-.showtimesSection {
-  margin-top: 2rem;
-}
-
-.showtimesTitle {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffffff;
-  margin-bottom: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.showtimesGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.showtimeButton {
-  display: flex;
-  flex-direction: column;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  align-items: flex-start;
-}
-
-.showtimeButton:hover {
-  background-color: #e50914; /* Netflix red */
-  border-color: #e50914;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(229, 9, 20, 0.3);
-}
-
-.showtimeDate {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 0.2rem;
-  text-transform: uppercase;
-}
-
-.showtimeButton:hover .showtimeDate {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.showtimeTime {
-  font-size: 1.2rem;
-  font-weight: 700;
-}
-
-.showtimeLabels {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
-  justify-content: center;
-}
-
-
-.tag {
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.tagLanguage {
-  background: #ffcc00; /* Gold for audio language */
-  color: #000;
-}
-
-.tagSubtitle {
-  background: #00bcd4; /* Cyan for subtitles */
-  color: #fff;
-}
-
-.tagFormat {
-  background: #e91e63; /* Pink for 3D/Format */
-  color: #fff;
-}
-
-.tagIta {
-  background: rgba(255, 255, 255, 0.15) !important;
-  color: #fff !important;
-}
-
-/* Gallery List inside Showcase */
-.galleryList {
-  position: relative;
-  z-index: 2;
-  margin-top: -100px;
-  padding: 0;
-  padding-bottom: 0;
-}
-
-.galleryTitle {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #fff;
-  padding: 0 5%;
-}
-
-.carouselContainer {
-  position: relative;
-  width: 100%;
-}
-
-.navButton {
-  position: absolute;
-  top: calc(50% - 1rem); /* Precisely centered on posters, ignoring scrollbar padding */
-  transform: translateY(-50%) scale(0.9);
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10;
   opacity: 0;
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  pointer-events: none;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-}
-
-.navLeft {
-  left: 3%;
-}
-
-.navRight {
-  right: 3%;
-}
-
-/* Show buttons when hovering the carousel area */
-.carouselContainer:hover .navButton {
-  opacity: 0.8;
-  pointer-events: auto;
-  transform: translateY(-50%) scale(1);
-}
-
-/* Enhanced hover state for the button itself */
-.navButton:hover {
-  opacity: 1 !important;
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateY(-50%) scale(1.1) !important;
-}
-
-.navButton svg {
-  width: 24px;
-  height: 24px;
-  stroke-width: 1.5; /* Thinner stroke for Apple style */
-  transition: transform 0.3s ease;
-}
-
-.navButton:hover svg {
-  transform: scale(1.1);
-}
-
-.galleryScroll {
-  display: flex;
-  gap: 1.5rem;
-  overflow-x: auto;
-  padding: 0 5% 2rem;
-  scrollbar-width: none; /* Firefox */
-}
-
-.galleryScroll::-webkit-scrollbar {
-  display: none; /* Chrome */
-}
-
-/* Modify the card to be clickable */
-.cardWrapper {
-  flex: 0 0 calc(20% - 1.2rem);
-  min-width: 200px;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-/* Solo dove esiste davvero un puntatore: su touch lo stato `:hover` resta
-   attaccato dopo il tap e la locandina rimaneva ingrandita a caso. */
-@media (hover: hover) {
-  .cardWrapper:hover {
-    transform: scale(1.05);
-  }
-}
-
-/* Navigazione da tastiera: l'anello compare solo con Tab, quindi il rendering
-   con mouse e touch resta invariato. */
-.cardWrapper:focus {
-  outline: none;
-}
-
-.cardWrapper:focus-visible .imageContainer,
-.showtimeButton:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 3px;
-}
-
-.imageContainer {
-  position: relative;
-  aspect-ratio: 2 / 3;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-  transition: all 0.3s ease;
-  background: #1a1c20;
-  background-image: linear-gradient(
-    90deg, 
-    #1a1c20 0%, 
-    #2a2c30 50%, 
-    #1a1c20 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite linear;
-}
-
-/* Lo shimmer serve mentre la locandina si carica. Restava però acceso per
-   sempre dietro ogni immagine — `background-position` non è compositabile,
-   quindi il browser ridisegnava tutte le card di continuo, ed è la prima
-   causa dello scorrimento a scatti. A immagine caricata si spegne. */
-.imageLoaded {
-  animation: none;
-  background-image: none;
-}
-
-.cardWrapper.active .imageContainer {
-  border: 2px solid #fff;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-}
-
-@media (max-width: 1024px) {
-  .heroLayout {
-    flex-direction: column;
-    gap: 2rem;
-  }
-  
-  .awardsColumn {
-    padding-top: 0;
-    align-self: flex-start;
-  }
+  visibility: hidden;
 }
 
 @media (max-width: 768px) {
-  .hero {
-    min-height: 88vh;
-    min-height: 88svh;
-    padding-top: 56px;
-    padding-bottom: 32px;
-    justify-content: center;
-  }
-
-  .heroOverlayText {
+  .shadeSide {
     background: linear-gradient(
       0deg,
-      rgba(15, 17, 21, 1) 0%,
-      rgba(15, 17, 21, 0.85) 58%,
-      rgba(15, 17, 21, 0.35) 100%
+      rgba(16, 13, 10, 1) 0%,
+      rgba(16, 13, 10, 0.9) 50%,
+      rgba(16, 13, 10, 0.35) 80%,
+      rgba(16, 13, 10, 0.15) 100%
     );
   }
 
-  .heroContent {
-    /* Was 40% — created a large dead gap above the title and pushed the
-       showtimes CTA off-screen. A smaller offset keeps text clear of the
-       backdrop focal point while surfacing the content. */
-    padding-top: 4%;
-  }
-
-  .heroLayout {
-    gap: 1.5rem;
-  }
-
-  /* On desktop `flex: 0 1 700px` sets a 700px WIDTH. In the mobile column
-     layout that basis becomes a forced 700px HEIGHT, leaving a large empty
-     gap under the overview. Reset to content height, keep full width. */
-  .heroContentMain {
-    flex: 0 1 auto;
-    width: 100%;
-  }
-
-  .title {
-    font-size: 2.5rem;
-  }
-
-  .meta {
-    flex-wrap: wrap; /* Ritorna a capo su mobile per leggibilità */
-    gap: 0.8rem;
-    font-size: 0.8rem;
-    white-space: normal;
-    margin-bottom: 1.25rem;
-  }
-
-  .overviewContainer {
-    margin-bottom: 1.25rem;
-  }
-
-  .showtimesSection {
-    margin-top: 1.5rem;
-  }
-
-  .cardWrapper {
-    min-width: 140px;
-  }
-
-  .navButton {
-    display: none;
-  }
-
-  /* The -100px overlap is a desktop effect; on mobile it collides with the
-     showtimes CTA now that the hero is shorter. Sit the gallery below it. */
-  .galleryList {
-    margin-top: 0;
-    padding-bottom: 1rem;
+  .content {
+    gap: 24px;
+    padding: 56px 16px 20px;
   }
 }
 
-
-/* ── Sold Out Status ── */
-.soldOutCard {
-  cursor: not-allowed !important;
-  opacity: 0.5;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.soldOutCard:hover {
-  transform: none !important;
-  opacity: 0.6; /* Slight increase on hover for feedback even if sold out */
-}
-
-/* Grayscale and brightness filter on the image */
-.soldOutCard .cardImage {
-  filter: grayscale(0.8) brightness(0.4) contrast(1.2) !important;
-}
-
-/* Red Diagonal Banner for Gallery Card */
-.soldOutBanner {
-  position: absolute;
-  top: 18px;
-  right: -32px;
-  background: #FF0000; /* Bright Red */
-  color: #FFFFFF;
-  padding: 6px 36px;
-  transform: rotate(45deg);
-  z-index: 10;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-}
-
-.soldOutBanner span {
-  font-size: 0.75rem;
-  font-weight: 900;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  display: block;
-  text-align: center;
-}
-
-/* Hero Showtime Button Sold Out */
-.showtimeSoldOut {
-  background-color: rgba(255, 255, 255, 0.03) !important;
-  border-color: rgba(255, 255, 255, 0.05) !important;
-  cursor: not-allowed !important;
-  opacity: 0.5;
-  pointer-events: none !important;
-}
-
-.showtimeSoldOut .showtimeDate {
-  color: rgba(255, 255, 255, 0.2) !important;
-}
-
-.showtimeSoldOut .showtimeTime {
-  color: #FF0000 !important;
-  font-weight: 900;
-  font-size: 0.9rem;
-  letter-spacing: 0.5px;
-}
-
-.directorBlock {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  vertical-align: middle;
-}
-
-.trailerBtn {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  color: #fff;
-  padding: 0.4rem;
-  border-radius: 50%;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  width: 36px;
-  height: 36px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-.trailerBtn:hover {
-  background: #e50914;
-  border-color: #e50914;
-  transform: scale(1.15) rotate(-5deg);
-  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
-}
-
-
-@media (max-width: 768px) {
-  .directorBlock {
-    gap: 0.5rem;
-  }
-}
-
-.ratingBadgeOverlay {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 4px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  transition: transform 0.3s ease;
-}
-
-.cardWrapper:hover .ratingBadgeOverlay {
-  transform: scale(1.1);
-}
-
-.langBadgeOverlay {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 40;
-  pointer-events: none;
-}
-
-
-/* Chi ha chiesto meno animazioni al sistema non deve subire l'entrata animata
-   della hero né lo shimmer delle locandine. La rotazione automatica è già
-   disattivata lato JavaScript nello stesso caso. */
 @media (prefers-reduced-motion: reduce) {
-  .animateIn,
-  .heroContent {
-    animation: none;
-  }
-
-  .imageContainer {
-    animation: none;
-    background-image: none;
-  }
-
-  .cardWrapper,
-  .imageContainer {
+  .backdrop,
+  .content {
     transition: none;
-  }
-
-  .cardWrapper:hover {
-    transform: none;
   }
 }

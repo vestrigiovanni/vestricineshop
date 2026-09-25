@@ -1,0 +1,230 @@
+/* Il film: logo o titolo, dati in mono, trama, orari. Colori di Cabina. */
+
+.hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 48px;
+  animation: heroIn var(--c-slow) both;
+}
+
+@keyframes heroIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.main {
+  flex: 0 1 640px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.award {
+  margin: 0 0 12px;
+  font-family: var(--c-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-amber);
+}
+
+.logo {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  height: 130px;
+  margin: 0 0 16px;
+}
+
+.logoImage {
+  object-fit: contain;
+  object-position: left bottom;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+}
+
+.title {
+  margin: 0 0 16px;
+  font-family: var(--c-font-serif);
+  font-weight: 600;
+  font-size: clamp(2.75rem, 6vw, 5rem);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  color: var(--c-ink);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 4px;
+  margin: 0 0 16px;
+  font-family: var(--c-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-dim);
+}
+
+.facts span:first-child {
+  color: var(--c-ink);
+}
+
+.facts span + span::before {
+  content: '·';
+  margin: 0 10px;
+  color: var(--c-line-strong);
+}
+
+.alarm {
+  color: var(--c-alarm);
+}
+
+.overviewBlock {
+  max-width: 560px;
+  margin: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.overview {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #cbbfae;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+.cast {
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--c-dim);
+}
+
+.cast span {
+  margin-right: 8px;
+  font-family: var(--c-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.more {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font-family: var(--c-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-amber);
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.book,
+.trailer,
+.soldOutLabel {
+  padding: 12px 18px;
+  border-radius: var(--c-radius);
+  font-family: var(--c-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: background var(--c-fast), border-color var(--c-fast);
+}
+
+.book {
+  border: 1px solid var(--c-amber);
+  background: var(--c-amber);
+  color: var(--c-amber-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.book:hover {
+  background: #f0b458;
+}
+
+.trailer {
+  border: 1px solid var(--c-line-strong);
+  background: rgba(16, 13, 10, 0.4);
+  color: var(--c-ink);
+  cursor: pointer;
+}
+
+.trailer:hover {
+  border-color: var(--c-dim);
+}
+
+.soldOutLabel {
+  border: 1px solid var(--c-line);
+  color: var(--c-dim);
+}
+
+.awards {
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+@media (max-width: 1024px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .awards {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .logo {
+    max-width: 80vw;
+    height: 90px;
+  }
+
+  .facts {
+    font-size: 11px;
+  }
+
+  .overview {
+    font-size: 0.95rem;
+  }
+
+  .actions {
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .book,
+  .trailer {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero {
+    animation: none;
+  }
+}

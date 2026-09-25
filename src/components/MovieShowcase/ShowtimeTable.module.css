@@ -1,0 +1,136 @@
+/* Il tabellone: una riga per giorno, gli orari in mono ambra, il prossimo
+ * acceso. Le variabili vengono da components/cabina/cabina.css. */
+
+.wrap {
+  width: 100%;
+  max-width: 540px;
+}
+
+.table {
+  margin: 0;
+  border-top: 1px solid var(--c-line);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--c-line);
+}
+
+/* Dopo .row: a parità di peso vince l'ultima. */
+.extraDesk {
+  display: none;
+}
+
+.day {
+  font-family: var(--c-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-dim);
+}
+
+.shows {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  font-family: var(--c-font-mono);
+  color: var(--c-amber);
+  cursor: pointer;
+  transition: background var(--c-fast), border-color var(--c-fast), color var(--c-fast);
+}
+
+.time:hover {
+  border-color: rgba(232, 163, 61, 0.45);
+}
+
+.clock {
+  font-size: 16px;
+}
+
+.tags {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--c-dim);
+}
+
+.next {
+  background: var(--c-amber);
+  color: var(--c-amber-ink);
+}
+
+.next .tags {
+  color: #5a4220;
+}
+
+.soldOut {
+  color: var(--c-dim);
+  text-decoration: line-through;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.soldOut:hover {
+  border-color: transparent;
+}
+
+.all {
+  display: inline-block;
+  margin-top: 10px;
+  font-family: var(--c-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-amber);
+  text-decoration: none;
+}
+
+.phoneOnly {
+  display: none;
+}
+
+.empty {
+  margin: 0;
+  font-family: var(--c-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c-dim);
+}
+
+@media (max-width: 768px) {
+  .wrap {
+    max-width: none;
+  }
+
+  .row {
+    grid-template-columns: 76px 1fr;
+    gap: 10px;
+  }
+
+  .extraPhone {
+    display: none;
+  }
+
+  .phoneOnly {
+    display: inline-block;
+  }
+
+  .clock {
+    font-size: 15px;
+  }
+}
