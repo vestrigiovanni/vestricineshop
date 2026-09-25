@@ -27,7 +27,7 @@ Prese con i mockup, che si trovano in `.superpowers/brainstorm/` (sessioni `8910
 |---|---|
 | Che cosa fa la home per prima cosa | **A · Sala buia**: resta l'hero che scorre fra i film, e sotto il racconto. Il "foglio di sala" e il "programma stampato" sono scartati |
 | Come l'hero presenta il film | **A2 · Tabellone**, ma **con il logo del film** al posto del titolo. Quando il logo manca, il titolo in Fraunces |
-| Capitoli del racconto | tutti tranne **il nastro di locandine**. Le strisce e il muro **tengono i loghi** |
+| Capitoli del racconto | **tutti**. Le strisce e il muro di loghi **tengono i loghi**. Il "nastro di locandine" era descritto male nel mockup: è il muro di locandine in prospettiva (`DriftWall`), e il 25 settembre Giovanni ha deciso di tenerlo |
 | Pagina del film | **si toglie** |
 | Prenotazione | **B2 · La sala a tutto schermo** |
 | Conferma | **C2 · Il biglietto è la pagina** |
@@ -88,9 +88,7 @@ La home accetta `?film=<tmdbId>`. Se quel film è in programmazione, l'hero part
 
 ### Il racconto
 
-`CinematicStory` e `storyBuilder` restano, con due modifiche alla sequenza:
-- **il nastro di locandine (`marquee`) si toglie**: il capitolo e il suo codice spariscono;
-- **il calendario (`calendar`) sale al secondo posto**, subito dopo l'apertura (le prossime serate, oppure la citazione quando le serate sono meno di due).
+`CinematicStory` e `storyBuilder` restano, con una modifica alla sequenza: **il calendario (`calendar`) sale al secondo posto**, subito dopo l'apertura (le prossime serate, oppure la citazione quando le serate sono meno di due). Tutti gli altri capitoli restano, compreso il muro di locandine in prospettiva (`marquee`, cioè `DriftWall`).
 
 La sequenza nuova:
 1. le prossime serate, oppure la citazione d'apertura;
@@ -102,19 +100,28 @@ La sequenza nuova:
 7. le dissolvenze;
 8. dai festival alla nostra sala;
 9. strisce di fondali (seconda serie);
-10. la citazione di chiusura.
+10. il muro di locandine in prospettiva;
+11. la citazione di chiusura.
+
+Restano anche i due pezzi che non sono capitoli di `storyBuilder`:
+- **gli stacchi** fra un capitolo e l'altro: un titolo del cartellone scritto in grande, con un effetto diverso ogni volta (`TitleInterstitial`);
+- **il tabellone split-flap** degli spettacoli di oggi, in fondo alla pagina (`TodayBoardChapter`).
 
 **La veste di ogni capitolo:**
 - **i titoli** in Fraunces, e le citazioni in Fraunces corsivo;
 - **orari, numeri ed etichette** in JetBrains Mono. Gli orari sono ambra;
-- **i loghi restano loghi** nelle strisce e nel muro (`DriftWall`);
+- **i loghi restano loghi** nelle strisce e nel muro di loghi;
 - **i contatori** dei numeri in mono ambra;
 - **i giorni** del calendario e del weekend usano le stesse linguette e le stesse righe della tabella dell'hero;
-- **i festival**: il nome del festival come etichetta ambra, poi locandina, titolo e premio.
+- **i festival**: il nome del festival come etichetta ambra, poi locandina, titolo e premio;
+- **il muro di locandine** su fondo nero caldo;
+- **gli stacchi** in Fraunces, oppure nell'effetto del giorno, con l'accento in ambra;
+- **il tabellone**: palette nero caldo con lettere color inchiostro. Mentre girano, le palette passano per ambra, rosso allarme, salvia e inchiostro invece che per l'arcobaleno di oggi;
+- **i bollini di lingua e di proiezione** (`LanguageBadge`, `ProjectionSpecs`), che il sito pubblico usa nel calendario e nella prenotazione, in mono: la lingua in ambra, le specifiche e i sottotitoli a contorno. `RatingBadge` tiene i suoi colori, perché li usano anche cassa, display e biglietto.
 
-L'accento colorato che `StoryMood` calcola dal genere va sostituito dall'ambra: in Cabina l'accento è uno solo. Se `StoryMood` non ha altri usi, si toglie.
+L'accento colorato che `StoryMood` calcola dal genere va sostituito dall'ambra: in Cabina l'accento è uno solo.
 
-I test di `storyBuilder.test.ts` si aggiornano per la sequenza nuova. Il resto della logica (quali film entrano, rotazione col seed, capitoli vuoti omessi) non cambia.
+`StoryMood` e `buildMood` non hanno altri usi: si tolgono, insieme ai loro test. I test di `storyBuilder.test.ts` si aggiornano per la sequenza nuova. Il resto della logica (quali film entrano, rotazione col seed, capitoli vuoti omessi) non cambia.
 
 ## 3. La prenotazione: la sala a tutto schermo
 
@@ -188,7 +195,7 @@ Alla fine di ogni tappa il sito funziona per intero. Le parti non ancora rifatte
 
 1. **Fondamenta:** font nel layout radice, `.cabina` su home e conferma, footer.
 2. **Hero:** divisione di `MovieShowcase`, tabella degli orari, striscia al posto del carosello, `?film=`.
-3. **Racconto:** capitoli in veste Cabina, via il nastro, calendario al secondo posto, test aggiornati.
+3. **Racconto:** capitoli, stacchi e tabellone in veste Cabina, calendario al secondo posto, bollini di lingua e proiezione, test aggiornati.
 4. **Prenotazione:** sala a tutto schermo, divisione di `BookingFlow`, `SeatMap` e verifica dell'età rivestite.
 5. **Conferma e pulizia:** biglietto nella pagina, reindirizzamento di `/movie/[id]`, eliminazione dei file che nessuno usa più, ultimi resti di viola e rosa sulle pagine pubbliche.
 
