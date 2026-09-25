@@ -1,12 +1,15 @@
 .footer {
-  background-color: #111;
-  color: #888;
-  padding: 1rem 0;
-  margin-top: auto;
-  font-size: 0.875rem;
-  text-align: center;
   position: relative;
   width: 100%;
+  margin-top: auto;
+  padding: 18px 0;
+  background: var(--c-bg);
+  border-top: 1px solid var(--c-line);
+  color: var(--c-dim);
+  font-family: var(--c-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .container {
@@ -15,22 +18,23 @@
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 16px;
+  gap: 16px;
 }
 
+.container p {
+  margin: 0;
+}
+
+/* L'ingresso al gestionale resta quasi invisibile, come oggi. */
 .adminButton {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.1);
-  font-size: 0.65rem;
-  padding: 4px;
-  cursor: pointer;
-  transition: color 0.3s ease;
+  color: var(--c-line-strong);
   text-decoration: none;
-  text-transform: lowercase;
+  padding: 4px;
+  transition: color var(--c-fast);
 }
 
-.adminButton:hover {
-  color: rgba(255, 255, 255, 0.5);
+.adminButton:hover,
+.adminButton:focus-visible {
+  color: var(--c-dim);
 }
-

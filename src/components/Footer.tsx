@@ -17,7 +17,7 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className={styles.footer}>
+    <footer className={`cabina-tokens ${styles.footer}`}>
       <div className={styles.container}>
         {mounted ? (
           <>
