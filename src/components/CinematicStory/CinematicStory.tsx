@@ -9,7 +9,7 @@ import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 import WeeklyCinemaCalendar from '../WeeklyCinemaCalendar/WeeklyCinemaCalendar';
 import RatingBadge from '../RatingBadge';
 import { Clock } from 'lucide-react';
-import { buildMood, buildStory, trimChaptersForPhone, FestivalGroup, SoireeItem, StoryStats, WeekendDay } from './storyBuilder';
+import { buildStory, trimChaptersForPhone, FestivalGroup, SoireeItem, StoryStats, WeekendDay } from './storyBuilder';
 import DriftWall, { type DriftWallItem } from '../DriftWall/DriftWall';
 import TextFlippingBoard, { BOARD_COLS, BOARD_ROWS } from '../TextFlippingBoard/TextFlippingBoard';
 import EncryptedText from '../TextEffects/EncryptedText';
@@ -27,12 +27,17 @@ interface CinematicStoryProps {
 
 const easeApple: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
+// I colori di Cabina per gli effetti che li vogliono in JavaScript e non in
+// CSS (particelle, tratto, onde). Gli stessi di components/cabina/cabina.css.
+const AMBER = '#e8a33d';
+const INK = '#efe6d8';
+
 // Durata di ogni scena del palcoscenico d'apertura. Tenuta in sync con la
 // barra di avanzamento (--soiree-duration in CinematicStory.module.css).
 const SOIREE_DURATION_MS = 3800;
 
 // Riporta l'utente alla hero con il film selezionato: MovieShowcase ascolta
-// questo evento e invoca la stessa logica del click sui poster in galleria.
+// questo evento e invoca la stessa logica del clic sulla striscia di locandine.
 function selectMovie(movieId: number) {
   window.dispatchEvent(new CustomEvent('vestri:select-movie', { detail: { movieId } }));
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -842,7 +847,7 @@ function MarqueeChapter({ movies, reduced }: { movies: GroupedMovie[]; reduced: 
         lift={56}
         fade={0.62}
         dim={isPhone ? 0.82 : 0.5}
-        overlayColor="#05050a"
+        overlayColor="#100d0a"
         onItemSelect={item => {
           if (typeof item.id === 'number') selectMovie(item.id);
         }}
@@ -866,11 +871,9 @@ const INTERSTITIAL_EVERY = 2;
 function TitleInterstitial({
   movie,
   variant,
-  accent,
 }: {
   movie: GroupedMovie;
   variant: InterstitialStyle;
-  accent: string;
 }) {
   const title = movie.title;
 
@@ -884,7 +887,7 @@ function TitleInterstitial({
         );
       case 'squiggly':
         return (
-          <span className={styles.interstitialWord} style={{ color: accent }}>
+          <span className={styles.interstitialWord} style={{ color: AMBER }}>
             <SquigglyText stepDuration={70} scale={[5, 8]}>
               {title}
             </SquigglyText>
@@ -897,8 +900,8 @@ function TitleInterstitial({
             className={styles.interstitialParticles}
             particleSize={2}
             density={4}
-            color="#ffffff"
-            highlightColor={accent}
+            color={INK}
+            highlightColor={AMBER}
             trigger="hover"
             fontSize="clamp(2.2rem, 9vw, 6rem)"
             fontWeight={800}
@@ -908,8 +911,8 @@ function TitleInterstitial({
         return (
           <StrokeText
             text={title}
-            strokeColor={accent}
-            fillColor="#f8fafc"
+            strokeColor={AMBER}
+            fillColor={INK}
             strokeWidth={1.2}
             drawDuration={1.5}
             fontSize={128}
@@ -1061,9 +1064,6 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
     const built = buildStory(movies, new Date(), storySeed);
     return isPhone ? trimChaptersForPhone(built) : built;
   }, [movies, storySeed, isPhone]);
-  // Il "colore della settimana": la tinta d'accento della storia segue il
-  // genere dominante del cartellone, così la home cambia con la programmazione.
-  const mood = buildMood(movies);
 
   if (chapters.length === 0) {
     // Nessun film: mostriamo comunque il calendario, come faceva la home prima.
@@ -1084,7 +1084,7 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
   };
 
   return (
-    <div className={styles.story} style={{ '--story-accent': mood.accent } as CSSProperties}>
+    <div className={styles.story}>
       {chapters.map((chapter, i) => {
         switch (chapter.kind) {
           case 'quote':
@@ -1144,7 +1144,7 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
           <Fragment key={`chapter-${i}`}>
             {rendered}
             {pick && (
-              <TitleInterstitial movie={pick.movie} variant={pick.variant} accent={mood.accent} />
+              <TitleInterstitial movie={pick.movie} variant={pick.variant} />
             )}
           </Fragment>
         );

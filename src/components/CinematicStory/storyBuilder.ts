@@ -46,12 +46,6 @@ export interface SoireeItem {
   times: SoireeShowtime[];
 }
 
-/** L'umore della programmazione: genere dominante e tinta d'accento. */
-export interface StoryMood {
-  genre: string | null;
-  accent: string;
-}
-
 export interface FestivalFilm {
   movie: GroupedMovie;
   /** Riconoscimento principale a questo festival, es. "Palma d'Oro · 2024" */
@@ -454,57 +448,6 @@ export function buildFestivalGroups(movies: GroupedMovie[]): FestivalGroup[] {
     .sort((a, b) => b.films.length - a.films.length || prestige(a.festival.key) - prestige(b.festival.key));
 }
 
-// Ogni genere ha la sua tinta: la homepage cambia colore con il cartellone.
-const GENRE_ACCENTS: Record<string, string> = {
-  'Azione': '#f2784b',
-  'Avventura': '#6fcf97',
-  'Animazione': '#ffa94d',
-  'Commedia': '#ffd166',
-  'Crime': '#9b8ec4',
-  'Documentario': '#7fc8a9',
-  'Dramma': '#e8b45a',
-  'Famiglia': '#ffb677',
-  'Fantasy': '#b28dff',
-  'Storia': '#d4b483',
-  'Horror': '#e05a5a',
-  'Musica': '#ff8fab',
-  'Mistero': '#8fa3e8',
-  'Romance': '#f48fb1',
-  'Fantascienza': '#6ac8e8',
-  'Thriller': '#c95d7f',
-  'Guerra': '#b8a06a',
-  'Western': '#d99a6c',
-};
-
-const DEFAULT_ACCENT = '#e8b45a';
-
-/**
- * Il "colore della settimana": genere dominante della programmazione, pesato
- * sul numero di proiezioni (non di film — 5 spettacoli di un horror tingono
- * più di 1 spettacolo di una commedia). Deterministico: stesso catalogo,
- * stessa tinta, così SSR e hydration coincidono.
- */
-export function buildMood(movies: GroupedMovie[]): StoryMood {
-  const weights = new Map<string, number>();
-  for (const m of movies) {
-    const w = Math.max(1, m.subevents?.length || 0);
-    for (const g of m.genres || []) {
-      weights.set(g, (weights.get(g) || 0) + w);
-    }
-  }
-
-  let genre: string | null = null;
-  let best = 0;
-  for (const [g, w] of weights) {
-    if (w > best) {
-      genre = g;
-      best = w;
-    }
-  }
-
-  return { genre, accent: (genre && GENRE_ACCENTS[genre]) || DEFAULT_ACCENT };
-}
-
 function computeStats(movies: GroupedMovie[]): StoryStats {
   const totalMinutes = movies.reduce((sum, m) => sum + (m.runtime || 0), 0);
   const genres = new Set(movies.flatMap(m => m.genres || []));
@@ -594,7 +537,7 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?
 
   const posterMovies = pool.filter(m => m.poster_path);
 
-  // Nastro di poster in scorrimento continuo
+  // Il muro di locandine in deriva (DriftWall)
   if (posterMovies.length >= 4) {
     chapters.push({ kind: 'marquee', movies: posterMovies.slice(0, MAX_MARQUEE) });
   }
@@ -609,6 +552,17 @@ export function buildStory(movies: GroupedMovie[], now: Date = new Date(), seed?
     chapters.push({ kind: 'quote', movie: closing, text: quoteTextFor(closing) });
   }
 
+
+  // Il calendario si costruisce al suo posto storico, così la scelta dei film
+  // degli altri capitoli non cambia, e poi sale subito dopo l'apertura: è
+  // l'unico punto della pagina da cui si vede la settimana intera.
+  const calendarAt = chapters.findIndex(c => c.kind === 'calendar');
+  if (calendarAt !== -1) {
+    const [calendar] = chapters.splice(calendarAt, 1);
+    const first = chapters[0];
+    const hasOpening = first?.kind === 'soirees' || (first?.kind === 'quote' && openingQuoteId !== null);
+    chapters.splice(hasOpening ? 1 : 0, 0, calendar);
+  }
   return chapters;
 }
 

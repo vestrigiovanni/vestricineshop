@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFestivalGroups, buildMood, buildSoireeHook, buildSoirees, buildStory, buildWeekend, excerptOverview, PHONE_LIMITS, StoryChapter, trimChaptersForPhone } from './storyBuilder';
+import { buildFestivalGroups, buildSoireeHook, buildSoirees, buildStory, buildWeekend, excerptOverview, PHONE_LIMITS, StoryChapter, trimChaptersForPhone } from './storyBuilder';
 import type { GroupedMovie } from '../MovieShowcase/MovieShowcase';
 
 type MarqueeChapter = Extract<StoryChapter, { kind: 'marquee' }>;
@@ -225,24 +225,6 @@ describe('buildSoireeHook', () => {
   });
 });
 
-describe('buildMood', () => {
-  it('sceglie il genere dominante pesato sulle proiezioni, non sui film', () => {
-    const movies = [
-      mk(1, { genres: ['Dramma'], subevents: [{}] }),
-      mk(2, { genres: ['Horror'], subevents: [{}, {}, {}] }),
-    ];
-    expect(buildMood(movies)).toEqual({ genre: 'Horror', accent: '#e05a5a' });
-  });
-
-  it('usa la tinta di riserva per generi sconosciuti o cataloghi vuoti', () => {
-    const sconosciuto = buildMood([mk(1, { genres: ['Sperimentale'] })]);
-    expect(sconosciuto.genre).toBe('Sperimentale');
-    expect(sconosciuto.accent).toBe('#e8b45a');
-
-    expect(buildMood([])).toEqual({ genre: null, accent: '#e8b45a' });
-  });
-});
-
 describe('buildStory', () => {
   it('senza film non produce capitoli', () => {
     expect(buildStory([])).toEqual([]);
@@ -252,13 +234,13 @@ describe('buildStory', () => {
     const movies = [mk(1), mk(2), mk(3), mk(4), mk(5)];
     const chapters = buildStory(movies);
     expect(kinds(chapters)).toEqual([
-      'quote', 'stripes', 'stats', 'logos', 'calendar',
+      'quote', 'calendar', 'stripes', 'stats', 'logos',
       'stripes', 'marquee', 'quote',
     ]);
 
     const opening = chapters[0] as QuoteChapter;
-    const stripes = chapters[1] as StripesChapter;
-    const logos = chapters[3] as LogosChapter;
+    const stripes = chapters[2] as StripesChapter;
+    const logos = chapters[4] as LogosChapter;
     const closing = chapters[chapters.length - 1] as QuoteChapter;
     expect(opening.movie.id).toBe(1);
     expect(opening.text).toBe('Slogan 1');
@@ -284,9 +266,9 @@ describe('buildStory', () => {
     expect(stripeChapters[1].backdropIndex).toBe(1);
   });
 
-  it('il reveal sta subito prima del calendario e serve almeno 2 film con visual', () => {
+  it('il reveal viene subito dopo il muro di loghi e serve almeno 2 film con visual', () => {
     const k = kinds(buildStory(Array.from({ length: 8 }, (_, i) => mk(i + 1))));
-    expect(k.indexOf('reveal')).toBe(k.indexOf('calendar') - 1);
+    expect(k.indexOf('reveal')).toBe(k.indexOf('logos') + 1);
 
     // Con 5 film resta un solo candidato → capitolo omesso.
     expect(kinds(buildStory([mk(1), mk(2), mk(3), mk(4), mk(5)]))).not.toContain('reveal');
@@ -317,13 +299,13 @@ describe('buildStory', () => {
     expect(senzaTagline.text).toContain('Una lunga storia');
   });
 
-  it('crea il capitolo festival dopo il calendario solo se ci sono premiati', () => {
+  it('crea il capitolo festival dopo i numeri solo se ci sono premiati', () => {
     const senza = kinds(buildStory([mk(1), mk(2), mk(3)]));
     expect(senza).not.toContain('festival');
 
     const movies = [mk(1, { awards: [{ type: 'cannes', label: "Palma d'Oro", year: 2024 }] }), mk(2), mk(3)];
     const k = kinds(buildStory(movies));
-    expect(k.indexOf('festival')).toBe(k.indexOf('calendar') + 1);
+    expect(k.indexOf('festival')).toBe(k.indexOf('stats') + 1);
 
     const festival = buildStory(movies).find(c => c.kind === 'festival') as FestivalChapterT;
     expect(festival.groups[0].festival.key).toBe('cannes');
@@ -372,13 +354,15 @@ describe('buildStory', () => {
 
   it('con un solo film resta una sequenza minima senza capitoli vuoti', () => {
     const chapters = buildStory([mk(1)]);
-    expect(kinds(chapters)).toEqual(['quote', 'stats', 'calendar']);
+    expect(kinds(chapters)).toEqual(['quote', 'calendar', 'stats']);
   });
 
   it('film senza tagline né trama non generano citazioni', () => {
     const movies = [mk(1, { tagline: '' }), mk(2, { tagline: undefined }), mk(3, { tagline: '  ' })];
     const chapters = buildStory(movies);
     expect(kinds(chapters)).not.toContain('quote');
+    // Senza apertura il calendario apre il racconto.
+    expect(chapters[0].kind).toBe('calendar');
     const stripes = chapters.find(c => c.kind === 'stripes') as StripesChapter;
     expect(stripes.movies).toHaveLength(3);
   });
@@ -392,12 +376,12 @@ describe('buildStory', () => {
     expect(kinds(senzaMuro)).not.toContain('marquee');
   });
 
-  it('inserisce il capitolo weekend subito prima del calendario', () => {
+  it('inserisce il capitolo weekend subito dopo i numeri', () => {
     const now = new Date('2026-07-15T10:00:00Z');
     const movies = [mk(1, { subevents: [{ date: '2026-07-18T19:00:00.000Z' }] }), mk(2), mk(3)];
     const k = kinds(buildStory(movies, now));
     expect(k).toContain('weekend');
-    expect(k.indexOf('weekend')).toBe(k.indexOf('calendar') - 1);
+    expect(k.indexOf('weekend')).toBe(k.indexOf('stats') + 1);
 
     // senza proiezioni weekend il capitolo sparisce
     const senza = kinds(buildStory([mk(1), mk(2), mk(3)], now));
@@ -413,6 +397,8 @@ describe('buildStory', () => {
     ];
     const chapters = buildStory(movies, now);
     expect(chapters[0].kind).toBe('soirees');
+    // Il calendario viene subito dopo l'apertura.
+    expect(chapters[1].kind).toBe('calendar');
     const soirees = chapters[0] as Extract<StoryChapter, { kind: 'soirees' }>;
     expect(soirees.items).toHaveLength(2);
 
