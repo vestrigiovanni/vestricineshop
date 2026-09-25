@@ -1,8 +1,11 @@
-/* L'identità del gestionale: nero caldo, ambra come la lampada del proiettore,
- * grana di pellicola. Tutto vive sotto `.cabina` perché il sito pubblico non
- * cambi finché non arriva il suo turno nel restyling.
+/* L'identità di Cabina: nero caldo, ambra come la lampada del proiettore,
+ * grana di pellicola. Le variabili valgono su `.cabina` e su `.cabina-tokens`:
+ * la seconda serve a chi deve solo leggere i colori (il footer pubblico)
+ * senza diventare una cabina a tutto schermo. Il display esterno e il PDF
+ * del biglietto restano fuori fino al loro progetto.
  */
-.cabina {
+.cabina,
+.cabina-tokens {
   --c-bg: #100d0a;
   --c-bg-raised: #17130f;
   --c-bg-sunken: #0b0907;
@@ -28,7 +31,9 @@
   --c-slow: 250ms cubic-bezier(0.2, 0, 0, 1);
   --c-topbar-h: 52px;
   --c-bottombar-h: 64px;
+}
 
+.cabina {
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
@@ -39,6 +44,15 @@
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   color-scheme: dark;
+}
+
+/* Il sito pubblico: la stessa cabina, ma corpo e interlinea restano quelli di
+ * oggi (16 px, interlinea normale). I componenti della home misurano in em e
+ * in valori ereditati; con i 14 px del gestionale cambierebbero misura prima
+ * della loro tappa del restyling. */
+.cabina.pubblico {
+  font-size: 16px;
+  line-height: normal;
 }
 
 /* La grana: sopra tutto, sotto nessun clic. */
