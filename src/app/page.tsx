@@ -7,6 +7,7 @@ import styles from './page.module.css';
 import { unstable_noStore as noStore } from 'next/cache';
 import type { MovieOverride, PretixSync } from '@prisma/client';
 import { commonProjectionSpecs, normalizeProjectionSpecs } from '@/constants/projectionSpecs';
+import { pickInitialMovieId } from '@/components/MovieShowcase/heroData';
 
 // Define the type for the projection with the included movie
 type ProjectionWithMovie = PretixSync & {
@@ -16,8 +17,13 @@ type ProjectionWithMovie = PretixSync & {
 // SSR puro: legge i dati sincronizzati dal database Neon.
 export const dynamic = 'force-dynamic';
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   noStore();
+  const { film } = await searchParams;
 
   console.log('[SSR] Caricamento homepage dal Database Neon...');
   const startTime = Date.now();
@@ -119,20 +125,6 @@ export default async function Home() {
     );
 
     const m = movie as any;
-    // Se è Anora, stampiamo TUTTE le chiavi del record per capire come si chiamano le colonne
-    if (subevents[0]?.name?.includes('Anora')) {
-      try {
-        const fs = require('fs');
-        const diagnosi = `
---- DIAGNOSI ANORA ---
-Chiavi trovate: ${Object.keys(subevents[0]).join(', ')}
-Valore tmdbId: ${subevents[0].tmdbId}
-Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) === String(subevents[0].tmdbId)).length}
----------------------------
-`;
-        fs.writeFileSync('scratch/DIAGNOSI.txt', diagnosi);
-      } catch (e) { }
-    }
 
     return {
       id: parseInt(movie.tmdbId),
@@ -177,6 +169,9 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
     return getNextShowDate(a) - getNextShowDate(b);
   });
 
+  // `?film=`: i vecchi link alla pagina del film arrivano qui.
+  const initialMovieId = pickInitialMovieId(movies, film);
+
   // Prepariamo i dati per il Calendario Settimanale
   const enrichedSubEvents = projections.map(p => ({
     id: p.pretixId,
@@ -217,6 +212,7 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
         key={showcaseKey}
         movies={movies}
         initialAvailability={availabilityMap}
+        initialMovieId={initialMovieId}
       />
       <CinematicStory
         movies={movies}

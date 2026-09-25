@@ -1118,6 +1118,7 @@ export default function CinematicStory({ movies, subEvents, storySeed }: Cinemat
             return (
               <motion.section
                 key={i}
+                id="programma"
                 className={styles.calendarChapter}
                 initial={reduced ? false : { opacity: 0, y: 60 }}
                 whileInView={{ opacity: 1, y: 0 }}
