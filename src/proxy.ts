@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const COOKIE_NAME = 'admin_session';
-const ADMIN_SESSION_VALUE = 'vestri_authorized_access_8923';
+import { COOKIE_NAME, verifySession } from '@/services/adminSession';
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -17,10 +16,8 @@ export function proxy(request: NextRequest) {
   const isProtectedDisplay = pathname.startsWith('/display-esterno');
 
   if (isProtectedAdmin || isProtectedDisplay) {
-    const adminSession = request.cookies.get(COOKIE_NAME)?.value;
-
-    // 3. If the user is not authenticated, redirect to the login page
-    if (adminSession !== ADMIN_SESSION_VALUE) {
+    // 3. Il cookie deve portare un token firmato e non scaduto
+    if (!verifySession(request.cookies.get(COOKIE_NAME)?.value, Date.now())) {
       const loginUrl = new URL('/admin/login', request.url);
       
       // Keep track of the original page (including query strings) to redirect back after login
