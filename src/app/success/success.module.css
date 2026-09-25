@@ -1,208 +1,118 @@
-.container {
-  min-height: 100vh;
+/* Il riepilogo della prenotazione: il biglietto sul fondale del film. */
+
+.page {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
-  padding: 2rem;
-  color: white;
-  font-family: var(--font-inter, sans-serif);
+  overflow: hidden;
 }
 
-.card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 3rem;
-  border-radius: 2rem;
-  max-width: 600px;
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+.backdrop {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
 }
 
-.successIcon {
-  margin-bottom: 1.5rem;
+.shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(16, 13, 10, 0.6) 0%, var(--c-bg) 85%),
+    radial-gradient(ellipse at 50% 30%, transparent 0%, rgba(16, 13, 10, 0.7) 80%);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
   display: flex;
-  justify-content: center;
-  filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.4));
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 560px;
+  padding: 56px 16px;
+  text-align: center;
+}
+
+.kicker {
+  margin: 0;
+  font-family: var(--c-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-ok);
+}
+
+.kicker span {
+  color: var(--c-amber);
 }
 
 .title {
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin-bottom: 1rem;
-  background: linear-gradient(to right, #ffffff, #a1a1a1);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.subtitle {
-  font-size: 1.1rem;
-  color: #a1a1a1;
-  margin-bottom: 2rem;
-  line-height: 1.6;
-}
-
-.infoBox {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  padding: 1.5rem;
-  border-radius: 1rem;
-  margin-bottom: 2.5rem;
-  font-size: 0.95rem;
-  color: #d1d1d1;
+  margin: 0;
+  font-family: var(--c-font-serif);
+  font-size: clamp(2rem, 6vw, 2.8rem);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--c-ink);
 }
 
 .actions {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  max-width: 520px;
 }
 
-.downloadBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  background: #10b981;
-  color: white;
-  padding: 1.4rem;
-  border-radius: 1.2rem;
-  font-weight: 800;
-  font-size: 1.1rem;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
-}
-
-.downloadBtn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  background: #059669;
-  box-shadow: 0 15px 30px rgba(16, 185, 129, 0.3);
-}
-
-.downloadBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.previewBtn {
+.primary,
+.ghost {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  padding: 1rem;
-  border-radius: 1rem;
-  font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.previewBtn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.homeBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  background: transparent;
-  color: #a1a1a1;
-  padding: 1rem;
-  border-radius: 1rem;
-  font-weight: 500;
+  padding: 13px 16px;
+  border-radius: var(--c-radius);
+  font-family: var(--c-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
   text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.homeBtn:hover {
-  color: white;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.footerNote {
-  margin-top: 2rem;
-  font-size: 0.8rem;
-  color: #666;
-}
-
-/* Modal Styles */
-.modalOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.9);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-
-.modalContent {
-  position: relative;
-  width: 100%;
-  max-width: 1100px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.closeModalBtn {
-  position: absolute;
-  top: -3rem;
-  right: 0;
-  background: white;
-  color: black;
-  border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  text-transform: uppercase;
   cursor: pointer;
-  z-index: 1010;
 }
 
-.ticketCarousel {
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-  width: 100%;
+.primary {
+  border: 1px solid var(--c-amber);
+  background: var(--c-amber);
+  color: var(--c-amber-ink);
+  font-weight: 600;
 }
 
-.carouselBtn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: white;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
+.primary:hover:not(:disabled) {
+  background: #f0b458;
 }
 
-.carouselBtn:hover {
-  background: rgba(255, 255, 255, 0.2);
+.primary:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
-.ticketContainerWrapper {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  min-height: 600px;
+.ghost {
+  border: 1px solid var(--c-line-strong);
+  background: rgba(16, 13, 10, 0.4);
+  color: var(--c-ink);
+}
+
+.ghost:hover {
+  border-color: var(--c-dim);
+}
+
+.note {
+  max-width: 440px;
+  margin: 0;
+  font-family: var(--c-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  color: var(--c-dim);
 }
