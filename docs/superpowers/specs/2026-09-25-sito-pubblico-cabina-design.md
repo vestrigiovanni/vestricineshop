@@ -150,7 +150,7 @@ La logica di `SeatMap` non cambia: lettura della pianta, stati dei posti, messag
 - i bottoni "Annulla" e "Sì, confermo";
 - il comportamento resta com'è: "Annulla" torna alla home.
 
-Il testo del mockup parlava di un documento chiesto all'ingresso. Quella frase **non entra** finché Giovanni non conferma che il documento si chiede davvero.
+Serve solo la conferma sì/no della maggiore età, e compare per gli spettacoli 18+ o VM18: vale la regola di oggi, `isVM18` in `utils/ratingUtils.ts`, che riconosce VM18, 18+ e 18. Sotto il titolo c'è una sola frase: "Per prenotare questo film serve la maggiore età." La frase del mockup sul documento all'ingresso **non entra**.
 
 Dal checkout in poi non cambia niente: Pretix, e il ritorno su `/success`.
 
