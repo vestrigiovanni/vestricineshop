@@ -263,31 +263,6 @@ export default function BookingFlow({ subeventId, onClose, choices, onChangeShow
     setSeatNotice(seatsTakenNotice(taken.map(t => t.label)));
   }, []);
 
-  const handleSubeventSelect = (se: any) => {
-    if (se.isSoldOut) return;
-
-    try {
-      if (se.comment) {
-        const meta = JSON.parse(se.comment);
-        const needsVerification = isVM18(meta.rating);
-        
-        if (needsVerification) {
-          // If it's a 18+ movie, we must verify (or re-verify if needed)
-          setIsAgeVerified(false); 
-          setShowAgeVerification(true);
-        } else {
-          // If NOT 18+, we automatically clear the verification and show no gate
-          setIsAgeVerified(true);
-          setShowAgeVerification(false);
-          // Optional: clear any session storage to be clean
-          sessionStorage.removeItem('age-verified');
-        }
-      }
-    } catch (e) {}
-
-    setSelectedSubeventId(se.id);
-  };
-
   const handleBookingSuccess = () => {
     if (process.env.NODE_ENV !== 'production') {
       console.log('[BookingFlow] Booking successful, cleaning up technical session data...');
@@ -361,15 +336,18 @@ export default function BookingFlow({ subeventId, onClose, choices, onChangeShow
         title="Posti esauriti"
         text="Siamo spiacenti, ma i posti per questa proiezione sono terminati."
         onClose={onClose}
-        action={!subeventId ? (
-          <button
-            type="button"
-            className={styles.noticeAction}
-            onClick={() => { setSelectedSubeventId(null); setSelectedSubEvent(null); setIsSoldOut(false); }}
-          >
-            Scegli un altro orario
-          </button>
-        ) : undefined}
+      />
+    );
+  }
+
+  // La prenotazione si apre sempre su uno spettacolo; se manca, lo diciamo.
+  if (!selectedSubeventId) {
+    return (
+      <Notice
+        icon={<AlertTriangle size={32} />}
+        title="Nessuno spettacolo scelto"
+        text="Torna al programma e scegli un orario."
+        onClose={onClose}
       />
     );
   }
@@ -409,45 +387,19 @@ export default function BookingFlow({ subeventId, onClose, choices, onChangeShow
         onClose={onClose}
       />
 
-      {selectedSubeventId ? (
-        <BookingRoom
-          subeventId={selectedSubeventId}
-          refreshKey={refreshCounter}
-          selected={new Set(selectedSeats.keys())}
-          onToggle={handleSeatToggle}
-          onTaken={handleSeatsTaken}
-          notice={seatNotice}
-          locked={checkoutStarted}
-        />
-      ) : (
-        // Senza spettacolo (oggi solo dalla pagina film): tutte le proiezioni.
-        <section className={styles.room} aria-label="Scegli la proiezione">
-          {subevents.length > 0 ? (
-            <ul className={styles.picker}>
-              {subevents.map(se => (
-                <li key={se.id}>
-                  <button
-                    type="button"
-                    className={se.isSoldOut ? `${styles.pick} ${styles.pickOff}` : styles.pick}
-                    onClick={() => handleSubeventSelect(se)}
-                    disabled={se.isSoldOut}
-                  >
-                    <span className={styles.pickTime}>{formatShowTime(se.date_from)}</span>
-                    <span className={styles.pickDay}>{formatShowDayLong(se.date_from)}</span>
-                    {se.isSoldOut && <span className={styles.pickDay}>esaurito</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className={styles.empty}>Nessuna proiezione disponibile al momento.</p>
-          )}
-        </section>
-      )}
+      <BookingRoom
+        subeventId={selectedSubeventId}
+        refreshKey={refreshCounter}
+        selected={new Set(selectedSeats.keys())}
+        onToggle={handleSeatToggle}
+        onTaken={handleSeatsTaken}
+        notice={seatNotice}
+        locked={checkoutStarted}
+      />
 
       <TicketFoot
         seatLabels={seatLabels}
-        legal={selectedSubeventId ? ageNotice(meta?.rating) : null}
+        legal={ageNotice(meta?.rating)}
         onProceed={startCheckout}
         checkout={checkoutStarted ? (
           <CheckoutButton
