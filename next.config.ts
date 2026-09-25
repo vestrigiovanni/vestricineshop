@@ -34,6 +34,10 @@ const nextConfig: NextConfig = {
       { source: '/admin/movies-control', destination: '/admin/film', permanent: false },
       { source: '/admin/programma/wizard', destination: '/admin/programma', permanent: false },
       { source: '/admin/pannello', destination: '/admin', permanent: false },
+      // La pagina del film non c'è più: i link vecchi (post, messaggi, app)
+      // aprono la home su quel film. `?subevent=` passa da solo, e la home
+      // apre la prenotazione se lo spettacolo è ancora in vendita.
+      { source: '/movie/:id', destination: '/?film=:id', permanent: false },
     ];
   },
 };

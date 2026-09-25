@@ -21,6 +21,8 @@ describe('redirects del gestionale', () => {
   it('puntano solo a stanze che esistono', async () => {
     const list = await nextConfig.redirects!();
     const hrefs = new Set(ROOMS.map((r) => r.href));
-    for (const r of list) expect(hrefs.has(r.destination)).toBe(true);
+    for (const r of list.filter((r) => r.source.startsWith('/admin'))) {
+      expect(hrefs.has(r.destination)).toBe(true);
+    }
   });
 });
