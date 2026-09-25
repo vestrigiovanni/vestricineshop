@@ -212,7 +212,7 @@ Quanti premi trovati per questo ID: ${allAwards.filter(a => String(a.tmdbId) ===
   const showcaseKey = movies.map(m => `${m.id}-${m.poster_path}-${m.isSoldOut}`).join('|');
 
   return (
-    <main className={styles.main}>
+    <main className={`cabina pubblico ${styles.main}`}>
       <MovieShowcase
         key={showcaseKey}
         movies={movies}

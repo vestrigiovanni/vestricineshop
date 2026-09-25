@@ -41,7 +41,7 @@ function SuccessContent() {
 
   if (!orderData) {
     return (
-      <div className={styles.container}>
+      <div className={`cabina pubblico ${styles.container}`}>
         <div className={styles.card}>
           <p>Caricamento dati ordine...</p>
           <Link href="/" className={styles.homeBtn} style={{ marginTop: '1rem' }}>
@@ -55,7 +55,7 @@ function SuccessContent() {
   const { tickets, orderCode, subeventData, isAnonymous } = orderData;
 
   return (
-    <div className={styles.container}>
+    <div className={`cabina pubblico ${styles.container}`}>
       <div className={styles.card}>
         <div className={styles.successIcon}>
           <CheckCircle2 size={64} color="#10b981" />
