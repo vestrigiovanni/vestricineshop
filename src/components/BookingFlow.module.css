@@ -408,7 +408,10 @@
 .booked::before,
 .booked .room,
 .booked .when,
-.booked .choices {
+.booked .choices,
+.booked .legal,
+.booked .checkoutBox > .label,
+.booked .seatsBig {
   display: none;
 }
 

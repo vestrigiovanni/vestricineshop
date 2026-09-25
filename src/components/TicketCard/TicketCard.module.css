@@ -1,0 +1,174 @@
+/* Il biglietto: a sinistra il film e i dati, a destra la matrice con il QR,
+ * dopo la linea tratteggiata e le mezzelune dello strappo. Il QR resta scuro
+ * su chiaro: così lo leggono tutti i lettori. */
+
+.card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px;
+  width: 100%;
+  max-width: 520px;
+  border: 1px solid var(--c-line);
+  border-radius: var(--c-radius-lg);
+  background: var(--c-bg-raised);
+}
+
+.card::before,
+.card::after {
+  content: '';
+  position: absolute;
+  right: 120px;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--c-line);
+  border-radius: 50%;
+  background: var(--c-bg);
+}
+
+.card::before {
+  top: -9px;
+}
+
+.card::after {
+  bottom: -9px;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px 20px;
+}
+
+.logo {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 64px;
+  object-fit: contain;
+  object-position: left;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--c-font-serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--c-ink);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  margin: 0;
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.label {
+  font-family: var(--c-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-dim);
+}
+
+.value {
+  margin: 0;
+  font-family: var(--c-font-mono);
+  font-size: 15px;
+  color: var(--c-ink);
+}
+
+.when {
+  color: var(--c-amber);
+  text-transform: uppercase;
+}
+
+.small {
+  margin: 0;
+  font-family: var(--c-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-dim);
+}
+
+.stub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 12px;
+  border-left: 1px dashed var(--c-line-strong);
+}
+
+.qr {
+  padding: 6px;
+  border-radius: 4px;
+  background: #efe6d8;
+  line-height: 0;
+}
+
+.qr svg {
+  width: 88px;
+  height: 88px;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--c-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--c-dim);
+}
+
+.pageBtn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--c-line-strong);
+  border-radius: 4px;
+  background: none;
+  color: var(--c-ink);
+  cursor: pointer;
+}
+
+.pageBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+@media (max-width: 480px) {
+  .card {
+    grid-template-columns: minmax(0, 1fr) 100px;
+  }
+
+  .card::before,
+  .card::after {
+    right: 92px;
+  }
+
+  .main {
+    padding: 16px;
+  }
+
+  .value {
+    font-size: 13px;
+  }
+
+  .qr svg {
+    width: 72px;
+    height: 72px;
+  }
+}

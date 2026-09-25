@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, CheckCircle2, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { finalizeBooking, getSubEvent } from '@/services/pretix';
 import { isVM18 } from '@/utils/ratingUtils';
 import TicketPDF, { generateTicketPDF } from './TicketPDF';
+import TicketCard from './TicketCard/TicketCard';
 import styles from './CheckoutButton.module.css';
 
 interface Ticket {
@@ -50,19 +50,8 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
   const [orderCode, setOrderCode] = useState('');
   const [subeventData, setSubeventData] = useState<SubeventMetadata | null>(null);
 
-  // Preview Modal State
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
-
   const router = useRouter();
 
-  const handleNextPreview = () => {
-    setCurrentPreviewIndex((prev) => (prev + 1) % tickets.length);
-  };
-
-  const handlePrevPreview = () => {
-    setCurrentPreviewIndex((prev) => (prev - 1 + tickets.length) % tickets.length);
-  };
   const handleCheckout = async (targetEmail?: string) => {
     const finalEmail = targetEmail || email;
     if (!finalEmail) {
@@ -327,17 +316,22 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
   if (success) {
     return (
       <div className={styles.successContainer}>
-        <div className={styles.successBox}>
-          <div className={styles.iconWrapper}>
-            <CheckCircle2 size={28} />
-          </div>
-          <div>
-            <h3 className={styles.successTitle}>Biglietto Prenotato!</h3>
-            <p className={styles.successMessage}>La tua prenotazione è confermata. Ecco il tuo biglietto ufficiale:</p>
-          </div>
-        </div>
+        <p className={styles.successKicker}>✓ Prenotato · ordine <span>{orderCode}</span></p>
+        <h3 className={styles.successTitle}>Ci vediamo in sala.</h3>
 
-        {/* Hidden area for PDF generation rendering (at full scale) — outside visible layout */}
+        {subeventData && (
+          <TicketCard
+            title={subeventData.movieTitle}
+            logoPath={subeventData.logoPath}
+            date={subeventData.date}
+            roomName={subeventData.roomName}
+            duration={subeventData.duration}
+            orderCode={orderCode}
+            tickets={tickets}
+          />
+        )}
+
+        {/* Area nascosta per il PDF, a grandezza vera, fuori dalla pagina. */}
         <div style={{ position: 'fixed', top: 0, left: '-9999px', display: 'block', pointerEvents: 'none', zIndex: -999 }}>
           {subeventData && tickets.map((ticket, idx) => (
             <TicketPDF 
@@ -369,121 +363,18 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
           ))}
         </div>
 
-        <div className={styles.actionAreaCenter}>
-          <div className={styles.actionArea}>
-            <button 
-              className={`btn-primary ${styles.giantDownloadBtn}`} 
-              onClick={() => handleDownloadPDF(true)}
-              disabled={loading}
-            >
-              {loading ? (
-                  <>Generazione PDF...</>
-              ) : (
-                  <>
-                      <Download size={24} />
-                      SCARICA IL TUO BIGLIETTO (PDF)
-                  </>
-              )}
-            </button>
-            
-            {tickets.length > 0 && subeventData && (
-              <button 
-                className={styles.previewBtn}
-                onClick={() => {
-                  setCurrentPreviewIndex(0);
-                  setIsPreviewOpen(true);
-                }}
-              >
-                <Eye size={20} />
-                Visualizza anteprima biglietto
-              </button>
-            )}
-            
-            <div className={styles.successActions}>
-              <Link 
-                href={`/success?subeventId=${subeventId}`}
-                className={styles.secondaryActionBtn}
-              >
-                Vedi riepilogo dettagliato
-              </Link>
-            </div>
-
-            {isAnonymous && (
-              <div className={styles.anonymousDisclaimer}>
-                <p>⚠️ <strong>Nota bene:</strong> Non riceverai una copia via email. Assicurati di scaricare o fare uno screenshot del biglietto ora.</p>
-              </div>
-            )}
-          </div>
+        <div className={styles.successActions}>
+          <button type="button" className={styles.button} onClick={() => handleDownloadPDF(true)} disabled={loading}>
+            {loading ? 'Generazione PDF…' : 'Scarica PDF'}
+          </button>
+          <Link href={`/success?subeventId=${subeventId}`} className={styles.secondaryActionBtn}>
+            Apri il riepilogo
+          </Link>
         </div>
 
-        {isPreviewOpen && tickets.length > 0 && subeventData && (
-          <div className={styles.modalOverlay} onClick={() => setIsPreviewOpen(false)}>
-            <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-              <button className={styles.closeModalBtn} onClick={() => setIsPreviewOpen(false)}>
-                <X size={20} />
-              </button>
-              
-              <div className={styles.ticketCarousel}>
-                {tickets.length > 1 && (
-                  <button 
-                    className={styles.carouselBtn} 
-                    onClick={handlePrevPreview}
-                  >
-                    <ChevronLeft size={24} />
-                  </button>
-                )}
-                
-                <div className={styles.ticketContainerWrapper}>
-                  <TicketPDF 
-                    preview={true}
-                    id={`preview-ticket-${tickets[currentPreviewIndex].secret}`}
-                    backdropIndex={currentPreviewIndex}
-                    data={{
-                      movieTitle: subeventData.movieTitle,
-                      posterPath: subeventData.posterPath,
-                      date: subeventData.date,
-                      duration: subeventData.duration,
-                      director: subeventData.director,
-                      cast: subeventData.cast,
-                      roomName: subeventData.roomName,
-                      seatName: tickets[currentPreviewIndex].seat_name || 'Posto Unico',
-                      orderCode: orderCode,
-                      qrSecret: tickets[currentPreviewIndex].secret,
-                      purchaseDate: new Date().toLocaleDateString('it-IT'),
-                      backdropPath: subeventData.backdropPath,
-                      logoPath: subeventData.logoPath,
-                      tagline: subeventData.tagline,
-                      genres: subeventData.genres,
-                      year: subeventData.year,
-                      rating: subeventData.rating,
-                      tmdbId: subeventData.tmdbId,
-                    }}
-                  />
-                </div>
-                
-                {tickets.length > 1 && (
-                  <button 
-                    className={styles.carouselBtn} 
-                    onClick={handleNextPreview}
-                  >
-                    <ChevronRight size={24} />
-                  </button>
-                )}
-              </div>
-              
-              {tickets.length > 1 && (
-                <div className={styles.carouselIndicators}>
-                  {tickets.map((_, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`${styles.indicator} ${idx === currentPreviewIndex ? styles.indicatorActive : ''}`} 
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <p className={styles.successNote}>
+          {isAnonymous ? 'Niente email: scarica il biglietto adesso.' : 'Ti arriva anche una copia via email.'} All&apos;ingresso mostra il QR.
+        </p>
       </div>
     );
   }
