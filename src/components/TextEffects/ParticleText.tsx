@@ -102,7 +102,7 @@ export default function ParticleText({
   particleSize = 2,
   density = 4,
   color = '#ffffff',
-  highlightColor = '#8b5cf6',
+  highlightColor = '#e8a33d',
   scatter = 180,
   gatherDuration = 1600,
   stagger = 420,

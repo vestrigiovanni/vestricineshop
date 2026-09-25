@@ -82,7 +82,7 @@ export default function DriftWall({
   fade = 0.6,
   dim = 0.55,
   grayscale = false,
-  overlayColor = '#060010',
+  overlayColor = '#100d0a',
   className = '',
   style,
   onItemSelect,

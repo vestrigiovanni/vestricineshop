@@ -12,7 +12,7 @@
   --dw-lift: 64px;
   --dw-dim: 0.55;
   --dw-gray: 0;
-  --dw-overlay: #060010;
+  --dw-overlay: #100d0a;
   --dw-edge: 40%;
   -webkit-mask-image:
     radial-gradient(ellipse 78% 82% at 50% 46%, #000 var(--dw-edge), transparent 100%),
@@ -68,7 +68,7 @@
   display: block;
   border-radius: var(--dw-radius);
   overflow: hidden;
-  background: #0b0b12;
+  background: #17130f;
   opacity: var(--dw-dim);
   transform: translateZ(0);
   pointer-events: none;
@@ -118,7 +118,7 @@
 .tile:focus-visible .inner {
   box-shadow:
     0 24px 60px -18px rgba(0, 0, 0, 0.7),
-    0 0 0 2px rgba(255, 255, 255, 0.9);
+    0 0 0 2px #e8a33d;
 }
 
 /* Con il movimento ridotto il muro resta fermo: niente `will-change`. */

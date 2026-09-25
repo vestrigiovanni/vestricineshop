@@ -24,18 +24,17 @@ interface AccentColor {
   text: string;
 }
 
+// Mentre gira, una palette passa per i colori di Cabina: ambra, rosso
+// allarme, salvia e inchiostro. Ferma, è nero caldo con la lettera chiara.
 const ACCENT_COLORS: AccentColor[] = [
-  { top: '#dc2626', bottom: '#b91c1c', text: '#ffffff' },
-  { top: '#f97316', bottom: '#ea580c', text: '#ffffff' },
-  { top: '#facc15', bottom: '#eab308', text: '#171717' },
-  { top: '#16a34a', bottom: '#15803d', text: '#ffffff' },
-  { top: '#2563eb', bottom: '#1d4ed8', text: '#ffffff' },
-  { top: '#7c3aed', bottom: '#6d28d9', text: '#ffffff' },
-  { top: '#ffffff', bottom: '#f5f5f5', text: '#171717' },
+  { top: '#e8a33d', bottom: '#d4912f', text: '#1a130b' },
+  { top: '#d4553a', bottom: '#bf4a31', text: '#efe6d8' },
+  { top: '#9bb07a', bottom: '#8a9f6a', text: '#1a130b' },
+  { top: '#efe6d8', bottom: '#e2d8c8', text: '#1a130b' },
 ];
 
-const RESTING = { top: '#171717', bottom: '#171717', text: '#ffffff' };
-const FALLING_FLAP = { top: '#262626', text: '#ffffff' };
+const RESTING = { top: '#17130f', bottom: '#17130f', text: '#efe6d8' };
+const FALLING_FLAP = { top: '#221c16', text: '#efe6d8' };
 
 /** Spazio unificatore: una casella vuota deve restare alta come le altre. */
 const NBSP = '\u00a0';

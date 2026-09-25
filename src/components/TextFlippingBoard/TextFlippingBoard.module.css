@@ -11,7 +11,7 @@
   max-width: min(1180px, 96vw);
   padding: 0.5rem;
   border-radius: 12px;
-  background: #171717;
+  background: #0b0907;
   box-shadow: 0 20px 70px -15px rgba(0, 0, 0, 0.6);
   /* Riferimento per i `cqw` del testo nelle caselle. */
   container-type: inline-size;
@@ -41,7 +41,7 @@
 }
 
 .rowClickable:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline: 2px solid #e8a33d;
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -180,7 +180,7 @@
   align-items: center;
   justify-content: center;
   user-select: none;
-  font-family: 'SFMono-Regular', 'Roboto Mono', Menlo, monospace;
+  font-family: var(--c-font-mono, 'SFMono-Regular', 'Roboto Mono', Menlo, monospace);
   font-weight: 700;
   letter-spacing: 0.025em;
   /* Il carattere si misura sulla casella (larghezza tabellone / colonne), non

@@ -1,6 +1,6 @@
 /* --- Testo cifrato --- */
 .encrypted {
-  color: var(--text-muted);
+  color: var(--c-dim, #8a7d6c);
 }
 
 /* --- Testo ondeggiante --- */

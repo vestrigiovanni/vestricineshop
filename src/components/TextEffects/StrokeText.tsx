@@ -42,8 +42,8 @@ const easeDraw: [number, number, number, number] = [0.22, 1, 0.36, 1];
  */
 export default function StrokeText({
   text,
-  strokeColor = '#A78BFA',
-  fillColor = '#F8FAFC',
+  strokeColor = '#E8A33D',
+  fillColor = '#EFE6D8',
   strokeWidth = 1.4,
   drawDuration = 1.6,
   fillDelay = 0.2,
