@@ -400,7 +400,7 @@ interface AwardLike {
  * Il rank decide quale riconoscimento vince quando un film ne ha più d'uno
  * allo stesso festival: Vincitore > Candidatura > il resto.
  */
-function awardHighlight(award: AwardLike): { text: string; rank: number } {
+export function awardHighlight(award: AwardLike): { text: string; rank: number } {
   const details = (award.details || '').trim();
   const year = award.year ? String(award.year) : '';
   const withYear = (t: string) => (t && year ? `${t} · ${year}` : t || year);
