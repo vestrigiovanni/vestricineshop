@@ -1,63 +1,65 @@
+/*
+ * I bollini di lingua, in veste Cabina. Li usa solo il sito pubblico
+ * (calendario e prenotazione), che sta dentro una `.cabina`: i valori dopo la
+ * virgola servono se un giorno un bollino finisse fuori.
+ *
+ * La lingua è ambra piena; sottotitoli e versione stanno a contorno, come i
+ * bollini di proiezione (ProjectionSpecs.module.css).
+ */
+
 .badgeContainer {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-family: var(--font-outfit, 'Outfit', sans-serif);
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  gap: 6px;
+  font-family: var(--c-font-mono, ui-monospace, monospace);
+  letter-spacing: 0.1em;
 }
 
 .langBadge {
-  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
-  color: #000;
-  padding: 3px 10px;
-  border-radius: 4px;
-  font-size: 0.72rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.3);
+  padding: 3px 8px;
+  border: 1px solid rgba(232, 163, 61, 0.45);
+  border-radius: 3px;
+  background: var(--c-amber-soft, rgba(232, 163, 61, 0.12));
+  color: var(--c-amber, #e8a33d);
+  font-size: 0.68rem;
   text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.subBadge {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-  padding: 3px 10px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  font-size: 0.7rem;
+.subBadge,
+.versionBadge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid var(--c-line-strong, #3a3128);
+  border-radius: 3px;
+  background: none;
+  color: var(--c-ink, #efe6d8);
+  font-size: 0.66rem;
   text-transform: uppercase;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.subBadge:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateY(-1px);
+.versionBadge {
+  color: var(--c-dim, #8a7d6c);
 }
 
 .icon {
-  opacity: 0.9;
-  color: #fff;
+  color: currentColor;
+  opacity: 0.8;
 }
 
-/* Sizes */
 .sm {
   gap: 4px;
 }
 
-.sm .langBadge, .sm .subBadge {
+.sm .langBadge,
+.sm .subBadge,
+.sm .versionBadge {
   padding: 2px 6px;
-  font-size: 0.62rem;
-  border-radius: 3px;
-  letter-spacing: 0.05em;
+  font-size: 0.6rem;
 }
 
 .sm .icon {
@@ -65,17 +67,16 @@
   height: 10px;
 }
 
-
-.lg .langBadge, .lg .subBadge {
-  padding: 5px 14px;
-  font-size: 0.88rem;
-  border-radius: 6px;
+.xs {
+  gap: 3px;
 }
-.xs .langBadge, .xs .subBadge {
+
+.xs .langBadge,
+.xs .subBadge,
+.xs .versionBadge {
   padding: 1px 4px;
   font-size: 0.55rem;
-  border-radius: 2px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
 }
 
 .xs .icon {
@@ -83,43 +84,14 @@
   height: 8px;
 }
 
-.xs {
-  gap: 2px;
+.lg .langBadge,
+.lg .subBadge,
+.lg .versionBadge {
+  padding: 5px 12px;
+  font-size: 0.85rem;
 }
 
 .lg .icon {
-  width: 18px;
-  height: 18px;
-}
-
-
-.versionBadge {
-  background: rgba(14, 165, 233, 0.15);
-  color: #38bdf8;
-  padding: 3px 10px;
-  border-radius: 4px;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  font-size: 0.7rem;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  text-transform: uppercase;
-}
-
-.sm .versionBadge {
-  padding: 2px 6px;
-  font-size: 0.62rem;
-  border-radius: 3px;
-}
-
-.lg .versionBadge {
-  padding: 5px 14px;
-  font-size: 0.88rem;
-  border-radius: 6px;
-}
-
-.xs .versionBadge {
-  padding: 1px 4px;
-  font-size: 0.55rem;
-  border-radius: 2px;
+  width: 16px;
+  height: 16px;
 }

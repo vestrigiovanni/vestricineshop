@@ -1,29 +1,27 @@
 /*
- * I bollini della qualità di proiezione.
+ * I bollini della qualità di proiezione, in veste Cabina.
  *
- * Stessa famiglia dei badge di lingua (`LanguageBadge.module.css`) — stesso
- * font, stesse spaziature, stessi tagli d'angolo — ma un colore diverso e solo
- * quello: questi parlano di come si vede, non di che lingua si sente, e chi
- * guarda deve poterli distinguere senza leggerli.
+ * Stessa famiglia dei bollini di lingua (LanguageBadge.module.css), ma a
+ * contorno color inchiostro: la lingua è ambra piena, così chi guarda li
+ * distingue senza leggerli. Parlano di come si vede, non di che lingua si
+ * sente.
  */
 
 .badges {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
-  font-family: var(--font-outfit, 'Outfit', sans-serif);
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-family: var(--c-font-mono, ui-monospace, monospace);
+  letter-spacing: 0.1em;
 }
 
 .badge {
-  background: rgba(168, 85, 247, 0.16);
-  color: #d8b4fe;
-  border: 1px solid rgba(168, 85, 247, 0.38);
-  padding: 3px 9px;
-  border-radius: 4px;
-  font-size: 0.68rem;
+  padding: 3px 8px;
+  border: 1px solid var(--c-line-strong, #3a3128);
+  border-radius: 3px;
+  color: var(--c-ink, #efe6d8);
+  font-size: 0.66rem;
   line-height: 1.25;
   text-transform: uppercase;
   white-space: nowrap;
@@ -32,56 +30,53 @@
 .sm {
   gap: 4px;
 }
+
 .sm .badge {
   padding: 2px 6px;
   font-size: 0.6rem;
-  border-radius: 3px;
-  letter-spacing: 0.04em;
 }
 
 .xs {
-  gap: 2px;
+  gap: 3px;
 }
+
 .xs .badge {
   padding: 1px 4px;
-  font-size: 0.53rem;
-  border-radius: 2px;
-  letter-spacing: 0.02em;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
 }
 
 /* ── La riga estesa della scheda film ─────────────────────────────────────── */
 
 .line {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
+  align-items: center;
   gap: 7px;
   margin-top: 10px;
-  font-family: var(--font-outfit, 'Outfit', sans-serif);
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
+  font-family: var(--c-font-mono, ui-monospace, monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
 }
 
 .lineLabel {
-  color: rgba(255, 255, 255, 0.42);
-  font-weight: 600;
+  color: var(--c-dim, #8a7d6c);
 }
 
 .lineItem {
-  color: #d8b4fe;
+  color: var(--c-ink, #efe6d8);
   text-transform: uppercase;
   cursor: help;
 }
 
 .lineSep {
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--c-line-strong, #3a3128);
 }
 
 @media (max-width: 768px) {
   .line {
-    font-size: 0.68rem;
     gap: 5px;
     margin-top: 8px;
+    font-size: 0.66rem;
   }
 }
