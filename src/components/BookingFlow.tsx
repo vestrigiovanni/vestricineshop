@@ -1,32 +1,63 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import SeatMap from './SeatMap';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import CheckoutButton from './CheckoutButton';
-import RatingBadge from './RatingBadge';
-import LanguageBadge from './LanguageBadge';
 import AgeVerificationModal from './AgeVerificationModal';
+import BookingRoom from './BookingRoom';
+import { TicketFoot, TicketHead } from './BookingTicket';
+import { ageNotice, seatsTakenNotice } from './bookingText';
+import { languageLabel } from './MovieShowcase/heroData';
+import type { ShowChoice } from './BookingDrawer/showChoices';
 
-import type { MovieOverride, PretixSync } from '@prisma/client';
 import { getTrustedSubeventMetadata, reportSoldOut, verifyQuotaAvailability } from '@/actions/bookingActions';
 
-import { isVM18, isVM14, normalizeRating } from '@/utils/ratingUtils';
-import { listSubEvents, getItemAvailability, getSubEvent, listQuotas, getSubEventSeats, finalizeBooking } from '@/services/pretix';
+import { isVM18, normalizeRating } from '@/utils/ratingUtils';
+import { listSubEvents, getSubEvent, listQuotas, getSubEventSeats } from '@/services/pretix';
 import { ITEM_INTERO_ID, ITEM_VIP_ID } from '@/constants/pretix';
 import { formatShowDayLong, formatShowTime } from '@/utils/cinemaDate';
-import { Loader2, Calendar, Clock, ChevronLeft, Info, AlertTriangle, Globe, MessageSquare, RefreshCw, X } from 'lucide-react';
+import { Loader2, AlertTriangle, RefreshCw, X } from 'lucide-react';
 
 import styles from './BookingFlow.module.css';
 
 interface BookingFlowProps {
   subeventId?: number;
   onClose?: () => void;
+  /** Gli spettacoli dello stesso film, per "cambia orario". */
+  choices?: ShowChoice[];
+  onChangeShow?: (id: number) => void;
+}
+
+/** I metadati scritti da Pretix nel commento dello spettacolo, se ci sono. */
+function parseComment(comment?: string | null): any {
+  if (!comment) return null;
+  try { return JSON.parse(comment); } catch { return null; }
+}
+
+/** Caricamento, errore, esaurito: una schermata sola, al centro. */
+function Notice({ icon, title, text, action, onClose }: {
+  icon: ReactNode;
+  title: string;
+  text: string;
+  action?: ReactNode;
+  onClose?: () => void;
+}) {
+  return (
+    <div className={styles.notice}>
+      {onClose && (
+        <button type="button" className={`${styles.barBtn} ${styles.noticeClose}`} onClick={onClose} aria-label="Chiudi">
+          <X size={18} aria-hidden="true" />
+        </button>
+      )}
+      <span className={styles.noticeIcon}>{icon}</span>
+      <h2 className={styles.noticeTitle}>{title}</h2>
+      {text && <p className={styles.noticeText}>{text}</p>}
+      {action}
+    </div>
+  );
 }
 
 
-
-export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
+export default function BookingFlow({ subeventId, onClose, choices, onChangeShow }: BookingFlowProps) {
   const [selectedSeats, setSelectedSeats] = useState<Map<string, string>>(new Map());
   const [checkoutStarted, setCheckoutStarted] = useState(false);
   const [subevents, setSubevents] = useState<any[]>([]);
@@ -43,6 +74,8 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
   const [loadError, setLoadError] = useState(false);
   // Avviso quando un posto già scelto viene preso da qualcun altro.
   const [seatNotice, setSeatNotice] = useState<string | null>(null);
+  // La prenotazione è fatta: resta la colonna, con il biglietto.
+  const [booked, setBooked] = useState(false);
 
   useEffect(() => {
     sessionStorage.removeItem('age-verified');
@@ -227,11 +260,7 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
       taken.forEach(t => next.delete(t.id));
       return next;
     });
-    setSeatNotice(
-      taken.length === 1
-        ? `Il posto ${taken[0].label} è stato appena prenotato da qualcun altro. Scegline un altro.`
-        : `Questi posti sono stati appena prenotati da altri: ${taken.map(t => t.label).join(', ')}. Scegline altri.`
-    );
+    setSeatNotice(seatsTakenNotice(taken.map(t => t.label)));
   }, []);
 
   const handleSubeventSelect = (se: any) => {
@@ -264,6 +293,8 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
       console.log('[BookingFlow] Booking successful, cleaning up technical session data...');
     }
     
+    setBooked(true);
+
     // We no longer redirect automatically to /success. 
     // This allows the CheckoutButton to show its own success UI with download buttons.
     // The user can manually close the drawer when they are done.
@@ -302,308 +333,131 @@ export default function BookingFlow({ subeventId, onClose }: BookingFlowProps) {
     }
   };
 
-  // ── Loading ──────────────────────────────────────────────────
+  // ── Caricamento, errore, esaurito ─────────────────────────
   if (loading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <Loader2 size={36} className={styles.spinner} />
-        <p className={styles.loadingText}>Caricamento orari…</p>
-      </div>
-    );
+    return <Notice icon={<Loader2 size={32} className={styles.spinner} />} title="Un attimo" text="Caricamento orari…" onClose={onClose} />;
   }
 
-  // ── Errore di caricamento ────────────────────────────────────
   if (loadError) {
     return (
-      <div className={styles.container}>
-        <div className={styles.soldOutContainer}>
-          {onClose && (
-            <button type="button" className={styles.closeBtnOverlay} onClick={onClose} aria-label="Chiudi">
-              <X size={20} />
-            </button>
-          )}
-          <AlertTriangle size={48} className={styles.soldOutIcon} />
-          <h2 className={styles.soldOutTitle}>Orari non disponibili</h2>
-          <p className={styles.soldOutDesc}>
-            Non riusciamo a contattare il sistema di prenotazione. Controlla la
-            connessione e riprova fra qualche istante.
-          </p>
-          <button type="button" className={styles.backBtn} onClick={() => fetchSchedules()}>
-            <RefreshCw size={15} style={{ marginRight: '0.4rem' }} />
-            Riprova
+      <Notice
+        icon={<AlertTriangle size={32} />}
+        title="Orari non disponibili"
+        text="Non riusciamo a contattare il sistema di prenotazione. Controlla la connessione e riprova fra qualche istante."
+        onClose={onClose}
+        action={
+          <button type="button" className={styles.noticeAction} onClick={() => fetchSchedules()}>
+            <RefreshCw size={14} aria-hidden="true" /> Riprova
           </button>
-        </div>
-      </div>
+        }
+      />
     );
   }
 
-  // ── Sold Out State ────────────────────────────────────────────
   if (isSoldOut) {
     return (
-      <div className={styles.container}>
-        <div className={styles.soldOutContainer}>
-          {onClose && (
-            <button className={styles.closeBtnOverlay} onClick={onClose} aria-label="Chiudi">
-              <X size={20} />
-            </button>
-          )}
-          <AlertTriangle size={48} className={styles.soldOutIcon} />
-          <h2 className={styles.soldOutTitle}>Posti Esauriti</h2>
-          <p className={styles.soldOutDesc}>
-            Siamo spiacenti, ma i posti per questa proiezione sono terminati.
-          </p>
-          {!subeventId && (
-            <button 
-              className={styles.backBtn}
-              onClick={() => {
-                setSelectedSubeventId(null);
-                setSelectedSubEvent(null);
-                setIsSoldOut(false);
-              }}
-            >
-              Scegli un altro orario
-            </button>
-          )}
-        </div>
-      </div>
+      <Notice
+        icon={<AlertTriangle size={32} />}
+        title="Posti esauriti"
+        text="Siamo spiacenti, ma i posti per questa proiezione sono terminati."
+        onClose={onClose}
+        action={!subeventId ? (
+          <button
+            type="button"
+            className={styles.noticeAction}
+            onClick={() => { setSelectedSubeventId(null); setSelectedSubEvent(null); setIsSoldOut(false); }}
+          >
+            Scegli un altro orario
+          </button>
+        ) : undefined}
+      />
     );
   }
 
-  // ── Checkout ─────────────────────────────────────────────────
-  if (checkoutStarted) {
-    const seatIds = Array.from(selectedSeats.keys());
-    const seatLabels = Array.from(selectedSeats.values());
-    return (
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <div className={styles.titleBlock}>
-            <h2 className={styles.title}>Completa la prenotazione</h2>
-          </div>
-          <div className={styles.headerActions}>
-            {onClose && (
-              <button className={styles.closeButtonMinimal} onClick={onClose} aria-label="Chiudi">
-                <X size={20} />
-              </button>
-            )}
-          </div>
-        </div>
+  // ── La sala e la colonna ───────────────────────────────────
+  const meta = trustedMetadata || parseComment(selectedSubEvent?.comment);
+  const seatLabels = Array.from(selectedSeats.values());
+  const title = meta?.title
+    || (selectedSubEvent ? (typeof selectedSubEvent.name === 'object' ? selectedSubEvent.name.it : selectedSubEvent.name) : '')
+    || 'Prenotazione';
+  const rating = normalizeRating(meta?.rating);
+  const facts = [
+    meta?.roomName || '',
+    meta ? languageLabel(meta.versionLanguage, meta.subtitles) : '',
+  ].filter(Boolean).join(' · ');
 
-        <div className={styles.seatsSummary}>
-          <div className={styles.seatsSummaryLabel}>Posti selezionati</div>
-          <div className={styles.seatsList}>{seatLabels.join(' · ')}</div>
-        </div>
-
-        {/* Pass rating extracted from metadata if available */}
-        <CheckoutButton 
-          subeventId={selectedSubeventId!} 
-          selectedSeats={seatIds} 
-          onSuccess={handleBookingSuccess}
-          movieRating={trustedMetadata?.rating || (() => {
-            try {
-              if (selectedSubEvent?.comment) {
-                const meta = JSON.parse(selectedSubEvent.comment);
-                return meta.rating;
-              }
-            } catch (e) {}
-            return undefined;
-          })()}
-        />
-      </div>
-    );
-  }
-
-  // ── Main UI ───────────────────────────────────────────────────
-  const count = selectedSeats.size;
-
-  const timeStr = selectedSubEvent ? formatShowTime(selectedSubEvent.date_from) : '';
-  const dateStr = selectedSubEvent ? formatShowDayLong(selectedSubEvent.date_from) : '';
-  const movieTitle = selectedSubEvent ? (typeof selectedSubEvent.name === 'object' ? selectedSubEvent.name.it : selectedSubEvent.name) : '';
+  const stageClass = [
+    styles.stage,
+    booked ? styles.booked : '',
+  ].filter(Boolean).join(' ');
 
   return (
-    <div className={styles.container}>
-      {/* 18+ Age Verification Modal - rendered at the root to ensure it covers everything */}
-      {showAgeVerification && (
-        <AgeVerificationModal onConfirm={handleAgeVerified} />
-      )}
+    <div className={stageClass}>
+      {showAgeVerification && <AgeVerificationModal onConfirm={handleAgeVerified} />}
 
-      {/* Top-Right prominent rating badge for better readability */}
-      {(() => {
-          // Use trusted metadata from DB if available, otherwise fallback to Pretix comment
-          const metaSource = trustedMetadata || (() => {
-            try {
-              return selectedSubEvent?.comment ? JSON.parse(selectedSubEvent.comment) : null;
-            } catch { return null; }
-          })();
+      <TicketHead
+        title={title}
+        logoPath={meta?.logoPath || ''}
+        facts={facts}
+        rating={rating === 'T' ? null : rating}
+        day={selectedSubEvent ? formatShowDayLong(selectedSubEvent.date_from) : null}
+        time={selectedSubEvent ? formatShowTime(selectedSubEvent.date_from) : null}
+        choices={choices}
+        currentId={selectedSubeventId}
+        onChangeShow={checkoutStarted ? undefined : onChangeShow}
+        onBack={checkoutStarted && !booked ? () => setCheckoutStarted(false) : undefined}
+        onClose={onClose}
+      />
 
-          if (!metaSource) return null;
-
-          return (
-            <div className={styles.topRightRating}>
-              {metaSource.rating && <RatingBadge id={metaSource.rating} size="md" />}
-              <LanguageBadge 
-                language={metaSource.versionLanguage || 'ITA'} 
-                subtitles={metaSource.subtitles || 'NESSUNO'} 
-                size="md" 
-                showLabel={true}
-              />
-            </div>
-          );
-      })()}
-
-      <div className={styles.header}>
-        <div className={styles.titleBlock}>
-          <div className={styles.titleRow}>
-            <h2 className={styles.title} suppressHydrationWarning>
-              {selectedSubeventId ? `${movieTitle} — ${timeStr}` : 'Scegli la proiezione'}
-            </h2>
-            {onClose && (
-              <button className={styles.closeButtonMinimal} onClick={onClose} aria-label="Chiudi">
-                <X size={20} />
-              </button>
-            )}
-          </div>
-          {/* Removing redundant badge below title - it's already in the top-right next to the rating */}
-
-
-          <p className={styles.desc} suppressHydrationWarning>
-            {selectedSubeventId ? `${dateStr}` : 'Seleziona un orario per procedere alla scelta dei posti.'}
-          </p>
-        </div>
-        {selectedSubeventId && !subeventId && (
-          <button
-            className={styles.changeTimeBtn}
-            onClick={() => {
-              setSelectedSubeventId(null);
-              setSelectedSeats(new Map());
-              setSelectedSubEvent(null);
-            }}
-          >
-            <ChevronLeft size={14} />
-            <span>Cambia orario</span>
-          </button>
-        )}
-      </div>
-
-      {!selectedSubeventId ? (
-        <div className={styles.subeventList}>
-          {subevents.length > 0 ? (
-            subevents.map(se => {
-              const date = new Date(se.date_from);
-              return (
-                <button
-                  key={se.id}
-                  className={`${styles.subeventBtn} ${se.isSoldOut ? styles.subeventBtnSoldOut : ''}`}
-                  onClick={() => handleSubeventSelect(se)}
-                  disabled={se.isSoldOut}
-                >
-                  <div className={styles.subeventInfo}>
-                    <Clock size={14} className={styles.metaIcon} />
-                    <span className={styles.subeventTime} suppressHydrationWarning>
-                      {date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    {se.isSoldOut && <span className={styles.soldOutBadge}>ESAURITO</span>}
-                  </div>
-                  <div className={styles.subeventInfo}>
-                    <Calendar size={13} className={styles.metaIcon} />
-                    <span className={styles.subeventDate} suppressHydrationWarning>
-                      {date.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
-                    </span>
-                  </div>
-                </button>
-              );
-            })
-          ) : (
-            <p className={styles.desc}>Nessuna proiezione disponibile al momento.</p>
-          )}
-          
-          <div className={styles.infoNote} style={{ marginTop: '2rem' }}>
-            <Info size={14} style={{ flexShrink: 0 }} />
-            <span>La vendita dei biglietti termina 2 minuti prima dell&apos;inizio della proiezione.</span>
-          </div>
-        </div>
+      {selectedSubeventId ? (
+        <BookingRoom
+          subeventId={selectedSubeventId}
+          refreshKey={refreshCounter}
+          selected={new Set(selectedSeats.keys())}
+          onToggle={handleSeatToggle}
+          onTaken={handleSeatsTaken}
+          notice={seatNotice}
+          locked={checkoutStarted}
+        />
       ) : (
-        <>
-          {seatNotice && (
-            <div className={styles.seatNotice} role="status">
-              <AlertTriangle size={14} style={{ flexShrink: 0 }} />
-              <span>{seatNotice}</span>
-            </div>
+        // Senza spettacolo (oggi solo dalla pagina film): tutte le proiezioni.
+        <section className={styles.room} aria-label="Scegli la proiezione">
+          {subevents.length > 0 ? (
+            <ul className={styles.picker}>
+              {subevents.map(se => (
+                <li key={se.id}>
+                  <button
+                    type="button"
+                    className={se.isSoldOut ? `${styles.pick} ${styles.pickOff}` : styles.pick}
+                    onClick={() => handleSubeventSelect(se)}
+                    disabled={se.isSoldOut}
+                  >
+                    <span className={styles.pickTime}>{formatShowTime(se.date_from)}</span>
+                    <span className={styles.pickDay}>{formatShowDayLong(se.date_from)}</span>
+                    {se.isSoldOut && <span className={styles.pickDay}>esaurito</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.empty}>Nessuna proiezione disponibile al momento.</p>
           )}
-
-          <div className={styles.seatMapWrapper}>
-              <SeatMap
-                key={`${selectedSubeventId}-${refreshCounter}`}
-                selectedSeats={new Set(selectedSeats.keys())}
-                onSeatToggle={handleSeatToggle}
-                onSeatsTaken={handleSeatsTaken}
-                subeventId={selectedSubeventId}
-              />
-            </div>
-
-            {(() => {
-                // AGE WARNING LOGIC: TRUSTED DB FIRST
-                const metaSource = trustedMetadata || (() => {
-                  try {
-                    return selectedSubEvent?.comment ? JSON.parse(selectedSubEvent.comment) : null;
-                  } catch { return null; }
-                })();
-
-                if (!metaSource) return null;
-
-                const r = String(metaSource.rating || '');
-                const norm = normalizeRating(r);
-                
-                if (norm === '18+' || norm === '14+' || norm === '10+' || norm === '6+') {
-                  const age = norm === '18+' ? '18' : (norm === '14+' ? '14' : (norm === '10+' ? '10' : '6'));
-                  const isRestriction = norm === '18+'; // Only 18+ gets the RED legal warning
-                  
-                  return (
-                    <div className={isRestriction ? styles.legalInfo : `${styles.legalInfo} ${styles.infoOnly}`}>
-                      {isRestriction ? <AlertTriangle size={14} /> : <Info size={14} />}
-                      <span>
-                        {isRestriction 
-                          ? `L'accesso a questa proiezione è limitato ai maggiori di ${age} anni.`
-                          : (norm === '14+' 
-                              ? `L'accesso a questa proiezione è limitato ai maggiori di 14 anni.`
-                              : `La visione di questo film è consigliata dai ${age} anni in su.`)}
-                      </span>
-                    </div>
-                  );
-                }
-                return null;
-            })()}
-
-          <div className={styles.footer}>
-            <div className={styles.summaryInfo}>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>Posti selezionati</span>
-                <span className={styles.summaryValue}>{count}</span>
-              </div>
-              <div className={styles.summaryDivider} />
-              <div className={styles.summaryItem}>
-                {/* I biglietti sono gratuiti: parlare di "totale" in euro
-                    faceva aspettare all'utente una richiesta di pagamento. */}
-                <span className={styles.summaryLabel}>Costo</span>
-                <span className={styles.summaryValue}>Gratuito</span>
-              </div>
-            </div>
-
-            <div className={styles.actionBlock}>
-              <button
-                type="button"
-                className={`${styles.proceedBtn} ${count > 0 ? styles.visible : ''}`}
-                disabled={count === 0}
-                onClick={startCheckout}
-              >
-                Conferma prenotazione
-              </button>
-              {count === 0 && (
-                <p className={styles.hintText}>Seleziona almeno un posto per continuare</p>
-              )}
-            </div>
-          </div>
-        </>
+        </section>
       )}
+
+      <TicketFoot
+        seatLabels={seatLabels}
+        legal={selectedSubeventId ? ageNotice(meta?.rating) : null}
+        onProceed={startCheckout}
+        checkout={checkoutStarted ? (
+          <CheckoutButton
+            subeventId={selectedSubeventId!}
+            selectedSeats={Array.from(selectedSeats.keys())}
+            onSuccess={handleBookingSuccess}
+            movieRating={meta?.rating}
+          />
+        ) : undefined}
+      />
     </div>
   );
 }

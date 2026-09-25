@@ -1,22 +1,33 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './BookingDrawer.module.css';
 import BookingFlow from '../BookingFlow';
+import type { ShowChoice } from './showChoices';
 
 interface BookingDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   subeventId: number | null;
   movieTitle?: string;
+  /** Gli altri spettacoli dello stesso film, per "cambia orario". */
+  choices?: ShowChoice[];
 }
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-export default function BookingDrawer({ isOpen, onClose, subeventId, movieTitle }: BookingDrawerProps) {
+export default function BookingDrawer({ isOpen, onClose, subeventId, movieTitle, choices }: BookingDrawerProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const lastFocused = useRef<HTMLElement | null>(null);
   const scrollLock = useRef(0);
+
+  // Lo spettacolo aperto adesso. "Cambia orario" lo sostituisce, e il `key`
+  // su BookingFlow fa ripartire da capo disponibilità, età e posti.
+  const [currentId, setCurrentId] = useState<number | null>(null);
+  useEffect(() => {
+    if (!isOpen) setCurrentId(null);
+  }, [isOpen]);
+  const activeId = currentId ?? subeventId;
 
   // Blocco dello scroll di fondo. Su iOS il solo `overflow: hidden` sul body
   // non basta — la pagina continua a scorrere dietro al pannello — quindi il
@@ -105,32 +116,24 @@ export default function BookingDrawer({ isOpen, onClose, subeventId, movieTitle 
   }, [isOpen, onClose]);
 
   return (
-    <>
-      {/* Background Overlay with Blur */}
-      <div
-        className={`${styles.drawerOverlay} ${isOpen ? styles.open : ''}`}
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Centered Modal Container */}
-      <div
-        className={`${styles.drawerContainer} ${isOpen ? styles.open : ''}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={movieTitle ? `Prenotazione — ${movieTitle}` : 'Prenotazione'}
-        aria-hidden={!isOpen}
-      >
-        <div className={styles.drawerContent} ref={contentRef} tabIndex={-1}>
-          {/* Render context-aware booking flow */}
-          {isOpen && (
-            <BookingFlow
-              subeventId={subeventId || undefined}
-              onClose={onClose}
-            />
-          )}
-        </div>
+    <div
+      className={`${styles.drawerContainer} ${isOpen ? styles.open : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={movieTitle ? `Prenotazione — ${movieTitle}` : 'Prenotazione'}
+      aria-hidden={!isOpen}
+    >
+      <div className={styles.drawerContent} ref={contentRef} tabIndex={-1}>
+        {isOpen && (
+          <BookingFlow
+            key={activeId ?? 'scelta'}
+            subeventId={activeId || undefined}
+            choices={choices}
+            onChangeShow={setCurrentId}
+            onClose={onClose}
+          />
+        )}
       </div>
-    </>
+    </div>
   );
 }

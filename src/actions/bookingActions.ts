@@ -42,6 +42,10 @@ export async function getTrustedSubeventMetadata(subeventId: number) {
       title: (override as any).customTitle,
       posterPath: (override as any).customPosterPath,
       backdropPath: (override as any).customBackdropPath,
+      // Il logo per la colonna della prenotazione; 'none' vuol dire "niente logo".
+      logoPath: (override as any).customLogoPath && (override as any).customLogoPath !== 'none'
+        ? (override as any).customLogoPath
+        : '',
       runtime: (override as any).runtime || 120,
       roomName: syncData.roomName || 'Sala'
     };
