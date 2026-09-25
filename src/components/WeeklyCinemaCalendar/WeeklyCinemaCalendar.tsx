@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Film, Ticket } from 'lucide-react';
 import styles from './WeeklyCinemaCalendar.module.css';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
+import { choicesFromCalendar } from '../BookingDrawer/showChoices';
 import RatingBadge from '../RatingBadge';
 import LanguageBadge from '../LanguageBadge';
 import ProjectionSpecs from '../ProjectionSpecs';
@@ -292,6 +293,7 @@ export default function WeeklyCinemaCalendar({ subEvents: initialSubEvents }: We
         onClose={() => setDrawerOpen(false)}
         subeventId={selectedSubevent?.id || null}
         movieTitle={selectedSubevent?.title}
+        choices={selectedSubevent ? choicesFromCalendar(subEvents, selectedSubevent.id) : []}
       />
     </section>
   );

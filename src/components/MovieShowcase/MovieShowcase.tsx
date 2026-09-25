@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { useAutoScroll } from '@/context/AutoScrollContext';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
+import { choicesFromShowcase } from '../BookingDrawer/showChoices';
 import CustomVideoPlayer from '../CustomVideoPlayer/CustomVideoPlayer';
 import ShowcaseHero from './ShowcaseHero';
 import FilmStrip from './FilmStrip';
@@ -263,6 +264,7 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
         onClose={() => setDrawerOpen(false)}
         subeventId={checkoutSubeventId}
         movieTitle={activeMovie.title}
+        choices={choicesFromShowcase(activeMovie.subevents)}
       />
     </div>
   );
