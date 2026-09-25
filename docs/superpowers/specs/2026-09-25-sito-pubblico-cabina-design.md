@@ -1,7 +1,7 @@
 # Il sito pubblico entra in cabina
 
 **Data:** 2026-09-25
-**Stato:** approvato da Giovanni il 25 settembre 2026, da realizzare.
+**Stato:** approvato da Giovanni il 25 settembre 2026, **realizzato** nello stesso giro (tappe 1–5). Le deviazioni stanno in fondo, in "Com'è andata".
 **Fa parte di:** restyling completo del sito, in quattro progetti:
 1. fondamenta visive (fatto, con il gestionale)
 2. gestionale (fatto: `2026-09-24-gestionale-cabina-design.md`)
@@ -235,3 +235,26 @@ Alla fine di ogni tappa il sito funziona per intero. Le parti non ancora rifatte
 - **Il sync in sottofondo della home** (`page.tsx`), che è una promessa lasciata correre. Resta com'è, segnalato come lavoro a parte. Lo stesso vale per il frammento di diagnosi su Anora, che scrive un file in `scratch/`: si può togliere nella tappa 2, perché sta nel file che si tocca, ma senza cambiare altro nel caricamento dei dati.
 - **Il titolo della pagina** ("VESTRICINEMA | The Ultimate Cinema Experience") e i metadati: restano come sono, salvo richiesta di Giovanni.
 - **Ogni modifica a Pretix, al checkout e alle azioni sul server.**
+
+## Com'è andata
+
+Le cinque tappe sono fatte. I piani stanno in `docs/superpowers/plans/2026-09-25-sito-pubblico-cabina-tappa-*.md`. Quello che è cambiato rispetto a questa specifica, e perché:
+
+- **Il muro di locandine è rimasto.** Nel mockup dei capitoli era descritto come un "nastro" che avrebbe ripetuto la striscia dell'hero. È invece il muro in prospettiva (`DriftWall`), e Giovanni ha deciso di tenerlo. Nello stesso giro sono comparsi due pezzi che il mockup non mostrava: gli stacchi a titoli e il tabellone split-flap. Sono rimasti anche loro, rivestiti.
+- **La conferma avviene nel cassetto, non su Pretix.** L'email (oppure "senza email") si chiede nella colonna, la prenotazione si chiude sul server e il biglietto compare subito. `/success` è il riepilogo che si apre dal link. `TicketCard` disegna il biglietto in tutti e due i posti.
+- **La tabella degli orari ha un limite anche sul computer:** 5 giorni, contro i 3 del telefono, poi "Tutti gli orari ↓" verso il calendario.
+- **"Cambia orario" propone solo gli spettacoli dello stesso film.** Prima, dalla home, l'orario non si poteva cambiare. Gli spettacoli li passano al cassetto l'hero e il calendario, e cambiarne uno fa ripartire la prenotazione da capo.
+- **È nato "‹ Cambia posti"**: prima, una volta partita la conferma, non si tornava indietro.
+- **Sul server c'è una riga in più:** `getTrustedSubeventMetadata` restituisce il logo del film.
+- **`/success` dice quando il riepilogo non c'è.** Prima, aperta in un'altra finestra, restava su "Caricamento" per sempre.
+- **Divieto e lingua non si ripetono più su ogni orario:** stanno una volta nella riga dei dati. Accanto all'orario compare solo quello che vale per quella replica.
+- **Il colore d'accento che cambiava col genere è sparito:** l'accento è solo l'ambra.
+- **Via anche `AdminSearch`**, un pezzo del vecchio gestionale che nessuno importava più. Con la pagina film sono usciti `MovieCard` e `MovieGallery`.
+
+**Scoperto strada facendo, e da sistemare a parte:**
+- `CheckoutButton` chiama TMDB dal browser con la chiave API scritta nel codice. C'è già una sessione separata che la sposta sul server;
+- in `BookingFlow.fetchSchedules` il ramo senza spettacolo non serve più a nessuno, ora che la prenotazione parte sempre da uno spettacolo;
+- la variante `line` di `ProjectionSpecs` non ha più utenti;
+- restano del progetto 4: `globals.css` (viola, rosa, `.btn-primary`), Playfair, il display esterno, il PDF e il biglietto termico.
+
+Il prossimo progetto del restyling è **display e biglietti**.
