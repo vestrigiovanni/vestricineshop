@@ -5,6 +5,7 @@ import {
   languageLabel,
   mainAwardLabel,
   pickInitialMovieId,
+  pickInitialSubeventId,
   showtimeDays,
   type SubeventLike,
 } from './heroData';
@@ -126,5 +127,25 @@ describe('pickInitialMovieId', () => {
     expect(pickInitialMovieId(movies, 'anora')).toBeNull();
     expect(pickInitialMovieId(movies, '')).toBeNull();
     expect(pickInitialMovieId(movies, undefined)).toBeNull();
+  });
+});
+
+describe('pickInitialSubeventId', () => {
+  const movies = [
+    { id: 10, subevents: [{ id: 1, isSoldOut: false }, { id: 2, isSoldOut: true }] },
+    { id: 20, subevents: [{ id: 3, isSoldOut: false }] },
+  ];
+  it('apre lo spettacolo chiesto se è del film e si può ancora prenotare', () => {
+    expect(pickInitialSubeventId(movies, 10, '1')).toBe(1);
+  });
+  it('ignora uno spettacolo esaurito, di un altro film o sconosciuto', () => {
+    expect(pickInitialSubeventId(movies, 10, '2')).toBeNull();
+    expect(pickInitialSubeventId(movies, 10, '3')).toBeNull();
+    expect(pickInitialSubeventId(movies, 10, '99')).toBeNull();
+    expect(pickInitialSubeventId(movies, 10, 'abc')).toBeNull();
+  });
+  it('senza film o senza spettacolo non apre niente', () => {
+    expect(pickInitialSubeventId(movies, null, '1')).toBeNull();
+    expect(pickInitialSubeventId(movies, 10, undefined)).toBeNull();
   });
 });

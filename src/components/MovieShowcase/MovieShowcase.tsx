@@ -52,9 +52,11 @@ interface MovieShowcaseProps {
   initialAvailability?: Record<number, boolean>;
   /** Da `?film=`: il film da cui parte l'hero. Già controllato dal server. */
   initialMovieId?: number | null;
+  /** Da `?subevent=`: la prenotazione parte già aperta su questo spettacolo. */
+  initialSubeventId?: number | null;
 }
 
-export default function MovieShowcase({ movies: initialMovies, initialAvailability, initialMovieId }: MovieShowcaseProps) {
+export default function MovieShowcase({ movies: initialMovies, initialAvailability, initialMovieId, initialSubeventId }: MovieShowcaseProps) {
   const { data: availabilityData } = useSWR('/api/availability', fetcher, {
     refreshInterval: 30000,
     revalidateOnFocus: true,
@@ -62,8 +64,8 @@ export default function MovieShowcase({ movies: initialMovies, initialAvailabili
   });
 
   const [activeMovieId, setActiveMovieId] = useState<number>(initialMovieId ?? initialMovies[0]?.id ?? 0);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [checkoutSubeventId, setCheckoutSubeventId] = useState<number | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(initialSubeventId != null);
+  const [checkoutSubeventId, setCheckoutSubeventId] = useState<number | null>(initialSubeventId ?? null);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
   const [isImmersiveMode, setIsImmersiveMode] = useState(false);
   // Solo mouse: su touch `pointerleave` può non arrivare mai e la rotazione

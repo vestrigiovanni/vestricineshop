@@ -7,7 +7,7 @@ import styles from './page.module.css';
 import { unstable_noStore as noStore } from 'next/cache';
 import type { MovieOverride, PretixSync } from '@prisma/client';
 import { commonProjectionSpecs, normalizeProjectionSpecs } from '@/constants/projectionSpecs';
-import { pickInitialMovieId } from '@/components/MovieShowcase/heroData';
+import { pickInitialMovieId, pickInitialSubeventId } from '@/components/MovieShowcase/heroData';
 
 // Define the type for the projection with the included movie
 type ProjectionWithMovie = PretixSync & {
@@ -23,7 +23,7 @@ export default async function Home({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   noStore();
-  const { film } = await searchParams;
+  const { film, subevent } = await searchParams;
 
   console.log('[SSR] Caricamento homepage dal Database Neon...');
   const startTime = Date.now();
@@ -171,6 +171,7 @@ export default async function Home({
 
   // `?film=`: i vecchi link alla pagina del film arrivano qui.
   const initialMovieId = pickInitialMovieId(movies, film);
+  const initialSubeventId = pickInitialSubeventId(movies, initialMovieId, subevent);
 
   // Prepariamo i dati per il Calendario Settimanale
   const enrichedSubEvents = projections.map(p => ({
@@ -213,6 +214,7 @@ export default async function Home({
         movies={movies}
         initialAvailability={availabilityMap}
         initialMovieId={initialMovieId}
+        initialSubeventId={initialSubeventId}
       />
       <CinematicStory
         movies={movies}

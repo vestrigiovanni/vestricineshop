@@ -179,3 +179,21 @@ export function pickInitialMovieId(
   const id = Number(raw);
   return movies.some(m => m.id === id) ? id : null;
 }
+
+/**
+ * `?subevent=`: i vecchi link della pagina film potevano portare dritti a uno
+ * spettacolo. Si apre la prenotazione solo se lo spettacolo è del film scelto
+ * e si può ancora prenotare; altrimenti basta la home su quel film.
+ */
+export function pickInitialSubeventId(
+  movies: { id: number; subevents: { id: number; isSoldOut?: boolean }[] }[],
+  movieId: number | null,
+  subevent?: string | string[] | null
+): number | null {
+  const raw = Array.isArray(subevent) ? subevent[0] : subevent;
+  if (movieId == null || !raw || !/^\d+$/.test(raw)) return null;
+  const id = Number(raw);
+  const movie = movies.find(m => m.id === movieId);
+  const show = movie?.subevents.find(s => s.id === id);
+  return show && !show.isSoldOut ? id : null;
+}
