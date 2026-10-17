@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { finalizeBooking, getSubEvent } from '@/services/pretix';
 import { isVM18 } from '@/utils/ratingUtils';
 import TicketPDF, { generateTicketPDF } from './TicketPDF';
+import SaveTicketsToPhotos from './SaveTicketsToPhotos';
 import TicketCard from './TicketCard/TicketCard';
 import styles from './CheckoutButton.module.css';
 
@@ -370,6 +371,11 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
           <Link href={`/success?subeventId=${subeventId}`} className={styles.secondaryActionBtn}>
             Apri il riepilogo
           </Link>
+          <SaveTicketsToPhotos
+            ticketIds={tickets.map(t => `full-ticket-${t.secret}`)}
+            fileName={`biglietto_${orderCode}`}
+            className={`${styles.button} ${styles.photos}`}
+          />
         </div>
 
         <p className={styles.successNote}>

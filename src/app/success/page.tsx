@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import TicketPDF, { generateTicketPDF } from '@/components/TicketPDF';
 import TicketCard from '@/components/TicketCard/TicketCard';
+import SaveTicketsToPhotos from '@/components/SaveTicketsToPhotos';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import styles from './success.module.css';
 
@@ -85,6 +86,11 @@ function SuccessContent() {
             {loading ? 'Generazione PDF…' : 'Scarica PDF'}
           </button>
           <Link href="/" className={styles.ghost}>‹ Home</Link>
+          <SaveTicketsToPhotos
+            ticketIds={tickets.map((t: any) => `full-ticket-${t.secret}`)}
+            fileName={`biglietto_${orderCode}`}
+            className={`${styles.primary} ${styles.photos}`}
+          />
         </div>
 
         <p className={styles.note}>

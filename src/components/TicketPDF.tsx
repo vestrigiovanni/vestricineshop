@@ -386,36 +386,25 @@ async function waitForImages(element: HTMLElement) {
   await new Promise(resolve => setTimeout(resolve, 1000));
 }
 
-export async function generateTicketPDF(elementIds: string[], fileName: string = 'Biglietti', pdfWindow?: Window | null, shouldDownload: boolean = false) {
-  if (!elementIds.length) {
-    if (pdfWindow) pdfWindow.close();
-    return;
-  }
+/**
+ * Disegna ogni biglietto in un canvas, come lo vede il PDF. Lo usano sia il
+ * PDF sia il salvataggio nelle foto del telefono: stesso biglietto, due formati.
+ */
+async function renderTicketCanvases(elementIds: string[]): Promise<HTMLCanvasElement[]> {
+  const { default: html2canvas } = await import('html2canvas');
+  const previousScrollX = window.scrollX;
+  const previousScrollY = window.scrollY;
+  window.scrollTo(0, 0);
 
+  const canvases: HTMLCanvasElement[] = [];
   try {
-    const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-      import('jspdf'),
-      import('html2canvas'),
-    ]);
-
-    const pdf = new jsPDF({
-      orientation: 'landscape',
-      unit: 'mm',
-      format: [210, 148], // A5 landscape
-    });
-
-    const previousScrollX = window.scrollX;
-    const previousScrollY = window.scrollY;
-    window.scrollTo(0, 0);
-
-    for (let i = 0; i < elementIds.length; i++) {
-      const elementId = elementIds[i];
+    for (const elementId of elementIds) {
       const element = document.getElementById(elementId);
       if (!element) continue;
 
       await waitForImages(element);
 
-      const canvas = await html2canvas(element, {
+      canvases.push(await html2canvas(element, {
         scale: 3, // High-quality render
         useCORS: true,
         backgroundColor: '#000000',
@@ -428,8 +417,48 @@ export async function generateTicketPDF(elementIds: string[], fileName: string =
         scrollY: 0,
         windowWidth: document.documentElement.offsetWidth,
         windowHeight: document.documentElement.offsetHeight,
-      });
+      }));
+    }
+  } finally {
+    window.scrollTo(previousScrollX, previousScrollY);
+  }
+  return canvases;
+}
 
+/**
+ * Le immagini dei biglietti, pronte per il rullino: una JPEG per biglietto.
+ */
+export async function renderTicketImages(elementIds: string[], fileName: string = 'Biglietto'): Promise<File[]> {
+  const canvases = await renderTicketCanvases(elementIds);
+  const files: File[] = [];
+  for (let i = 0; i < canvases.length; i++) {
+    const blob = await new Promise<Blob | null>(resolve => canvases[i].toBlob(resolve, 'image/jpeg', 0.95));
+    if (!blob) continue;
+    const suffix = canvases.length > 1 ? `_${i + 1}` : '';
+    files.push(new File([blob], `${fileName}${suffix}.jpg`, { type: 'image/jpeg' }));
+  }
+  return files;
+}
+
+export async function generateTicketPDF(elementIds: string[], fileName: string = 'Biglietti', pdfWindow?: Window | null, shouldDownload: boolean = false) {
+  if (!elementIds.length) {
+    if (pdfWindow) pdfWindow.close();
+    return;
+  }
+
+  try {
+    const [{ default: jsPDF }, canvases] = await Promise.all([
+      import('jspdf'),
+      renderTicketCanvases(elementIds),
+    ]);
+
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: [210, 148], // A5 landscape
+    });
+
+    canvases.forEach((canvas, i) => {
       const imgData = canvas.toDataURL('image/jpeg', 0.98);
 
       if (i > 0) {
@@ -437,9 +466,7 @@ export async function generateTicketPDF(elementIds: string[], fileName: string =
       }
 
       pdf.addImage(imgData, 'JPEG', 0, 0, 210, 148);
-    }
-
-    window.scrollTo(previousScrollX, previousScrollY);
+    });
 
     // Create a blob and open it in the provided window or a new one
     const pdfBlob = pdf.output('blob');

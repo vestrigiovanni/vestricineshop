@@ -97,6 +97,10 @@
   cursor: wait;
 }
 
+.photos {
+  grid-column: 1 / -1;
+}
+
 .ghost {
   border: 1px solid var(--c-line-strong);
   background: rgba(16, 13, 10, 0.4);
