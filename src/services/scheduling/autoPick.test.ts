@@ -47,10 +47,41 @@ function catalog(n = 60): AutoPickFilm[] {
 describe('bandAffinity', () => {
   const now = Date.now();
 
-  it('manda in matinée il film corto e leggero, non il dramma lungo', () => {
-    const cartone = film({ tmdbId: 'a', genres: ['Animazione', 'Famiglia'], runtime: 95 });
+  it('manda in matinée il documentario, non il dramma di tre ore', () => {
+    const doc = film({ tmdbId: 'a', genres: ['Documentario'], runtime: 95 });
     const fiume = film({ tmdbId: 'b', genres: ['Dramma', 'Guerra'], runtime: 170 });
-    expect(bandAffinity(cartone, 'matinee', now)).toBeGreaterThan(bandAffinity(fiume, 'matinee', now));
+    expect(bandAffinity(doc, 'matinee', now)).toBeGreaterThan(bandAffinity(fiume, 'matinee', now));
+  });
+
+  it('in matinée il classico batte il cartone per famiglie', () => {
+    const classico = film({ tmdbId: 'a', genres: ['Dramma'], year: 1963, runtime: 105, canon: true });
+    const cartone = film({ tmdbId: 'b', genres: ['Animazione', 'Famiglia'], year: 2016, runtime: 95, voteCount: 9000 });
+    expect(bandAffinity(classico, 'matinee', now)).toBeGreaterThan(bandAffinity(cartone, 'matinee', now));
+  });
+
+  it('in prima serata il film d\'autore dell\'anno batte il blockbuster di dieci anni fa', () => {
+    const year = new Date(now).getFullYear();
+    const autore = film({ tmdbId: 'a', genres: ['Dramma'], year, voteAverage: 7.3, voteCount: 300 });
+    const blockbuster = film({
+      tmdbId: 'b', genres: ['Azione', 'Avventura', 'Fantasy'], year: year - 10, voteAverage: 7.6, voteCount: 20000,
+    });
+    expect(bandAffinity(autore, 'evening', now)).toBeGreaterThan(bandAffinity(blockbuster, 'evening', now));
+  });
+
+  it('il gusto della sala vince sul voto TMDB', () => {
+    const amato = film({ tmdbId: 'a', voteAverage: 6.8, voteCount: 400, taste: 1.8 });
+    const freddo = film({ tmdbId: 'b', voteAverage: 7.8, voteCount: 6000, taste: -1.2 });
+    for (const band of ['matinee', 'afternoon', 'evening', 'night'] as const) {
+      expect(bandAffinity(amato, band, now)).toBeGreaterThan(bandAffinity(freddo, band, now));
+    }
+  });
+
+  it('se Gio l\'ha amato, anche il film di genere popolare non paga pegno', () => {
+    const year = new Date(now).getFullYear();
+    const base = { genres: ['Avventura', 'Fantascienza'], year: year - 12, voteCount: 30000 };
+    const amato = film({ tmdbId: 'a', ...base, taste: 1.8 });
+    const ignoto = film({ tmdbId: 'b', ...base, taste: 0 });
+    expect(bandAffinity(amato, 'evening', now) - bandAffinity(ignoto, 'evening', now)).toBeGreaterThan(3);
   });
 
   it('in prima serata vince il film forte, non quello corto', () => {
@@ -115,6 +146,17 @@ describe('autoPick', () => {
     expect(second.films.some((f) => rejected.includes(f.tmdbId))).toBe(false);
   });
 
+  it('non sceglie mai da solo un film d\'animazione', () => {
+    const { films } = autoPick({ pool: catalog(), capacity: 90, seed: 7 });
+    const animated = new Set(catalog().filter((f) => f.genres.includes('Animazione')).map((f) => f.tmdbId));
+    expect(films.some((f) => animated.has(f.tmdbId))).toBe(false);
+  });
+
+  it('l\'animazione entra solo se l\'hai voluta tu', () => {
+    const { films } = autoPick({ pool: catalog(), capacity: 90, seed: 7, keep: ['1000'] });
+    expect(films.some((f) => f.tmdbId === '1000')).toBe(true);
+  });
+
   it('tiene i film che l\'utente ha approvato', () => {
     const pool = catalog();
     const keep = ['1003', '1017'];
@@ -162,6 +204,12 @@ describe('autoPick', () => {
     ];
     const { films } = autoPick({ pool, capacity: 8, seed: 1, targetReplicas: 8 });
     expect(films[0].tmdbId).toBe('nuovo');
+  });
+
+  it('la ragione dice che il film è nel gusto della sala', () => {
+    const pool = [...catalog(20), film({ tmdbId: 'cuore', taste: 1.8, tasteNote: 'Cinque stelle per te' })];
+    const { films } = autoPick({ pool, capacity: 30, seed: 1 });
+    expect(films.find((f) => f.tmdbId === 'cuore')?.reason).toBe('Cinque stelle per te');
   });
 
   it('ogni film proposto ha almeno una replica e una ragione', () => {

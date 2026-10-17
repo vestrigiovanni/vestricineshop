@@ -17,6 +17,14 @@
  * spalma: si guarda quanti posti ha ogni fascia, e per ogni fascia si cerca chi
  * ci sta bene. Le affinità qui sotto sono grossolane di proposito — sono un
  * punto di partenza da correggere in due clic, non un verdetto.
+ *
+ * LA SALA — Vestri Cinema è una sala d'essai, e programma come la programma
+ * chi la tiene: il film d'autore uscito quest'anno in prima serata, il classico
+ * restaurato o il documentario la mattina, il film estremo per chi resta alle
+ * undici. Il blockbuster di dieci anni fa che tutti hanno già visto in tv non
+ * ha niente da fare qui, anche se su TMDB ha centomila voti. Per questo la
+ * popolarità pesa poco, i premi dei festival pesano tanto, e sopra tutto pesa
+ * il gusto di Gio (`taste.ts`, dal suo Letterboxd).
  */
 
 import { BAND_WINDOWS, MIN_GAP_MINUTES, type Band } from './times';
@@ -38,6 +46,15 @@ export interface AutoPickFilm {
   scheduledCount: number;
   posterPath?: string | null;
   director?: string | null;
+  /**
+   * Il gusto della sala per questo film, da `judgeTaste`: circa fra -2 e +2,
+   * zero se non c'è niente da dire. È il peso più forte di tutti.
+   */
+  taste?: number;
+  /** Il perché del gusto, in parole ("Cinque stelle per te"). */
+  tasteNote?: string | null;
+  /** Sta nel canone della storia del cinema: buono per la matinée. */
+  canon?: boolean;
 }
 
 export interface AutoPickInput {
@@ -106,11 +123,23 @@ function bandCapacityShare(): Record<Band, number> {
  * come è stato scritto il suo genere.
  */
 const BAND_GENRES: Record<Band, string[]> = {
-  matinee: ['animazione', 'animation', 'famiglia', 'family', 'commedia', 'comedy', 'avventura', 'adventure', 'musica', 'music', 'documentario', 'documentary'],
-  afternoon: ['commedia', 'comedy', 'avventura', 'adventure', 'azione', 'action', 'famiglia', 'family', 'fantasy', 'storia', 'history', 'romance', 'romantico'],
-  evening: ['dramma', 'drama', 'azione', 'action', 'thriller', 'fantascienza', 'science fiction', 'avventura', 'adventure', 'crime', 'commedia', 'comedy'],
-  night: ['horror', 'thriller', 'mistero', 'mystery', 'crime', 'guerra', 'war', 'western', 'fantascienza', 'science fiction', 'dramma', 'drama'],
+  // La mattina di una sala d'essai è del documentario e del classico: chi entra
+  // alle 10:30 è venuto apposta, non a far passare un'ora ai bambini.
+  matinee: ['documentario', 'documentary', 'storia', 'history', 'musica', 'music', 'commedia', 'comedy', 'dramma', 'drama'],
+  afternoon: ['commedia', 'comedy', 'dramma', 'drama', 'romance', 'romantico', 'storia', 'history', 'documentario', 'documentary', 'musica', 'music'],
+  evening: ['dramma', 'drama', 'romance', 'romantico', 'thriller', 'crime', 'mistero', 'mystery', 'fantascienza', 'science fiction', 'commedia', 'comedy'],
+  night: ['horror', 'thriller', 'mistero', 'mystery', 'crime', 'guerra', 'war', 'western', 'fantascienza', 'science fiction', 'dramma', 'drama', 'romance'],
 };
+
+/**
+ * I generi del cinema da multisala. Non sono vietati — un'avventura d'autore
+ * esiste — ma uniti a una valanga di voti TMDB dicono "franchise", e il
+ * franchise è l'unica cosa che una sala d'essai non deve proporre da sola.
+ */
+const MAINSTREAM_GENRES = new Set(['azione', 'action', 'avventura', 'adventure', 'fantasy', 'famiglia', 'family']);
+const HORROR = new Set(['horror']);
+const AUTHOR_GENRES = new Set(['dramma', 'drama', 'documentario', 'documentary']);
+const DOCUMENTARY = new Set(['documentario', 'documentary']);
 
 /** Durate che stanno bene in ogni fascia: fuori da qui si paga un pegno. */
 const BAND_RUNTIME: Record<Band, { ideal: number; max: number }> = {
@@ -136,6 +165,14 @@ function makeRng(seed: number): () => number {
 const norm = (s: string) => s.trim().toLowerCase();
 
 /**
+ * L'animazione non entra mai da sola in cartellone: è una scelta di sala, non
+ * del motore. Se la vuoi, la metti tu a mano (o la tieni con `keep`).
+ */
+const ANIMATION = new Set(['animazione', 'animation']);
+export const isAnimated = (f: AutoPickFilm): boolean => f.genres.some((g) => ANIMATION.has(norm(g)));
+const isDocumentary = (f: AutoPickFilm): boolean => f.genres.some((g) => DOCUMENTARY.has(norm(g)));
+
+/**
  * Quanto è "forte" un film, indipendentemente dall'ora.
  *
  * Il voto da solo non basta: un 8,4 con quaranta voti non è un 8,4. Il numero
@@ -145,10 +182,58 @@ const norm = (s: string) => s.trim().toLowerCase();
 function strengthOf(f: AutoPickFilm): number {
   const vote = f.voteAverage ?? 6;
   const count = f.voteCount ?? 0;
-  const confidence = count / (count + 400); // 0 senza voti, ~0.7 a 1000
-  const base = 5 + (vote - 6) * confidence * 2.2;
-  const awards = Math.min(f.awardLabels.length, 4) * 0.45;
+  // Lo smorzatore si satura presto: il film d'autore ha qualche centinaio di
+  // voti, non centomila, e da lì in su la quantità non dice più niente.
+  const confidence = count / (count + 150); // 0 senza voti, ~0.75 a 450
+  const base = 5 + (vote - 6.3) * confidence * 1.8;
+  // I premi sono la voce del festival: per una sala d'essai valgono più dei voti.
+  const awards = Math.min(f.awardLabels.length, 4) * 0.6;
   return base + awards;
+}
+
+const yearNow = (now: number) => new Date(now).getFullYear();
+
+/** Uscito quest'anno o l'anno scorso: è la novità che la gente cerca in sala. */
+function noveltyOf(f: AutoPickFilm, now: number): number {
+  if (!f.year) return 0;
+  const age = yearNow(now) - f.year;
+  if (age <= 1) return 1;
+  if (age === 2) return 0.5;
+  return 0;
+}
+
+/** Un classico: nel canone, o abbastanza vecchio da essere una riscoperta. */
+function classicOf(f: AutoPickFilm, now: number): number {
+  if (f.canon) return 1;
+  if (!f.year) return 0;
+  return yearNow(now) - f.year >= 35 ? 0.8 : 0;
+}
+
+/**
+ * Il pegno del multisala.
+ *
+ * Due cose che una sala d'essai non propone di sua iniziativa: il film di
+ * genere popolare (azione, fantasy, famiglia, con migliaia di voti) e il film
+ * "di qualche anno fa" che non è né una novità né un classico, senza premi e
+ * senza che Gio l'abbia amato — quello che si è già visto in tv. Il gusto lo
+ * cancella: se Gio gli ha dato quattro stelle, il pegno non c'è.
+ */
+function mainstreamPenalty(f: AutoPickFilm, now: number): number {
+  const taste = f.taste ?? 0;
+  if (taste >= 0.8) return 0;
+  const genres = f.genres.map(norm);
+  const authored = genres.some((g) => AUTHOR_GENRES.has(g));
+  let p = 0;
+  const popular = (f.voteCount ?? 0) >= 3000;
+  if (genres.some((g) => MAINSTREAM_GENRES.has(g))) p += popular ? 1.4 : authored ? 0.2 : 0.6;
+  // L'animazione dal motore non entra mai; fra i suggerimenti a mano scende in fondo.
+  if (isAnimated(f)) p += 1.2;
+  // L'horror di genere, senza un dramma dentro, non è roba di questa sala.
+  if (genres.some((g) => HORROR.has(g)) && !authored) p += 0.5;
+  const age = f.year ? yearNow(now) - f.year : 0;
+  const middleAged = age >= 5 && age < 35 && !f.canon;
+  if (middleAged && f.awardLabels.length === 0 && taste <= 0) p += popular ? 0.9 : 0.5;
+  return p * (taste < 0 ? 1.3 : 1);
 }
 
 /** Quanto è nuovo in libreria: 1 arrivato adesso, 0 da più di un anno. */
@@ -188,22 +273,33 @@ export function bandAffinity(f: AutoPickFilm, band: Band, now: number): number {
   const r = runtimeScore(f, band);
   const s = strengthOf(f);
   const fresh = freshnessOf(f, now);
+  const nov = noveltyOf(f, now);
+  const classic = classicOf(f, now);
+  const taste = f.taste ?? 0;
+  const pop = mainstreamPenalty(f, now);
 
   switch (band) {
     case 'matinee':
-      // La mattina vince la leggerezza, e un film corto: chi entra alle 10:30
-      // non è venuto per tre ore di cinema d'autore.
-      return g * 2.2 + r * 1.8 + s * 0.35 - (f.runtime > 140 ? 1.2 : 0);
+      // La mattina è del classico e del documentario, e di un film non troppo
+      // lungo: chi entra alle 10:30 è venuto apposta, ma ha anche un pranzo.
+      return g * 1.4 + r * 1.6 + s * 0.4 + classic * 1.4 + taste * 0.8 - pop - (f.runtime > 140 ? 1.2 : 0);
     case 'afternoon':
-      return g * 1.5 + r * 1.3 + s * 0.6 + fresh * 0.4;
+      return g * 1.2 + r * 1.1 + s * 0.6 + fresh * 0.4 + nov * 0.6 + classic * 0.4 + taste * 0.9 - pop;
     case 'evening':
-      // La fascia che vale di più: ci va il film più forte che hai, e le novità
-      // di libreria hanno la precedenza perché è lì che si fanno vedere.
-      return s * 1.6 + g * 1.1 + r * 0.8 + fresh * 1.1 + Math.min(f.awardLabels.length, 3) * 0.3;
+      // La fascia che vale di più: il film d'autore dell'anno, il premiato, il
+      // film che Gio ama. Le novità hanno la precedenza perché è lì che si fanno
+      // vedere, e il multisala paga di più perché qui toglierebbe il posto migliore.
+      return (
+        s * 1.2 + g * 0.9 + r * 0.7 + fresh * 0.8 + nov * 1.4 +
+        Math.min(f.awardLabels.length, 3) * 0.4 + taste * 1.3 - pop * 1.3
+      );
     case 'night':
-      // Seconda serata: il film lungo, il genere che di mattina non si può
-      // mettere, il titolo per chi resta.
-      return g * 1.9 + s * 0.7 + r * 0.6 + (f.runtime >= 130 ? 0.6 : 0);
+      // Seconda serata: il film lungo, il film estremo, il cult per chi resta.
+      // Il documentario no: alle undici di sera si viene per la finzione.
+      return (
+        g * 1.6 + s * 0.6 + r * 0.5 + (f.runtime >= 130 ? 0.6 : 0) + nov * 0.4 + taste * 1.1 - pop -
+        (isDocumentary(f) ? 1 : 0)
+      );
   }
 }
 
@@ -229,7 +325,12 @@ export function autoPick(input: AutoPickInput): AutoPickResult {
   const tired = new Set((input.genresInSchedule ?? []).map(norm));
 
   const pool = input.pool.filter(
-    (f) => f.tmdbId && Number.isFinite(f.runtime) && f.runtime > 0 && !excluded.has(f.tmdbId)
+    (f) =>
+      f.tmdbId &&
+      Number.isFinite(f.runtime) &&
+      f.runtime > 0 &&
+      !excluded.has(f.tmdbId) &&
+      (kept.has(f.tmdbId) || !isAnimated(f))
   );
 
   if (pool.length === 0) {
@@ -311,10 +412,12 @@ export function autoPick(input: AutoPickInput): AutoPickResult {
 
     // Il pizzico di caso serve a non ottenere due volte di fila la stessa
     // identica settimana quando si chiede "rigenera": resta piccolo perché non
-    // deve ribaltare una scelta, solo scioglierne i pareggi. Si sorteggia una
+    // deve ribaltare una scelta, solo scioglierne i pareggi — e i pareggi qui
+    // sono tanti, perché in una sala d'essai i film amati sono centinaia e
+    // nessuno merita di uscire ogni settimana. Si sorteggia una
     // volta per film e resta fisso, altrimenti la classifica cambierebbe fra
     // una scelta e l'altra e il seed non garantirebbe più niente.
-    const jitter = new Map(pool.map((f) => [f.tmdbId, rng() * 0.35]));
+    const jitter = new Map(pool.map((f) => [f.tmdbId, rng() * 0.9]));
 
     // Si sceglie uno alla volta, e ogni volta si rifà la classifica: il pegno
     // di varietà cambia dopo ogni scelta, quindi una graduatoria calcolata in
@@ -378,14 +481,21 @@ export function autoPick(input: AutoPickInput): AutoPickResult {
 
 /** Perché questo film in questa fascia, in una riga leggibile. */
 function reasonFor(f: AutoPickFilm, band: Band, now: number): string {
+  if (f.tasteNote && (f.taste ?? 0) >= 0.8) return f.tasteNote;
   if (f.awardLabels.length > 0 && band === 'evening') {
     return `Premiato (${f.awardLabels.slice(0, 2).join(', ')})`;
   }
+  if (noveltyOf(f, now) === 1 && (band === 'evening' || band === 'afternoon')) return 'Novità d\'autore';
+  if (f.tasteNote) return f.tasteNote;
+  if (band === 'matinee' && isDocumentary(f)) {
+    return 'Il documentario della mattina';
+  }
+  if (band === 'matinee' && classicOf(f, now) > 0) return 'Un classico per la mattina';
   if (freshnessOf(f, now) > 0.7) return 'Appena entrato in libreria';
   if ((f.voteAverage ?? 0) >= 7.5 && (f.voteCount ?? 0) >= 500) {
     return `Acclamato · ${f.voteAverage?.toFixed(1)}`;
   }
-  if (band === 'matinee' && f.runtime <= 110) return 'Corto e leggero, buono di mattina';
+  if (band === 'matinee' && f.runtime <= 110) return 'Non troppo lungo, buono di mattina';
   if (band === 'night' && f.runtime >= 130) return 'Lungo: ci sta in seconda serata';
   const g = f.genres[0];
   if (g) return `${g}, adatto alla fascia`;

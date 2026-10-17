@@ -22,6 +22,8 @@ import {
   type ScheduledShow,
 } from '@/services/scheduling/engine';
 import { autoPick, bandAffinity, type AutoPickFilm } from '@/services/scheduling/autoPick';
+import { judgeTaste, type TasteData, type TasteVerdict } from '@/services/scheduling/taste';
+import gustoSala from '@/data/gusto-sala.json';
 import {
   CLOSING_MINUTE,
   MINUTES_PER_DAY,
@@ -455,6 +457,8 @@ export interface PlanningCatalogFilm {
   durationMin: number | null;
   runtime: number | null;
   director: string | null;
+  /** Il titolo originale: serve ad abbinare il film al diario Letterboxd. */
+  originalTitle?: string | null;
   tmdbId: string | null;
   posterPath: string | null;
   genres: string[];
@@ -527,7 +531,7 @@ async function usableCatalog(limit = 1200): Promise<PlanningCatalogFilm[]> {
   const query = {
     select: {
       id: true, title: true, tmdbTitle: true, year: true, durationMin: true, runtime: true,
-      director: true, tmdbId: true, posterPath: true, genres: true, voteAverage: true,
+      director: true, originalTitle: true, tmdbId: true, posterPath: true, genres: true, voteAverage: true,
       voteCount: true, awardLabels: true, inPlex: true, plexLibraries: true,
       verifyStatus: true, addedAt: true,
     },
@@ -566,6 +570,7 @@ async function usableCatalog(limit = 1200): Promise<PlanningCatalogFilm[]> {
     durationMin: f.durationMin,
     runtime: f.runtime,
     director: f.director,
+    originalTitle: f.originalTitle,
     tmdbId: f.tmdbId,
     posterPath: f.posterPath,
     genres: f.genres,
@@ -580,8 +585,28 @@ async function usableCatalog(limit = 1200): Promise<PlanningCatalogFilm[]> {
   }));
 }
 
+/**
+ * Il gusto della sala sull'intero catalogo, in un colpo: il voto del regista
+ * si ricava dagli altri suoi film, quindi serve vederli tutti insieme.
+ */
+function tasteOf(catalog: PlanningCatalogFilm[]): Map<string, TasteVerdict> {
+  return judgeTaste(
+    gustoSala as unknown as TasteData,
+    catalog
+      .filter((f) => f.tmdbId)
+      .map((f) => ({
+        tmdbId: f.tmdbId!,
+        title: f.title,
+        originalTitle: f.originalTitle,
+        year: f.year,
+        director: f.director,
+      }))
+  );
+}
+
 /** Da riga di catalogo a candidato per il selettore. */
-function toCandidate(f: PlanningCatalogFilm): AutoPickFilm {
+function toCandidate(f: PlanningCatalogFilm, taste?: Map<string, TasteVerdict>): AutoPickFilm {
+  const t = f.tmdbId ? taste?.get(f.tmdbId) : undefined;
   return {
     tmdbId: f.tmdbId!,
     title: f.title,
@@ -595,6 +620,9 @@ function toCandidate(f: PlanningCatalogFilm): AutoPickFilm {
     scheduledCount: f.scheduledCount,
     posterPath: f.posterPath,
     director: f.director,
+    taste: t?.score ?? 0,
+    tasteNote: t?.note ?? null,
+    canon: t?.canon ?? false,
   };
 }
 
@@ -626,8 +654,9 @@ export async function planningAutoPlan(
     Math.max(occupancy.freeSlotsEstimate, 1)
   );
 
+  const taste = tasteOf(catalog);
   const picked = autoPick({
-    pool: catalog.filter((f) => f.tmdbId).map(toCandidate),
+    pool: catalog.filter((f) => f.tmdbId).map((f) => toCandidate(f, taste)),
     capacity,
     seed,
     keep: input.keep,
@@ -690,6 +719,7 @@ export async function planningAlternatives(input: {
   const now = Date.now();
 
   const catalog = await usableCatalog();
+  const taste = tasteOf(catalog);
 
   // Un pizzico di caso, fisso per film: chiedere "altri" deve dare altri, ma
   // senza stravolgere l'ordine di merito.
@@ -709,7 +739,7 @@ export async function planningAlternatives(input: {
     .map((f) => ({
       film: f,
       score:
-        bandAffinity(toCandidate(f), input.band, now) +
+        bandAffinity(toCandidate(f, taste), input.band, now) +
         jitter(f.tmdbId!) * 1.2,
     }))
     .sort((a, b) => b.score - a.score)
