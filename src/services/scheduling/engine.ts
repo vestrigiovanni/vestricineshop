@@ -56,6 +56,12 @@ export interface SchedulingFilm {
   replicas?: number;
   /** Fascia preferita, se ne hai una. */
   preferredBand?: Band;
+  /**
+   * Fascia e repliche sono solo un suggerimento (della scelta automatica), non
+   * una tua richiesta: prima di ripetere un film nella giornata il motore può
+   * spostarlo di fascia, o dare una replica in più a un altro film.
+   */
+  suggested?: boolean;
   posterPath?: string;
 }
 
@@ -443,8 +449,11 @@ export function buildSchedule(input: BuildScheduleInput): BuildScheduleResult {
       const projectedBand = bandOf(cursor);
       const history = dayHistory.get(d) ?? [];
 
+      // Un film che ha già fatto le sue repliche torna in gioco solo per non
+      // ripeterne un altro oggi, e solo se le sue repliche non le hai fissate tu.
+      const flexible = (f: PlanFilm) => f.replicas == null || Boolean(f.suggested);
       const candidates = films
-        .filter((f) => f.placed < f.target)
+        .filter((f) => f.placed < f.target || (flexible(f) && !history.includes(f.tmdbId)))
         .map((f) => ({
           f,
           // L'urgenza è la *quota di repliche ancora da piazzare*, non il loro
@@ -457,6 +466,7 @@ export function buildSchedule(input: BuildScheduleInput): BuildScheduleResult {
             (projectedBand === 'evening' && !f.hasEvening ? 12 : 0) +
             (f.preferredBand === projectedBand ? 10 : 0) +
             history.filter((id) => id === f.tmdbId).length * -12 +
+            (f.placed >= f.target ? -40 : 0) +
             rng() * 5,
         }))
         .sort((a, b) => b.score - a.score);
@@ -465,17 +475,33 @@ export function buildSchedule(input: BuildScheduleInput): BuildScheduleResult {
       // perdere contro qualcos'altro, e un film "solo di sera" finirebbe
       // comunque in matinée. Si allenta un vincolo per volta, dal meno grave.
       //
-      // L'ordine conta. Una replica ravvicinata è un difetto estetico; mandare
-      // un film fuori dalla fascia che hai chiesto tradisce una tua richiesta
-      // esplicita. Quindi si accetta prima la replica.
+      // L'ordine conta. Il vincolo più forte è che un film non torni due volte
+      // nello stesso giorno: in una monosala il cartellone della giornata è la
+      // sua varietà, e lo stesso titolo alle 16 e alle 21 la svuota. Viene prima
+      // della fascia, perché una fascia "sbagliata" si corregge con un clic e una
+      // giornata con due volte lo stesso film no. Solo quando i film non bastano
+      // a coprire la giornata si accetta la replica, e attaccata a sé solo come
+      // ultima risorsa.
+      //
+      // La fascia che hai chiesto tu invece resta un vincolo: prima di tradirla
+      // si accetta la replica nella giornata. Quella suggerita dalla scelta
+      // automatica no — è un'idea, e cede alla varietà.
+      const newToday = ({ f }: { f: PlanFilm }) => !history.includes(f.tmdbId);
       const fresh = ({ f }: { f: PlanFilm }) => f.tmdbId !== lastPlacedId;
       const inBand = ({ f }: { f: PlanFilm }) => !f.preferredBand || f.preferredBand === projectedBand;
+      const soft = ({ f }: { f: PlanFilm }) => Boolean(f.suggested);
+      const owed = candidates.filter(({ f }) => f.placed < f.target);
+      const extras = candidates.filter(({ f }) => f.placed >= f.target);
 
       const rounds: { list: typeof candidates; enforceBand: boolean }[] = [
-        { list: candidates.filter((c) => fresh(c) && inBand(c)), enforceBand: true },
-        { list: candidates.filter((c) => !fresh(c) && inBand(c)), enforceBand: true },
-        { list: candidates.filter((c) => fresh(c) && !inBand(c)), enforceBand: false },
-        { list: candidates.filter((c) => !fresh(c) && !inBand(c)), enforceBand: false },
+        { list: owed.filter((c) => newToday(c) && inBand(c)), enforceBand: true },
+        { list: owed.filter((c) => newToday(c) && !inBand(c) && soft(c)), enforceBand: false },
+        { list: extras.filter((c) => inBand(c)), enforceBand: true },
+        { list: extras.filter((c) => !inBand(c) && (soft(c) || !c.f.preferredBand)), enforceBand: false },
+        { list: owed.filter((c) => !newToday(c) && fresh(c) && inBand(c)), enforceBand: true },
+        { list: owed.filter((c) => !fresh(c) && inBand(c)), enforceBand: true },
+        { list: owed.filter((c) => fresh(c) && !inBand(c)), enforceBand: false },
+        { list: owed.filter((c) => !fresh(c) && !inBand(c)), enforceBand: false },
       ];
 
       let show: ScheduledShow | null = null;

@@ -359,12 +359,15 @@ export interface FillChoice {
   /** Quanti spettacoli in più; vuoto = decide il motore. */
   replicas?: number;
   band?: Band;
+  /** La fascia l'ha suggerita la scelta automatica: il motore può spostarla. */
+  suggested?: boolean;
 }
 
 export interface FilmChoice {
   tmdbId: string;
   replicas?: number;
   preferredBand?: Band;
+  suggested?: boolean;
 }
 
 function countsOf(shows: ScheduledShow[]): Map<string, number> {
@@ -393,7 +396,7 @@ export function fillRequest(
     if (!id || seen.has(id)) continue;
     seen.add(id);
     const already = counts.get(id) ?? 0;
-    films.push({ tmdbId: id, replicas: e.replicas == null ? undefined : already + e.replicas, preferredBand: e.band });
+    films.push({ tmdbId: id, replicas: e.replicas == null ? undefined : already + e.replicas, preferredBand: e.band, suggested: e.suggested });
   }
   for (const [tmdbId, replicas] of counts) if (!seen.has(tmdbId)) films.push({ tmdbId, replicas });
   return { films, locked: inside.map((s) => ({ ...rebase(s, from), locked: true })) };

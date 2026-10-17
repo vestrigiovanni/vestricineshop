@@ -311,6 +311,8 @@ export interface PlanningFilmChoice {
   tmdbId: string;
   replicas?: number;
   preferredBand?: Band;
+  /** La fascia è un suggerimento della scelta automatica, non una richiesta. */
+  suggested?: boolean;
 }
 
 export interface PlanningGenerateInput {
@@ -410,6 +412,7 @@ export async function planningGenerate(input: PlanningGenerateInput): Promise<Pl
         posterPath: meta.posterPath,
         replicas: choice.replicas,
         preferredBand: choice.preferredBand,
+        suggested: choice.suggested,
       };
     })
     .filter((f): f is NonNullable<typeof f> => f !== null);
@@ -676,6 +679,7 @@ export async function planningAutoPlan(
       tmdbId: f.tmdbId,
       replicas: f.replicas,
       preferredBand: f.preferredBand,
+      suggested: true,
     })),
   });
 
@@ -748,43 +752,41 @@ export async function planningAlternatives(input: {
 }
 
 /**
- * Il tabellone: cento film pescati dalla libreria, da guardare e sfoltire.
+ * Il tabellone: cento poster pescati dalla libreria, da sfogliare e scegliere.
  *
- * `keep` sono quelli che hai già scelto e restano in cima a ogni ricarica: è
- * ciò che permette di fare più giri — guardo cento titoli, ne tengo sei,
- * aggiorno, ne tengo altri quattro — senza ricominciare ogni volta da zero.
+ * È il modo di programmare di Gio: guarda i poster, tiene quelli che vuole in
+ * sala, e il motore pensa solo agli orari. Le pagine scorrono un ordine fisso
+ * per seed — "avanti" e "indietro" non devono far sparire i film già visti — e
+ * "rimescola" cambia seed. L'ordine non è un caso puro: è un caso pesato dal
+ * gusto della sala, così i film che Gio ama affiorano prima senza che le
+ * prime pagine siano sempre le stesse.
  */
 export async function planningCatalogBoard(input: {
   count?: number;
+  page?: number;
   seed?: number;
-  keep?: string[];
   exclude?: string[];
   /** Solo film mai programmati. */
   onlyNever?: boolean;
   search?: string;
-} = {}): Promise<PlanningCatalogFilm[]> {
+} = {}): Promise<{ films: (PlanningCatalogFilm & { tasteNote: string | null })[]; total: number; page: number; pages: number }> {
   const count = Math.min(Math.max(Math.trunc(input.count ?? 100), 1), 200);
-  const keep = new Set(input.keep ?? []);
   const excluded = new Set(input.exclude ?? []);
   const search = input.search?.trim().toLowerCase();
 
   const catalog = await usableCatalog();
+  const taste = tasteOf(catalog);
 
   const eligible = catalog.filter((f) => {
     if (!f.tmdbId || excluded.has(f.tmdbId)) return false;
     if (input.onlyNever && f.scheduledCount > 0) return false;
     if (search) {
-      const hay = `${f.title} ${f.director ?? ''}`.toLowerCase();
+      const hay = `${f.title} ${f.originalTitle ?? ''} ${f.director ?? ''}`.toLowerCase();
       if (!hay.includes(search)) return false;
     }
     return true;
   });
 
-  const chosen = eligible.filter((f) => keep.has(f.tmdbId!));
-  const rest = eligible.filter((f) => !keep.has(f.tmdbId!));
-
-  // Mescolata riproducibile: lo stesso seed ridà lo stesso tabellone, così
-  // ricaricare la pagina non fa sparire i film che stavi guardando.
   const seed = (input.seed ?? 1) >>> 0;
   let a = seed;
   const rng = () => {
@@ -793,12 +795,14 @@ export async function planningCatalogBoard(input: {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-  for (let i = rest.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [rest[i], rest[j]] = [rest[j], rest[i]];
-  }
+  const ranked = eligible
+    .map((f) => ({ f, key: rng() * 3 + (taste.get(f.tmdbId!)?.score ?? 0) }))
+    .sort((x, y) => y.key - x.key)
+    .map(({ f }) => ({ ...f, tasteNote: taste.get(f.tmdbId!)?.note ?? null }));
 
-  return [...chosen, ...rest].slice(0, Math.max(count, chosen.length));
+  const pages = Math.max(Math.ceil(ranked.length / count), 1);
+  const page = Math.min(Math.max(Math.trunc(input.page ?? 0), 0), pages - 1);
+  return { films: ranked.slice(page * count, (page + 1) * count), total: ranked.length, page, pages };
 }
 
 /**

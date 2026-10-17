@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import { catalogList } from '@/actions/catalogActions';
 import { planningAutoPlan, planningGenerate } from '@/actions/planningActions';
 import Button from '@/components/cabina/Button';
 import Dialog from '@/components/cabina/Dialog';
@@ -11,8 +10,10 @@ import type { Intensity } from '@/services/scheduling/engine';
 import type { Band } from '@/services/scheduling/times';
 import { fillRequest, mergeFilled, type Draft, type FillChoice } from './draft';
 import { periodLabel } from './labels';
+import PosterBoard from './PosterBoard';
 import { BAND_CHOICES, type CatalogItem } from './types';
 import styles from './CatalogDrawer.module.css';
+import fill from './FillDialog.module.css';
 
 const INTENSITIES: { key: Intensity; label: string; hint: string }[] = [
   { key: 'soft', label: 'Rilassata', hint: '4 al giorno, 5 nel weekend' },
@@ -33,35 +34,17 @@ interface Props {
 
 export default function FillDialog({ roomId, from, days, draft, preset, update, onClose }: Props) {
   const toast = useToast();
-  const [mode, setMode] = useState<'auto' | 'hand'>(preset ? 'hand' : 'auto');
+  // Il modo di Gio è scegliere dai poster: la scelta automatica resta, ma come
+  // seconda strada.
+  const [mode, setMode] = useState<'auto' | 'hand'>('hand');
   const [intensity, setIntensity] = useState<Intensity>((draft.intensity as Intensity) || 'normal');
   const [list, setList] = useState<FillChoice[]>(preset ? [{ film: preset }] : []);
-  const [search, setSearch] = useState('');
-  const [found, setFound] = useState<{ q: string; films: CatalogItem[] } | null>(null);
   const [working, setWorking] = useState(false);
 
-  const q = search.trim();
-  useEffect(() => {
-    if (!q) return;
-    let cancelled = false;
-    const t = window.setTimeout(() => {
-      catalogList({ search: q, pageSize: 8 })
-        .then((r) => {
-          if (!cancelled) setFound({ q, films: r.films as unknown as CatalogItem[] });
-        })
-        .catch(() => null);
-    }, 300);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(t);
-    };
-  }, [q]);
-
-  const add = (f: CatalogItem) => {
-    if (!f.tmdbId || list.some((c) => c.film.tmdbId === f.tmdbId)) return;
-    setList((l) => [...l, { film: f }]);
-    setSearch('');
-    setFound(null);
+  const selected = useMemo(() => new Set(list.map((c) => c.film.tmdbId!).filter(Boolean)), [list]);
+  const toggle = (f: CatalogItem) => {
+    if (!f.tmdbId) return;
+    setList((l) => (l.some((c) => c.film.tmdbId === f.tmdbId) ? l.filter((c) => c.film.tmdbId !== f.tmdbId) : [...l, { film: f }]));
   };
 
   const patch = (tmdbId: string, change: Partial<FillChoice>) =>
@@ -73,7 +56,7 @@ export default function FillDialog({ roomId, from, days, draft, preset, update, 
       let choices = list;
       if (mode === 'auto') {
         const auto = await planningAutoPlan({ seatingPlanId: roomId, startDate: from, days, intensity, exclude: draft.rejected });
-        choices = auto.chosen.map((c) => ({ film: c.film as unknown as CatalogItem, replicas: c.replicas, band: c.preferredBand }));
+        choices = auto.chosen.map((c) => ({ film: c.film as unknown as CatalogItem, replicas: c.replicas, band: c.preferredBand, suggested: true }));
         if (choices.length === 0) {
           toast(auto.warnings[0] ?? 'Non ho trovato film adatti in libreria per questo periodo.', 'alarm');
           return;
@@ -98,13 +81,11 @@ export default function FillDialog({ roomId, from, days, draft, preset, update, 
     }
   };
 
-  return (
-    <Dialog open onClose={() => { if (!working) onClose(); }} title="Riempi i buchi" showTitle>
-      <p className={styles.tmdbHint}>{periodLabel(from, days)} · quello che è già in bozza resta dov’è.</p>
-
-      <div className={styles.filters} style={{ gridTemplateColumns: '1fr 1fr', marginTop: 12 }}>
+  const settings = (
+    <>
+      <div className={styles.filters} style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <Button variant={mode === 'hand' ? 'fill' : 'ghost'} onClick={() => setMode('hand')}>Scelgo io</Button>
         <Button variant={mode === 'auto' ? 'fill' : 'ghost'} onClick={() => setMode('auto')}>Scegli tu</Button>
-        <Button variant={mode === 'hand' ? 'fill' : 'ghost'} onClick={() => setMode('hand')}>Con questi film</Button>
       </div>
 
       <div className={styles.filters} style={{ marginTop: 10 }}>
@@ -115,40 +96,67 @@ export default function FillDialog({ roomId, from, days, draft, preset, update, 
         ))}
       </div>
       <p className={styles.tmdbHint}>{INTENSITIES.find((i) => i.key === intensity)?.hint}</p>
+    </>
+  );
 
-      {mode === 'auto' ? (
+  const actions = (
+    <div className={fill.actions}>
+      <Button variant="ghost" onClick={onClose} disabled={working}>Annulla</Button>
+      <Button variant="fill" onClick={run} disabled={working || (mode === 'hand' && list.length === 0)}>
+        {working ? 'Riempio…' : mode === 'auto' ? 'Riempi' : list.length === 0 ? 'Scegli i film' : `Programma ${list.length} film`}
+      </Button>
+    </div>
+  );
+
+  if (mode === 'auto') {
+    return (
+      <Dialog open onClose={() => { if (!working) onClose(); }} title="Riempi i buchi" showTitle>
+        <p className={styles.tmdbHint}>{periodLabel(from, days)} · quello che è già in bozza resta dov’è.</p>
+        <div style={{ marginTop: 12 }}>{settings}</div>
         <p className={styles.tmdbHint} style={{ marginTop: 12 }}>
           Scelgo io dalla libreria il film giusto per ogni fascia, lontano da quelli che hai già scartato. Poi togli quello che non ti convince.
         </p>
-      ) : (
-        <div style={{ marginTop: 12 }}>
-          <div className={styles.tmdbForm}>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Aggiungi un film dal catalogo…" aria-label="Aggiungi un film" />
-          </div>
-          {q && found?.q === q && (
-            <ul className={styles.tmdbList}>
-              {found.films.map((f) => (
-                <li key={f.id}>
-                  <span>{f.title} <em>{[f.year, `${f.runtime ?? f.durationMin ?? '?'}′`].join(' · ')}</em></span>
-                  <Button variant="ghost" onClick={() => add(f)}>+</Button>
-                </li>
-              ))}
-            </ul>
-          )}
+        {actions}
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open onClose={() => { if (!working) onClose(); }} title="Riempi i buchi" variant="wide">
+      <div className={fill.layout}>
+        <section className={fill.main}>
+          <header className={fill.head}>
+            <h2>Scegli i film da programmare</h2>
+            <p>{periodLabel(from, days)} · un clic su un poster lo aggiunge, un altro lo toglie. Gli orari li penso io.</p>
+          </header>
+          <PosterBoard selected={selected} onToggle={toggle} exclude={draft.rejected} />
+        </section>
+
+        <aside className={fill.side}>
+          {settings}
+
+          <h3 className={fill.sideTitle}>
+            {list.length === 0 ? 'Nessun film scelto' : `${list.length} ${list.length === 1 ? 'film scelto' : 'film scelti'}`}
+          </h3>
           {list.length === 0 ? (
-            <p className={styles.tmdbHint}>Nessun film ancora: cercane uno qui sopra.</p>
+            <p className={styles.tmdbHint}>Sfoglia i poster e tocca quelli che vuoi in sala. Quante volte e in che fascia, se non lo dici tu, lo decido io senza ripetere un film nella stessa giornata.</p>
           ) : (
-            <ul className={styles.tmdbList}>
+            <ul className={fill.picked}>
               {list.map((c) => (
                 <li key={c.film.tmdbId}>
-                  <span>{c.film.title}</span>
-                  <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <div className={fill.pickedHead}>
+                    <span>{c.film.title}</span>
+                    <button type="button" onClick={() => setList((l) => l.filter((x) => x !== c))} aria-label={`Togli ${c.film.title}`}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <div className={fill.pickedOptions}>
                     <select
                       value={c.replicas ?? ''}
                       onChange={(e) => patch(c.film.tmdbId!, { replicas: e.target.value === '' ? undefined : Number(e.target.value) })}
                       aria-label="Quanti spettacoli"
                     >
-                      <option value="">Quanti: decidi tu</option>
+                      <option value="">Quanti: decido io</option>
                       {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12].map((n) => <option key={n} value={n}>{n}</option>)}
                     </select>
                     <select
@@ -158,22 +166,13 @@ export default function FillDialog({ roomId, from, days, draft, preset, update, 
                     >
                       {BAND_CHOICES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
                     </select>
-                    <button type="button" onClick={() => setList((l) => l.filter((x) => x !== c))} aria-label="Togli" style={{ background: 'none', border: 0, color: 'var(--c-dim)', cursor: 'pointer' }}>
-                      <X size={14} />
-                    </button>
-                  </span>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-        <Button variant="ghost" onClick={onClose} disabled={working}>Annulla</Button>
-        <Button variant="fill" onClick={run} disabled={working || (mode === 'hand' && list.length === 0)}>
-          {working ? 'Riempio…' : mode === 'auto' ? 'Riempi' : `Riempi con ${list.length} ${list.length === 1 ? 'film' : 'film'}`}
-        </Button>
+          {actions}
+        </aside>
       </div>
     </Dialog>
   );

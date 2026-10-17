@@ -438,6 +438,40 @@ describe('buildSchedule — preferenze e casi limite', () => {
     }
   });
 
+  it('con abbastanza film, nessuno torna due volte nello stesso giorno', () => {
+    // È il caso della scelta automatica: ogni film ha una fascia suggerita, e
+    // a fascia esaurita il motore rimetteva lo stesso titolo invece di spostarne
+    // un altro. Dodici film per sei-sette spettacoli al giorno bastano sempre.
+    const bands = ['matinee', 'afternoon', 'evening', 'night'] as const;
+    for (const seed of [1, 15, 77]) {
+      const result = buildSchedule({
+        window: { startDate: START, days: 7 },
+        films: Array.from({ length: 12 }, (_, i) =>
+          film({ tmdbId: String(i + 1), runtime: 90 + ((i * 13) % 50), preferredBand: bands[i % 4], suggested: true })
+        ),
+        intensity: 'normal',
+        seed,
+      });
+      const perDay = new Map<string, string[]>();
+      for (const s of result.shows) perDay.set(s.day, [...(perDay.get(s.day) ?? []), s.tmdbId]);
+      for (const [day, ids] of perDay) {
+        expect(new Set(ids).size, `seed ${seed}, il ${day}: ${ids.join(',')}`).toBe(ids.length);
+      }
+    }
+  });
+
+  it('anche senza fasce, un film non si ripete nella giornata se ci sono alternative', () => {
+    const result = buildSchedule({
+      window: { startDate: START, days: 7 },
+      films: Array.from({ length: 10 }, (_, i) => film({ tmdbId: String(i + 1), runtime: 95 + i * 4 })),
+      intensity: 'festival',
+      seed: 3,
+    });
+    const perDay = new Map<string, string[]>();
+    for (const s of result.shows) perDay.set(s.day, [...(perDay.get(s.day) ?? []), s.tmdbId]);
+    for (const ids of perDay.values()) expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it('con pochissimi titoli tiene la fascia e sacrifica la varietà', () => {
     // Due film per 42 spettacoli: senza repliche consecutive l'alternanza è
     // forzata, quindi il film "solo di sera" finisce per forza anche altrove.
