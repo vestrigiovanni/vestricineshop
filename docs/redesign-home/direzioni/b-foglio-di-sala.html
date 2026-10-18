@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B · Foglio di sala</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Spectral:ital,wght@0,300;0,400;1,300;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --carta: #f1ebdf;
+  --inchiostro: #16120d;
+  --grigio: #6f665a;
+  --filo: rgba(22, 18, 13, .18);
+  --film: #9a3b26;            /* sostituito dal colore del film */
+  --tinta: #f1ebdf;
+  --display: 'Instrument Serif', serif;
+  --testo: 'Spectral', serif;
+  --dati: 'IBM Plex Mono', ui-monospace, monospace;
+  --m: clamp(16px, 4vw, 56px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--carta); }
+body { background: var(--tinta); color: var(--inchiostro); font-family: var(--testo); font-weight: 300; font-size: 18px; line-height: 1.55; transition: background-color 1.2s ease; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+img { display: block; }
+.dati { font-family: var(--dati); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.inchiostro { filter: brightness(0); }
+body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: .35; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .38 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+/* Testata da programma stampato */
+.testata { padding: 22px var(--m) 0; }
+.testata .riga { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--inchiostro); }
+.testata h1 { font-family: var(--display); font-weight: 400; font-size: clamp(56px, 13vw, 200px); line-height: .82; letter-spacing: -.02em; padding: 18px 0 14px; border-bottom: 4px double var(--inchiostro); display: flex; justify-content: space-between; align-items: end; }
+.testata h1 i { font-size: .34em; color: var(--film); }
+
+/* Apertura: poster, ora enorme, crediti composti come prosa */
+.apertura { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0 24px; padding: 36px var(--m) 72px; border-bottom: 1px solid var(--filo); }
+.apertura .poster { grid-column: 1 / span 5; position: relative; }
+.apertura .poster img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; box-shadow: 0 1px 0 var(--inchiostro); }
+.apertura .poster .dati { margin-top: 10px; color: var(--grigio); display: flex; justify-content: space-between; }
+.apertura .scheda { grid-column: 7 / span 6; display: flex; flex-direction: column; }
+.apertura .ora { font-family: var(--display); font-size: clamp(110px, 17vw, 270px); line-height: .8; letter-spacing: -.04em; color: var(--film); font-variant-numeric: tabular-nums; }
+.apertura .altre { margin-top: 8px; color: var(--grigio); }
+.apertura .logo { margin: 40px 0 24px; max-height: 120px; max-width: 100%; width: auto; object-fit: contain; object-position: left; }
+.apertura .crediti { font-size: 19px; max-width: 46ch; }
+.apertura .crediti em { font-style: italic; }
+.apertura .sinossi { margin-top: 18px; color: var(--grigio); max-width: 52ch; font-size: 17px; }
+.apertura .azioni { margin-top: auto; padding-top: 36px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.prenota { background: var(--inchiostro); color: var(--carta); border: 0; padding: 17px 28px; font-family: var(--dati); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; cursor: pointer; }
+.premio-riga { display: flex; align-items: center; gap: 12px; }
+.premio-riga img { height: 40px; width: auto; }
+.premio-riga span { font-family: var(--display); font-style: italic; font-size: 22px; }
+
+/* Provini: per ogni film di oggi i suoi fotogrammi, come una striscia di pellicola */
+.provino { position: relative; height: 100svh; overflow: hidden; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid var(--filo); }
+.provino header { padding: 0 var(--m) 22px; display: flex; justify-content: space-between; align-items: end; gap: 24px; }
+.provino header h2 { font-family: var(--display); font-weight: 400; font-size: clamp(42px, 6vw, 92px); line-height: .9; }
+.provino header h2 small { display: block; font-family: var(--dati); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--film); margin-bottom: 10px; }
+.pellicola { display: flex; gap: 0; padding: 26px 0; background: #14110d; width: max-content; margin-left: var(--m); position: relative; }
+.pellicola::before, .pellicola::after { content: ''; position: absolute; left: 0; right: 0; height: 10px; background: repeating-linear-gradient(90deg, transparent 0 14px, #e9e1d2 14px 26px, transparent 26px 34px); opacity: .85; }
+.pellicola::before { top: 8px; } .pellicola::after { bottom: 8px; }
+.fotogramma { position: relative; width: clamp(280px, 38vw, 560px); aspect-ratio: 16 / 9; margin: 0 10px; overflow: hidden; }
+.fotogramma img { width: 100%; height: 100%; object-fit: cover; }
+.fotogramma .codice { position: absolute; left: 6px; top: -22px; color: #e9a24a; font-size: 9px; }
+.provino .piede { padding: 22px var(--m) 0; display: flex; gap: 28px; flex-wrap: wrap; }
+.provino .piede .t { font-family: var(--display); font-size: 44px; line-height: 1; color: var(--film); }
+
+/* Albo d'oro */
+.albo { padding: 96px var(--m); display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; border-bottom: 1px solid var(--filo); }
+.albo .intesta { grid-column: 1 / span 4; }
+.albo .intesta h2 { font-family: var(--display); font-weight: 400; font-size: clamp(48px, 6vw, 96px); line-height: .9; }
+.albo .intesta p { margin-top: 18px; color: var(--grigio); max-width: 30ch; }
+.albo .voci { grid-column: 6 / span 7; }
+.voce { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 24px; padding: 22px 0; border-top: 1px solid var(--filo); align-items: center; }
+.voce img { width: 84px; height: 84px; object-fit: contain; }
+.voce .premio { font-family: var(--display); font-size: clamp(28px, 3vw, 40px); line-height: 1; }
+.voce .premio em { font-style: italic; }
+.voce .dati { color: var(--grigio); margin-top: 8px; }
+.voce.grande { grid-template-columns: 1fr; text-align: left; padding: 30px 0 40px; }
+.voce.grande img { width: clamp(150px, 20vw, 260px); height: auto; }
+.voce.grande .premio { font-size: clamp(54px, 7vw, 110px); font-style: italic; }
+
+/* Il programma in colonne, come sul foglio */
+.programma { padding: 80px var(--m) 120px; }
+.programma h2 { font-family: var(--display); font-weight: 400; font-size: clamp(48px, 6vw, 96px); line-height: .9; margin-bottom: 30px; }
+.colonne { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--inchiostro); }
+.col { padding: 14px 14px 0 0; border-right: 1px solid var(--filo); }
+.col + .col { padding-left: 14px; }
+.col:last-child { border-right: 0; }
+.col > .dati { padding-bottom: 12px; border-bottom: 1px solid var(--filo); margin-bottom: 12px; }
+.col .sp { padding: 10px 0 14px; }
+.col .sp .t { font-family: var(--display); font-size: 30px; line-height: 1; }
+.col .sp img { max-height: 30px; max-width: 100%; width: auto; margin: 8px 0 6px; }
+.col .sp .dati { font-size: 9px; color: var(--grigio); }
+
+@media (max-width: 900px) {
+  .testata .riga span:nth-child(2) { display: none; }
+  .apertura .poster, .apertura .scheda { grid-column: 1 / -1; }
+  .apertura .poster { max-width: 420px; }
+  .apertura .scheda { margin-top: 28px; }
+  .albo .intesta, .albo .voci { grid-column: 1 / -1; }
+  .colonne { grid-template-columns: 1fr; }
+  .col { border-right: 0; padding: 14px 0 0 !important; }
+  .provino { height: auto; padding: 64px 0; }
+  .pellicola { width: auto; margin: 0; overflow-x: auto; scroll-snap-type: x mandatory; }
+  .fotogramma { scroll-snap-align: center; flex: none; width: 78vw; }
+}
+</style>
+</head>
+<body>
+<main id="pagina"></main>
+<script src="dati.js"></script>
+<script src="regia.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+const R = window.REGIA, { IMG, fmt, LOGO_DIR } = R;
+const $ = h => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstElementChild; };
+const logo = (f, cls = '') => f.logo && f.logo !== 'none' ? `<img class="${cls} inchiostro" src="${IMG(f.logo, 'w500')}" alt="${f.title}">` : `<span style="font-family:var(--display);font-size:40px">${f.title}</span>`;
+const pagina = document.getElementById('pagina');
+
+// Il colore di un film: la tinta più viva del suo fondale, misurata davvero.
+function coloreDi(src) {
+  return new Promise(ok => {
+    const img = new Image(); img.crossOrigin = 'anonymous'; img.src = src;
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = 48; c.height = 27; const x = c.getContext('2d'); x.drawImage(img, 0, 0, 48, 27);
+        const d = x.getImageData(0, 0, 48, 27).data; let best = null, score = -1;
+        for (let i = 0; i < d.length; i += 4) {
+          const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, s = mx === mn ? 0 : (mx - mn) / (1 - Math.abs(2 * l - 1));
+          const sc = s * (1 - Math.abs(l - .45) * 1.6);
+          if (sc > score) { score = sc; best = [d[i], d[i + 1], d[i + 2]]; }
+        }
+        ok(best);
+      } catch (e) { ok(null); }
+    };
+    img.onerror = () => ok(null);
+  });
+}
+const scuro = ([r, g, b], k) => `rgb(${Math.round(r * k)}, ${Math.round(g * k)}, ${Math.round(b * k)})`;
+const tinta = ([r, g, b]) => `rgb(${Math.round(241 + (r - 241) * .12)}, ${Math.round(235 + (g - 235) * .12)}, ${Math.round(223 + (b - 223) * .12)})`;
+
+const oggi = new Date(R.today + 'T12:00:00');
+const numero = Math.round((oggi - new Date(oggi.getFullYear(), 0, 0)) / 864e5);
+
+// Testata
+pagina.append($(`<header class="testata">
+  <div class="riga dati"><span>Vestri Cinema · monosala</span><span>Foglio di sala n° ${numero}</span><span>${fmt.day(R.today)} ${oggi.getFullYear()}</span></div>
+  <h1>Oggi<i>${R.tonight.length} spettacoli</i></h1></header>`));
+
+// Apertura
+const f0 = R.opening, s0 = (R.tonight.find(s => s.film.id === f0.id) || f0.upcoming[0]);
+const altre = f0.upcoming.filter(s => s !== s0 && s.t !== s0.t).slice(0, 3);
+const cast = f0.cast.length ? `Con ${f0.cast.slice(0, 3).join(', ')}.` : '';
+pagina.append($(`<section class="apertura">
+  <figure class="poster"><img src="${IMG(f0.poster, 'w780')}" alt="Locandina di ${f0.title}"><figcaption class="dati"><span>${f0.title}</span><span>${f0.year}</span></figcaption></figure>
+  <div class="scheda">
+    <div class="ora">${fmt.time(s0.t)}</div>
+    <div class="altre dati">${altre.length ? 'Repliche: ' + altre.map(s => fmt.dayShort(s.t.slice(0, 10)) + ' ' + fmt.time(s.t)).join(' · ') : 'Unica proiezione della settimana'}</div>
+    ${logo(f0, 'logo')}
+    <p class="crediti">Regia di <em>${f0.director}</em>. ${cast} ${f0.year}, ${f0.runtime} minuti. Versione originale in ${(s0.lang || '').toLowerCase()}${s0.subs ? ' con sottotitoli in ' + s0.subs.toLowerCase() : ''}.${fmt.specs(s0).length ? ' Proiezione ' + fmt.specs(s0).join(', ') + '.' : ''}</p>
+    <p class="sinossi">${f0.overview}</p>
+    <div class="azioni"><button class="prenota">Prenota le ${fmt.time(s0.t)}</button>
+      ${f0.top && f0.top.weight >= 40 ? `<div class="premio-riga"><img class="inchiostro" src="${LOGO_DIR + f0.top.fest.logo}" alt=""><span>${f0.top.prize}, ${f0.top.fest.short} ${f0.top.year}</span></div>` : ''}</div>
+  </div></section>`));
+
+// Provini dei film di oggi (nell'ordine della giornata), uno per film
+const filmOggi = [...new Map(R.tonight.map(s => [s.film.id, s.film])).values()];
+filmOggi.forEach((f, k) => {
+  const orari = R.tonight.filter(s => s.film.id === f.id);
+  const base = 10 + Math.floor(R.rand() * 30);
+  pagina.append($(`<section class="provino" data-film="${f.id}">
+    <header><h2><small>${String(k + 1).padStart(2, '0')} · oggi alle ${orari.map(s => fmt.time(s.t)).join(' e ')}</small>${f.title}</h2>${logo(f, '')}</header>
+    <div class="pellicola">${f.backdrops.slice(0, 6).map((p, i) => `<div class="fotogramma"><span class="codice dati">${base + i}${i % 2 ? 'A' : ''} ▸ KODAK 5219</span><img src="${IMG(p, 'w780')}" alt=""></div>`).join('')}</div>
+    <div class="piede">${orari.map(s => `<div><div class="t">${fmt.time(s.t)}</div><div class="dati">${fmt.lang(s)}${fmt.specs(s).length ? ' · ' + fmt.specs(s).join(' · ') : ''}</div></div>`).join('')}
+      <div class="dati" style="align-self:end;color:var(--grigio)">${f.director} · ${fmt.runtime(f.runtime)}</div></div>
+  </section>`));
+});
+
+// Albo d'oro della settimana: il premio più alto in grande, gli altri composti in colonna
+const vinti = R.films.flatMap(f => f.awards.filter(a => a.won.length).map(a => ({ a, f }))).sort((x, y) => y.a.weight - x.a.weight).slice(0, 7);
+pagina.append($(`<section class="albo">
+  <div class="intesta"><h2>Albo d'oro della settimana</h2><p>I premi vinti dai film che proiettiamo da oggi a ${fmt.day(R.days[R.days.length - 1])}.</p></div>
+  <div class="voci">${vinti.map(({ a, f }, i) => `<div class="voce ${i === 0 ? 'grande' : ''}"><img class="inchiostro" src="${LOGO_DIR + a.fest.logo}" alt="${a.fest.name}">
+    <div><div class="premio">${i === 0 ? a.prize : `<em>${a.won.slice(0, 2).join(', ')}</em>`}</div><div class="dati">${a.fest.name} ${a.year} · ${f.title} · in sala ${fmt.dayShort(f.upcoming[0].t.slice(0, 10))} ${fmt.time(f.upcoming[0].t)}</div></div></div>`).join('')}</div></section>`));
+
+// Programma in colonne
+pagina.append($(`<section class="programma"><h2>La settimana</h2><div class="colonne">${R.days.slice(0, 7).map(d => `
+  <div class="col"><div class="dati">${fmt.day(d)}</div>${R.showsOn(d).map(s => `<div class="sp"><div class="t">${fmt.time(s.t)}</div>${logo(s.film)}<div class="dati">${s.film.director} · ${fmt.runtime(s.film.runtime)}</div></div>`).join('')}</div>`).join('')}</div></section>`));
+
+// Colori dei film, poi movimento
+(async () => {
+  const colori = new Map();
+  await Promise.all(R.films.map(async f => { const c = await coloreDi(IMG(f.backdrop, 'w300')); if (c) colori.set(f.id, c); }));
+  const applica = id => { const c = colori.get(id); if (!c) return; document.documentElement.style.setProperty('--film', scuro(c, .62)); document.body.style.setProperty('--tinta', tinta(c)); };
+  applica(f0.id);
+
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  gsap.registerPlugin(ScrollTrigger);
+  gsap.from('.testata h1', { yPercent: 40, opacity: 0, duration: 1.2, ease: 'power3.out' });
+  gsap.from('.apertura .ora', { opacity: 0, y: 40, duration: 1.2, delay: .2, ease: 'power3.out' });
+  gsap.from('.apertura .poster img', { clipPath: 'inset(0 0 100% 0)', duration: 1.4, delay: .1, ease: 'power3.inOut' });
+
+  const largo = matchMedia('(min-width: 901px)').matches;
+  document.querySelectorAll('.provino').forEach(sec => {
+    const id = +sec.dataset.film;
+    ScrollTrigger.create({ trigger: sec, start: 'top 50%', end: 'bottom 50%', onToggle: e => e.isActive && applica(id) });
+    if (!largo) return;
+    // La pellicola scorre di lato mentre scendi: il provino si legge come al tavolo luminoso.
+    const striscia = sec.querySelector('.pellicola');
+    gsap.to(striscia, { x: () => -(striscia.scrollWidth - innerWidth + 120), ease: 'none',
+      scrollTrigger: { trigger: sec, start: 'top top', end: () => '+=' + striscia.scrollWidth * .8, scrub: .5, pin: true, invalidateOnRefresh: true } });
+  });
+  ScrollTrigger.create({ trigger: '.albo', start: 'top 60%', onEnter: () => applica(vinti[0].f.id), onLeaveBack: () => applica(filmOggi[filmOggi.length - 1].id) });
+  gsap.utils.toArray('.voce, .col').forEach((el, i) => gsap.from(el, { opacity: 0, y: 24, duration: .8, ease: 'power2.out', scrollTrigger: { trigger: el, start: 'top 92%' } }));
+})();
+</script>
+</body>
+</html>

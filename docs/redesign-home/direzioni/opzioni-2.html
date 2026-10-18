@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Altre idee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Hanken+Grotesk:wght@300..600&family=Newsreader:ital,opsz,wght@0,6..72,300..500;1,6..72,300..500&display=swap">
+<style>
+:root {
+  --nero: #000;
+  --carta: #efe6d8;
+  --polvere: #8a7d6c;
+  --filo: rgba(239, 230, 216, .14);
+  --lampada: #e8a33d;
+  --titoli: 'Libre Caslon Display', serif;
+  --testo: 'Newsreader', serif;
+  --dati: 'Hanken Grotesk', sans-serif;
+  --m: clamp(16px, 4vw, 56px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--nero); color: var(--carta); }
+body { font-family: var(--testo); font-size: 18px; line-height: 1.5; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+img { display: block; }
+.dati { font-family: var(--dati); font-size: 11px; font-weight: 400; letter-spacing: .22em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.logo-acceso { filter: brightness(0) invert(.94); }
+
+.intro { padding: 90px var(--m) 30px; max-width: 900px; }
+.intro h1 { font-family: var(--titoli); font-weight: 400; font-size: clamp(44px, 7vw, 92px); line-height: 1; margin: 14px 0 18px; }
+.intro p { color: rgba(239,230,216,.8); max-width: 62ch; }
+.cartello { padding: 130px var(--m) 36px; max-width: 980px; }
+.cartello .n { color: var(--lampada); }
+.cartello h2 { font-family: var(--titoli); font-weight: 400; font-size: clamp(38px, 5.4vw, 70px); line-height: 1.02; margin: 12px 0 14px; }
+.cartello p { color: rgba(239,230,216,.8); max-width: 62ch; }
+.cartello .meta { margin-top: 14px; color: var(--polvere); }
+.palco { position: relative; overflow: hidden; background: var(--nero); }
+.banda { padding: 22px var(--m) 28px; display: flex; justify-content: space-between; align-items: end; gap: 18px; flex-wrap: wrap; }
+.banda .logo { max-height: 80px; max-width: min(360px, 70vw); width: auto; }
+
+/* A · Il codice a barre del film */
+.barre { height: 100svh; display: flex; flex-direction: column; justify-content: center; }
+.barre canvas { width: 100%; height: 58svh; display: block; image-rendering: pixelated; }
+.barre .anteprima { position: absolute; width: clamp(180px, 22vw, 320px); aspect-ratio: 16/9; pointer-events: none; opacity: 0; transition: opacity .2s; box-shadow: 0 20px 50px rgba(0,0,0,.7); }
+.barre .anteprima img { width: 100%; height: 100%; object-fit: cover; }
+.barre .conta { position: absolute; top: 24px; left: var(--m); color: var(--polvere); }
+
+/* B · Il negativo che si sviluppa */
+.negativo { height: 100svh; background: #1a0000; }
+.negativo .foto { position: absolute; inset: 8svh var(--m) 26svh; overflow: hidden; }
+.negativo .foto img { width: 100%; height: 100%; object-fit: cover; filter: invert(1) contrast(.9); }
+.negativo .foto .maschera { position: absolute; inset: 0; background: #d9822b; mix-blend-mode: multiply; opacity: .75; }
+.negativo .banda { position: absolute; left: 0; right: 0; bottom: 0; }
+.negativo .scritta { position: absolute; top: 3svh; left: var(--m); color: #ff6a5a; }
+
+/* C · Il fascio del proiettore */
+.fascio { height: 100svh; }
+.fascio .schermo { position: absolute; left: 8%; right: 8%; bottom: 20svh; aspect-ratio: 2.39; max-height: 52svh; margin: 0 auto; overflow: hidden; opacity: 0; }
+.fascio .schermo img { width: 100%; height: 100%; object-fit: cover; }
+.fascio .cono { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; }
+.fascio canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.fascio .banda { position: absolute; left: 0; right: 0; bottom: 0; }
+.fascio .lente { position: absolute; top: 4svh; left: 50%; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #fff6e0; box-shadow: 0 0 30px 10px rgba(255,236,200,.7); opacity: 0; }
+
+/* D · La giornata in sala */
+.giornata { padding: 10px var(--m) 110px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: center; }
+.giornata svg { width: 100%; max-width: 620px; height: auto; display: block; margin: 0 auto; overflow: visible; }
+.giornata .arco { fill: none; stroke-width: 26; stroke-linecap: butt; cursor: pointer; transition: stroke-width .3s; }
+.giornata .arco:hover, .giornata .arco.attivo { stroke-width: 36; }
+.giornata .scheda { min-height: 260px; }
+.giornata .scheda img.l { max-height: 90px; max-width: 100%; width: auto; margin-bottom: 18px; }
+.giornata .scheda .ore { font-family: var(--titoli); font-size: clamp(54px, 7vw, 100px); line-height: .9; }
+.giornata .scheda .dati { color: var(--polvere); margin-top: 14px; display: block; }
+
+/* E · Il fuoco che si sposta */
+.fuoco { height: 100svh; }
+.fuoco img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.fuoco .sfocata { filter: blur(14px) brightness(.8); transform: scale(1.04); }
+.fuoco .nitida { -webkit-mask-image: linear-gradient(var(--dir, 180deg), transparent calc(var(--f) - 22%), #000 var(--f), transparent calc(var(--f) + 22%)); mask-image: linear-gradient(var(--dir, 180deg), transparent calc(var(--f) - 22%), #000 var(--f), transparent calc(var(--f) + 22%)); }
+.fuoco .ghiera { position: absolute; right: var(--m); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.fuoco .ghiera span { color: rgba(239,230,216,.4); transition: color .2s; }
+.fuoco .ghiera span.qui { color: var(--carta); }
+.fuoco .banda { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, #000 65%); padding-top: 80px; }
+
+/* F · Il cambio rullo */
+.rullo { height: 100svh; }
+.rullo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.rullo .due { opacity: 0; }
+.rullo .segno { position: absolute; top: 9%; right: 9%; width: clamp(18px, 2.2vw, 30px); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.95) 0 45%, rgba(255,220,180,.6) 60%, transparent 72%); opacity: 0; }
+.rullo .lampo { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.rullo .banda { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, #000 65%); padding-top: 80px; }
+.rullo .banda > div { transition: opacity .1s; }
+
+/* G · La sinossi in sottotitoli */
+.sottotitoli { height: 100svh; display: flex; flex-direction: column; }
+.sottotitoli .quadro { flex: none; width: 100%; aspect-ratio: 2.39; max-height: 64svh; overflow: hidden; margin-top: 7svh; }
+.sottotitoli .quadro img { width: 100%; height: 100%; object-fit: cover; }
+.sottotitoli .riga { flex: 1; display: grid; place-items: start center; padding: 26px 16px 0; text-align: center; }
+.sottotitoli .sub { font-family: var(--dati); font-weight: 500; font-size: clamp(18px, 2.2vw, 30px); line-height: 1.3; color: #fff; text-shadow: 0 0 2px #000, 0 2px 6px #000; max-width: 34ch; min-height: 2.6em; }
+.sottotitoli .vo { position: absolute; top: 2svh; left: var(--m); color: var(--polvere); }
+
+@media (max-width: 767px) {
+  .giornata { grid-template-columns: 1fr; }
+  .negativo .foto { inset: 10svh 16px 30svh; }
+  .fascio .schermo { left: 4%; right: 4%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .negativo .foto img { filter: none; } .negativo .foto .maschera { opacity: 0; }
+  .fascio .schermo { opacity: 1; }
+}
+</style>
+</head>
+<body>
+<main id="pagina"></main>
+<script src="dati.js"></script>
+<script src="regia.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+const R = window.REGIA, { IMG, fmt } = R;
+const $ = h => { const t = document.createElement('template'); t.innerHTML = h.trim();
+  t.content.querySelectorAll('img').forEach(i => { i.loading = 'lazy'; i.decoding = 'async'; });
+  return t.content.firstElementChild; };
+const logo = (f, cls = 'logo') => f.logo && f.logo !== 'none' ? `<img class="${cls}" crossorigin="anonymous" src="${IMG(f.logo, 'w500')}" alt="${f.title}">` : `<span class="${cls}" style="font-family:var(--titoli);font-size:42px">${f.title}</span>`;
+const pagina = document.getElementById('pagina');
+const muovi = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+gsap.registerPlugin(ScrollTrigger);
+const F = R.films, film = i => F[i % F.length], prossimo = f => f.upcoming[0];
+const quando = f => `${fmt.dayShort(prossimo(f).t.slice(0, 10))} · ${fmt.time(prossimo(f).t)} · Sala ${prossimo(f).room || ''}`;
+const cartello = (n, titolo, testo, meta) => `<header class="cartello"><div class="n dati">${n}</div><h2>${titolo}</h2><p>${testo}</p><div class="meta dati">Metadati: ${meta}</div></header>`;
+const carica = src => new Promise(ok => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src + (src.includes('?') ? '&' : '?') + 'lettura=1'; });
+
+pagina.append($(`<div class="intro"><div class="dati" style="color:var(--lampada)">Rivoluzione della home · seconda tornata</div>
+  <h1>Sette idee in più, scegline due</h1>
+  <p>Stesse regole di prima: fondo nero, dati veri, nessun testo sopra i volti. Qui usano già i caratteri che hai scelto, Libre Caslon Display per i titoli e Hanken Grotesk per i dati. Le lettere vanno dalla A alla G.</p></div>`));
+
+// ─── A · Il codice a barre del film ────────────────────────────────────
+{ const f = F.filter(x => x.backdrops.length >= 6)[2] || film(0);
+  const sec = $(`<section>${cartello('A', 'Il film in una striscia di colore', 'I fotogrammi del film vengono letti colonna per colonna, e ogni colonna diventa una riga del suo colore medio. Ne esce il "codice a barre" del film, diverso per ogni titolo. La striscia si compone mentre scendi, e passando sopra una riga si vede il fotogramma da cui viene.', 'fondali extra (letti pixel per pixel), logo, orario')}
+  <div class="palco barre"><span class="conta dati"></span><canvas></canvas><div class="anteprima"><img alt=""></div><div class="banda">${logo(f)}<span class="dati">${f.director} · ${quando(f)}</span></div></div></section>`);
+  pagina.append(sec);
+  const cv = sec.querySelector('canvas'), ctx = cv.getContext('2d'), COL = 70; let strisce = [];
+  const st = { p: muovi ? 0 : 1 };
+  const disegna = p => { cv.width = cv.clientWidth * devicePixelRatio; cv.height = cv.clientHeight * devicePixelRatio; if (!strisce.length) return; const w = cv.width / strisce.length, n = Math.round(strisce.length * p);
+    ctx.clearRect(0, 0, cv.width, cv.height); for (let i = 0; i < n; i++) { ctx.fillStyle = strisce[i].c; ctx.fillRect(Math.floor(i * w), 0, Math.ceil(w) + 1, cv.height); } };
+  if (muovi) gsap.to(st, { p: 1, ease: 'none', onUpdate: () => disegna(st.p), scrollTrigger: { trigger: sec.querySelector('.palco'), start: 'top top', end: '+=120%', scrub: .4, pin: true } });
+  (async () => {
+    const imgs = (await Promise.all(f.backdrops.slice(0, 7).map(p => carica(IMG(p, 'w300'))))).filter(Boolean);
+    const t = document.createElement('canvas'); t.width = COL; t.height = 40; const tx = t.getContext('2d');
+    imgs.forEach((im, k) => { tx.drawImage(im, 0, 0, COL, 40); const d = tx.getImageData(0, 0, COL, 40).data;
+      for (let x = 0; x < COL; x++) { let r = 0, g = 0, b = 0; for (let y = 0; y < 40; y++) { const i = (y * COL + x) * 4; r += d[i]; g += d[i + 1]; b += d[i + 2]; } strisce.push({ c: `rgb(${r / 40 | 0},${g / 40 | 0},${b / 40 | 0})`, k, src: im.src }); } });
+    sec.querySelector('.conta').textContent = `${imgs.length} fotogrammi · ${strisce.length} colori`;
+    disegna(st.p);
+    addEventListener('resize', () => disegna(st.p));
+    const an = sec.querySelector('.anteprima');
+    cv.addEventListener('pointermove', e => { const b = cv.getBoundingClientRect(), i = Math.floor((e.clientX - b.left) / b.width * strisce.length), s = strisce[i]; if (!s) return;
+      an.querySelector('img').src = s.src.replace('/w300/', '/w780/').replace(/[?&]lettura=1/, ''); an.style.left = Math.min(b.width - an.offsetWidth, Math.max(0, e.clientX - b.left - an.offsetWidth / 2)) + 'px'; an.style.top = (cv.offsetTop - an.offsetHeight - 14) + 'px'; an.style.opacity = 1; });
+    cv.addEventListener('pointerleave', () => an.style.opacity = 0);
+  })(); }
+
+// ─── B · Il negativo che si sviluppa ───────────────────────────────────
+{ const f = film(6);
+  const sec = $(`<section>${cartello('B', 'Il negativo che si sviluppa', 'Il fotogramma arriva in negativo, sotto la luce rossa della camera oscura. Mentre scendi si sviluppa: i colori si rovesciano, la maschera arancione sparisce e resta l\'immagine vera.', 'fondale, logo, orario')}
+  <div class="palco negativo"><span class="scritta dati">Camera oscura · sviluppo in corso</span><div class="foto"><img src="${IMG(f.backdrops[1] || f.backdrop)}" alt=""><div class="maschera"></div></div>
+  <div class="banda">${logo(f)}<span class="dati">${f.director} · ${quando(f)}</span></div></div></section>`);
+  pagina.append(sec);
+  if (muovi) gsap.timeline({ scrollTrigger: { trigger: sec.querySelector('.palco'), start: 'top top', end: '+=130%', scrub: .6, pin: true } })
+    .to(sec.querySelector('.foto img'), { filter: 'invert(0) contrast(1)', ease: 'power1.inOut', duration: 1 }, 0)
+    .to(sec.querySelector('.maschera'), { opacity: 0, ease: 'power1.in', duration: .8 }, 0)
+    .to(sec.querySelector('.negativo'), { backgroundColor: '#000', duration: 1 }, 0)
+    .to(sec.querySelector('.scritta'), { color: '#8a7d6c', duration: 1 }, 0)
+    .add(() => { sec.querySelector('.scritta').textContent = 'Sviluppato'; }, .95); }
+
+// ─── C · Il fascio del proiettore ──────────────────────────────────────
+{ const f = film(8);
+  const sec = $(`<section>${cartello('C', 'Il fascio del proiettore', 'Dalla cabina parte un cono di luce, con il pulviscolo che ci galleggia dentro, e il film si accende sullo schermo in fondo alla sala. All\'accensione c\'è un breve sfarfallio, come quando parte la lampada.', 'fondale, logo, orario, sala')}
+  <div class="palco fascio"><div class="lente"></div><svg class="cono" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3d6" stop-opacity=".55"/><stop offset="1" stop-color="#fff3d6" stop-opacity=".04"/></linearGradient><filter id="sf"><feGaussianBlur stdDeviation="1.2"/></filter></defs><polygon points="49.3,5 50.7,5 92,80 8,80" fill="url(#g)" filter="url(#sf)"/></svg>
+  <canvas></canvas><div class="schermo"><img src="${IMG(f.backdrop)}" alt=""></div>
+  <div class="banda">${logo(f)}<span class="dati">${quando(f)}</span></div></div></section>`);
+  pagina.append(sec);
+  const palco = sec.querySelector('.fascio'), cv = sec.querySelector('canvas'), cx = cv.getContext('2d');
+  const granelli = Array.from({ length: innerWidth < 768 ? 70 : 150 }, () => ({ y: Math.random(), s: Math.random() * 2 - 1, v: .0004 + Math.random() * .0012, r: .4 + Math.random() * 1.4, a: .2 + Math.random() * .6 }));
+  let vivo = false;
+  ScrollTrigger.create({ trigger: palco, start: 'top bottom', end: 'bottom top', onToggle: e => { vivo = e.isActive; if (vivo) giro(); } });
+  function giro() { if (!vivo) return; const w = cv.width = cv.clientWidth * devicePixelRatio, h = cv.height = cv.clientHeight * devicePixelRatio; cx.clearRect(0, 0, w, h);
+    granelli.forEach(g => { g.y -= g.v; if (g.y < .06) g.y = .8; const larg = (g.y - .05) / .75 * .42; const x = .5 + g.s * larg;
+      cx.globalAlpha = g.a * (0.6 + 0.4 * Math.sin(performance.now() / 600 + g.r * 9)); cx.fillStyle = '#fff3d6'; cx.beginPath(); cx.arc(x * w, g.y * h, g.r * devicePixelRatio, 0, 7); cx.fill(); });
+    requestAnimationFrame(giro); }
+  if (muovi) ScrollTrigger.create({ trigger: palco, start: 'top 55%', once: true, onEnter: () => {
+    const tl = gsap.timeline(); tl.to(sec.querySelector('.lente'), { opacity: 1, duration: .3 })
+      .fromTo(sec.querySelector('.cono'), { opacity: 0 }, { opacity: 1, duration: .1 }, .2);
+    [1, .3, .9, .2, 1, .6, 1].forEach((o, i) => tl.to(sec.querySelectorAll('.schermo, .cono'), { opacity: o, duration: .07 }, .3 + i * .08));
+    tl.fromTo(sec.querySelector('.schermo img'), { scale: 1.06 }, { scale: 1, duration: 2.5, ease: 'power2.out' }, .3); } });
+  else sec.querySelector('.schermo').style.opacity = 1; }
+
+// ─── D · La giornata in sala ───────────────────────────────────────────
+{ const giorno = R.days.find(d => R.showsOn(d).length >= 4) || R.days[0], sp = R.showsOn(giorno);
+  const C = 300, RAG = 230, min = t => { const [h, m] = fmt.time(t).split(':').map(Number); return h * 60 + m; };
+  const pt = (m, r) => { const a = (m / 1440) * Math.PI * 2 - Math.PI / 2; return [C + r * Math.cos(a), C + r * Math.sin(a)]; };
+  const arco = (a, b, r) => { const [x1, y1] = pt(a, r), [x2, y2] = pt(b, r); return `M${x1},${y1} A${r},${r} 0 ${b - a > 720 ? 1 : 0} 1 ${x2},${y2}`; };
+  const toni = ['#e8a33d', '#efe6d8', '#c97b4a', '#9fb3a8', '#d8b6a4', '#b8a37a', '#8fa1c4'];
+  const ore = [0, 6, 12, 18].map(h => { const [x, y] = pt(h * 60, RAG + 48); return `<text x="${x}" y="${y}" fill="#8a7d6c" font-family="Hanken Grotesk" font-size="13" letter-spacing="3" text-anchor="middle" dominant-baseline="middle">${String(h).padStart(2, '0')}</text>`; }).join('');
+  const tacche = Array.from({ length: 24 }, (_, h) => { const [x1, y1] = pt(h * 60, RAG + 20), [x2, y2] = pt(h * 60, RAG + (h % 6 ? 26 : 32)); return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(239,230,216,.35)"/>`; }).join('');
+  const archi = sp.map((s, i) => { const a = min(s.t), b = a + (s.film.runtime || 100); return `<path class="arco" data-i="${i}" d="${arco(a, b, RAG)}" stroke="${toni[i % toni.length]}"/>`; }).join('');
+  const sec = $(`<section>${cartello('D', 'La giornata in sala', 'Un quadrante di 24 ore. Ogni spettacolo è un arco che va dall\'inizio alla fine del film, quindi la lunghezza è la durata vera. La lancetta segna l\'ora di adesso. Passando sopra un arco, o toccandolo, a fianco compare il film.', 'orari, durate, logo, regia, lingua, sala')}
+  <div class="giornata"><svg viewBox="0 0 600 600"><circle cx="300" cy="300" r="${RAG}" fill="none" stroke="rgba(239,230,216,.08)" stroke-width="26"/>${tacche}${ore}${archi}
+    <line class="lancetta" x1="300" y1="300" x2="300" y2="${300 - RAG + 40}" stroke="#e8a33d" stroke-width="2"/><circle cx="300" cy="300" r="5" fill="#e8a33d"/>
+    <text x="300" y="350" fill="#efe6d8" font-family="Libre Caslon Display" font-size="34" text-anchor="middle">${fmt.day(giorno)}</text></svg>
+  <div class="scheda"></div></div></section>`);
+  pagina.append(sec);
+  const scheda = sec.querySelector('.scheda');
+  const mostra = i => { const s = sp[i], f = s.film, a = min(s.t), b = a + (f.runtime || 0);
+    sec.querySelectorAll('.arco').forEach(p => p.classList.toggle('attivo', +p.dataset.i === i));
+    scheda.innerHTML = `${logo(f, 'l')}<div class="ore">${fmt.time(s.t)} → ${String(Math.floor(b / 60) % 24).padStart(2, '0')}:${String(b % 60).padStart(2, '0')}</div><span class="dati">${f.director} · ${fmt.runtime(f.runtime)} · ${fmt.lang(s)} · Sala ${s.room}</span>`;
+    scheda.querySelectorAll('img[crossorigin]').forEach(R.fixDarkLogo);
+    if (muovi) gsap.from(scheda.children, { opacity: 0, y: 14, duration: .5, stagger: .06 }); };
+  sec.querySelectorAll('.arco').forEach(p => { p.addEventListener('pointerenter', () => mostra(+p.dataset.i)); p.addEventListener('click', () => mostra(+p.dataset.i)); });
+  mostra(0);
+  const ora = new Date(), adesso = ora.getHours() * 60 + ora.getMinutes();
+  const lan = sec.querySelector('.lancetta'); lan.style.transformOrigin = '300px 300px';
+  if (muovi) { sec.querySelectorAll('.arco').forEach(p => { const l = p.getTotalLength(); p.style.strokeDasharray = l; p.style.strokeDashoffset = l; });
+    gsap.timeline({ scrollTrigger: { trigger: sec.querySelector('.giornata'), start: 'top 70%' } })
+      .to(sec.querySelectorAll('.arco'), { strokeDashoffset: 0, duration: 1.4, stagger: .15, ease: 'power2.inOut' })
+      .fromTo(lan, { rotate: 0 }, { rotate: adesso / 1440 * 360, duration: 1.6, ease: 'expo.out', svgOrigin: '300 300' }, 0); }
+  else lan.setAttribute('transform', `rotate(${adesso / 1440 * 360} 300 300)`); }
+
+// ─── E · Il fuoco che si sposta ────────────────────────────────────────
+{ const f = film(12);
+  const sec = $(`<section>${cartello('E', 'Il fuoco che si sposta', 'Come l\'assistente operatore che gira la ghiera: mentre scendi, la zona nitida passa dal primo piano allo sfondo dell\'inquadratura, e a destra le distanze sulla ghiera seguono il fuoco.', 'fondale, logo, orario')}
+  <div class="palco fuoco" style="--f:20%"><img class="sfocata" src="${IMG(f.backdrops[1] || f.backdrop)}" alt=""><img class="nitida" src="${IMG(f.backdrops[1] || f.backdrop)}" alt="">
+  <div class="ghiera dati">${['∞', '10 m', '5 m', '3 m', '2 m', '1,5 m', '1 m'].map(x => `<span>${x}</span>`).join('')}</div>
+  <div class="banda">${logo(f)}<span class="dati">${f.director} · ${quando(f)}</span></div></div></section>`);
+  pagina.append(sec);
+  const palco = sec.querySelector('.fuoco'), segni = sec.querySelectorAll('.ghiera span');
+  const metti = p => { palco.style.setProperty('--f', (12 + p * 76) + '%'); const k = Math.round(p * (segni.length - 1)); segni.forEach((s, i) => s.classList.toggle('qui', i === k)); };
+  if (muovi) { const st = { p: 0 }; gsap.to(st, { p: 1, ease: 'none', onUpdate: () => metti(st.p), scrollTrigger: { trigger: palco, start: 'top top', end: '+=120%', scrub: .5, pin: true } }); } metti(muovi ? 0 : .5); }
+
+// ─── F · Il cambio rullo ───────────────────────────────────────────────
+{ const a = film(14), b = film(15);
+  const sec = $(`<section>${cartello('F', 'Il cambio rullo', 'Il passaggio da un film al successivo si fa come in cabina con due proiettori: nell\'angolo in alto lampeggiano i due segni di cambio rullo, poi uno stacco secco con un lampo di luce, e parte il film dopo.', 'fondali, logo, orari di due film in fila')}
+  <div class="palco rullo"><img class="uno" src="${IMG(a.backdrop)}" alt=""><img class="due" src="${IMG(b.backdrop)}" alt=""><div class="segno"></div><div class="lampo"></div>
+  <div class="banda"><div class="b1">${logo(a)}<div class="dati" style="margin-top:10px">${quando(a)}</div></div><div class="b2" style="display:none">${logo(b)}<div class="dati" style="margin-top:10px">${quando(b)}</div></div></div></div></section>`);
+  pagina.append(sec);
+  if (muovi) { const segno = sec.querySelector('.segno'), lampo = sec.querySelector('.lampo'), due = sec.querySelector('.due');
+    const cambia = dopo => { due.style.opacity = dopo ? 1 : 0; sec.querySelector('.b1').style.display = dopo ? 'none' : ''; sec.querySelector('.b2').style.display = dopo ? '' : 'none'; };
+    const tl = gsap.timeline({ scrollTrigger: { trigger: sec.querySelector('.palco'), start: 'top top', end: '+=160%', scrub: true, pin: true } });
+    tl.to(segno, { opacity: 1, duration: .04 }, .35).to(segno, { opacity: 0, duration: .04 }, .42)
+      .to(segno, { opacity: 1, duration: .04 }, .62).to(segno, { opacity: 0, duration: .04 }, .69)
+      .to(lampo, { opacity: .9, duration: .02 }, .74).add(() => cambia(tl.scrollTrigger.direction > 0), .75).to(lampo, { opacity: 0, duration: .06 }, .76)
+      .to({}, { duration: .24 }, .76); } }
+
+// ─── G · La sinossi in sottotitoli ─────────────────────────────────────
+{ const f = F.find((x, i) => i > 3 && x.overview && x.overview.length > 250 && x.upcoming[0].lang && x.upcoming[0].lang !== 'Italiano') || film(4);
+  const parole = f.overview.split(/\s+/), righe = []; let cur = '';
+  parole.forEach(w => { if ((cur + ' ' + w).trim().length > 74) { righe.push(cur.trim()); cur = w; } else cur += ' ' + w; }); if (cur.trim()) righe.push(cur.trim());
+  const spezza = r => { if (r.length <= 38) return r; const m = r.lastIndexOf(' ', Math.ceil(r.length / 2) + 4); return r.slice(0, m) + '<br>' + r.slice(m + 1); };
+  const subs = righe.slice(0, 6).map(spezza);
+  const sec = $(`<section>${cartello('G', 'La sinossi in sottotitoli', 'La trama scorre come i sottotitoli del film, sotto il fotogramma e mai sopra, una battuta alla volta, con gli stacchi secchi dei sottotitoli veri. In alto la lingua originale.', 'sinossi, lingua, sottotitoli, fondale')}
+  <div class="palco sottotitoli"><span class="vo dati">Versione originale · ${prossimo(f).lang || ''}${prossimo(f).subs ? ' · sottotitoli ' + prossimo(f).subs.toLowerCase() : ''}</span>
+  <div class="quadro"><img src="${IMG(f.backdrops[2] || f.backdrop)}" alt=""></div><div class="riga"><div class="sub"></div></div>
+  <div class="banda" style="position:absolute;left:0;right:0;bottom:0">${logo(f)}<span class="dati">${quando(f)}</span></div></div></section>`);
+  pagina.append(sec);
+  const sub = sec.querySelector('.sub');
+  if (muovi) { const st = { i: -1 }; gsap.to(st, { i: subs.length - .01, ease: 'none', onUpdate: () => { const k = Math.floor(st.i); sub.innerHTML = k >= 0 ? subs[k] : ''; }, scrollTrigger: { trigger: sec.querySelector('.palco'), start: 'top top', end: '+=' + subs.length * 45 + '%', scrub: true, pin: true } }); }
+  else sub.innerHTML = subs[0]; }
+
+document.querySelectorAll('img[crossorigin]').forEach(R.fixDarkLogo);
+addEventListener('load', () => ScrollTrigger.refresh());
+</script>
+</body>
+</html>

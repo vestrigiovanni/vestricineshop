@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ordine della home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Hanken+Grotesk:wght@300..600&family=Newsreader:ital,opsz,wght@0,6..72,300..500;1,6..72,300..500&display=swap">
+<style>
+:root {
+  --nero: #000; --carta: #efe6d8; --polvere: #8a7d6c; --filo: rgba(239,230,216,.14); --lampada: #e8a33d;
+  --titoli: 'Libre Caslon Display', serif; --testo: 'Newsreader', serif; --dati: 'Hanken Grotesk', sans-serif;
+  --m: clamp(16px, 4vw, 56px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--nero); color: var(--carta); }
+body { font-family: var(--testo); font-size: 18px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+img { display: block; }
+.dati { font-family: var(--dati); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.logo-acceso { filter: brightness(0) invert(.94); }
+button { font: inherit; color: inherit; }
+
+header.testa { padding: 70px var(--m) 24px; max-width: 900px; }
+header.testa h1 { font-family: var(--titoli); font-weight: 400; font-size: clamp(44px, 7vw, 88px); line-height: 1; margin: 12px 0 16px; }
+header.testa p { color: rgba(239,230,216,.8); max-width: 60ch; }
+
+.comandi { position: sticky; top: 0; z-index: 20; display: flex; gap: 10px; flex-wrap: wrap; padding: 14px var(--m); background: rgba(0,0,0,.88); backdrop-filter: blur(10px); border-bottom: 1px solid var(--filo); }
+.comandi button { background: none; border: 1px solid var(--filo); border-radius: 999px; padding: 10px 18px; cursor: pointer; font-family: var(--dati); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; min-height: 44px; }
+.comandi button.primo { background: var(--lampada); color: #140e05; border-color: var(--lampada); }
+.comandi .esito { align-self: center; color: var(--polvere); }
+
+/* Elenco da riordinare */
+.elenco { list-style: none; padding: 20px var(--m) 140px; display: grid; gap: 10px; max-width: 980px; }
+.pezzo { display: grid; grid-template-columns: 40px 34px 160px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 10px 12px; border: 1px solid var(--filo); background: #0b0a09; touch-action: none; }
+.pezzo.sollevato { opacity: .4; }
+.pezzo.fantasma { border-color: var(--lampada); box-shadow: 0 16px 40px rgba(0,0,0,.6); }
+.pezzo .maniglia { cursor: grab; display: grid; place-items: center; height: 44px; color: var(--polvere); font-size: 20px; user-select: none; }
+.pezzo .num { font-family: var(--titoli); font-size: 28px; color: var(--polvere); text-align: right; }
+.pezzo .anteprima { width: 160px; aspect-ratio: 16/9; overflow: hidden; position: relative; background: #111; }
+.pezzo .anteprima img { width: 100%; height: 100%; object-fit: cover; }
+.pezzo h2 { font-family: var(--titoli); font-weight: 400; font-size: 26px; line-height: 1.1; }
+.pezzo p { color: var(--polvere); font-size: 15px; margin-top: 4px; }
+.pezzo .frecce { display: flex; gap: 6px; }
+.pezzo .frecce button { width: 44px; height: 44px; border: 1px solid var(--filo); background: none; cursor: pointer; border-radius: 50%; }
+.pezzo.prossimi { border-style: dashed; }
+.pezzo .etichetta { display: inline-block; margin-top: 6px; color: var(--lampada); }
+
+/* Anteprime disegnate */
+.mini-pellicola { display: flex; gap: 3px; height: 100%; padding: 8px 0; background: #14110d; }
+.mini-pellicola img { flex: 1; min-width: 0; height: 100%; object-fit: cover; }
+.mini-barre { display: flex; height: 100%; }
+.mini-barre i { flex: 1; }
+.mini-ventaglio { position: relative; height: 100%; }
+.mini-ventaglio img { position: absolute; left: 50%; bottom: -30%; width: 34%; aspect-ratio: 2/3; margin-left: -17%; transform-origin: 50% 140%; box-shadow: 0 4px 10px #000; }
+.mini-sub { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font-family: var(--dati); font-size: 9px; color: #fff; text-shadow: 0 1px 3px #000; }
+.mini-conto { display: grid; place-items: center; height: 100%; font-family: 'Hanken Grotesk'; font-size: 22px; letter-spacing: .08em; }
+.mini-lista { padding: 8px; display: grid; gap: 5px; height: 100%; align-content: center; }
+.mini-lista div { display: flex; gap: 8px; align-items: center; font-family: var(--titoli); font-size: 13px; }
+.mini-lista img { height: 12px; width: auto; max-width: 80px; object-fit: contain; }
+.mini-doppio { display: flex; height: 100%; }
+.mini-doppio img { width: 50%; height: 100%; object-fit: cover; }
+.mini-doppio span { width: 2px; background: var(--carta); }
+.mini-premio { display: grid; place-items: center; height: 100%; text-align: center; font-family: var(--titoli); font-style: italic; font-size: 18px; }
+.mini-premio img { height: 34px; width: auto; filter: brightness(0) invert(1); margin: 0 auto 4px; }
+.mini-parete { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; height: 100%; }
+.mini-parete div { position: relative; overflow: hidden; background: #000; }
+.mini-parete div:first-child { grid-row: span 2; }
+.mini-parete img.f { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55; }
+.mini-parete img.l { position: absolute; left: 6px; top: 6px; height: 30%; width: auto; filter: brightness(0) invert(1); }
+
+/* Vista in sequenza: ogni pezzo a tutta larghezza, per sentire il ritmo */
+.sequenza { display: none; }
+body.in-sequenza .elenco { display: none; }
+body.in-sequenza .sequenza { display: block; }
+.banda { position: relative; height: 72svh; overflow: hidden; border-top: 1px solid #000; display: grid; align-items: end; }
+.banda .fondo { position: absolute; inset: 0; }
+.banda .fondo > * { width: 100%; height: 100%; }
+.banda .fondo img { object-fit: cover; }
+.banda .velo { position: absolute; inset: 0; background: linear-gradient(transparent 45%, rgba(0,0,0,.92)); }
+.banda .testo { position: relative; padding: 0 var(--m) 26px; display: flex; gap: 18px; align-items: baseline; }
+.banda .testo .n { font-family: var(--titoli); font-size: 54px; color: var(--polvere); line-height: 1; }
+.banda .testo h3 { font-family: var(--titoli); font-weight: 400; font-size: clamp(30px, 4vw, 54px); line-height: 1; }
+.banda .fondo .mini-lista div { font-size: clamp(20px, 3vw, 40px); gap: 24px; }
+.banda .fondo .mini-lista img { height: clamp(18px, 3vw, 40px); max-width: 300px; }
+.banda .fondo .mini-lista { padding: 6vh var(--m); justify-content: start; }
+.banda .fondo .mini-conto { font-size: clamp(48px, 9vw, 130px); }
+.banda .fondo .mini-premio { font-size: clamp(60px, 10vw, 150px); }
+.banda .fondo .mini-premio img { height: 22vh; margin-bottom: 2vh; }
+.banda .fondo .mini-sub { font-size: clamp(16px, 2vw, 26px); bottom: 34%; }
+.banda .fondo .mini-pellicola { padding: 9vh 0; gap: 10px; }
+.banda .fondo .mini-parete img.l { height: 26%; left: 16px; top: 16px; }
+
+textarea.copia { display: none; margin: 0 var(--m) 40px; width: calc(100% - 2 * var(--m)); height: 160px; background: #0b0a09; color: var(--carta); border: 1px solid var(--filo); padding: 12px; font-family: var(--dati); font-size: 13px; }
+textarea.copia.vista { display: block; }
+
+@media (max-width: 767px) {
+  .pezzo { grid-template-columns: 32px 28px minmax(0, 1fr) auto; gap: 10px; }
+  .pezzo .anteprima { display: none; }
+  .pezzo h2 { font-size: 20px; }
+  .pezzo p { display: none; }
+  .pezzo .frecce button { width: 40px; height: 40px; }
+  .banda { height: 60svh; }
+}
+</style>
+</head>
+<body>
+<header class="testa">
+  <div class="dati" style="color:var(--lampada)">Rivoluzione della home · l'ordine</div>
+  <h1>In che ordine li vedi?</h1>
+  <p>Questi sono tutti i pezzi che hai scelto, nell'ordine scritto oggi nella specifica. Trascinali dalla maniglia ⋮⋮, oppure usa le frecce. Con «Guarda in sequenza» li vedi a tutta larghezza, uno sotto l'altro, per sentire il ritmo della pagina. Quando ti convince premi «Copia l'ordine» e incollamelo in chat.</p>
+  <p style="margin-top:10px">I pezzi tratteggiati sono le tecniche dei <em>prossimi film</em>: nel sito ognuna tocca a un film diverso. Qui decidi in che ordine si alternano e quali vengono prima.</p>
+</header>
+<nav class="comandi">
+  <button class="primo" data-az="copia">Copia l'ordine</button>
+  <button data-az="vista">Guarda in sequenza</button>
+  <button data-az="reset">Rimetti l'ordine iniziale</button>
+  <span class="esito dati"></span>
+</nav>
+<textarea class="copia" readonly></textarea>
+<ol class="elenco"></ol>
+<div class="sequenza"></div>
+
+<script src="dati.js"></script>
+<script src="regia.js"></script>
+<script>
+const R = window.REGIA, { IMG, fmt, LOGO_DIR } = R;
+const F = R.films, f0 = R.opening, L = R.laureate;
+const logo = f => f.logo && f.logo !== 'none' ? `<img crossorigin="anonymous" src="${IMG(f.logo, 'w300')}" alt="${f.title}">` : f.title;
+const bd = (f, i = 0, s = 'w780') => `<img loading="lazy" src="${IMG(f.backdrops[i] || f.backdrop, s)}" alt="">`;
+const conBd = F.filter(f => f.backdrops.length >= 5);
+const vinti = F.flatMap(f => f.awards.filter(a => a.won.length).map(a => ({ a, f }))).sort((x, y) => y.a.weight - x.a.weight);
+const oggi = R.tonight.slice(0, 4);
+
+const PEZZI = [
+  { id: 'apertura', nome: 'Apertura', testo: 'Il fondale del film più vicino sale dal nero, poi logo, ora, sala.', vis: () => bd(f0, 0, 'w1280') },
+  { id: 'conto', nome: 'Conto alla rovescia', testo: 'Quanto manca al prossimo spettacolo, cifre a palette.', vis: () => `<div class="mini-conto">07 : 10 : 13</div>` },
+  { id: 'oggi', nome: 'Oggi, con i loghi', testo: 'Gli spettacoli di oggi: ora grande e logo del film.', vis: () => `<div class="mini-lista">${oggi.map(s => `<div><span>${fmt.time(s.t)}</span>${logo(s.film)}</div>`).join('')}</div>` },
+  { id: 'onore', nome: 'Pagina d\'onore', testo: 'Il premio più alto della settimana a tutto schermo.', vis: () => L ? `<div class="mini-premio"><div><img src="${LOGO_DIR + L.top.fest.logo}" alt="">${L.top.prize}</div></div>` : '' },
+  { id: 'parete', nome: 'Parete dei premi', testo: 'Riquadri per festival, il film vincitore dietro il logo.', vis: () => `<div class="mini-parete">${vinti.slice(0, 3).map(({ a, f }) => `<div><img class="f" loading="lazy" src="${IMG(f.backdrop, 'w300')}" alt=""><img class="l" src="${LOGO_DIR + a.fest.logo}" alt=""></div>`).join('')}</div>` },
+  { id: 'giornata', nome: 'La giornata in sala', testo: 'Quadrante di 24 ore, un arco per spettacolo.', vis: () => `<svg viewBox="0 0 100 56" style="width:100%;height:100%"><circle cx="50" cy="28" r="20" fill="none" stroke="rgba(239,230,216,.12)" stroke-width="5"/><circle cx="50" cy="28" r="20" fill="none" stroke="#e8a33d" stroke-width="5" stroke-dasharray="14 6 10 9 12 30 8 200" transform="rotate(60 50 28)"/><line x1="50" y1="28" x2="62" y2="18" stroke="#e8a33d" stroke-width="1"/></svg>` },
+  { id: 'pellicola', nome: 'Pellicola che scorre', testo: 'I fotogrammi passano di lato mentre scendi. Su almeno tre film.', prossimi: true, vis: () => `<div class="mini-pellicola">${[1, 2, 3, 4].map(i => bd(conBd[0], i, 'w300')).join('')}</div>` },
+  { id: 'locandina', nome: 'Locandina → fotogramma', testo: 'Il poster si allarga fino al formato cinema.', prossimi: true, vis: () => `<img loading="lazy" src="${IMG(F[5].poster, 'w342')}" alt="" style="object-position:50% 20%">` },
+  { id: 'iride', nome: 'Iride', testo: 'Il film si apre da un cerchio di luce, come nel muto.', prossimi: true, vis: () => `<div style="height:100%;clip-path:circle(42% at 50% 50%)">${bd(F[9], 0, 'w300')}</div>` },
+  { id: 'barre', nome: 'Il film in una striscia di colore', testo: 'Il codice a barre dei colori del film.', prossimi: true, vis: () => `<div class="mini-barre" data-film="${conBd[2] ? conBd[2].id : ''}"></div>` },
+  { id: 'sottotitoli', nome: 'Sinossi in sottotitoli', testo: 'La trama scorre una battuta alla volta, sotto il fotogramma.', prossimi: true, vis: () => `${bd(F[6], 2, 'w300')}<div class="mini-sub">Minaccia di tradirlo e una notte…</div>` },
+  { id: 'trailer', nome: 'Trailer muto', testo: 'Il trailer parte da solo, senza audio, in formato cinema.', prossimi: true, vis: () => bd(F[4], 1, 'w300') },
+  { id: 'doppio', nome: 'Doppio programma', testo: 'Due film dello stesso giorno dividono lo schermo.', prossimi: true, vis: () => `<div class="mini-doppio">${bd(F[0], 0, 'w300')}<span></span>${bd(F[1], 0, 'w300')}</div>` },
+  { id: 'ventaglio', nome: 'Ventaglio di locandine', testo: 'Le locandine dei film più lontani si aprono a ventaglio.', vis: () => `<div class="mini-ventaglio">${F.slice(-5).map((f, i) => `<img loading="lazy" src="${IMG(f.poster, 'w185')}" alt="" style="transform:rotate(${(i - 2) * 14}deg)">`).join('')}</div>` },
+  { id: 'settimana', nome: 'La settimana completa', testo: 'Il programma di tutti i giorni, ogni spettacolo con il logo.', vis: () => `<div class="mini-lista">${R.days.slice(0, 4).map(d => `<div><span class="dati" style="font-size:9px;min-width:60px">${fmt.dayShort(d)}</span>${R.showsOn(d).slice(0, 2).map(s => logo(s.film)).join('')}</div>`).join('')}</div>` },
+];
+const INIZIALE = PEZZI.map(p => p.id);
+let ordine = INIZIALE.slice();
+try { const s = JSON.parse(localStorage.getItem('vestri-ordine') || 'null'); if (Array.isArray(s) && s.length === INIZIALE.length && s.every(id => INIZIALE.includes(id))) ordine = s; } catch (e) {}
+const salva = () => { try { localStorage.setItem('vestri-ordine', JSON.stringify(ordine)); } catch (e) {} };
+const P = id => PEZZI.find(p => p.id === id);
+const elenco = document.querySelector('.elenco');
+
+function disegna() {
+  elenco.innerHTML = ordine.map((id, i) => { const p = P(id); return `<li class="pezzo ${p.prossimi ? 'prossimi' : ''}" data-id="${id}">
+    <span class="maniglia" aria-hidden="true">⋮⋮</span><span class="num">${i + 1}</span>
+    <div class="anteprima">${p.vis()}</div>
+    <div><h2>${p.nome}</h2><p>${p.testo}</p>${p.prossimi ? '<span class="etichetta dati">tecnica dei prossimi film</span>' : ''}</div>
+    <div class="frecce"><button aria-label="Sposta su" data-su="${i}">↑</button><button aria-label="Sposta giù" data-giu="${i}">↓</button></div></li>`; }).join('');
+  dopo(elenco);
+}
+function sequenza() {
+  const box = document.querySelector('.sequenza');
+  box.innerHTML = ordine.map((id, i) => { const p = P(id); return `<section class="banda"><div class="fondo">${p.vis().replace(/w300|w185|w342/g, 'w780')}</div><div class="velo"></div>
+    <div class="testo"><span class="n">${i + 1}</span><div><h3>${p.nome}</h3><span class="dati" style="color:var(--polvere)">${p.testo}</span></div></div></section>`; }).join('');
+  dopo(box);
+}
+// Codice a barre e loghi scuri, dopo ogni disegno.
+const colori = {};
+async function barre(el) {
+  const f = F.find(x => x.id === el.dataset.film); if (!f) return;
+  if (!colori[f.id]) colori[f.id] = await Promise.all(f.backdrops.slice(0, 6).map(p => new Promise(ok => { const im = new Image(); im.crossOrigin = 'anonymous';
+    im.onload = () => { try { const c = document.createElement('canvas'); c.width = 12; c.height = 8; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 12, 8); const d = x.getImageData(0, 0, 12, 8).data, out = [];
+      for (let col = 0; col < 12; col++) { let r = 0, g = 0, b = 0; for (let y = 0; y < 8; y++) { const k = (y * 12 + col) * 4; r += d[k]; g += d[k + 1]; b += d[k + 2]; } out.push(`rgb(${r / 8 | 0},${g / 8 | 0},${b / 8 | 0})`); } ok(out); } catch (e) { ok([]); } };
+    im.onerror = () => ok([]); im.src = IMG(p, 'w92') + '?lettura=1'; }))).then(a => a.flat());
+  el.innerHTML = colori[f.id].map(c => `<i style="background:${c}"></i>`).join('');
+}
+function dopo(root) { root.querySelectorAll('.mini-barre').forEach(barre); root.querySelectorAll('img[crossorigin]').forEach(R.fixDarkLogo); }
+
+// Frecce
+elenco.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
+  const i = +(b.dataset.su ?? b.dataset.giu), j = b.dataset.su !== undefined ? i - 1 : i + 1;
+  if (j < 0 || j >= ordine.length) return; [ordine[i], ordine[j]] = [ordine[j], ordine[i]]; salva(); disegna();
+  elenco.querySelectorAll('.pezzo')[j].querySelector(b.dataset.su !== undefined ? '[data-su]' : '[data-giu]').focus(); });
+
+// Trascinamento con il dito o il mouse, dalla maniglia
+let presa = null;
+elenco.addEventListener('pointerdown', e => {
+  const m = e.target.closest('.maniglia'); if (!m) return; e.preventDefault();
+  const li = m.closest('.pezzo'), r = li.getBoundingClientRect();
+  const fantasma = li.cloneNode(true); fantasma.classList.add('fantasma');
+  Object.assign(fantasma.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', zIndex: 50, pointerEvents: 'none' });
+  document.body.append(fantasma); li.classList.add('sollevato');
+  presa = { li, fantasma, dy: e.clientY - r.top };
+});
+addEventListener('pointermove', e => { if (!presa) return;
+  presa.fantasma.style.top = (e.clientY - presa.dy) + 'px';
+  const altri = [...elenco.querySelectorAll('.pezzo:not(.sollevato)')];
+  const sotto = altri.find(el => { const b = el.getBoundingClientRect(); return e.clientY < b.top + b.height / 2; });
+  if (sotto) elenco.insertBefore(presa.li, sotto); else elenco.append(presa.li);
+  if (e.clientY < 80) scrollBy(0, -12); if (e.clientY > innerHeight - 80) scrollBy(0, 12); });
+const lascia = () => { if (!presa) return; presa.fantasma.remove(); presa.li.classList.remove('sollevato');
+  ordine = [...elenco.querySelectorAll('.pezzo')].map(li => li.dataset.id); presa = null; salva(); disegna(); };
+addEventListener('pointerup', lascia); addEventListener('pointercancel', lascia);
+
+// Comandi
+const esito = document.querySelector('.esito'), area = document.querySelector('textarea.copia');
+document.querySelector('.comandi').addEventListener('click', async e => { const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.az === 'vista') { const on = document.body.classList.toggle('in-sequenza'); b.textContent = on ? 'Torna all\'elenco' : 'Guarda in sequenza'; if (on) sequenza(); scrollTo(0, 0); }
+  if (b.dataset.az === 'reset') { ordine = INIZIALE.slice(); salva(); disegna(); if (document.body.classList.contains('in-sequenza')) sequenza(); esito.textContent = 'Ordine iniziale'; }
+  if (b.dataset.az === 'copia') { const testo = 'Ordine della home:\n' + ordine.map((id, i) => `${i + 1}. ${P(id).nome}`).join('\n');
+    area.value = testo; try { await navigator.clipboard.writeText(testo); esito.textContent = 'Copiato: incollalo in chat'; area.classList.remove('vista'); }
+    catch (err) { area.classList.add('vista'); area.select(); esito.textContent = 'Seleziona e copia il testo qui sotto'; } } });
+disegna();
+</script>
+</body>
+</html>

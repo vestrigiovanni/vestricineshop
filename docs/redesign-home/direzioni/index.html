@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tre direzioni</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..500;1,6..72,300..500&family=JetBrains+Mono&display=swap">
+<style>
+:root { --fondo: #0c0a08; --testo: #efe6d8; --spento: #8a7d6c; --filo: rgba(239,230,216,.15); }
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--fondo); color: var(--testo); font-family: 'Newsreader', serif; font-size: 19px; line-height: 1.5; padding: 48px 16px 96px; }
+main { max-width: 760px; margin: 0 auto; }
+h1 { font-weight: 400; font-size: clamp(40px, 7vw, 72px); line-height: 1; }
+.dati { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--spento); }
+article { border-top: 1px solid var(--filo); padding: 28px 0; }
+h2 { font-weight: 400; font-size: 34px; }
+h2 a { color: inherit; }
+p { margin-top: 10px; color: rgba(239,230,216,.85); }
+.giorni { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+.giorni a { color: var(--spento); border: 1px solid var(--filo); padding: 6px 10px; text-decoration: none; }
+</style>
+</head>
+<body>
+<main>
+<p class="dati">Rivoluzione della home · passo 3</p>
+<h1>Tre direzioni, con i film veri di questa settimana</h1>
+<p>Tutte e tre leggono gli stessi dati (Neon in sola lettura e TMDB) e la stessa "regia del giorno": il seme è la data, quindi ogni giorno cambiano composizione, fondali e ordine. Prova i link dei giorni sotto ogni direzione.</p>
+
+<article><h2><a href="a-proiezione.html">A · Proiezione</a></h2>
+<p>Notte calda, Bodoni Moda e JetBrains Mono. Il fotogramma si apre come la luce del proiettore, e il testo vive solo nelle bande nere: mai sopra un volto. Scorrendo, i fondali del giorno arrivano a strisce e si compongono. La Palma d'oro occupa da sola un intero schermo.</p>
+<div class="giorni" data-p="a-proiezione.html"></div></article>
+
+<article><h2><a href="b-foglio-di-sala.html">B · Foglio di sala</a></h2>
+<p>Carta e inchiostro, Instrument Serif e IBM Plex Mono: un programma stampato con il numero del giorno. Ogni film ha il suo provino di pellicola, che scorre di lato mentre scendi, e la carta si tinge del colore preso dal suo fondale. I loghi sono stampati a inchiostro. La settimana è in sette colonne.</p>
+<div class="giorni" data-p="b-foglio-di-sala.html"></div></article>
+
+<article><h2><a href="c-mosaico.html">C · Mosaico</a></h2>
+<p>Gloock e Crimson Pro su nero. La pagina si apre come un mosaico di fondali: le tessere si dividono lo schermo in base ai premi. Scorrendo, la tessera del film di stasera si prende tutto lo schermo e le altre si spengono. I premi sono una parete di riquadri, con il film vincitore che sale dietro il logo del festival.</p>
+<div class="giorni" data-p="c-mosaico.html"></div></article>
+</main>
+<script src="dati.js"></script>
+<script>
+const g = [...new Set(window.VESTRI.films.flatMap(f => f.shows.map(s => s.t.slice(0, 10))))].sort().filter(d => d >= window.VESTRI.today);
+document.querySelectorAll('.giorni').forEach(el => el.innerHTML = g.map(d => `<a href="${el.dataset.p}?giorno=${d}">${new Date(d + 'T12:00').toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' })}</a>`).join(''));
+</script>
+</body>
+</html>

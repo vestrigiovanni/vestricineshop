@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A · Proiezione</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --notte: #0c0a08;
+  --banda: #050403;
+  --carta: #efe6d8;
+  --polvere: #8a7d6c;
+  --filo: rgba(239, 230, 216, .14);
+  --lampada: #e8a33d;
+  --display: 'Bodoni Moda', serif;
+  --testo: 'Newsreader', serif;
+  --dati: 'JetBrains Mono', ui-monospace, monospace;
+  --scope: 2.39;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--notte); color: var(--carta); }
+body { font-family: var(--testo); font-size: 18px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+img { display: block; }
+.dati { font-family: var(--dati); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.logo-acceso { filter: brightness(0) invert(.92); }
+
+/* Grana fissa: un'immagine, non un filtro ricalcolato. */
+body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: .07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+/* Testata */
+.testata { position: fixed; top: 0; left: 0; right: 0; z-index: 40; display: flex; justify-content: space-between; align-items: baseline; padding: 18px clamp(16px, 4vw, 48px) 28px; background: linear-gradient(var(--banda) 55%, transparent); transition: transform .5s ease; }
+.testata.via { transform: translateY(-100%); }
+.testata b { font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: .42em; text-transform: uppercase; }
+
+/* Hero: il fotogramma in formato scope; tutto il testo vive nelle bande nere. */
+.hero { display: grid; background: var(--banda); }
+.hero .sopra { padding: 64px clamp(16px, 4vw, 48px) 14px; display: flex; gap: 24px; color: var(--polvere); }
+.hero .sopra .ora { color: var(--carta); }
+.fotogramma { position: relative; width: 100%; height: min(calc(100vw / var(--scope)), calc(100svh - 340px)); min-height: 280px; overflow: hidden; clip-path: inset(50% 0 50% 0); }
+.fotogramma img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.08); }
+.sotto { padding: 28px clamp(16px, 4vw, 48px) 40px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px clamp(24px, 5vw, 80px); align-items: start; }
+.sotto .logo { max-width: min(460px, 100%); max-height: 150px; width: auto; object-fit: contain; object-position: left center; }
+.sotto .riga { margin-top: 18px; color: var(--polvere); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.sotto .riga span:first-child { color: var(--carta); }
+.premio-breve { margin-top: 22px; display: flex; align-items: center; gap: 14px; }
+.premio-breve img { height: 46px; width: auto; }
+.premio-breve em { font-family: var(--display); font-style: italic; font-size: 22px; }
+.orari { display: flex; flex-direction: column; gap: 14px; }
+.orari .lista { display: flex; flex-wrap: wrap; gap: 10px 28px; align-items: baseline; }
+.orari .t { font-family: var(--dati); font-size: clamp(40px, 5vw, 72px); font-weight: 400; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.orari .t small { display: block; font-size: 10px; letter-spacing: .18em; color: var(--polvere); margin-top: 8px; }
+.prenota { align-self: start; margin-top: 10px; display: inline-flex; gap: 14px; align-items: center; background: var(--lampada); color: #120d06; border: 0; padding: 16px 26px; font-family: var(--dati); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; }
+.sinossi { font-size: 17px; color: rgba(239,230,216,.78); max-width: 60ch; margin-top: 22px; }
+
+/* Il disegno del giorno: strisce di fondali che si compongono scorrendo. */
+.disegno { position: relative; height: 100svh; overflow: hidden; background: var(--banda); }
+.disegno .striscia { position: absolute; left: 0; width: 100%; overflow: hidden; }
+.disegno .striscia img { position: absolute; left: -10%; width: 120%; height: 100%; object-fit: cover; }
+.disegno .didascalia { position: absolute; right: clamp(16px, 4vw, 48px); bottom: 10px; color: var(--carta); background: rgba(5,4,3,.72); padding: 4px 8px; }
+.disegno .titolo { position: absolute; left: clamp(16px, 4vw, 48px); top: 22px; z-index: 3; color: var(--polvere); mix-blend-mode: difference; }
+
+/* Palmarès: il premio più alto della settimana a tutto schermo. */
+.palmares { position: relative; min-height: 100svh; display: grid; place-items: center; text-align: center; overflow: hidden; background: #000; padding: 80px 16px; }
+.palmares .fondo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .22; filter: grayscale(1) contrast(1.1); }
+.palmares .corpo { position: relative; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.palmares .festival { width: clamp(160px, 30vw, 380px); height: auto; filter: drop-shadow(0 0 60px rgba(232,163,61,.25)); }
+.palmares h2 { font-family: var(--display); font-style: italic; font-weight: 400; font-size: clamp(64px, 13vw, 210px); line-height: .9; letter-spacing: -.02em; }
+.palmares .logo { max-height: 90px; max-width: min(420px, 80vw); width: auto; margin-top: 18px; }
+.palmares .quando { color: var(--polvere); }
+
+/* Gli altri premi vinti, uno per riga. */
+.premi { padding: clamp(64px, 10vw, 140px) clamp(16px, 4vw, 48px); }
+.premi h3, .settimana h3 { font-family: var(--display); font-weight: 400; font-size: clamp(36px, 5vw, 64px); margin-bottom: 36px; }
+.premio { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 24px; align-items: center; padding: 20px 0; border-top: 1px solid var(--filo); }
+.premio img.f { width: 64px; height: 64px; object-fit: contain; }
+.premio .cosa { font-family: var(--display); font-style: italic; font-size: clamp(22px, 2.6vw, 34px); line-height: 1.1; }
+.premio .chi { color: var(--polvere); margin-top: 6px; }
+.premio img.l { max-height: 44px; max-width: 200px; width: auto; }
+
+/* Programma della settimana: il logo del film al posto del titolo. */
+.settimana { padding: 0 clamp(16px, 4vw, 48px) 120px; }
+.giorno { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 24px; padding: 26px 0; border-top: 1px solid var(--filo); }
+.giorno > .dati { color: var(--carta); padding-top: 8px; }
+.spettacolo { display: grid; grid-template-columns: 90px 220px minmax(0, 1fr); gap: 20px; align-items: center; padding: 8px 0; }
+.spettacolo .t { font-family: var(--dati); font-size: 26px; font-variant-numeric: tabular-nums; }
+.spettacolo img { max-height: 34px; max-width: 200px; width: auto; }
+.spettacolo .dati { color: var(--polvere); }
+
+@media (max-width: 767px) {
+  body { font-size: 17px; }
+  .testata b { letter-spacing: .24em; font-size: 13px; }
+  .hero .sopra span:not(.ora) { display: none; }
+  .fotogramma { height: 58svh; }
+  .sotto { grid-template-columns: 1fr; }
+  .sotto .logo { max-height: 110px; }
+  .orari .t { font-size: 44px; }
+  .prenota { width: 100%; justify-content: space-between; }
+  .giorno { grid-template-columns: 1fr; gap: 6px; }
+  .spettacolo { grid-template-columns: 64px minmax(0, 1fr); }
+  .spettacolo .dati { grid-column: 2; }
+  .spettacolo .t { font-size: 20px; }
+  .premio { grid-template-columns: 52px minmax(0, 1fr); }
+  .premio img.f { width: 48px; height: 48px; }
+  .premio img.l { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fotogramma { clip-path: none; }
+  .fotogramma img { transform: none; }
+}
+</style>
+</head>
+<body>
+<header class="testata"><b>Vestri Cinema</b><span class="dati" id="oggi"></span></header>
+<main id="pagina"></main>
+
+<script src="dati.js"></script>
+<script src="regia.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+const R = window.REGIA, { IMG, fmt, FEST, LOGO_DIR } = R;
+const $ = (h) => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstElementChild; };
+const logo = (f, cls = 'logo') => f.logo && f.logo !== 'none'
+  ? `<img class="${cls}" crossorigin="anonymous" src="${IMG(f.logo, 'w500')}" alt="${f.title}">`
+  : `<span class="${cls}" style="font-family:var(--display);font-size:42px">${f.title}</span>`;
+const pagina = document.getElementById('pagina');
+document.getElementById('oggi').textContent = fmt.day(R.today);
+
+// 1 · Hero
+const f0 = R.opening;
+const stasera = R.tonight.filter(s => s.film.id === f0.id);
+const orari = (stasera.length ? stasera : f0.upcoming.slice(0, 3));
+const s0 = orari[0];
+pagina.append($(`
+<section class="hero">
+  <div class="sopra dati"><span class="ora">${stasera.length ? 'Oggi in sala' : 'Prossimamente'}</span><span>${stasera.length} ${stasera.length === 1 ? 'spettacolo' : 'spettacoli'} · ${R.tonight.length} in tutto oggi</span></div>
+  <div class="fotogramma"><img src="${IMG(f0.backdrop, 'original')}" alt=""></div>
+  <div class="sotto">
+    <div>
+      ${logo(f0)}
+      <div class="riga dati"><span>${f0.director}</span><span>${f0.year}</span><span>${fmt.runtime(f0.runtime)}</span><span>${fmt.lang(s0)}</span>${fmt.specs(s0).map(x => `<span>${x}</span>`).join('')}</div>
+      ${f0.top && f0.top.weight >= 40 ? `<div class="premio-breve"><img src="${LOGO_DIR + f0.top.fest.logo}" alt=""><div><em>${f0.top.prize}</em><div class="dati" style="color:var(--polvere);margin-top:4px">${f0.top.fest.short} ${f0.top.year}</div></div></div>` : ''}
+      <p class="sinossi">${f0.overview}</p>
+    </div>
+    <div class="orari">
+      <div class="lista">${orari.map(s => `<div class="t">${fmt.time(s.t)}<small>${stasera.length ? fmt.lang(s) : fmt.dayShort(s.t.slice(0, 10))}</small></div>`).join('')}</div>
+      <button class="prenota">Prenota ${fmt.time(s0.t)} <span>→</span></button>
+    </div>
+  </div>
+</section>`));
+
+// 2 · Il disegno del giorno: quante strisce, quali fondali, che altezze, da che lato. Tutto dal seme.
+const fonti = R.shuffle(R.films.flatMap(f => f.extra.slice(0, 2).map(p => ({ p, f }))));
+const mobile = matchMedia('(max-width: 767px)').matches;
+const n = mobile ? 4 : 5 + Math.floor(R.rand() * 3);
+const pesi = Array.from({ length: n }, () => 0.5 + R.rand());
+const tot = pesi.reduce((a, b) => a + b, 0);
+let y = 0;
+const disegno = $(`<section class="disegno"><div class="titolo dati">Il disegno di ${fmt.day(R.today)}</div></section>`);
+fonti.slice(0, n).forEach((src, i) => {
+  const h = (pesi[i] / tot) * 100;
+  disegno.append($(`<div class="striscia" style="top:${y}%;height:${h}%" data-lato="${i % 2 ? 1 : -1}">
+    <img src="${IMG(src.p)}" alt="" style="object-position:${Math.round(R.rand() * 100)}% ${Math.round(30 + R.rand() * 40)}%">
+    <span class="didascalia dati">${String(i + 1).padStart(2, '0')} · ${src.f.title}</span></div>`));
+  y += h;
+});
+pagina.append(disegno);
+
+// 3 · Palmarès
+const L = R.laureate;
+if (L) pagina.append($(`
+<section class="palmares">
+  <img class="fondo" src="${IMG(L.backdrops[1] || L.backdrop)}" alt="">
+  <div class="corpo">
+    <img class="festival" src="${LOGO_DIR + L.top.fest.logo}" alt="${L.top.fest.name}">
+    <div class="dati quando">${L.top.fest.name} · ${L.top.year}</div>
+    <h2>${L.top.prize}</h2>
+    ${logo(L)}
+    <div class="dati quando">In sala ${fmt.day(L.upcoming[0].t.slice(0, 10))} · ${fmt.time(L.upcoming[0].t)}</div>
+  </div>
+</section>`));
+
+// 4 · Gli altri premi vinti dai film in sala
+const vinti = R.films.flatMap(f => f.awards.filter(a => a.won.length && !(f === L && a === L.top)).map(a => ({ a, f })))
+  .sort((x, y) => y.a.weight - x.a.weight).slice(0, 8);
+pagina.append($(`<section class="premi"><h3>Premiati, in sala questa settimana</h3>${vinti.map(({ a, f }) => `
+  <div class="premio"><img class="f" src="${LOGO_DIR + a.fest.logo}" alt="${a.fest.name}">
+    <div><div class="cosa">${a.won.slice(0, 2).join(', ')}</div><div class="chi dati">${a.fest.short} ${a.year} · ${f.title}</div></div>
+    ${logo(f, 'l')}</div>`).join('')}</section>`));
+
+// 5 · Settimana
+pagina.append($(`<section class="settimana"><h3>La settimana</h3>${R.days.map(d => `
+  <div class="giorno"><div class="dati">${fmt.day(d)}</div><div>${R.showsOn(d).map(s => `
+    <div class="spettacolo"><span class="t">${fmt.time(s.t)}</span>${logo(s.film, '')}<span class="dati">${s.film.director} · ${fmt.runtime(s.film.runtime)} · ${fmt.lang(s)}${fmt.specs(s).length ? ' · ' + fmt.specs(s).join(' · ') : ''}</span></div>`).join('')}
+  </div></div>`).join('')}</section>`));
+
+document.querySelectorAll('img[crossorigin]').forEach(R.fixDarkLogo);
+
+// La testata si toglie di mezzo quando scendi, torna quando risali.
+let ultimo = 0;
+addEventListener('scroll', () => { const y = scrollY; document.querySelector('.testata').classList.toggle('via', y > 200 && y > ultimo); ultimo = y; }, { passive: true });
+
+// Movimento
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  gsap.registerPlugin(ScrollTrigger);
+  // Il fotogramma si apre come la luce del proiettore.
+  gsap.to('.fotogramma', { clipPath: 'inset(0% 0 0% 0)', duration: 1.6, ease: 'power3.inOut', delay: .2 });
+  gsap.to('.fotogramma img', { scale: 1, duration: 2.4, ease: 'power2.out', delay: .2 });
+  gsap.from('.sotto > *', { opacity: 0, y: 24, duration: 1, stagger: .12, delay: 1.1, ease: 'power2.out' });
+  // Scorrendo, il fotogramma si allontana.
+  gsap.to('.fotogramma img', { yPercent: 12, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+
+  // Le strisce arrivano da lati opposti e si compongono; poi l'immagine scorre dentro ciascuna.
+  const tl = gsap.timeline({ scrollTrigger: { trigger: '.disegno', start: 'top top', end: '+=180%', scrub: .6, pin: true } });
+  document.querySelectorAll('.striscia').forEach((s, i) => {
+    tl.from(s, { xPercent: 105 * +s.dataset.lato, duration: 1, ease: 'power2.out' }, i * .18);
+    tl.to(s.querySelector('img'), { xPercent: 8 * +s.dataset.lato, duration: 2, ease: 'none' }, 0);
+  });
+
+  // Palmarès: il logo del festival cresce, il premio entra lettera per lettera.
+  if (L) {
+    gsap.from('.palmares .festival', { scale: .35, opacity: 0, ease: 'none', scrollTrigger: { trigger: '.palmares', start: 'top 85%', end: 'top 15%', scrub: true } });
+    gsap.from('.palmares h2', { letterSpacing: '.4em', opacity: 0, ease: 'none', scrollTrigger: { trigger: '.palmares', start: 'top 60%', end: 'top 5%', scrub: true } });
+    gsap.to('.palmares .fondo', { scale: 1.15, ease: 'none', scrollTrigger: { trigger: '.palmares', start: 'top bottom', end: 'bottom top', scrub: true } });
+  }
+  gsap.utils.toArray('.premio, .giorno').forEach(el => gsap.from(el, { opacity: 0, y: 30, duration: .8, ease: 'power2.out', scrollTrigger: { trigger: el, start: 'top 92%' } }));
+}
+</script>
+</body>
+</html>
