@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import { choicesFromShowcase } from '../BookingDrawer/showChoices';
-import { buildHomePlan, HomePiece } from './regia';
+import { buildHomePlan, HomePiece, Slot } from './regia';
 import { BookContext, Film, Show, ScrollTrigger, nextShow, registraGsap } from './shared';
 import Apertura from './Apertura';
 import Conto from './Conto';
@@ -70,6 +70,9 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
     return <section className={base.home} style={{ minHeight: '60vh', display: 'grid', placeItems: 'center' }}><p className={base.titoli} style={{ fontSize: 40 }}>Nessun film in programmazione</p></section>;
   }
 
+  // Tutti gli spettacoli futuri, per il conto alla rovescia che passa al successivo.
+  const settimana = plan.find(p => p.kind === 'settimana');
+  const seguenti = settimana && settimana.kind === 'settimana' ? settimana.days.flatMap(d => d.slots) : [];
   const film = booking?.film;
   const choices = film ? choicesFromShowcase(film.subevents.filter(s => new Date(s.date) >= now)) : [];
 
@@ -79,7 +82,7 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
         {/* Ogni pezzo sta in un contenitore suo: GSAP, quando fissa un pezzo, lo
             sposta dentro un pin-spacer, e React deve poter inserire e togliere
             i fratelli senza cercarli dove non sono più. */}
-        {plan.map(p => <div key={p.kind} data-pezzo={p.kind}><Pezzo piece={p} now={now} /></div>)}
+        {plan.map(p => <div key={p.kind} data-pezzo={p.kind}><Pezzo piece={p} now={now} seguenti={seguenti} /></div>)}
       </div>
       <BookingDrawer
         isOpen={booking != null}
@@ -93,11 +96,11 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   );
 }
 
-function Pezzo({ piece: p, now }: { piece: HomePiece<Film>; now: Date }) {
+function Pezzo({ piece: p, now, seguenti }: { piece: HomePiece<Film>; now: Date; seguenti: Slot<Film>[] }) {
   switch (p.kind) {
     case 'apertura': return <Apertura film={p.movie} show={p.show} now={now} />;
     case 'oggi': return <Oggi dayKey={p.dayKey} slots={p.slots} now={now} />;
-    case 'conto': return <Conto film={p.movie} show={p.show} />;
+    case 'conto': return <Conto film={p.movie} show={p.show} seguenti={seguenti} />;
     case 'onore': return <Onore film={p.movie} award={p.award} now={now} />;
     case 'parete': return <Parete items={p.items} />;
     case 'pellicola': return <Pellicola films={p.movies} now={now} />;

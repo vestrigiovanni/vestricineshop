@@ -1,24 +1,37 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Slot } from './regia';
 import Image from 'next/image';
 import { Film, Show, Coda, gsap, img, prefersMotion, Vicina } from './shared';
 import base from './Home.module.css';
 import s from './Conto.module.css';
 
-/** Quanto manca al prossimo spettacolo, con le cifre a palette del tabellone. */
-export default function Conto({ film, show }: { film: Film; show: Show }) {
+/**
+ * Quanto manca al prossimo spettacolo, con le cifre a palette del tabellone.
+ * Quando uno spettacolo comincia il conto non sparisce: passa da solo al
+ * successivo della settimana.
+ */
+export default function Conto({ film: primoFilm, show: primoShow, seguenti = [] }: { film: Film; show: Show; seguenti?: Slot<Film>[] }) {
+  const coda = useMemo(() => [{ movie: primoFilm, show: primoShow }, ...seguenti.filter(x => x.show.date > primoShow.date)], [primoFilm, primoShow, seguenti]);
+  const [indice, setIndice] = useState(0);
   const [resto, setResto] = useState<number | null>(null);
   const cifre = useRef<HTMLDivElement>(null);
   const prima = useRef('');
+  const { movie: film, show } = coda[Math.min(indice, coda.length - 1)];
 
   useEffect(() => {
-    const inizio = new Date(show.date).getTime();
-    const tic = () => setResto(Math.max(0, Math.floor((inizio - Date.now()) / 1000)));
+    const tic = () => {
+      const ora = Date.now();
+      let i = indice;
+      while (i < coda.length - 1 && new Date(coda[i].show.date).getTime() <= ora) i++;
+      if (i !== indice) { setIndice(i); return; }
+      setResto(Math.max(0, Math.floor((new Date(coda[i].show.date).getTime() - ora) / 1000)));
+    };
     tic();
     const id = setInterval(tic, 1000);
     return () => clearInterval(id);
-  }, [show.date]);
+  }, [coda, indice]);
 
   const giorni = resto == null ? 0 : Math.floor(resto / 86400);
   const ore = resto == null ? '--' : String(Math.floor((resto % 86400) / 3600)).padStart(2, '0');
@@ -34,7 +47,8 @@ export default function Conto({ film, show }: { film: Film; show: Show }) {
     prima.current = testo;
   }, [testo, resto]);
 
-  if (resto === 0) return null;
+  // Si nasconde solo quando è cominciato anche l'ultimo spettacolo della settimana.
+  if (resto === 0 && indice >= coda.length - 1) return null;
   const gruppi = [ore, min, sec];
 
   return (
