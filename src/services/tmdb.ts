@@ -1,6 +1,6 @@
 import { normalizeRating } from '@/utils/ratingUtils';
-const TMDB_API_KEY = '00ea09c7fb5bf89b064f6001a2de3122';
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+export const TMDB_API_KEY = '00ea09c7fb5bf89b064f6001a2de3122';
+export const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 import { MovieItem, isNonLatin, pickExtraBackdrops } from './tmdb.utils';
 import { fetchMubiAwards, getManualAwards } from './mubi';

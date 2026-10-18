@@ -8,6 +8,7 @@ import { unstable_noStore as noStore } from 'next/cache';
 import type { MovieOverride, PretixSync } from '@prisma/client';
 import { commonProjectionSpecs, normalizeProjectionSpecs } from '@/constants/projectionSpecs';
 import { pickInitialMovieId, pickInitialSubeventId } from '@/components/MovieShowcase/heroData';
+import { withExtraBackdrops } from '@/services/filmImagery';
 
 // Define the type for the projection with the included movie
 type ProjectionWithMovie = PretixSync & {
@@ -114,7 +115,7 @@ export default async function Home({
   };
 
   // Prepariamo l'array finale dei film per lo Showcase
-  const movies: GroupedMovie[] = Object.values(groupedRecord).map(({ movie, subevents }) => {
+  const catalogMovies: GroupedMovie[] = Object.values(groupedRecord).map(({ movie, subevents }) => {
     // Il film è considerato Sold Out se TUTTE le sue proiezioni future lo sono
     const isMovieSoldOut = subevents.length > 0 && subevents.every((se: any) => se.isSoldOut);
 
@@ -154,6 +155,10 @@ export default async function Home({
       voteAverage: typeof (movie as any).voteAverage === 'number' ? (movie as any).voteAverage : null,
     };
   });
+
+  // Fondali extra da TMDB (in cache per un giorno) per i film che nel catalogo
+  // non ne hanno: sono la materia dei disegni che cambiano coi film in sala.
+  const movies = await withExtraBackdrops(catalogMovies);
 
   // Ordinamento: Film disponibili prima, poi per data prossima proiezione
   movies.sort((a, b) => {
