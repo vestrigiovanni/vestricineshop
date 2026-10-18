@@ -1,12 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
+import Lenis from 'lenis';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import { choicesFromShowcase } from '../BookingDrawer/showChoices';
-import { buildHomePlan, HomePiece, Slot } from './regia';
-import { BookContext, Film, Show, ScrollTrigger, nextShow, registraGsap } from './shared';
+import { buildHomePlan, giroFrom, HomePiece, Slot } from './regia';
+import { BookContext, Film, Show, ScrollTrigger, SplitText, gsap, getLenis, nextShow, prefersMotion, registraGsap, setLenis, vaiA } from './shared';
 import Apertura from './Apertura';
+import Nastro from './Nastro';
+import Cartellone from './Cartellone';
 import Conto from './Conto';
 import { Oggi, Settimana } from './Programma';
 import { Onore, Parete } from './Premi';
@@ -28,6 +31,7 @@ interface Props {
 
 export default function HomePage({ movies, nowIso, initialAvailability, initialMovieId, initialSubeventId }: Props) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
+  const root = useRef<HTMLDivElement>(null);
   const { data: availability } = useSWR<Record<string, boolean>>('/api/availability', fetcher, {
     refreshInterval: 30000,
     revalidateOnFocus: true,
@@ -48,7 +52,12 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
     if (initialMovieId == null) return p;
     const film = live.find(m => m.id === initialMovieId);
     if (!film) return p;
-    return p.map(piece => piece.kind === 'apertura' ? { kind: 'apertura', movie: film, show: nextShow(film, now) } : piece);
+    return p.map(piece => {
+      if (piece.kind !== 'apertura') return piece;
+      const primo: Slot<Film> = { movie: film, show: nextShow(film, now) };
+      const resto = piece.giro.filter(x => x.movie.id !== film.id);
+      return { kind: 'apertura', movie: film, show: primo.show, giro: giroFrom([primo, ...resto], primo) };
+    });
   }, [live, now, initialMovieId]);
 
   const [booking, setBooking] = useState<{ subeventId: number; film: Film | null } | null>(() => {
@@ -57,12 +66,61 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   });
   const book = useCallback((show: Show, film: Film) => setBooking({ subeventId: show.id, film }), []);
 
+  // Lo scorrimento morbido, legato all'orologio di GSAP: i pezzi fissati e
+  // le animazioni a scorrimento seguono lo stesso passo. Sul telefono resta
+  // lo scorrimento del sistema (Lenis non tocca il tocco).
+  useEffect(() => {
+    registraGsap();
+    if (!prefersMotion()) return;
+    const lenis = new Lenis({
+      lerp: 0.085,
+      wheelMultiplier: 0.9,
+      // Prenotazione, trailer, età: dentro le finestre si scorre come sempre.
+      prevent: node => /dialog/.test(node.getAttribute?.('role') || '') || node.getAttribute?.('aria-modal') === 'true',
+    });
+    setLenis(lenis);
+    lenis.on('scroll', ScrollTrigger.update);
+    const tick = (t: number) => lenis.raf(t * 1000);
+    gsap.ticker.add(tick);
+    gsap.ticker.lagSmoothing(0);
+    return () => { gsap.ticker.remove(tick); lenis.destroy(); setLenis(null); };
+  }, []);
+
+  // Con la prenotazione aperta la pagina dietro sta ferma.
+  useEffect(() => {
+    const lenis = getLenis();
+    if (!lenis) return;
+    if (booking) lenis.stop(); else { lenis.start(); lenis.resize(); }
+  }, [booking]);
+
+  // I titoli di sezione salgono riga per riga, gli occhielli e le righe sotto li seguono.
+  useEffect(() => {
+    const el = root.current;
+    if (!el || !prefersMotion()) return;
+    registraGsap();
+    const ctx = gsap.context(() => {
+      gsap.utils.toArray<HTMLElement>('[data-split]').forEach(t => {
+        SplitText.create(t, {
+          type: 'lines',
+          mask: 'lines',
+          linesClass: 'riga',
+          autoSplit: true,
+          onSplit: self => gsap.from(self.lines, { yPercent: 108, duration: 1.4, stagger: 0.1, ease: 'expo.out', scrollTrigger: { trigger: t, start: 'top 88%', once: true } }),
+        });
+      });
+      gsap.utils.toArray<HTMLElement>('[data-sale]').forEach(t =>
+        gsap.from(t, { opacity: 0, y: 18, duration: 1.2, ease: 'expo.out', delay: 0.15, scrollTrigger: { trigger: t, start: 'top 92%', once: true } }));
+    }, el);
+    return () => ctx.revert();
+  }, []);
+
   // Le immagini arrivano piano: ricalcola le misure dei pezzi fissati quando la pagina è carica.
   useEffect(() => {
     registraGsap();
     const refresh = () => ScrollTrigger.refresh();
     window.addEventListener('load', refresh);
     const t = setTimeout(refresh, 1500);
+    document.fonts?.ready.then(refresh);
     return () => { window.removeEventListener('load', refresh); clearTimeout(t); };
   }, []);
 
@@ -75,14 +133,22 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   const seguenti = settimana && settimana.kind === 'settimana' ? settimana.days.flatMap(d => d.slots) : [];
   const film = booking?.film;
   const choices = film ? choicesFromShowcase(film.subevents.filter(s => new Date(s.date) >= now)) : [];
+  const kinds = new Set(plan.map(p => p.kind));
+  const voci = [
+    kinds.has('oggi') && { pezzo: 'oggi', nome: 'Oggi' },
+    kinds.has('cartellone') && { pezzo: 'cartellone', nome: 'I film', fino: kinds.has('conto') ? 'conto' : undefined },
+    (kinds.has('onore') || kinds.has('parete')) && { pezzo: kinds.has('onore') ? 'onore' : 'parete', nome: 'Premi', fino: kinds.has('parete') ? 'parete' : undefined },
+    kinds.has('settimana') && { pezzo: 'settimana', nome: 'Programma' },
+  ].filter((v): v is Voce => !!v);
 
   return (
     <BookContext.Provider value={book}>
-      <div className={base.home}>
+      <div ref={root} className={base.home}>
         {/* Ogni pezzo sta in un contenitore suo: GSAP, quando fissa un pezzo, lo
             sposta dentro un pin-spacer, e React deve poter inserire e togliere
             i fratelli senza cercarli dove non sono più. */}
         {plan.map(p => <div key={p.kind} data-pezzo={p.kind}><Pezzo piece={p} now={now} seguenti={seguenti} /></div>)}
+        <Indice voci={voci} />
       </div>
       <BookingDrawer
         isOpen={booking != null}
@@ -96,11 +162,61 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   );
 }
 
+/**
+ * L'indice: le quattro stanze della pagina in una capsula in basso. Compare
+ * dopo l'apertura, segna dove si è e porta dove si vuole.
+ */
+interface Voce { pezzo: string; nome: string; fino?: string }
+
+function Indice({ voci }: { voci: Voce[] }) {
+  const [dopoApertura, setDopoApertura] = useState(false);
+  const [inFondo, setInFondo] = useState(false);
+  const [qui, setQui] = useState<string | null>(null);
+  const visibile = dopoApertura && !inFondo;
+  useEffect(() => {
+    registraGsap();
+    const trigger: ScrollTrigger[] = [];
+    const apertura = document.querySelector('[data-pezzo="apertura"]');
+    if (apertura) trigger.push(ScrollTrigger.create({ trigger: apertura, start: 'bottom 60%', onEnter: () => setDopoApertura(true), onLeaveBack: () => setDopoApertura(false) }));
+    // Sul piede la capsula si ritira: lì ci sono già "Torna su" e il nome della sala.
+    const piede = document.querySelector('footer');
+    if (piede) trigger.push(ScrollTrigger.create({ trigger: piede, start: 'top bottom', onEnter: () => setInFondo(true), onLeaveBack: () => setInFondo(false) }));
+    // Ogni voce vale dal suo pezzo alla fine del suo ultimo pezzo.
+    voci.forEach(v => {
+      const da = document.querySelector(`[data-pezzo="${v.pezzo}"]`);
+      const a = v.fino ? document.querySelector(`[data-pezzo="${v.fino}"]`) : null;
+      if (!da) return;
+      trigger.push(ScrollTrigger.create({
+        trigger: da,
+        start: 'top 55%',
+        endTrigger: a || da,
+        end: 'bottom 55%',
+        onToggle: self => setQui(q => (self.isActive ? v.pezzo : q === v.pezzo ? null : q)),
+      }));
+    });
+    return () => trigger.forEach(t => t.kill());
+  }, [voci.map(v => v.pezzo).join()]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (voci.length < 2) return null;
+  return (
+    <nav className={base.indice} data-visibile={visibile} aria-label="Sezioni della pagina">
+      {voci.map(v => (
+        <a key={v.pezzo} href={`#${v.pezzo}`} aria-current={qui === v.pezzo ? 'true' : undefined} tabIndex={visibile ? undefined : -1}
+          onClick={e => { e.preventDefault(); vaiA(`[data-pezzo="${v.pezzo}"]`); }}>
+          {v.nome}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 function Pezzo({ piece: p, now, seguenti }: { piece: HomePiece<Film>; now: Date; seguenti: Slot<Film>[] }) {
   switch (p.kind) {
-    case 'apertura': return <Apertura film={p.movie} show={p.show} now={now} />;
+    case 'apertura': return <Apertura giro={p.giro} now={now} />;
+    case 'nastro': return <Nastro films={p.movies} now={now} />;
     case 'oggi': return <Oggi dayKey={p.dayKey} slots={p.slots} now={now} />;
-    case 'conto': return <Conto film={p.movie} show={p.show} seguenti={seguenti} />;
+    case 'cartellone': return <Cartellone films={p.movies} now={now} />;
+    case 'conto': return <Conto film={p.movie} show={p.show} seguenti={seguenti} now={now} />;
     case 'onore': return <Onore film={p.movie} award={p.award} now={now} />;
     case 'parete': return <Parete items={p.items} now={now} />;
     case 'pellicola': return <Pellicola films={p.movies} now={now} />;

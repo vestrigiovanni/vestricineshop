@@ -2,33 +2,62 @@
   position: relative;
   width: 100%;
   margin-top: auto;
-  padding: 18px 0;
-  background: var(--c-bg);
-  border-top: 1px solid var(--c-line);
-  color: var(--c-dim);
-  font-family: var(--c-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  padding: clamp(56px, 8vw, 120px) 0 22px;
+  background: #000;
+  border-top: 1px solid rgba(239, 230, 216, 0.14);
+  color: #8a7d6c;
+  font-family: var(--font-home-dati), 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
+  overflow: hidden;
 }
 
 .container {
+  padding: 0 clamp(16px, 4vw, 56px);
+}
+
+/* Il nome della sala a tutta larghezza, in Libre Caslon. */
+.firma {
+  margin: 0 0 clamp(28px, 4vw, 48px);
+  font-family: var(--font-home-titoli), 'Libre Caslon Display', Georgia, serif;
+  font-size: clamp(64px, 15.5vw, 280px);
+  line-height: 0.85;
+  letter-spacing: -0.03em;
+  text-transform: none;
+  color: #efe6d8;
+  white-space: nowrap;
+}
+
+.riga {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 16px;
   gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(239, 230, 216, 0.14);
 }
 
-.container p {
+.riga p {
   margin: 0;
 }
 
+.su {
+  min-height: 44px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  color: #efe6d8;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.su:focus-visible { outline: 2px solid #efe6d8; outline-offset: 4px; }
+
 /* L'ingresso al gestionale resta quasi invisibile, come oggi. */
 .adminButton {
-  color: var(--c-line-strong);
+  color: rgba(239, 230, 216, 0.28);
   text-decoration: none;
   padding: 4px;
   transition: color var(--c-fast);
@@ -36,5 +65,10 @@
 
 .adminButton:hover,
 .adminButton:focus-visible {
-  color: var(--c-dim);
+  color: #8a7d6c;
+}
+
+@media (max-width: 767px) {
+  .riga { flex-wrap: wrap; }
+  .firma { font-size: 17vw; }
 }

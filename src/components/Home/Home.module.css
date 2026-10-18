@@ -8,7 +8,9 @@
   --h-notte: #0a0908;
   --h-carta: #efe6d8;
   --h-polvere: #8a7d6c;
+  --h-cenere: rgba(239, 230, 216, 0.56);
   --h-filo: rgba(239, 230, 216, 0.14);
+  --h-filo-forte: rgba(239, 230, 216, 0.32);
   --h-lampada: #e8a33d;
   --h-lampada-ink: #140e05;
 
@@ -17,7 +19,9 @@
   --h-testo: var(--font-home-testo), 'Newsreader', Georgia, serif;
 
   --h-m: clamp(16px, 4vw, 56px);
+  --h-sezione: clamp(96px, 11vw, 168px);
   --h-apple: cubic-bezier(0.16, 1, 0.3, 1);
+  --h-dolce: cubic-bezier(0.65, 0, 0.35, 1);
 
   position: relative;
   background: var(--h-nero);
@@ -47,11 +51,31 @@
   line-height: 1;
 }
 
+/* ─── Testata di sezione ─── */
+.testata {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px 48px;
+  flex-wrap: wrap;
+  margin-bottom: clamp(32px, 4vw, 56px);
+}
+.testataSinistra { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.testataDestra { color: var(--h-polvere); padding-bottom: 10px; }
+.occhiello { display: inline-flex; align-items: center; gap: 14px; color: var(--h-polvere); }
+.occhiello::before { content: ''; width: 28px; height: 1px; background: currentColor; opacity: 0.7; }
+.titolo { font-size: clamp(52px, 8vw, 128px); line-height: 0.94; letter-spacing: -0.015em; margin: 0; }
+.titolo :global(.riga) { padding-bottom: 0.06em; }
+.titolo em { font-style: normal; color: var(--h-polvere); }
+.sotto { font-family: var(--h-titoli); font-size: clamp(22px, 2.4vw, 36px); line-height: 1.15; color: var(--h-cenere); max-width: 28ch; }
+
 /* L'unica azione accesa della pagina. */
 .prenota {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   min-height: 48px;
   padding: 0 28px;
   border: 0;
@@ -60,14 +84,45 @@
   color: var(--h-lampada-ink);
   font-family: var(--h-dati);
   font-size: 12px;
+  font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: transform 0.3s var(--h-apple), filter 0.3s;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 0.5s var(--h-apple), box-shadow 0.5s var(--h-apple);
 }
-.prenota:hover { filter: brightness(1.08); transform: translateY(-1px); }
+/* Un riflesso che passa, come la luce sulla lampada. */
+.prenota::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 248, 230, 0.55) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.9s var(--h-apple);
+}
+@media (hover: hover) {
+  .prenota:hover { transform: translateY(-2px); box-shadow: 0 10px 30px -10px rgba(232, 163, 61, 0.6); }
+  .prenota:hover::after { transform: translateX(120%); }
+}
+.prenota:active { transform: translateY(0) scale(0.98); }
 .prenota:focus-visible { outline: 2px solid var(--h-carta); outline-offset: 3px; }
-.prenota:disabled { background: transparent; color: var(--h-polvere); border: 1px solid var(--h-filo); cursor: default; }
+
+/* Esaurito: una parola, non un bottone spento. */
+.esaurito {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 4px;
+  color: var(--h-polvere);
+  font-family: var(--h-dati);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.esaurito::before { content: ''; width: 18px; height: 1px; background: currentColor; }
 
 /* Loghi TMDB quasi neri: accesi in bianco (lo decide la misura, non un elenco). */
 .logoAcceso { filter: brightness(0) invert(0.94); }
@@ -75,4 +130,49 @@
 /* Coda di un pezzo: logo del film, giorno · ora · sala, Prenota. */
 .codaLogo { max-height: 84px; max-width: min(380px, 70vw); object-fit: contain; object-position: left center; }
 .codaRiga { margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; }
-.codaRiga > span { color: var(--h-polvere); }
+.codaRiga > span:first-child { color: var(--h-cenere); }
+
+/* ─── Indice: le sezioni, sempre a portata ─── */
+.indice {
+  position: fixed;
+  z-index: 50;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid var(--h-filo);
+  border-radius: 999px;
+  background: rgba(10, 9, 8, 0.72);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.9);
+  transform: translate(-50%, calc(100% + 40px));
+  opacity: 0;
+  transition: transform 0.8s var(--h-apple), opacity 0.6s;
+}
+.indice[data-visibile='true'] { transform: translate(-50%, 0); opacity: 1; }
+.indice a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  color: var(--h-cenere);
+  font-family: var(--h-dati);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.4s, background-color 0.5s var(--h-apple);
+}
+.indice a:hover { color: var(--h-carta); }
+.indice a[aria-current='true'] { color: var(--h-nero); background: var(--h-carta); }
+.indice a:focus-visible { outline: 2px solid var(--h-carta); outline-offset: 2px; }
+
+@media (max-width: 767px) {
+  .titolo { font-size: clamp(44px, 13vw, 64px); }
+  .indice a { padding: 0 12px; font-size: 10px; letter-spacing: 0.16em; }
+}

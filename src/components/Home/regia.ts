@@ -53,8 +53,10 @@ export interface WeighedAward {
 export interface Slot<M extends HomeMovie = HomeMovie> { movie: M; show: HomeShow }
 
 export type HomePiece<M extends HomeMovie = HomeMovie> =
-  | { kind: 'apertura'; movie: M; show: HomeShow }
+  | { kind: 'apertura'; movie: M; show: HomeShow; giro: Slot<M>[] }
+  | { kind: 'nastro'; movies: M[] }
   | { kind: 'oggi'; dayKey: string; slots: Slot<M>[] }
+  | { kind: 'cartellone'; movies: M[] }
   | { kind: 'conto'; movie: M; show: HomeShow }
   | { kind: 'onore'; movie: M; award: WeighedAward }
   | { kind: 'parete'; items: { movie: M; award: WeighedAward }[] }
@@ -71,11 +73,19 @@ export type HomePiece<M extends HomeMovie = HomeMovie> =
 
 export type PieceKind = HomePiece['kind'];
 
-/** L'ordine dei pezzi, come l'ha consegnato Giovanni con la prova `ordine.html`. */
+/**
+ * L'ordine dei pezzi, come l'ha consegnato Giovanni con la prova `ordine.html`.
+ * Il 19 ottobre 2026 si sono aggiunti il nastro dei titoli e il cartellone:
+ * subito dopo l'apertura la pagina deve far vedere quanti film ci sono, e
+ * quanto diversi.
+ */
 export const PIECE_ORDER: PieceKind[] = [
-  'apertura', 'oggi', 'conto', 'onore', 'parete', 'pellicola', 'giornata', 'locandina',
-  'barre', 'iride', 'trailer', 'doppio', 'ventaglio', 'sottotitoli', 'settimana',
+  'apertura', 'nastro', 'oggi', 'cartellone', 'conto', 'onore', 'parete', 'pellicola', 'giornata',
+  'locandina', 'barre', 'iride', 'trailer', 'doppio', 'ventaglio', 'sottotitoli', 'settimana',
 ];
+
+/** Quanti film gira l'apertura, uno dopo l'altro. */
+export const GIRO_MAX = 6;
 
 // ─── Premi ────────────────────────────────────────────────────────────────
 
@@ -146,6 +156,21 @@ const WINDOW = 3;
 
 // ─── La pagina ────────────────────────────────────────────────────────────
 
+/**
+ * Il giro dell'apertura: il primo spettacolo, poi i prossimi film diversi
+ * ancora prenotabili, in ordine di tempo. Chi apre il sito vede subito che in
+ * sala c'è più di un film.
+ */
+export function giroFrom<M extends HomeMovie>(slots: Slot<M>[], first: Slot<M>, max = GIRO_MAX): Slot<M>[] {
+  const out: Slot<M>[] = [first];
+  for (const s of slots) {
+    if (out.length >= max) break;
+    if (s.show.isSoldOut || out.some(o => o.movie.id === s.movie.id)) continue;
+    out.push(s);
+  }
+  return out;
+}
+
 export function buildHomePlan<M extends HomeMovie>(movies: M[], now: Date = new Date()): HomePiece<M>[] {
   const todayKey = toCinemaDayKey(now);
   const rand = makeRandom(seedFor(todayKey));
@@ -164,11 +189,14 @@ export function buildHomePlan<M extends HomeMovie>(movies: M[], now: Date = new 
 
   const pieces: Partial<Record<PieceKind, HomePiece<M>>> = {};
   const opening = slots[0];
-  pieces.apertura = { kind: 'apertura', movie: opening.movie, show: opening.show };
+  pieces.apertura = { kind: 'apertura', movie: opening.movie, show: opening.show, giro: giroFrom(slots, opening) };
+  // Tutti i film, nell'ordine in cui arrivano in sala.
+  pieces.nastro = { kind: 'nastro', movies: byDate };
 
   const firstDay = dayKeys[0];
   pieces.oggi = { kind: 'oggi', dayKey: firstDay, slots: slotsOn(firstDay) };
   pieces.conto = { kind: 'conto', movie: opening.movie, show: opening.show };
+  pieces.cartellone = { kind: 'cartellone', movies: byDate };
 
   // Premi
   const laureate = byDate

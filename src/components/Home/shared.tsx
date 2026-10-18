@@ -4,8 +4,11 @@ import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState
 import Image from 'next/image';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SplitText } from 'gsap/SplitText';
+import { Flip } from 'gsap/Flip';
+import type Lenis from 'lenis';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
-import { formatShowDayLabel, formatShowDayLong, formatShowTime } from '@/utils/cinemaDate';
+import { formatShowDayLabel, formatShowDayLong, formatShowDayShort, formatShowTime } from '@/utils/cinemaDate';
 import type { HomeMovie, HomeShow } from './regia';
 import base from './Home.module.css';
 
@@ -17,10 +20,25 @@ import base from './Home.module.css';
 let registrato = false;
 export function registraGsap() {
   if (registrato || typeof window === 'undefined') return;
-  gsap.registerPlugin(ScrollTrigger);
+  gsap.registerPlugin(ScrollTrigger, SplitText, Flip);
   registrato = true;
 }
-export { gsap, ScrollTrigger };
+export { gsap, ScrollTrigger, SplitText, Flip };
+
+// ─── Scorrimento ──────────────────────────────────────────────────────────
+
+/** Lo scorrimento morbido della pagina: uno solo, acceso da HomePage. */
+let lenis: Lenis | null = null;
+export const setLenis = (l: Lenis | null) => { lenis = l; };
+export const getLenis = () => lenis;
+
+/** Porta la pagina a una sezione, con lo stesso passo dello scorrimento. */
+export function vaiA(selector: string) {
+  const el = document.querySelector<HTMLElement>(selector);
+  if (!el) return;
+  if (lenis) lenis.scrollTo(el, { duration: 1.8, easing: (t: number) => 1 - Math.pow(1 - t, 4) });
+  else el.scrollIntoView({ behavior: prefersMotion() ? 'smooth' : 'auto' });
+}
 
 /** Un film della home: quello che arriva dalla pagina, con i campi che la home legge. */
 export interface Film extends HomeMovie {
@@ -62,6 +80,47 @@ export function useRegia(scope: RefObject<HTMLElement | null>, setup: (phone: bo
   }, deps);
 }
 
+// ─── Testata di una sezione ───────────────────────────────────────────────
+
+/**
+ * La testata di ogni sezione: un occhiello in Hanken, il titolo in Libre
+ * Caslon (sale riga per riga, vedi `data-split` in HomePage) e una riga sotto.
+ */
+export function Testata({ id, occhiello, children, sotto, destra, className = '' }: {
+  id?: string;
+  occhiello?: React.ReactNode;
+  children: React.ReactNode;
+  sotto?: React.ReactNode;
+  destra?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <header className={`${base.testata} ${className}`}>
+      <div className={base.testataSinistra}>
+        {occhiello && <span className={`${base.dati} ${base.occhiello}`} data-sale>{occhiello}</span>}
+        <h2 id={id} className={`${base.titoli} ${base.titolo}`} data-split>{children}</h2>
+        {sotto && <div className={base.sotto} data-sale>{sotto}</div>}
+      </div>
+      {destra && <div className={base.testataDestra} data-sale>{destra}</div>}
+    </header>
+  );
+}
+
+const UNITA = ['', 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove', 'dieci', 'undici', 'dodici', 'tredici', 'quattordici', 'quindici', 'sedici', 'diciassette', 'diciotto', 'diciannove'];
+const DECINE = ['', '', 'venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta'];
+
+/** 32 → "trentadue". Fino a 99; oltre, le cifre. */
+export function inLettere(n: number): string {
+  if (!Number.isInteger(n) || n < 0 || n > 99) return String(n);
+  if (n === 0) return 'zero';
+  if (n < 20) return UNITA[n];
+  const d = DECINE[Math.floor(n / 10)], u = n % 10;
+  if (!u) return d;
+  const tronca = u === 1 || u === 8 ? d.slice(0, -1) : d;
+  return tronca + (u === 3 ? 'tré' : UNITA[u]);
+}
+export const maiuscola = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
 // ─── Prenotazione ─────────────────────────────────────────────────────────
 
 export type BookFn = (show: Show, film: Film) => void;
@@ -70,7 +129,7 @@ export const useBook = () => useContext(BookContext);
 
 export function PrenotaButton({ show, film, label, className = '' }: { show: Show; film: Film; label?: string; className?: string }) {
   const book = useBook();
-  if (show.isSoldOut) return <button className={`${base.prenota} ${className}`} disabled>Esaurito</button>;
+  if (show.isSoldOut) return <span className={`${base.esaurito} ${className}`}>Esaurito</span>;
   return (
     <button className={`${base.prenota} ${className}`} onClick={() => book(show, film)} aria-label={`Prenota ${film.title} alle ${formatShowTime(show.date)}`}>
       {label ?? 'Prenota'}
@@ -81,6 +140,8 @@ export function PrenotaButton({ show, film, label, className = '' }: { show: Sho
 // ─── Testi ────────────────────────────────────────────────────────────────
 
 export const dayLong = (date: string) => formatShowDayLong(date);
+/** "mar 20 ott" */
+export const dayShort = (date: string) => formatShowDayShort(date);
 export const dayLabel = (date: string, now: Date) => formatShowDayLabel(date, now);
 export const time = (date: string) => formatShowTime(date);
 export const runtime = (m?: number | null) => (m ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}′` : '');

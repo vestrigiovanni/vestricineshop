@@ -1,4 +1,6 @@
 .main {
   min-height: 100vh;
-  padding-bottom: 1rem;
+  /* La home è nera fino al piede: niente fascia di nero caldo in mezzo. */
+  padding-bottom: 0;
+  background: #000;
 }

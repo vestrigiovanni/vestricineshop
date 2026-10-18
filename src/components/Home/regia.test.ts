@@ -84,6 +84,28 @@ describe('buildHomePlan', () => {
     expect(piece(plan, 'apertura')!.movie.id).toBe(2);
   });
 
+  it('l\'apertura gira sui prossimi film diversi, senza gli esauriti', () => {
+    const films = settimana().map(m => m.id === 3 ? { ...m, subevents: m.subevents.map(s => ({ ...s, isSoldOut: true })) } : m);
+    const giro = piece(buildHomePlan(films, NOW), 'apertura')!.giro;
+    expect(giro[0].movie.id).toBe(1);
+    expect(giro.map(s => s.movie.id)).toEqual([1, 2, 4, 5, 6, 7]);
+    expect(new Set(giro.map(s => s.movie.id)).size).toBe(giro.length);
+  });
+
+  it('il primo del giro resta il primo spettacolo, anche se è esaurito', () => {
+    const films = settimana().map(m => m.id === 1 ? { ...m, subevents: m.subevents.map(s => ({ ...s, isSoldOut: true })) } : m);
+    const giro = piece(buildHomePlan(films, NOW), 'apertura')!.giro;
+    expect(giro[0].movie.id).toBe(1);
+    expect(giro.slice(1).every(s => !s.show.isSoldOut)).toBe(true);
+  });
+
+  it('il nastro e il cartellone mostrano tutti i film, in ordine di arrivo', () => {
+    const plan = buildHomePlan(settimana(), NOW);
+    const ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 13]; // il 14 arriva alle 18, il 13 alle 21
+    expect(piece(plan, 'cartellone')!.movies.map(m => m.id)).toEqual(ids);
+    expect(piece(plan, 'nastro')!.movies.map(m => m.id)).toEqual(ids);
+  });
+
   it('"oggi" elenca gli spettacoli del primo giorno, in ordine', () => {
     const oggi = piece(buildHomePlan(settimana(), NOW), 'oggi')!;
     expect(oggi.dayKey).toBe('2026-10-18');

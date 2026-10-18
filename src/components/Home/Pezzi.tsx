@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { backdropsOf, Slot } from './regia';
-import { Film, Show, Coda, FilmLogo, PrenotaButton, dayLong, gsap, img, lingua, nextShow, prefersMotion, runtime, sala, time, registraGsap, useBook, useInView, useRegia, Vicina } from './shared';
+import { Film, Show, Coda, FilmLogo, PrenotaButton, Testata, dayLong, dayShort, gsap, img, lingua, nextShow, prefersMotion, runtime, sala, time, registraGsap, useBook, useInView, useRegia, Vicina } from './shared';
 import base from './Home.module.css';
 import s from './Pezzi.module.css';
 
@@ -12,35 +12,52 @@ const nextImg = (path: string, w: number) => `/_next/image?url=${encodeURICompon
 
 // ─── Pellicola che scorre ─────────────────────────────────────────────────
 
-/** Tre film, ognuno con la sua striscia: i fotogrammi passano di lato mentre scendi. */
+/**
+ * Tre film nello stesso quadro, una striscia ciascuno: scendendo, i
+ * fotogrammi passano di lato, una striscia verso sinistra e la successiva
+ * verso destra. Accanto, il logo e il prossimo spettacolo.
+ */
 export function Pellicola({ films, now }: { films: Film[]; now: Date }) {
-  return <>{films.map((f, i) => <div key={f.id}><Striscia film={f} now={now} indice={i} /></div>)}</>;
-}
-
-function Striscia({ film, now, indice }: { film: Film; now: Date; indice: number }) {
   const root = useRef<HTMLElement>(null);
-  const frames = backdropsOf(film).slice(0, 7);
-  const base0 = 10 + ((film.id * 7 + indice * 13) % 30);
-  useRegia(root, () => {
-    const striscia = root.current!.querySelector<HTMLElement>('[data-striscia]')!;
-    gsap.to(striscia, {
-      x: () => -(striscia.scrollWidth - window.innerWidth + 60),
-      ease: 'none',
-      scrollTrigger: { trigger: root.current, start: 'top top', end: () => '+=' + Math.max(400, (striscia.scrollWidth - window.innerWidth) * 0.45), scrub: 0.5, pin: true, invalidateOnRefresh: true },
+  useRegia(root, phone => {
+    const strisce = gsap.utils.toArray<HTMLElement>('[data-striscia]');
+    const corsa = (el: HTMLElement) => Math.max(0, el.scrollWidth - (el.parentElement?.clientWidth || window.innerWidth));
+    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: () => '+=' + Math.round(window.innerHeight * (phone ? 1 : 1.2)), scrub: 0.7, pin: true, invalidateOnRefresh: true } });
+    strisce.forEach((el, i) => {
+      if (i % 2) tl.fromTo(el, { x: () => -corsa(el) }, { x: 0, ease: 'none' }, 0);
+      else tl.fromTo(el, { x: 0 }, { x: () => -corsa(el), ease: 'none' }, 0);
     });
   });
   return (
-    <section ref={root} className={s.pellicola} aria-label={`Fotogrammi di ${film.title}`}>
-      <Coda film={film} show={nextShow(film, now)} className={s.testaPellicola} />
-      <div className={s.striscia} data-striscia>
-        {frames.map((p, i) => (
-          <div key={p} className={s.fotogramma}>
-            <span className={`${base.dati} ${s.codice}`}>{base0 + i}{i % 2 ? 'A' : ''} ▸ KODAK 5219</span>
-            <Vicina><Image src={img(p, 'w780')} alt="" fill sizes="(max-width: 768px) 80vw, 40vw" style={{ objectFit: 'cover' }} /></Vicina>
-          </div>
-        ))}
-      </div>
+    <section ref={root} className={s.pellicola} aria-label={`Fotogrammi di ${films.map(f => f.title).join(', ')}`}>
+      <span className={`${base.dati} ${s.pellicolaEtichetta}`}>In pellicola · {films.length} film</span>
+      {films.map((f, i) => <Striscia key={f.id} film={f} now={now} indice={i} />)}
     </section>
+  );
+}
+
+function Striscia({ film, now, indice }: { film: Film; now: Date; indice: number }) {
+  const frames = backdropsOf(film).slice(0, 7);
+  const base0 = 10 + ((film.id * 7 + indice * 13) % 30);
+  const sh = nextShow(film, now);
+  return (
+    <div className={s.filaPellicola}>
+      <div className={s.filaTesta}>
+        <FilmLogo film={film} className={s.filaLogo} sizes="220px" />
+        <span className={`${base.dati} ${s.filaQuando}`}>{dayShort(sh.date).split(' ').slice(0, 2).join(' ')} · {time(sh.date)}</span>
+        <PrenotaButton show={sh} film={film} className={s.filaPrenota} />
+      </div>
+      <div className={s.filaFinestra}>
+        <div className={s.striscia} data-striscia>
+          {frames.map((p, i) => (
+            <div key={p} className={s.fotogramma}>
+              <span className={`${base.dati} ${s.codice}`}>{base0 + i}{i % 2 ? 'A' : ''} ▸ KODAK 5219</span>
+              <Vicina><Image src={img(p, 'w780')} alt="" fill sizes="(max-width: 768px) 52vw, 26vw" style={{ objectFit: 'cover' }} /></Vicina>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -77,7 +94,7 @@ export function Giornata({ dayKey, slots, now }: { dayKey: string; slots: Slot<F
   const hhmm = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   return (
     <section ref={root} className={s.giornata} aria-labelledby="giornata-titolo">
-      <h2 id="giornata-titolo" className={`${base.titoli} ${s.titoloSezione}`}>La giornata in sala <span>{dayLong(slots[0].show.date)}</span></h2>
+      <Testata id="giornata-titolo" occhiello={dayLong(slots[0].show.date)} destra={<span className={base.dati}>{slots.length} spettacoli</span>}>La giornata in sala</Testata>
       <div className={s.giornataCorpo}>
         <svg viewBox="0 0 600 600" className={s.quadrante} role="img" aria-label={`Gli spettacoli di ${dayLong(slots[0].show.date)} su un quadrante di 24 ore`}>
           <circle cx={C} cy={C} r={RAG} fill="none" stroke="rgba(239,230,216,.08)" strokeWidth={26} />
@@ -109,7 +126,7 @@ export function Giornata({ dayKey, slots, now }: { dayKey: string; slots: Slot<F
 export function Locandina({ film, now }: { film: Film; now: Date }) {
   const root = useRef<HTMLElement>(null);
   useRegia(root, () => {
-    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=85%', scrub: 0.6, pin: true } });
+    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=60%', scrub: 0.6, pin: true } });
     tl.to('[data-cornice]', { height: () => Math.min(window.innerWidth / 2.39, window.innerHeight * 0.62), width: '100vw', ease: 'power2.inOut', duration: 1 })
       .to('[data-poster]', { opacity: 0, duration: 0.5 }, 0.35)
       .to('[data-fondale]', { opacity: 1, duration: 0.5 }, 0.35)
@@ -178,7 +195,7 @@ export function Barre({ film, now }: { film: Film; now: Date }) {
   useEffect(() => { disegna(); const r = () => disegna(); window.addEventListener('resize', r); return () => window.removeEventListener('resize', r); });
   useRegia(root, () => {
     const st = { p: 0 };
-    gsap.to(st, { p: 1, ease: 'none', onUpdate: () => { progresso.current = st.p; disegna(); }, scrollTrigger: { trigger: root.current, start: 'top top', end: '+=80%', scrub: 0.4, pin: true } });
+    gsap.to(st, { p: 1, ease: 'none', onUpdate: () => { progresso.current = st.p; disegna(); }, scrollTrigger: { trigger: root.current, start: 'top top', end: '+=60%', scrub: 0.4, pin: true } });
   });
 
   return (
@@ -204,7 +221,7 @@ export function Barre({ film, now }: { film: Film; now: Date }) {
 export function Iride({ film, now }: { film: Film; now: Date }) {
   const root = useRef<HTMLElement>(null);
   useRegia(root, () => {
-    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=75%', scrub: 0.5, pin: true } });
+    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=60%', scrub: 0.5, pin: true } });
     tl.fromTo('[data-iride]', { clipPath: 'circle(0% at 50% 45%)' }, { clipPath: 'circle(80% at 50% 45%)', ease: 'power2.inOut', duration: 1 })
       .fromTo('[data-coda]', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3 }, 0.75);
   });
@@ -262,7 +279,7 @@ export function Doppio({ a, b }: { a: Slot<Film>; b: Slot<Film> }) {
   useRegia(root, () => {
     const el = root.current!, sx = el.querySelector<HTMLElement>('[data-lato="s"]')!, dx = el.querySelector<HTMLElement>('[data-lato="d"]')!, linea = el.querySelector<HTMLElement>('[data-linea]')!;
     const p = { v: 50 }, set = () => { sx.style.width = p.v + '%'; dx.style.width = 100 - p.v + '%'; linea.style.left = p.v + '%'; };
-    gsap.timeline({ scrollTrigger: { trigger: el, start: 'top top', end: '+=100%', scrub: 0.6, pin: true } })
+    gsap.timeline({ scrollTrigger: { trigger: el, start: 'top top', end: '+=70%', scrub: 0.6, pin: true } })
       .to(p, { v: 78, onUpdate: set, duration: 1, ease: 'power1.inOut' })
       .to(p, { v: 22, onUpdate: set, duration: 1.4, ease: 'power1.inOut' })
       .to(p, { v: 50, onUpdate: set, duration: 0.8 });
@@ -294,13 +311,13 @@ export function Ventaglio({ films, now }: { films: Film[]; now: Date }) {
   useRegia(root, phone => {
     const carte = gsap.utils.toArray<HTMLElement>('[data-carta]'), n = carte.length, ampio = phone ? 9 : 13;
     gsap.set(carte, { rotation: i => (i - (n - 1) / 2) * 1.2 });
-    gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=75%', scrub: 0.6, pin: true } })
+    gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=55%', scrub: 0.6, pin: true } })
       .to(carte, { rotation: i => (i - (n - 1) / 2) * ampio, ease: 'power2.out', duration: 1 })
       .to('[data-carta-quando]', { opacity: 1, duration: 0.3 }, 0.7);
   });
   return (
     <section ref={root} className={s.ventaglio} aria-labelledby="ventaglio-titolo">
-      <h2 id="ventaglio-titolo" className={`${base.titoli} ${s.ventaglioTitolo}`}>Più avanti</h2>
+      <h2 id="ventaglio-titolo" className={`${base.titoli} ${s.ventaglioTitolo}`} data-split>Più avanti</h2>
       <div className={s.mazzo}>
         {films.map((f, i) => {
           const sh = nextShow(f, now), n = films.length;
@@ -340,7 +357,7 @@ export function Sottotitoli({ film, show }: { film: Film; show: Show }) {
   useEffect(() => { if (prefersMotion()) setK(-1); }, []);
   useRegia(root, () => {
     const st = { i: -1 };
-    gsap.to(st, { i: subs.length - 0.01, ease: 'none', onUpdate: () => setK(Math.floor(st.i)), scrollTrigger: { trigger: root.current, start: 'top top', end: '+=' + subs.length * 18 + '%', scrub: true, pin: true } });
+    gsap.to(st, { i: subs.length - 0.01, ease: 'none', onUpdate: () => setK(Math.floor(st.i)), scrollTrigger: { trigger: root.current, start: 'top top', end: '+=' + subs.length * 12 + '%', scrub: true, pin: true } });
   }, [subs.length]);
   const fondale = backdropsOf(film)[2] || film.backdrop_path;
   return (

@@ -1,0 +1,126 @@
+.cartellone { padding: var(--h-sezione) var(--h-m); }
+
+/* ─── Filtri: due righe, l'epoca e la lingua ─── */
+.filtri {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: clamp(32px, 4vw, 56px);
+  border-top: 1px solid var(--h-filo);
+}
+.gruppo {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--h-filo);
+}
+.etichetta { color: var(--h-polvere); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--h-filo);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--h-cenere);
+  cursor: pointer;
+  transition: color 0.4s, border-color 0.4s, background-color 0.5s var(--h-apple);
+}
+.chip:hover:not(:disabled) { color: var(--h-carta); border-color: var(--h-filo-forte); }
+.chip:disabled { opacity: 0.3; cursor: default; }
+.chip:focus-visible { outline: 2px solid var(--h-carta); outline-offset: 2px; }
+.chipAttivo { background: var(--h-carta); border-color: var(--h-carta); color: var(--h-nero); }
+.chipAttivo:hover:not(:disabled) { color: var(--h-nero); }
+.conta { align-self: flex-start; margin-top: 10px; font-size: 9px; letter-spacing: 0.05em; line-height: 1; opacity: 0.7; }
+
+/* ─── Griglia ─── */
+.griglia {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: clamp(28px, 3vw, 44px) clamp(14px, 1.6vw, 24px);
+}
+.scheda {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.scheda[data-fuori] { display: none; }
+.scheda:focus-visible { outline: none; }
+.scheda:focus-visible .locandina { outline: 2px solid var(--h-carta); outline-offset: 4px; }
+
+.locandina {
+  position: relative;
+  display: block;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  background: var(--h-notte);
+  box-shadow: 0 1px 0 rgba(239, 230, 216, 0.06) inset;
+}
+.locandina img { transition: transform 1.2s var(--h-apple), filter 0.8s; }
+.sopra {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: linear-gradient(180deg, transparent 35%, rgba(0, 0, 0, 0.88));
+  opacity: 0;
+  transition: opacity 0.6s var(--h-apple);
+}
+.sopraDati { color: var(--h-carta); font-size: 10px; letter-spacing: 0.18em; transform: translateY(10px); transition: transform 0.7s var(--h-apple); }
+.sopraPrenota {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--h-lampada);
+  color: var(--h-lampada-ink);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  transform: translateY(14px);
+  transition: transform 0.8s var(--h-apple);
+}
+
+@media (hover: hover) {
+  .scheda:hover .locandina img { transform: scale(1.06); }
+  .scheda:hover .sopra { opacity: 1; }
+  .scheda:hover .sopraDati, .scheda:hover .sopraPrenota { transform: none; }
+  .griglia:has(.scheda:hover) .scheda:not(:hover) .locandina img { filter: brightness(0.55) saturate(0.7); }
+}
+.scheda:focus-visible .sopra { opacity: 1; }
+.scheda:focus-visible .sopraDati, .scheda:focus-visible .sopraPrenota { transform: none; }
+
+.didascalia { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.quando { color: var(--h-carta); font-size: 10px; }
+.titolo { font-size: clamp(19px, 1.5vw, 23px); line-height: 1.12; letter-spacing: -0.005em; text-wrap: balance; }
+.chi { color: var(--h-polvere); font-size: 10px; letter-spacing: 0.16em; line-height: 1.6; }
+
+@media (max-width: 767px) {
+  .gruppo { grid-template-columns: 1fr; gap: 10px; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 calc(var(--h-m) * -1); padding: 0 var(--h-m); }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; }
+  .griglia { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 10px; }
+  .scheda { gap: 10px; }
+  .didascalia { gap: 4px; }
+  .quando { font-size: 8px; letter-spacing: 0.14em; }
+  .titolo { font-size: 15px; }
+  .chi { display: none; }
+}

@@ -1,23 +1,70 @@
-.conto { position: relative; min-height: 80svh; display: grid; place-items: center; text-align: center; overflow: hidden; padding: 80px var(--h-m); }
-.fondo { position: absolute; inset: 0; opacity: 0.18; filter: grayscale(1); }
+.conto { position: relative; min-height: 90svh; display: grid; place-items: center; text-align: center; overflow: hidden; padding: var(--h-sezione) var(--h-m); }
+.fondo {
+  position: absolute;
+  inset: 0;
+  opacity: 0.2;
+  filter: grayscale(1) contrast(1.1);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+}
 .corpo { position: relative; display: flex; flex-direction: column; align-items: center; }
-.etichetta { color: var(--h-polvere); }
-.cifre { display: flex; justify-content: center; gap: 6px; margin: 22px 0 34px; perspective: 600px; }
-.gruppo { display: flex; gap: 6px; align-items: center; }
-/* Le cifre restano da tabellone: un monospazio di sistema, non il carattere dei dati. */
+.etichetta { color: var(--h-cenere); }
+.cifre { display: flex; justify-content: center; gap: clamp(4px, 0.8vw, 10px); margin: 26px 0 40px; perspective: 800px; }
+.gruppo { display: flex; gap: clamp(3px, 0.5vw, 6px); align-items: center; }
+/* Le palette del tabellone: due metà, una piega in mezzo, la luce dall'alto. */
 .cifra {
   position: relative;
-  display: inline-block;
-  min-width: 1.05ch;
-  padding: 0.1em 0.12em;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: clamp(44px, 9vw, 120px);
+  display: inline-grid;
+  place-items: center;
+  width: 0.78em;
+  height: 1.18em;
+  font-family: var(--h-dati);
+  font-weight: 300;
+  font-size: clamp(48px, 9vw, 132px);
   line-height: 1;
-  background: #141210;
-  border: 1px solid #262220;
-  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+  color: #f4ecdf;
+  background: linear-gradient(180deg, #1c1915 0%, #14110e 49.6%, #0b0a08 50.4%, #110f0c 100%);
+  border-radius: 0.07em;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 -1px 0 rgba(0, 0, 0, 0.6) inset, 0 18px 40px -18px rgba(0, 0, 0, 0.9);
+  transform-origin: 50% 50%;
 }
-.cifra::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #000; }
-.sep { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: clamp(36px, 7vw, 96px); color: var(--h-polvere); margin: 0 4px; }
+.cifra::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(0, 0, 0, 0.85); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04); }
+.sep { font-family: var(--h-titoli); font-size: clamp(36px, 7vw, 100px); color: var(--h-polvere); margin: 0 0.12em; transform: translateY(-0.06em); }
 .coda { display: flex; flex-direction: column; align-items: center; }
+.coda > img { object-position: center; }
 .coda > div { justify-content: center; }
+
+/* E poi: i prossimi tre film, già prenotabili. */
+.poi { margin-top: clamp(48px, 6vw, 80px); display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.poiEtichetta { color: var(--h-polvere); }
+.poiLista { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.poiVoce {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: clamp(150px, 15vw, 200px);
+  min-height: 116px;
+  padding: 16px 14px 18px;
+  border: 1px solid var(--h-filo);
+  border-radius: 16px;
+  background: rgba(10, 9, 8, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--h-carta);
+  cursor: pointer;
+  transition: border-color 0.5s, transform 0.7s var(--h-apple), background-color 0.5s;
+}
+.poiVoce:hover { border-color: var(--h-filo-forte); transform: translateY(-4px); background: rgba(20, 18, 15, 0.8); }
+.poiVoce:focus-visible { outline: 2px solid var(--h-carta); outline-offset: 3px; }
+.poiQuando { color: var(--h-cenere); font-size: 10px; }
+.poiLogo { max-height: 42px; max-width: 100%; object-fit: contain; }
+.poiVoce [data-logo-testo] { font-size: 22px; }
+
+@media (max-width: 767px) {
+  .poiLista { flex-direction: column; width: 100%; }
+  .poiVoce { width: 100%; min-height: 0; flex-direction: row; padding: 14px 18px; }
+  .poiLogo { max-height: 32px; max-width: 55%; }
+}

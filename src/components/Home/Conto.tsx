@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Slot } from './regia';
 import Image from 'next/image';
-import { Film, Show, Coda, gsap, img, prefersMotion, Vicina } from './shared';
+import { Film, Show, Coda, FilmLogo, dayLabel, gsap, img, prefersMotion, time, useBook, Vicina } from './shared';
 import base from './Home.module.css';
 import s from './Conto.module.css';
 
@@ -12,13 +12,15 @@ import s from './Conto.module.css';
  * Quando uno spettacolo comincia il conto non sparisce: passa da solo al
  * successivo della settimana.
  */
-export default function Conto({ film: primoFilm, show: primoShow, seguenti = [] }: { film: Film; show: Show; seguenti?: Slot<Film>[] }) {
+export default function Conto({ film: primoFilm, show: primoShow, seguenti = [], now }: { film: Film; show: Show; seguenti?: Slot<Film>[]; now: Date }) {
   const coda = useMemo(() => [{ movie: primoFilm, show: primoShow }, ...seguenti.filter(x => x.show.date > primoShow.date)], [primoFilm, primoShow, seguenti]);
   const [indice, setIndice] = useState(0);
   const [resto, setResto] = useState<number | null>(null);
   const cifre = useRef<HTMLDivElement>(null);
   const prima = useRef('');
   const { movie: film, show } = coda[Math.min(indice, coda.length - 1)];
+  const poi = coda.slice(indice + 1).filter((x, i, a) => a.findIndex(y => y.movie.id === x.movie.id) === i && x.movie.id !== film.id).slice(0, 3);
+  const book = useBook();
 
   useEffect(() => {
     const tic = () => {
@@ -65,6 +67,21 @@ export default function Conto({ film: primoFilm, show: primoShow, seguenti = [] 
           ))}
         </div>
         <Coda film={film} show={show} className={s.coda} />
+        {poi.length > 0 && (
+          <div className={s.poi}>
+            <span className={`${base.dati} ${s.poiEtichetta}`}>E poi</span>
+            <ol className={s.poiLista}>
+              {poi.map(x => (
+                <li key={x.show.id}>
+                  <button type="button" className={s.poiVoce} onClick={() => book(x.show as Show, x.movie)} aria-label={`${x.movie.title}, ${dayLabel(x.show.date, now)} alle ${time(x.show.date)}: prenota`}>
+                    <span className={`${base.dati} ${s.poiQuando}`}>{dayLabel(x.show.date, now)} · {time(x.show.date)}</span>
+                    <FilmLogo film={x.movie} className={s.poiLogo} sizes="200px" />
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
       </div>
     </section>
   );

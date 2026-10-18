@@ -185,3 +185,20 @@ Costruita il 18 ottobre 2026 sul ramo `home-rivoluzione`, tappe 1–7.
   - la lunghezza della pagina (circa 32.000 px su desktop, per i nove pezzi fissati mentre si scorre);
   - se il trailer muto parte da solo sul suo browser;
   - il conto alla rovescia, che mostra lo stesso film dell'apertura.
+
+## La ristrutturazione del 19 ottobre
+
+Richiesta di Giovanni: "più film, più varietà", e un sito che sembri costruito da uno studio, sempre in questa direzione. Fatto sul ramo `home-rivoluzione`, guardando la vetrina a 1440 e 390 px.
+
+- **Apertura che gira.** Dopo l'ingresso, ogni 7 secondi entra il prossimo film (fino a sei, diversi e prenotabili; il primo resta il primo spettacolo anche se è esaurito). In basso la fila degli orari, con la linea che si riempie; il giro si ferma fuori schermo, con la scheda nascosta e sotto il cursore. In alto il nome della sala e "Il programma ↓". Regia: `giroFrom` in `regia.ts`, con i test.
+- **Nastro dei titoli** (`Nastro.tsx`, pezzo nuovo dopo l'apertura). Tutti i film in Libre Caslon con l'anno, su due righe in versi opposti; scorrendo accelerano, sotto il cursore la riga si ferma e compare la locandina. Un clic prenota.
+- **Il cartellone** (`Cartellone.tsx`, pezzo nuovo dopo Oggi). "Trentadue film", e sotto quanti registi e da che anno a che anno (contati dai dati, niente testo inventato). Filtri per epoca e per lingua, con le locandine che si riordinano (GSAP Flip). Ogni locandina prenota il prossimo spettacolo.
+- **Il programma** a schede: una fila di date che resta in alto, un giorno alla volta.
+- **Oggi e programma**: passando su una riga dietro sale il fondale del film; gli spettacoli esauriti si ritirano.
+- **Conto alla rovescia**: cifre in Hanken Grotesk su palette vere (niente più zero barrato del monospazio di sistema) e la fila "E poi" con i tre film seguenti.
+- **Premi**: la parete si chiude sempre senza buchi; il premio della pagina d'onore sale lettera per lettera.
+- **Pellicola**: un quadro solo con tre strisce che scorrono in versi opposti. Le corse dei pezzi fissati sono più corte: la pagina passa da circa 32.000 a 23.500 px su desktop.
+- **Indice**: una capsula in basso (Oggi · I film · Premi · Programma) che compare dopo l'apertura e si ritira sul piede.
+- **Movimento**: GSAP 3.15 (SplitText e Flip, ora gratuiti) e scorrimento morbido con Lenis 1.3.26, legato all'orologio di GSAP; sul telefono resta lo scorrimento del sistema. Dentro le finestre (prenotazione, trailer, età) Lenis non interviene, e con la prenotazione aperta si ferma.
+- **Titoli di sezione**: una testata comune (`Testata` in `shared.tsx`), occhiello in Hanken e titolo che sale riga per riga.
+- **Piede**: "Vestri Cinema" in Libre Caslon a tutta larghezza, "Torna su", l'ingresso al gestionale quasi invisibile come prima. Al posto di "VESTRICINEMASHOP".

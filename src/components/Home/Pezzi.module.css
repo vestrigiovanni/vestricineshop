@@ -8,25 +8,50 @@
   background: linear-gradient(transparent, #000 62%);
 }
 .palcoPieno { position: relative; height: 100svh; overflow: hidden; }
+.palcoPieno::before { content: ''; position: absolute; z-index: 1; left: 0; right: 0; top: 0; height: 18%; background: linear-gradient(#000, transparent); pointer-events: none; }
 .pieno { position: absolute; inset: 0; }
 .soloLettori { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* ─── Pellicola ─── */
-.pellicola { height: 100svh; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
-.testaPellicola { padding: 0 var(--h-m) 26px; }
-.striscia { display: flex; padding: 28px 0; background: #14110d; width: max-content; margin-left: var(--h-m); position: relative; }
-.striscia::before, .striscia::after {
-  content: ''; position: absolute; left: 0; right: 0; height: 10px; opacity: 0.85;
-  background: repeating-linear-gradient(90deg, transparent 0 14px, #e9e1d2 14px 26px, transparent 26px 34px);
+/* ─── Pellicola: tre strisce nello stesso quadro ─── */
+.pellicola {
+  position: relative;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(10px, 2.2vh, 22px);
+  overflow: hidden;
+  padding: 56px 0 28px;
 }
-.striscia::before { top: 9px; }
-.striscia::after { bottom: 9px; }
-.fotogramma { position: relative; flex: none; width: clamp(260px, 40vw, 600px); aspect-ratio: 16 / 9; margin: 0 10px; overflow: hidden; }
-.codice { position: absolute; z-index: 1; left: 6px; top: 4px; color: #e9a24a; font-size: 9px; text-shadow: 0 0 4px #000; }
+.pellicolaEtichetta { position: absolute; top: 24px; left: var(--h-m); color: var(--h-polvere); }
+.filaPellicola { display: grid; grid-template-columns: clamp(200px, 19vw, 280px) minmax(0, 1fr); align-items: center; }
+.filaTesta {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0 24px 0 var(--h-m);
+}
+.filaLogo { max-height: 54px; max-width: 100%; object-fit: contain; object-position: left center; }
+.filaTesta [data-logo-testo] { font-size: 26px; line-height: 1.05; }
+.filaQuando { color: var(--h-cenere); font-size: 10px; }
+.filaPrenota { min-height: 38px; padding: 0 18px; font-size: 10px; }
+.filaFinestra { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.striscia { display: flex; padding: 22px 0; background: #14110d; width: max-content; position: relative; will-change: transform; }
+.striscia::before, .striscia::after {
+  content: ''; position: absolute; left: 0; right: 0; height: 8px; opacity: 0.85;
+  background: repeating-linear-gradient(90deg, transparent 0 12px, #e9e1d2 12px 22px, transparent 22px 30px);
+}
+.striscia::before { top: 7px; }
+.striscia::after { bottom: 7px; }
+.fotogramma { position: relative; flex: none; height: clamp(110px, 19vh, 210px); aspect-ratio: 16 / 9; margin: 0 8px; overflow: hidden; }
+.codice { position: absolute; z-index: 1; left: 6px; top: 4px; color: #e9a24a; font-size: 8px; text-shadow: 0 0 4px #000; }
 
 /* ─── Giornata ─── */
-.giornata { padding: clamp(80px, 10vw, 140px) var(--h-m); }
-.giornataCorpo { margin-top: 40px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: center; }
+.giornata { padding: var(--h-sezione) var(--h-m); }
+.giornataCorpo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: center; }
 .quadrante { width: 100%; max-width: 620px; height: auto; margin: 0 auto; overflow: visible; }
 .oraQuadrante { fill: var(--h-polvere); font-family: var(--h-dati); font-size: 13px; letter-spacing: 3px; }
 .arco { fill: none; stroke-width: 26; cursor: pointer; transition: stroke-width 0.3s; }
@@ -108,7 +133,18 @@
 
 @media (max-width: 767px) {
   .giornataCorpo { grid-template-columns: 1fr; }
-  .fotogramma { width: 78vw; }
+  .filaPellicola { grid-template-columns: 1fr; gap: 8px; }
+  .filaTesta { flex-direction: row; align-items: center; flex-wrap: nowrap; gap: 12px; padding: 0 var(--h-m); }
+  .filaTesta > :first-child { flex: none; }
+  .filaLogo { max-height: 28px; max-width: 34vw; }
+  .filaQuando { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 9px; letter-spacing: 0.14em; }
+  .filaTesta [data-logo-testo] { font-size: 20px; }
+  .filaPrenota { flex: none; min-height: 40px; margin-left: auto; padding: 0 16px; }
+  .filaFinestra { -webkit-mask-image: none; mask-image: none; }
+  .fotogramma { height: 15svh; }
+  .striscia { padding: 16px 0; }
+  .striscia::before { top: 4px; height: 7px; }
+  .striscia::after { bottom: 4px; height: 7px; }
   .latoOra { font-size: 30px; }
   .etichetta { padding: 60px 14px 18px; }
   .latoLogo { max-height: 40px; }
