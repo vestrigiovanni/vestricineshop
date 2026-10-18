@@ -9,7 +9,17 @@ import { formatShowDayLabel, formatShowDayLong, formatShowTime } from '@/utils/c
 import type { HomeMovie, HomeShow } from './regia';
 import base from './Home.module.css';
 
-if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
+/**
+ * ScrollTrigger si registra al primo effetto, non quando il modulo si carica:
+ * registrandosi tocca lo stile del <body>, e prima dell'idratazione React lo
+ * vedrebbe diverso da quello del server.
+ */
+let registrato = false;
+export function registraGsap() {
+  if (registrato || typeof window === 'undefined') return;
+  gsap.registerPlugin(ScrollTrigger);
+  registrato = true;
+}
 export { gsap, ScrollTrigger };
 
 /** Un film della home: quello che arriva dalla pagina, con i campi che la home legge. */
@@ -44,6 +54,7 @@ export function prefersMotion(): boolean {
 export function useRegia(scope: RefObject<HTMLElement | null>, setup: (phone: boolean) => void | (() => void), deps: DependencyList = []) {
   useIsoLayoutEffect(() => {
     if (!scope.current || !prefersMotion()) return;
+    registraGsap();
     let cleanup: void | (() => void);
     const ctx = gsap.context(() => { cleanup = setup(window.innerWidth < 768); }, scope);
     return () => { if (typeof cleanup === 'function') cleanup(); ctx.revert(); };

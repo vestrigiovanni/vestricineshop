@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import { choicesFromShowcase } from '../BookingDrawer/showChoices';
 import { buildHomePlan, HomePiece } from './regia';
-import { BookContext, Film, Show, ScrollTrigger, nextShow } from './shared';
+import { BookContext, Film, Show, ScrollTrigger, nextShow, registraGsap } from './shared';
 import Apertura from './Apertura';
 import Conto from './Conto';
 import { Oggi, Settimana } from './Programma';
@@ -59,6 +59,7 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
 
   // Le immagini arrivano piano: ricalcola le misure dei pezzi fissati quando la pagina è carica.
   useEffect(() => {
+    registraGsap();
     const refresh = () => ScrollTrigger.refresh();
     window.addEventListener('load', refresh);
     const t = setTimeout(refresh, 1500);
@@ -75,7 +76,10 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   return (
     <BookContext.Provider value={book}>
       <div className={base.home}>
-        {plan.map(p => <Pezzo key={p.kind} piece={p} now={now} />)}
+        {/* Ogni pezzo sta in un contenitore suo: GSAP, quando fissa un pezzo, lo
+            sposta dentro un pin-spacer, e React deve poter inserire e togliere
+            i fratelli senza cercarli dove non sono più. */}
+        {plan.map(p => <div key={p.kind} data-pezzo={p.kind}><Pezzo piece={p} now={now} /></div>)}
       </div>
       <BookingDrawer
         isOpen={booking != null}

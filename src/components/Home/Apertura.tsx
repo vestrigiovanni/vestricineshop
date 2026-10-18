@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useTrailer } from '@/context/TrailerContext';
 import { trailerOf } from './regia';
-import { Film, Show, FilmLogo, PrenotaButton, dataLine, dayLabel, gsap, img, prefersMotion, sala, time } from './shared';
+import { Film, Show, FilmLogo, PrenotaButton, dataLine, dayLabel, gsap, img, prefersMotion, registraGsap, sala, time } from './shared';
 import base from './Home.module.css';
 import s from './Apertura.module.css';
 
@@ -30,6 +30,7 @@ export default function Apertura({ film, show, now }: { film: Film; show: Show; 
     if (!el || !pronto) return;
     if (!prefersMotion()) { el.classList.add(s.ferma); return; }
     el.classList.add(s.regia);
+    registraGsap();
     const q = gsap.utils.selector(el);
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });

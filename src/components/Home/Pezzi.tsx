@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { backdropsOf, Slot } from './regia';
-import { Film, Show, Coda, FilmLogo, PrenotaButton, dayLong, gsap, img, lingua, nextShow, prefersMotion, runtime, sala, time, useBook, useInView, useRegia, Vicina } from './shared';
+import { Film, Show, Coda, FilmLogo, PrenotaButton, dayLong, gsap, img, lingua, nextShow, prefersMotion, runtime, sala, time, registraGsap, useBook, useInView, useRegia, Vicina } from './shared';
 import base from './Home.module.css';
 import s from './Pezzi.module.css';
 
@@ -14,7 +14,7 @@ const nextImg = (path: string, w: number) => `/_next/image?url=${encodeURICompon
 
 /** Tre film, ognuno con la sua striscia: i fotogrammi passano di lato mentre scendi. */
 export function Pellicola({ films, now }: { films: Film[]; now: Date }) {
-  return <>{films.map((f, i) => <Striscia key={f.id} film={f} now={now} indice={i} />)}</>;
+  return <>{films.map((f, i) => <div key={f.id}><Striscia film={f} now={now} indice={i} /></div>)}</>;
 }
 
 function Striscia({ film, now, indice }: { film: Film; now: Date; indice: number }) {
@@ -62,6 +62,7 @@ export function Giornata({ dayKey, slots, now }: { dayKey: string; slots: Slot<F
   // L'ora vera si legge solo nel browser: sul server la lancetta resta ferma a mezzanotte.
   useEffect(() => {
     const el = lancetta.current; if (!el) return;
+    registraGsap();
     const ora = new Date(), adesso = Number(time(ora.toISOString()).split(':')[0]) * 60 + Number(time(ora.toISOString()).split(':')[1]);
     const gradi = (adesso / 1440) * 360;
     if (prefersMotion()) gsap.fromTo(el, { rotation: 0 }, { rotation: gradi, svgOrigin: `${C} ${C}`, duration: 1.6, ease: 'expo.out', scrollTrigger: { trigger: root.current, start: 'top 70%' } });
@@ -221,13 +222,27 @@ export function Iride({ film, now }: { film: Film; now: Date }) {
 export function TrailerMuto({ film, trailerKey, now }: { film: Film; trailerKey: string; now: Date }) {
   const [ref, visto] = useInView<HTMLDivElement>('0px');
   const [mostra, setMostra] = useState(false);
-  useEffect(() => { if (!visto) return; const t = setTimeout(() => setMostra(true), 2500); return () => clearTimeout(t); }, [visto]);
+  const frame = useRef<HTMLIFrameElement>(null);
+  // Il fondale resta finché YouTube non dice che il video sta davvero andando
+  // (playerState 1): se l'autoplay è bloccato si vede il fotogramma, non il nero.
+  useEffect(() => {
+    if (!visto) return;
+    const ascolta = (e: MessageEvent) => {
+      if (!/youtube(-nocookie)?\.com$/.test(new URL(e.origin).hostname)) return;
+      try { const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; if (d?.info?.playerState === 1) setMostra(true); } catch { /* messaggi d'altro tipo */ }
+    };
+    window.addEventListener('message', ascolta);
+    return () => window.removeEventListener('message', ascolta);
+  }, [visto]);
+  const presentati = () => frame.current?.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: trailerKey }), '*');
   return (
     <section className={s.trailer} aria-label={`Trailer di ${film.title}, senza audio`}>
       <div ref={ref} className={s.trailerQuadro}>
         {visto && (
           <iframe
-            src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailerKey}&playsinline=1&modestbranding=1&rel=0&start=8`}
+            ref={frame}
+            onLoad={presentati}
+            src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailerKey}&playsinline=1&modestbranding=1&rel=0&start=8&enablejsapi=1`}
             allow="autoplay; encrypted-media"
             title={`Trailer di ${film.title}`}
             tabIndex={-1}
