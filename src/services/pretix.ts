@@ -4,7 +4,8 @@ import { ITEM_INTERO_ID, ITEM_VIP_ID, ALLOWED_ROOM_IDS } from '@/constants/preti
 import { getShortTermCache, setShortTermCache, saveOverride, getOverrides } from './db.service';
 
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-import { calculatePretixDateTime } from '@/utils/dateUtils';
+import { calculatePretixDateTime, formatRomeISO } from '@/utils/dateUtils';
+import { romeToMs } from '@/services/scheduling/rome';
 
 const TIMEZONE = 'Europe/Rome';
 
@@ -103,16 +104,6 @@ function setCachedData(endpoint: string, data: any) {
 export async function clearPretixCache() {
   // Emptying the cacheMap is hard, but we can rely on TTL or we could export a clear method from db.service.
   // For now, no op as Vercel restarts anyway.
-}
-
-/**
- * Custom ISO formatter to bypass server UTC shifts.
- * Hardcoded to Europe/Rome (+02:00 for CEST).
- * USES PURE MATH TO PREVENT TIMEZONE GHOSTS.
- */
-function formatManualISO(d: Date) {
-  // Usiamo formatInTimeZone per estrarre i pezzi in modo sicuro rispetto al fuso di Roma
-  return `${formatInTimeZone(d, TIMEZONE, 'yyyy-MM-dd')}T${formatInTimeZone(d, TIMEZONE, 'HH:mm')}:00+02:00`;
 }
 
 /**
@@ -1157,11 +1148,11 @@ export async function syncSoldOutStatus() {
 export async function getTicketsByDate(dateStr: string) {
   try {
     // 1. Get SubEvents for this specific day to get their IDs.
-    // CRITICAL: Pretix stores date_from in UTC, but the cinema operates on Europe/Rome (+02:00 CEST).
-    // To find shows on "dateStr" in Italian local time, we query the UTC window that covers
-    // the full Italian day: midnight Rome (+02:00) to 23:59:59 Rome (+02:00).
-    const afterParam  = encodeURIComponent(`${dateStr}T00:00:00+02:00`);
-    const beforeParam = encodeURIComponent(`${dateStr}T23:59:59+02:00`);
+    // CRITICAL: Pretix stores date_from in UTC, but the cinema operates on Europe/Rome.
+    // To find shows on "dateStr" in Italian local time, we query the window that covers
+    // the full Italian day, with that day's real offset (+02:00 in summer, +01:00 in winter).
+    const afterParam  = encodeURIComponent(calculatePretixDateTime(dateStr, '00:00'));
+    const beforeParam = encodeURIComponent(formatRomeISO(romeToMs(dateStr, 24 * 60) - 1000));
 
     const subEventsData = await fetchPretix(
       `/subevents/?date_from_after=${afterParam}&date_from_before=${beforeParam}&ordering=date_from&limit=100`,

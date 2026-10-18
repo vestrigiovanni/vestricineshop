@@ -1,28 +1,22 @@
+import { formatInTimeZone } from 'date-fns-tz';
+import { TIMEZONE, romeToMs } from '@/services/scheduling/rome';
 
 /**
- * PURE MATH PROTOCOL: Calculates the Pretix date_from/date_to string.
+ * Un istante scritto come lo vuole Pretix: ora di Roma, con il fuso giusto
+ * per *quel* giorno. Prima il suffisso era `+02:00` fisso, e dall'ultima
+ * domenica di ottobre ogni spettacolo finiva su Pretix un'ora prima.
+ */
+export function formatRomeISO(d: Date | number): string {
+  return formatInTimeZone(d, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+}
+
+/**
+ * La stringa date_from/date_to di Pretix per un orario di Roma.
  * @param baseDate YYYY-MM-DD
  * @param baseTime HH:mm
- * @param addMinutes Number of minutes to add
+ * @param addMinutes minuti da aggiungere (anche oltre la mezzanotte)
  */
 export function calculatePretixDateTime(baseDate: string, baseTime: string, addMinutes: number = 0) {
-  const pad = (n: number) => n.toString().padStart(2, '0');
   const [h, m] = baseTime.split(':').map(Number);
-  let totalMin = h * 60 + m + addMinutes;
-  
-  let finalH = Math.floor(totalMin / 60);
-  let finalM = totalMin % 60;
-  
-  let finalDate = baseDate;
-  if (finalH >= 24) {
-    const daysToAdd = Math.floor(finalH / 24);
-    finalH %= 24;
-    
-    // Increment date Safely (Date object is ok just for the day component)
-    const d = new Date(baseDate);
-    d.setDate(d.getDate() + daysToAdd);
-    finalDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  }
-  
-  return `${finalDate}T${pad(finalH)}:${pad(finalM)}:00+02:00`;
+  return formatRomeISO(romeToMs(baseDate, h * 60 + m + addMinutes));
 }

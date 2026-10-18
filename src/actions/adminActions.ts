@@ -26,6 +26,7 @@ import { ITEM_INTERO_ID, ITEM_VIP_ID, SEATING_PLANS_CACHE_FILE } from '@/constan
 import { revalidatePath } from 'next/cache';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
 import { calculatePretixDateTime } from '@/utils/dateUtils';
+import { romeDate, romeToMs } from '@/services/scheduling/rome';
 import { deleteMovieMetadata } from '@/services/db.service';
 import { CLOSING_MINUTE, MIN_GAP_MINUTES, OPENING_MINUTE } from '@/services/scheduling/times';
 
@@ -33,19 +34,6 @@ import { CLOSING_MINUTE, MIN_GAP_MINUTES, OPENING_MINUTE } from '@/services/sche
 
 const TIMEZONE = 'Europe/Rome';
 const pad = (n: number) => n.toString().padStart(2, '0');
-
-/**
- * Custom ISO formatter to bypass server UTC shifts.
- * Hardcoded to Europe/Rome (+02:00 for CEST).
- * USES PURE MATH PIECES TO PREVENT TIMEZONE GHOSTS.
- */
-function formatManualISO(d: Date) {
-  // Usiamo formatInTimeZone SOLO per estrarre i pezzi (anno, mese, giorno, ora, min)
-  // garantendo che siano quelli di Roma, ignorando il fuso di sistema di Vercel.
-  const datestr = formatInTimeZone(d, TIMEZONE, 'yyyy-MM-dd');
-  const timestr = formatInTimeZone(d, TIMEZONE, 'HH:mm');
-  return `${datestr}T${timestr}:00+02:00`;
-}
 
 /**
  * Gli intervalli occupati di una sala: [inizio, fine + pausa].
@@ -143,9 +131,9 @@ export async function adminClearCache() {
  * bitmap to be misaligned by 120 minutes.
  */
 function getRomeDayStartMs(d: Date): number {
-  const dateStr = formatInTimeZone(d, TIMEZONE, 'yyyy-MM-dd');
-  // Build the explicit Rome midnight with +02:00 suffix so new Date() parses it correctly
-  return new Date(`${dateStr}T00:00:00+02:00`).getTime();
+  // La mezzanotte vera di Roma, con il fuso di quel giorno: un `+02:00` fisso
+  // d'inverno la anticipava di un'ora, e con lei apertura e chiusura.
+  return romeToMs(romeDate(d), 0);
 }
 
 /**
@@ -720,8 +708,11 @@ export async function adminScheduleMovie(
       if (dayStartMs >= transitionDateMs) {
         // Apertura e chiusura vengono dal motore: se un giorno cambiano, cambiano
         // per chi genera il piano e per chi lo salva nello stesso momento.
-        const minStartMs = dayStartMs + OPENING_MINUTE * 60000;
-        const maxEndMs = dayStartMs + CLOSING_MINUTE * 60000;
+        // Passando per l'orologio a muro: il 25 ottobre dura 25 ore, e
+        // "mezzanotte + 25 ore" non è l'01:00 del giorno dopo.
+        const romeDay = romeDate(startDate);
+        const minStartMs = romeToMs(romeDay, OPENING_MINUTE);
+        const maxEndMs = romeToMs(romeDay, CLOSING_MINUTE);
 
         if (sNew < minStartMs) {
           const msg = `Orario non consentito: il primo spettacolo non può iniziare prima delle 10:00.`;
