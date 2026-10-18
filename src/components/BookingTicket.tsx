@@ -133,7 +133,7 @@ export function TicketFoot({ seatLabels, legal, onProceed, checkout }: TicketFoo
           <dl className={styles.summary}>
             <div>
               <dt className={styles.label}>Posti</dt>
-              <dd className={count > 0 ? styles.seatsValue : undefined}>
+              <dd key={count} className={count > 0 ? styles.seatsValue : undefined}>
                 {count > 0 ? seatLabels.map(shortSeat).join(' · ') : '—'}
               </dd>
             </div>

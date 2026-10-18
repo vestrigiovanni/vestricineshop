@@ -506,3 +506,44 @@
     grid-template-rows: auto minmax(0, 1fr);
   }
 }
+
+/* ─── Nella veste della nuova home (18 ottobre 2026) ───
+ * Fondo trasparente: dietro la sala c'è il fondale del film (BookingDrawer).
+ * Libre Caslon ha un solo peso: niente grassetti finti. L'ora è grande e in
+ * carta; l'ambra resta sulle azioni. */
+.stage { background: transparent; }
+.title { font-weight: 400; font-size: 2.4rem; letter-spacing: -0.01em; }
+.noticeTitle { font-weight: 400; }
+.whenTime { font-family: var(--c-font-serif); font-size: 52px; line-height: 0.95; color: var(--c-ink); font-variant-numeric: tabular-nums; }
+.seatsBig { font-family: var(--c-font-serif); }
+
+.head > * { animation: colonnaEntra 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.head > *:nth-child(2) { animation-delay: 0.15s; }
+.head > *:nth-child(3) { animation-delay: 0.3s; }
+.foot { animation: colonnaEntra 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both; }
+@keyframes colonnaEntra {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Il numero dei posti scelti fa un piccolo scatto quando cambia. */
+.seatsValue { display: inline-block; animation: scatto 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes scatto { from { transform: scale(1.5); color: var(--c-amber); } to { transform: none; } }
+
+/* Il bottone per proseguire: la pillola della home, con un riflesso che passa. */
+.proceed { position: relative; overflow: hidden; border-radius: 999px; }
+.proceed:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: riflesso 3s ease-in-out 1s infinite;
+  pointer-events: none;
+}
+@keyframes riflesso { 0%, 60% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .head > *, .foot, .seatsValue { animation: none; }
+  .proceed::after { animation: none; display: none; }
+}

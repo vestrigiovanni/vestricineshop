@@ -26,7 +26,7 @@ function Striscia({ film, now, indice }: { film: Film; now: Date; indice: number
     gsap.to(striscia, {
       x: () => -(striscia.scrollWidth - window.innerWidth + 60),
       ease: 'none',
-      scrollTrigger: { trigger: root.current, start: 'top top', end: () => '+=' + Math.max(400, (striscia.scrollWidth - window.innerWidth) * 0.7), scrub: 0.5, pin: true, invalidateOnRefresh: true },
+      scrollTrigger: { trigger: root.current, start: 'top top', end: () => '+=' + Math.max(400, (striscia.scrollWidth - window.innerWidth) * 0.45), scrub: 0.5, pin: true, invalidateOnRefresh: true },
     });
   });
   return (
@@ -109,7 +109,7 @@ export function Giornata({ dayKey, slots, now }: { dayKey: string; slots: Slot<F
 export function Locandina({ film, now }: { film: Film; now: Date }) {
   const root = useRef<HTMLElement>(null);
   useRegia(root, () => {
-    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=130%', scrub: 0.6, pin: true } });
+    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=85%', scrub: 0.6, pin: true } });
     tl.to('[data-cornice]', { height: () => Math.min(window.innerWidth / 2.39, window.innerHeight * 0.62), width: '100vw', ease: 'power2.inOut', duration: 1 })
       .to('[data-poster]', { opacity: 0, duration: 0.5 }, 0.35)
       .to('[data-fondale]', { opacity: 1, duration: 0.5 }, 0.35)
@@ -178,7 +178,7 @@ export function Barre({ film, now }: { film: Film; now: Date }) {
   useEffect(() => { disegna(); const r = () => disegna(); window.addEventListener('resize', r); return () => window.removeEventListener('resize', r); });
   useRegia(root, () => {
     const st = { p: 0 };
-    gsap.to(st, { p: 1, ease: 'none', onUpdate: () => { progresso.current = st.p; disegna(); }, scrollTrigger: { trigger: root.current, start: 'top top', end: '+=120%', scrub: 0.4, pin: true } });
+    gsap.to(st, { p: 1, ease: 'none', onUpdate: () => { progresso.current = st.p; disegna(); }, scrollTrigger: { trigger: root.current, start: 'top top', end: '+=80%', scrub: 0.4, pin: true } });
   });
 
   return (
@@ -204,7 +204,7 @@ export function Barre({ film, now }: { film: Film; now: Date }) {
 export function Iride({ film, now }: { film: Film; now: Date }) {
   const root = useRef<HTMLElement>(null);
   useRegia(root, () => {
-    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=110%', scrub: 0.5, pin: true } });
+    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=75%', scrub: 0.5, pin: true } });
     tl.fromTo('[data-iride]', { clipPath: 'circle(0% at 50% 45%)' }, { clipPath: 'circle(80% at 50% 45%)', ease: 'power2.inOut', duration: 1 })
       .fromTo('[data-coda]', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3 }, 0.75);
   });
@@ -262,7 +262,7 @@ export function Doppio({ a, b }: { a: Slot<Film>; b: Slot<Film> }) {
   useRegia(root, () => {
     const el = root.current!, sx = el.querySelector<HTMLElement>('[data-lato="s"]')!, dx = el.querySelector<HTMLElement>('[data-lato="d"]')!, linea = el.querySelector<HTMLElement>('[data-linea]')!;
     const p = { v: 50 }, set = () => { sx.style.width = p.v + '%'; dx.style.width = 100 - p.v + '%'; linea.style.left = p.v + '%'; };
-    gsap.timeline({ scrollTrigger: { trigger: el, start: 'top top', end: '+=150%', scrub: 0.6, pin: true } })
+    gsap.timeline({ scrollTrigger: { trigger: el, start: 'top top', end: '+=100%', scrub: 0.6, pin: true } })
       .to(p, { v: 78, onUpdate: set, duration: 1, ease: 'power1.inOut' })
       .to(p, { v: 22, onUpdate: set, duration: 1.4, ease: 'power1.inOut' })
       .to(p, { v: 50, onUpdate: set, duration: 0.8 });
@@ -294,7 +294,7 @@ export function Ventaglio({ films, now }: { films: Film[]; now: Date }) {
   useRegia(root, phone => {
     const carte = gsap.utils.toArray<HTMLElement>('[data-carta]'), n = carte.length, ampio = phone ? 9 : 13;
     gsap.set(carte, { rotation: i => (i - (n - 1) / 2) * 1.2 });
-    gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=110%', scrub: 0.6, pin: true } })
+    gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=75%', scrub: 0.6, pin: true } })
       .to(carte, { rotation: i => (i - (n - 1) / 2) * ampio, ease: 'power2.out', duration: 1 })
       .to('[data-carta-quando]', { opacity: 1, duration: 0.3 }, 0.7);
   });
@@ -340,7 +340,7 @@ export function Sottotitoli({ film, show }: { film: Film; show: Show }) {
   useEffect(() => { if (prefersMotion()) setK(-1); }, []);
   useRegia(root, () => {
     const st = { i: -1 };
-    gsap.to(st, { i: subs.length - 0.01, ease: 'none', onUpdate: () => setK(Math.floor(st.i)), scrollTrigger: { trigger: root.current, start: 'top top', end: '+=' + subs.length * 28 + '%', scrub: true, pin: true } });
+    gsap.to(st, { i: subs.length - 0.01, ease: 'none', onUpdate: () => setK(Math.floor(st.i)), scrollTrigger: { trigger: root.current, start: 'top top', end: '+=' + subs.length * 18 + '%', scrub: true, pin: true } });
   }, [subs.length]);
   const fondale = backdropsOf(film)[2] || film.backdrop_path;
   return (

@@ -371,3 +371,34 @@
   outline: 2px solid var(--c-amber, #e8a33d);
   outline-offset: 2px;
 }
+
+/* ─── La sala si accende (18 ottobre 2026) ───
+ * Lo schermo si accende con una lama di luce, poi le file compaiono una dopo
+ * l'altra dallo schermo verso il fondo, come le luci di sala al contrario.
+ * Un posto scelto si illumina con un impulso d'ambra. */
+.screenCurve { animation: schermoAcceso 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both; transform-origin: 50% 0; }
+@keyframes schermoAcceso {
+  0% { opacity: 0; transform: scaleX(0.05); filter: brightness(3); }
+  60% { opacity: 1; filter: brightness(1.8); }
+  100% { opacity: 1; transform: scaleX(1); filter: none; }
+}
+.screenLabel { animation: rigaEntra 0.8s ease 0.8s both; }
+
+.row { animation: filaAccesa 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(var(--i, 0) * 70ms + 0.55s); }
+@keyframes filaAccesa {
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes rigaEntra { from { opacity: 0; } to { opacity: 1; } }
+
+.selected { animation: postoScelto 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 0 18px rgba(232, 163, 61, 0.55); }
+@keyframes postoScelto {
+  0% { transform: scale(0.82); box-shadow: 0 0 0 0 rgba(232, 163, 61, 0.9); }
+  60% { transform: scale(1.12); box-shadow: 0 0 0 10px rgba(232, 163, 61, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 18px rgba(232, 163, 61, 0.55); }
+}
+.legend { animation: rigaEntra 0.8s ease 1.2s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .screenCurve, .screenLabel, .row, .selected, .legend { animation: none; }
+}

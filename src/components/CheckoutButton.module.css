@@ -187,3 +187,12 @@
   line-height: 1.5;
   color: var(--c-dim, #8a7d6c);
 }
+
+/* ─── Il biglietto esce dalla fessura (18 ottobre 2026) ─── */
+.successContainer { animation: bigliettoEsce 1.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes bigliettoEsce {
+  from { opacity: 0; transform: translateY(-28px); clip-path: inset(0 0 100% 0); }
+  to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); }
+}
+.successTitle { font-weight: 400; }
+@media (prefers-reduced-motion: reduce) { .successContainer { animation: none; } }

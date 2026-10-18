@@ -1,5 +1,7 @@
 'use client';
 
+import type React from 'react';
+
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Loader2, Info, AlertTriangle, RefreshCw } from 'lucide-react';
 import { getSubEventSeats } from '@/services/pretix';
@@ -168,8 +170,9 @@ export default function SeatMap({ selectedSeats, onSeatToggle, subeventId, onSea
       <div className={styles.container}>
         {seats.length > 0 ? (
           <div className={styles.rows}>
-            {rows.map(({ row, seats: rowSeats }) => (
-              <div className={styles.row} key={row || 'sala'}>
+            {rows.map(({ row, seats: rowSeats }, i) => (
+              // --i: l'ordine della fila, per accenderle una dopo l'altra dallo schermo in giù.
+              <div className={styles.row} key={row || 'sala'} style={{ '--i': i } as React.CSSProperties}>
                 {hasRowLabels && <span className={styles.rowLabel} aria-hidden="true">{row}</span>}
                 <div className={styles.rowSeats}>
                   {rowSeats.map(seat => {

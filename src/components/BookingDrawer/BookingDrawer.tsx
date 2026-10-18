@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
+import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import styles from './BookingDrawer.module.css';
 import BookingFlow from '../BookingFlow';
 import type { ShowChoice } from './showChoices';
@@ -12,11 +14,13 @@ interface BookingDrawerProps {
   movieTitle?: string;
   /** Gli altri spettacoli dello stesso film, per "cambia orario". */
   choices?: ShowChoice[];
+  /** Il fondale del film: sta dietro la sala, quasi spento. */
+  backdropPath?: string | null;
 }
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-export default function BookingDrawer({ isOpen, onClose, subeventId, movieTitle, choices }: BookingDrawerProps) {
+export default function BookingDrawer({ isOpen, onClose, subeventId, movieTitle, choices, backdropPath }: BookingDrawerProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const lastFocused = useRef<HTMLElement | null>(null);
   const scrollLock = useRef(0);
@@ -123,6 +127,11 @@ export default function BookingDrawer({ isOpen, onClose, subeventId, movieTitle,
       aria-label={movieTitle ? `Prenotazione — ${movieTitle}` : 'Prenotazione'}
       aria-hidden={!isOpen}
     >
+      {isOpen && backdropPath && (
+        <div className={styles.fondale} aria-hidden="true">
+          <Image src={getTMDBImageUrl(backdropPath, 'w1280') || ''} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} />
+        </div>
+      )}
       <div className={styles.drawerContent} ref={contentRef} tabIndex={-1}>
         {isOpen && (
           <BookingFlow

@@ -42,3 +42,45 @@
     transition: none;
   }
 }
+
+/* ─── La prenotazione nella veste della nuova home (18 ottobre 2026) ───
+ * Nero pieno, Libre Caslon per i titoli e gli orari grandi, Hanken Grotesk
+ * per i dati al posto del mono. I componenti della prenotazione leggono
+ * i token di Cabina: qui li si ridefinisce, così tutto il flusso cambia
+ * carattere senza toccare le sue regole. */
+.drawerContainer {
+  --c-bg: #000;
+  --c-bg-raised: rgba(10, 9, 8, 0.92);
+  --c-bg-sunken: #050403;
+  --c-font-serif: var(--font-home-titoli), 'Libre Caslon Display', Georgia, serif;
+  --c-font-mono: var(--font-home-dati), 'Hanken Grotesk', system-ui, sans-serif;
+  --c-font-sans: var(--font-home-dati), 'Hanken Grotesk', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* Il fondale del film dietro la sala: sale dal nero e resta quasi spento. */
+.fondale {
+  position: absolute;
+  inset: -4%;
+  z-index: 0;
+  opacity: 0;
+  filter: grayscale(0.35) blur(1px);
+}
+.open .fondale { animation: fondaleSale 2.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; }
+@keyframes fondaleSale {
+  from { opacity: 0; transform: scale(1.08); }
+  to { opacity: 0.16; transform: scale(1); }
+}
+.drawerContent { position: relative; z-index: 1; }
+
+/* Il contenuto entra salendo, come i titoli della home. */
+.open .drawerContent { animation: contenutoSale 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes contenutoSale {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .open .fondale { animation: none; opacity: 0.16; }
+  .open .drawerContent { animation: none; }
+}

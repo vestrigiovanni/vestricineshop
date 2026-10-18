@@ -87,6 +87,7 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
         subeventId={booking?.subeventId ?? null}
         movieTitle={film?.title}
         choices={choices}
+        backdropPath={film?.backdrop_path}
       />
     </BookContext.Provider>
   );
