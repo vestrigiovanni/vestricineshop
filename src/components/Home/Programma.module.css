@@ -1,0 +1,37 @@
+.blocco { padding: clamp(72px, 10vw, 140px) var(--h-m); }
+.testa { display: flex; align-items: baseline; gap: 12px 24px; flex-wrap: wrap; margin-bottom: 28px; }
+.titolo { font-size: clamp(48px, 7vw, 104px); letter-spacing: -0.01em; }
+.sotto { color: var(--h-polvere); }
+
+.lista { list-style: none; margin: 0; padding: 0; }
+.riga {
+  display: grid;
+  grid-template-columns: 150px 280px minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: center;
+  padding: 18px 0;
+  border-top: 1px solid var(--h-filo);
+}
+.ora { font-size: 54px; font-variant-numeric: tabular-nums; }
+.logo { display: flex; align-items: center; min-height: 48px; }
+.logoImg { max-height: 52px; max-width: 260px; object-fit: contain; object-position: left center; }
+.logo [data-logo-testo] { font-size: 30px; }
+.dati { color: var(--h-polvere); line-height: 1.8; }
+
+.giorno { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; padding: 30px 0; border-top: 1px solid var(--h-filo); }
+.giorno .riga:first-child { border-top: 0; padding-top: 0; }
+.nomeGiorno { color: var(--h-carta); padding-top: 14px; }
+
+@media (max-width: 1023px) {
+  .riga { grid-template-columns: 110px minmax(0, 1fr) auto; }
+  .dati { grid-column: 2 / -1; }
+  .giorno { grid-template-columns: 1fr; gap: 8px; }
+  .nomeGiorno { padding-top: 0; }
+}
+@media (max-width: 767px) {
+  .riga { grid-template-columns: 76px minmax(0, 1fr); gap: 8px 14px; }
+  .ora { font-size: 34px; }
+  .logoImg { max-height: 40px; max-width: 100%; }
+  .dati { grid-column: 2; }
+  .riga > button { grid-column: 2; justify-self: start; }
+}

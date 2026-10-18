@@ -1,0 +1,71 @@
+.apertura {
+  position: relative;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  background: #000;
+}
+
+.fondo { position: absolute; inset: 0; will-change: transform, opacity; }
+
+/* Il velo: chiaro in alto, nero in basso, dove sta il testo. */
+.velo {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, transparent 22%, transparent 42%, rgba(0, 0, 0, 0.9) 78%, #000 100%);
+}
+
+.marca { position: absolute; z-index: 2; top: 22px; left: var(--h-m); color: var(--h-carta); }
+
+.info {
+  position: absolute;
+  z-index: 2;
+  left: var(--h-m);
+  right: var(--h-m);
+  bottom: clamp(28px, 7vh, 72px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px 48px;
+  align-items: end;
+}
+
+.logoBox { display: inline-block; }
+.logo { display: block; max-height: clamp(80px, 15vh, 160px); max-width: min(560px, 100%); object-fit: contain; object-position: left bottom; }
+.righe { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 8px 22px; color: rgba(239, 230, 216, 0.75); }
+
+.destra { text-align: right; }
+.quando { color: var(--h-polvere); }
+.ora { font-size: clamp(64px, 10vw, 150px); line-height: 0.9; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.sala { margin-top: 10px; }
+.azioni { margin-top: 22px; display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; }
+.trailer {
+  min-height: 48px;
+  padding: 0 22px;
+  background: transparent;
+  color: var(--h-carta);
+  border: 1px solid var(--h-filo);
+  border-radius: 999px;
+  font-family: var(--h-dati);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.trailer:hover { border-color: var(--h-carta); }
+.trailer:focus-visible { outline: 2px solid var(--h-carta); outline-offset: 3px; }
+
+/* Prima che parta la regia gli elementi aspettano nel buio. Se lo script non
+ * arriva, dopo 6 s compaiono comunque. */
+@media (prefers-reduced-motion: no-preference) {
+  .entra { opacity: 0; animation: rivela 0.8s 6s forwards; }
+  .regia .entra { animation: none; }
+}
+.ferma .entra { opacity: 1; animation: none; }
+@keyframes rivela { to { opacity: 1; } }
+
+@media (max-width: 767px) {
+  .info { grid-template-columns: 1fr; }
+  .destra { text-align: left; }
+  .azioni { justify-content: flex-start; }
+  .ora { font-size: 72px; }
+}

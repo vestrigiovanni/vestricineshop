@@ -71,3 +71,8 @@
 
 /* Loghi TMDB quasi neri: accesi in bianco (lo decide la misura, non un elenco). */
 .logoAcceso { filter: brightness(0) invert(0.94); }
+
+/* Coda di un pezzo: logo del film, giorno · ora · sala, Prenota. */
+.codaLogo { max-height: 84px; max-width: min(380px, 70vw); object-fit: contain; object-position: left center; }
+.codaRiga { margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; }
+.codaRiga > span { color: var(--h-polvere); }

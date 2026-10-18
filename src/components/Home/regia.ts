@@ -34,7 +34,7 @@ export interface HomeMovie {
   logo_path?: string | null;
   extraBackdrops?: string[];
   trailerKeys?: string[];
-  trailerKey?: string;
+  trailerKey?: string | null;
   awards?: HomeAward[];
   subevents: HomeShow[];
 }
@@ -207,7 +207,8 @@ export function buildHomePlan<M extends HomeMovie>(movies: M[], now: Date = new 
   const trailer = take(m => !!trailerOf(m));
   if (trailer) pieces.trailer = { kind: 'trailer', movie: trailer, trailerKey: trailerOf(trailer) };
 
-  for (const day of dayKeys) {
+  // Il doppio programma guarda prima ai giorni dopo il primo: quelli di oggi sono già in "Oggi".
+  for (const day of [...dayKeys.slice(1), dayKeys[0]]) {
     const distinct = [...new Map(slotsOn(day).map(s => [s.movie.id, s])).values()];
     const fresh = distinct.filter(s => !used.has(s.movie.id));
     const pair = fresh.length >= 2 ? fresh : null;

@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
-import MovieShowcase, { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
-import CinematicStory from '@/components/CinematicStory/CinematicStory';
+import type { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
+import HomePage from '@/components/Home/HomePage';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
 import { formatShowDayLabel, formatShowTime, formatYear } from '@/utils/cinemaDate';
 import styles from './page.module.css';
@@ -24,7 +24,7 @@ export default async function Home({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   noStore();
-  const { film, subevent } = await searchParams;
+  const { film, subevent, giorno } = await searchParams;
 
   console.log('[SSR] Caricamento homepage dal Database Neon...');
   const startTime = Date.now();
@@ -210,21 +210,19 @@ export default async function Home({
   const endTime = Date.now();
   console.log(`[SSR] Homepage caricata dal DB in ${endTime - startTime}ms`);
 
-  const showcaseKey = movies.map(m => `${m.id}-${m.poster_path}-${m.isSoldOut}`).join('|');
+  // `?giorno=2026-10-21` (solo in sviluppo): la regia di un altro giorno, per provarla.
+  const regiaNow = process.env.NODE_ENV !== 'production' && typeof giorno === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(giorno)
+    ? new Date(`${giorno}T07:00:00Z`)
+    : now;
 
   return (
     <main className={`cabina pubblico ${styles.main}`}>
-      <MovieShowcase
-        key={showcaseKey}
+      <HomePage
         movies={movies}
+        nowIso={regiaNow.toISOString()}
         initialAvailability={availabilityMap}
         initialMovieId={initialMovieId}
         initialSubeventId={initialSubeventId}
-      />
-      <CinematicStory
-        movies={movies}
-        subEvents={enrichedSubEvents as any}
-        storySeed={Math.floor(Math.random() * 1_000_000_000)}
       />
     </main>
   );

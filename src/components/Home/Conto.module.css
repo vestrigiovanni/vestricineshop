@@ -1,0 +1,23 @@
+.conto { position: relative; min-height: 80svh; display: grid; place-items: center; text-align: center; overflow: hidden; padding: 80px var(--h-m); }
+.fondo { position: absolute; inset: 0; opacity: 0.18; filter: grayscale(1); }
+.corpo { position: relative; display: flex; flex-direction: column; align-items: center; }
+.etichetta { color: var(--h-polvere); }
+.cifre { display: flex; justify-content: center; gap: 6px; margin: 22px 0 34px; perspective: 600px; }
+.gruppo { display: flex; gap: 6px; align-items: center; }
+/* Le cifre restano da tabellone: un monospazio di sistema, non il carattere dei dati. */
+.cifra {
+  position: relative;
+  display: inline-block;
+  min-width: 1.05ch;
+  padding: 0.1em 0.12em;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: clamp(44px, 9vw, 120px);
+  line-height: 1;
+  background: #141210;
+  border: 1px solid #262220;
+  border-radius: 4px;
+}
+.cifra::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #000; }
+.sep { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: clamp(36px, 7vw, 96px); color: var(--h-polvere); margin: 0 4px; }
+.coda { display: flex; flex-direction: column; align-items: center; }
+.coda > div { justify-content: center; }

@@ -1,0 +1,116 @@
+/* ─── Comuni ─── */
+.titoloSezione { font-size: clamp(44px, 7vw, 104px); }
+.titoloSezione span { display: block; margin-top: 10px; font-family: var(--h-dati); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--h-polvere); }
+.codaSotto { padding: 24px var(--h-m) 0; }
+.codaSopra {
+  position: absolute; z-index: 2; left: 0; right: 0; bottom: 0;
+  padding: 100px var(--h-m) 30px;
+  background: linear-gradient(transparent, #000 62%);
+}
+.palcoPieno { position: relative; height: 100svh; overflow: hidden; }
+.pieno { position: absolute; inset: 0; }
+.soloLettori { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ─── Pellicola ─── */
+.pellicola { height: 100svh; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+.testaPellicola { padding: 0 var(--h-m) 26px; }
+.striscia { display: flex; padding: 28px 0; background: #14110d; width: max-content; margin-left: var(--h-m); position: relative; }
+.striscia::before, .striscia::after {
+  content: ''; position: absolute; left: 0; right: 0; height: 10px; opacity: 0.85;
+  background: repeating-linear-gradient(90deg, transparent 0 14px, #e9e1d2 14px 26px, transparent 26px 34px);
+}
+.striscia::before { top: 9px; }
+.striscia::after { bottom: 9px; }
+.fotogramma { position: relative; flex: none; width: clamp(260px, 40vw, 600px); aspect-ratio: 16 / 9; margin: 0 10px; overflow: hidden; }
+.codice { position: absolute; z-index: 1; left: 6px; top: 4px; color: #e9a24a; font-size: 9px; text-shadow: 0 0 4px #000; }
+
+/* ─── Giornata ─── */
+.giornata { padding: clamp(80px, 10vw, 140px) var(--h-m); }
+.giornataCorpo { margin-top: 40px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: center; }
+.quadrante { width: 100%; max-width: 620px; height: auto; margin: 0 auto; overflow: visible; }
+.oraQuadrante { fill: var(--h-polvere); font-family: var(--h-dati); font-size: 13px; letter-spacing: 3px; }
+.arco { fill: none; stroke-width: 26; cursor: pointer; transition: stroke-width 0.3s; }
+.arco:hover, .arcoScelto { stroke-width: 36; }
+.scheda { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+.sceglitori { display: flex; gap: 8px; flex-wrap: wrap; }
+.sceglitori button { min-height: 40px; padding: 0 14px; background: none; border: 1px solid var(--h-filo); border-radius: 999px; color: var(--h-polvere); cursor: pointer; }
+.sceglitori .attivo { border-color: var(--h-carta); color: var(--h-carta); }
+.schedaLogo { max-height: 90px; max-width: 100%; object-fit: contain; object-position: left center; }
+.inizioFine { font-size: clamp(48px, 6vw, 96px); font-variant-numeric: tabular-nums; }
+.schedaDati { color: var(--h-polvere); }
+
+/* ─── Locandina → fotogramma ─── */
+.locandina { height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+.cornice { position: relative; height: 66svh; width: calc(66svh * 2 / 3); max-width: 86vw; overflow: hidden; }
+.strato { position: absolute; inset: 0; }
+.fondale { opacity: 0; }
+.locandina .codaSotto { align-self: stretch; }
+
+/* ─── Barre ─── */
+.barre { height: 100svh; display: flex; flex-direction: column; justify-content: center; position: relative; }
+.conta { position: absolute; top: 24px; left: var(--h-m); color: var(--h-polvere); }
+.barreTela { position: relative; height: 56svh; }
+.barreTela canvas { display: block; width: 100%; height: 100%; }
+.anteprima { position: absolute; bottom: calc(100% + 12px); width: 280px; aspect-ratio: 16 / 9; pointer-events: none; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7); overflow: hidden; }
+
+/* ─── Trailer muto ─── */
+.trailer { padding: 60px 0 clamp(60px, 8vw, 120px); }
+.trailerQuadro { position: relative; width: 100%; aspect-ratio: 2.39; max-height: 80svh; overflow: hidden; background: #000; }
+.trailerQuadro iframe { position: absolute; top: 50%; left: 50%; width: 100%; aspect-ratio: 16 / 9; height: auto; transform: translate(-50%, -50%) scale(1.36); border: 0; pointer-events: none; }
+.trailerAttesa { position: absolute; inset: 0; transition: opacity 1.2s; }
+
+/* ─── Doppio programma ─── */
+.doppio { position: relative; height: 100svh; overflow: hidden; }
+.lato { position: absolute; top: 0; bottom: 0; width: 50%; overflow: hidden; }
+.latoS { left: 0; }
+.latoD { right: 0; }
+.latoImg { position: absolute; top: 0; bottom: 0; width: 100vw; }
+.latoS .latoImg { left: 0; }
+.latoD .latoImg { right: 0; }
+.etichetta { position: absolute; left: 0; right: 0; bottom: 0; padding: 80px 24px 24px; background: linear-gradient(transparent, #000 68%); display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.latoD .etichetta { align-items: flex-end; text-align: right; }
+.latoLogo { max-height: 56px; max-width: 80%; object-fit: contain; }
+.latoD .latoLogo { object-position: right center; }
+.latoOra { font-size: 44px; }
+.linea { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--h-carta); box-shadow: 0 0 24px rgba(239, 230, 216, 0.6); }
+.doppioGiorno { position: absolute; top: 22px; left: 0; right: 0; text-align: center; text-shadow: 0 1px 8px #000; }
+
+/* ─── Ventaglio ─── */
+.ventaglio { position: relative; height: 100svh; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+.ventaglioTitolo { margin-top: 10svh; font-size: clamp(44px, 7vw, 104px); }
+.mazzo { position: relative; flex: 1; width: 100%; }
+.carta {
+  --w: clamp(130px, 17vw, 240px);
+  position: absolute; left: 50%; top: 18%;
+  width: var(--w); aspect-ratio: 2 / 3; margin-left: calc(var(--w) * -0.5);
+  transform-origin: 50% 160%;
+  padding: 0; border: 0; background: #111; cursor: pointer;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.carta:focus-visible { outline: 2px solid var(--h-carta); outline-offset: 4px; }
+.cartaQuando { position: absolute; left: -20px; right: -20px; top: calc(100% + 10px); text-align: center; color: var(--h-polvere); opacity: 0; }
+
+/* ─── Sottotitoli ─── */
+.sottotitoli { position: relative; height: 100svh; display: flex; flex-direction: column; overflow: hidden; }
+.vo { position: absolute; top: 2svh; left: var(--h-m); color: var(--h-polvere); }
+.subQuadro { position: relative; flex: none; width: 100%; aspect-ratio: 2.39; max-height: 58svh; margin-top: 7svh; overflow: hidden; }
+.sub {
+  min-height: 2.8em; margin: 24px auto 0; padding: 0 16px; max-width: 36ch; text-align: center;
+  font-family: var(--h-dati); font-weight: 500; font-size: clamp(18px, 2.2vw, 30px); line-height: 1.3;
+  color: #fff; text-shadow: 0 0 2px #000, 0 2px 6px #000;
+}
+.sottotitoli .codaSotto { margin-top: auto; padding-bottom: 28px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fondale { opacity: 1; }
+  .cartaQuando { opacity: 1; }
+}
+
+@media (max-width: 767px) {
+  .giornataCorpo { grid-template-columns: 1fr; }
+  .fotogramma { width: 78vw; }
+  .latoOra { font-size: 30px; }
+  .etichetta { padding: 60px 14px 18px; }
+  .latoLogo { max-height: 40px; }
+  .anteprima { display: none; }
+}
