@@ -102,7 +102,7 @@ function Pezzo({ piece: p, now, seguenti }: { piece: HomePiece<Film>; now: Date;
     case 'oggi': return <Oggi dayKey={p.dayKey} slots={p.slots} now={now} />;
     case 'conto': return <Conto film={p.movie} show={p.show} seguenti={seguenti} />;
     case 'onore': return <Onore film={p.movie} award={p.award} now={now} />;
-    case 'parete': return <Parete items={p.items} />;
+    case 'parete': return <Parete items={p.items} now={now} />;
     case 'pellicola': return <Pellicola films={p.movies} now={now} />;
     case 'giornata': return <Giornata dayKey={p.dayKey} slots={p.slots} now={now} />;
     case 'locandina': return <Locandina film={p.movie} now={now} />;

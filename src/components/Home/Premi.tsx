@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import Image from 'next/image';
 import { resolveFestival } from './festivals';
 import { backdropsOf, WeighedAward } from './regia';
-import { Film, Coda, gsap, img, nextShow, useRegia, Vicina } from './shared';
+import { Film, Coda, dayLong, gsap, img, nextShow, time, useBook, useRegia, Vicina } from './shared';
 import base from './Home.module.css';
 import s from './Premi.module.css';
 
@@ -34,8 +34,9 @@ export function Onore({ film, award, now }: { film: Film; award: WeighedAward; n
 }
 
 /** La parete dei premi: un riquadro per premio vinto, il film vincitore che sale dietro il logo. */
-export function Parete({ items }: { items: { movie: Film; award: WeighedAward }[] }) {
+export function Parete({ items, now }: { items: { movie: Film; award: WeighedAward }[]; now: Date }) {
   const root = useRef<HTMLElement>(null);
+  const book = useBook();
   useRegia(root, () => {
     gsap.utils.toArray<HTMLElement>('[data-tessera]').forEach(el =>
       gsap.to(el.querySelector('[data-dietro]'), { clipPath: 'inset(0 0 0% 0)', duration: 1.2, ease: 'power3.inOut', scrollTrigger: { trigger: el, start: 'top 82%' } }));
@@ -47,17 +48,19 @@ export function Parete({ items }: { items: { movie: Film; award: WeighedAward }[
         {items.map(({ movie: f, award: a }, i) => {
           const fest = resolveFestival(a.type);
           const dietro = backdropsOf(f)[(i + 1) % Math.max(1, backdropsOf(f).length)];
+          const sh = nextShow(f, now);
           return (
-            <article key={`${f.id}-${a.type}-${a.year}`} className={`${s.tessera} ${i === 0 ? s.grande : i < 3 ? s.media : i < 6 ? s.larga : ''}`} data-tessera>
-              <div className={s.dietro} data-dietro><Vicina><Image src={img(dietro, 'w780')} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" style={{ objectFit: 'cover' }} /></Vicina></div>
-              <div className={s.contenuto}>
+            <button key={`${f.id}-${a.type}-${a.year}`} type="button" className={`${s.tessera} ${i === 0 ? s.grande : i < 3 ? s.media : i < 6 ? s.larga : ''}`} data-tessera
+              onClick={() => book(sh, f)} aria-label={`${f.title}, ${dayLong(sh.date)} alle ${time(sh.date)}: prenota`}>
+              <span className={s.dietro} data-dietro><Vicina><Image src={img(dietro, 'w780')} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" style={{ objectFit: 'cover' }} /></Vicina></span>
+              <span className={s.contenuto}>
                 <Image src={fest.logo} alt={fest.name} width={200} height={200} className={s.logoFest} sizes="120px" />
-                <div>
-                  <div className={`${base.titoli} ${s.cosa}`}>{i === 0 ? a.prize : a.won[0]}</div>
-                  <div className={`${base.dati} ${s.film}`}>{festivalName(a)}{a.year ? ` ${a.year}` : ''} · {f.title}</div>
-                </div>
-              </div>
-            </article>
+                <span>
+                  <span className={`${base.titoli} ${s.cosa}`}>{i === 0 ? a.prize : a.won[0]}</span>
+                  <span className={`${base.dati} ${s.film}`}>{festivalName(a)}{a.year ? ` ${a.year}` : ''} · {f.title}</span>
+                </span>
+              </span>
+            </button>
           );
         })}
       </div>
