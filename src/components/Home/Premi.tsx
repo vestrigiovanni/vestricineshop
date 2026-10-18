@@ -2,9 +2,9 @@
 
 import { useRef } from 'react';
 import Image from 'next/image';
-import { resolveFestival } from '../CinematicStory/festivals';
+import { resolveFestival } from './festivals';
 import { backdropsOf, WeighedAward } from './regia';
-import { Film, Coda, gsap, img, nextShow, useRegia } from './shared';
+import { Film, Coda, gsap, img, nextShow, useRegia, Vicina } from './shared';
 import base from './Home.module.css';
 import s from './Premi.module.css';
 
@@ -22,7 +22,7 @@ export function Onore({ film, award, now }: { film: Film; award: WeighedAward; n
   });
   return (
     <section ref={root} className={s.onore} aria-label={`${award.prize}, ${fest.name}`}>
-      <div className={s.sfondo} data-sfondo><Image src={img(sfondo, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></div>
+      <div className={s.sfondo} data-sfondo><Vicina><Image src={img(sfondo, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></Vicina></div>
       <div className={s.corpo}>
         <Image src={fest.logo} alt={fest.name} width={380} height={380} className={s.festival} data-festival sizes="(max-width: 768px) 50vw, 380px" />
         <span className={`${base.dati} ${s.chi}`}>{fest.name}{award.year ? ` · ${award.year}` : ''}</span>
@@ -49,7 +49,7 @@ export function Parete({ items }: { items: { movie: Film; award: WeighedAward }[
           const dietro = backdropsOf(f)[(i + 1) % Math.max(1, backdropsOf(f).length)];
           return (
             <article key={`${f.id}-${a.type}-${a.year}`} className={`${s.tessera} ${i === 0 ? s.grande : i < 3 ? s.media : i < 6 ? s.larga : ''}`} data-tessera>
-              <div className={s.dietro} data-dietro><Image src={img(dietro, 'w780')} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" style={{ objectFit: 'cover' }} /></div>
+              <div className={s.dietro} data-dietro><Vicina><Image src={img(dietro, 'w780')} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" style={{ objectFit: 'cover' }} /></Vicina></div>
               <div className={s.contenuto}>
                 <Image src={fest.logo} alt={fest.name} width={200} height={200} className={s.logoFest} sizes="120px" />
                 <div>

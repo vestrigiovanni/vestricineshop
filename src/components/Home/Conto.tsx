@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { Film, Show, Coda, gsap, img, prefersMotion } from './shared';
+import { Film, Show, Coda, gsap, img, prefersMotion, Vicina } from './shared';
 import base from './Home.module.css';
 import s from './Conto.module.css';
 
@@ -39,7 +39,7 @@ export default function Conto({ film, show }: { film: Film; show: Show }) {
 
   return (
     <section className={s.conto} aria-label="Il prossimo spettacolo">
-      <div className={s.fondo}><Image src={img(film.backdrop_path, 'w780')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></div>
+      <div className={s.fondo}><Vicina><Image src={img(film.backdrop_path, 'w780')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></Vicina></div>
       <div className={s.corpo}>
         <span className={`${base.dati} ${s.etichetta}`}>Il prossimo spettacolo inizia tra{giorni > 0 ? ` ${giorni} ${giorni === 1 ? 'giorno' : 'giorni'} e` : ''}</span>
         <div ref={cifre} className={s.cifre} role="timer" aria-live="off" aria-label={`${ore} ore, ${min} minuti`}>

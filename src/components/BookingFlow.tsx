@@ -6,7 +6,7 @@ import AgeVerificationModal from './AgeVerificationModal';
 import BookingRoom from './BookingRoom';
 import { TicketFoot, TicketHead } from './BookingTicket';
 import { ageNotice, seatsTakenNotice } from './bookingText';
-import { languageLabel } from './MovieShowcase/heroData';
+import { languageLabel } from './Home/linkData';
 import type { ShowChoice } from './BookingDrawer/showChoices';
 
 import { getTrustedSubeventMetadata, reportSoldOut, verifyQuotaAvailability } from '@/actions/bookingActions';

@@ -151,3 +151,15 @@ export function useInView<T extends HTMLElement>(margin = '200px'): [RefObject<T
   }, [margin, seen]);
   return [ref, seen];
 }
+
+/**
+ * Le immagini di un pezzo si chiedono solo quando il pezzo è a circa uno
+ * schermo e mezzo di distanza: al primo caricamento il telefono scarica
+ * l'apertura e poco altro. Va dentro un contenitore posizionato (come le
+ * immagini `fill` che avvolge).
+ */
+export function Vicina({ children }: { children: React.ReactNode }) {
+  const [ref, near] = useInView<HTMLSpanElement>('150% 0px');
+  if (near) return <>{children}</>;
+  return <span ref={ref} aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />;
+}

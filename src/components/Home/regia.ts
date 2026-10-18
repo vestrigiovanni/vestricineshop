@@ -1,5 +1,5 @@
 import { toCinemaDayKey } from '@/utils/cinemaDate';
-import { resolveFestival, FESTIVAL_PRESTIGE } from '../CinematicStory/festivals';
+import { resolveFestival, FESTIVAL_PRESTIGE } from './festivals';
 
 /**
  * La regia della home: dai film in sala e dalla data decide che cosa va in

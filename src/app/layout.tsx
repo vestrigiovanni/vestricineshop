@@ -41,11 +41,10 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'VESTRICINEMA | The Ultimate Cinema Experience',
-  description: 'Book your free tickets seamlessly with VESTRICINEMA.',
+  title: 'Vestri Cinema',
+  description: 'Vestri Cinema: i film in sala, gli orari e la prenotazione dei posti.',
 };
 
-import { AutoScrollProvider } from '@/context/AutoScrollContext';
 import { TrailerProvider } from '@/context/TrailerContext';
 import VideoPlayerModal from '@/components/VideoPlayerModal/VideoPlayerModal';
 import Providers from '@/components/Providers';
@@ -59,12 +58,10 @@ export default function RootLayout({
     <html lang="it">
       <body className={`${inter.variable} ${playfair.variable} ${cabSerif.variable} ${cabMono.variable} ${homeTitoli.variable} ${homeDati.variable} ${homeTesto.variable} antialiased`} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <TrailerProvider>
-          <AutoScrollProvider>
-            <Providers>
-              <main style={{ flex: '1' }}>{children}</main>
-              <ClientFooter />
-            </Providers>
-          </AutoScrollProvider>
+          <Providers>
+            <main style={{ flex: '1' }}>{children}</main>
+            <ClientFooter />
+          </Providers>
           <VideoPlayerModal />
         </TrailerProvider>
       </body>

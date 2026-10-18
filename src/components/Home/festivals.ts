@@ -26,9 +26,6 @@ export const FESTIVALS: Record<string, FestivalInfo> = {
   romacinemafest: { key: 'romacinemafest', name: 'Festa del Cinema di Roma', logo: '/logos/roma.png', ...STD },
 };
 
-/** Festival mostrati nella sezione homepage "Dai festival alla nostra sala". */
-export const FESTIVAL_HOMEPAGE = new Set(['cannes', 'oscar', 'venice', 'davids']);
-
 /** Tie-break nell'ordinamento dei blocchi festival. */
 export const FESTIVAL_PRESTIGE = [
   'cannes', 'venice', 'berlin', 'oscar', 'bafta', 'toronto',

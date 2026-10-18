@@ -162,3 +162,26 @@ Dopo ogni tappa: screenshot a 1440 e 390 px in modalità vetrina, e Giovanni pro
 - schema del database, Pretix, gestionale, display e biglietti;
 - riempire tagline, generi e voto nel catalogo (strada A scartata: solo letture da TMDB);
 - tradurre in italiano i premi scritti in inglese ("Best Leading Actress"): è un lavoro sui dati, da fare a parte.
+
+## Com'è andata
+
+Costruita il 18 ottobre 2026 sul ramo `home-rivoluzione`, tappe 1–7.
+
+- **Dove vive:** `src/components/Home/`.
+  - `regia.ts` (con i test) decide i pezzi;
+  - `HomePage.tsx` li monta e gestisce disponibilità dal vivo e prenotazione;
+  - `Apertura`, `Programma` (Oggi e settimana), `Conto`, `Premi` (pagina d'onore e parete) e `Pezzi` (pellicola, giornata, locandina, striscia di colore, iride, trailer muto, doppio programma, ventaglio, sottotitoli);
+  - `shared.tsx` raccoglie logo del film, coda con Prenota, regia GSAP e caricamento delle immagini vicine.
+- **Idratazione:** la regia gira con l'istante passato dal server (`nowIso`), così la pagina idratata è identica a quella del server. Le coordinate del quadrante sono arrotondate, perché server e browser non danno gli stessi decimali.
+- **Striscia di colore:** legge i pixel dalle immagini servite da `/_next/image` (stessa origine). In Next 16 l'ottimizzatore accetta solo la qualità 75.
+- **Immagini:** ogni pezzo chiede le sue solo quando è a circa uno schermo e mezzo di distanza (`Vicina`). Prima il telefono ne scaricava 63 al primo caricamento.
+- **Il doppio programma** guarda prima ai giorni dopo il primo, per non ripetere i film di "Oggi".
+- **Tolti:**
+  - `MovieShowcase`, `CinematicStory`, `WeeklyCinemaCalendar`, `TextFlippingBoard`, `DriftWall`, `TextEffects`, `CustomVideoPlayer` e `AutoScrollContext`;
+  - `festivals.ts` è passato in `Home`;
+  - `languageLabel` e i link `?film=` / `?subevent=` sono in `Home/linkData.ts`.
+- **Titolo della scheda:** "Vestri Cinema".
+- **Ancora da vedere con Giovanni:**
+  - la lunghezza della pagina (circa 32.000 px su desktop, per i nove pezzi fissati mentre si scorre);
+  - se il trailer muto parte da solo sul suo browser;
+  - il conto alla rovescia, che mostra lo stesso film dell'apertura.

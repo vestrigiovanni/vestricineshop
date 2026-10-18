@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import type { GroupedMovie } from '@/components/MovieShowcase/MovieShowcase';
+import type { GroupedMovie } from '@/components/Home/types';
 import HomePage from '@/components/Home/HomePage';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
 import { formatShowDayLabel, formatShowTime, formatYear } from '@/utils/cinemaDate';
@@ -7,7 +7,7 @@ import styles from './page.module.css';
 import { unstable_noStore as noStore } from 'next/cache';
 import type { MovieOverride, PretixSync } from '@prisma/client';
 import { commonProjectionSpecs, normalizeProjectionSpecs } from '@/constants/projectionSpecs';
-import { pickInitialMovieId, pickInitialSubeventId } from '@/components/MovieShowcase/heroData';
+import { pickInitialMovieId, pickInitialSubeventId } from '@/components/Home/linkData';
 import { withExtraBackdrops } from '@/services/filmImagery';
 
 // Define the type for the projection with the included movie

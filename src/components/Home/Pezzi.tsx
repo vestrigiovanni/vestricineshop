@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { backdropsOf, Slot } from './regia';
-import { Film, Show, Coda, FilmLogo, PrenotaButton, dayLong, gsap, img, lingua, nextShow, prefersMotion, runtime, sala, time, useBook, useInView, useRegia } from './shared';
+import { Film, Show, Coda, FilmLogo, PrenotaButton, dayLong, gsap, img, lingua, nextShow, prefersMotion, runtime, sala, time, useBook, useInView, useRegia, Vicina } from './shared';
 import base from './Home.module.css';
 import s from './Pezzi.module.css';
 
@@ -36,7 +36,7 @@ function Striscia({ film, now, indice }: { film: Film; now: Date; indice: number
         {frames.map((p, i) => (
           <div key={p} className={s.fotogramma}>
             <span className={`${base.dati} ${s.codice}`}>{base0 + i}{i % 2 ? 'A' : ''} ▸ KODAK 5219</span>
-            <Image src={img(p, 'w780')} alt="" fill sizes="(max-width: 768px) 80vw, 40vw" style={{ objectFit: 'cover' }} />
+            <Vicina><Image src={img(p, 'w780')} alt="" fill sizes="(max-width: 768px) 80vw, 40vw" style={{ objectFit: 'cover' }} /></Vicina>
           </div>
         ))}
       </div>
@@ -117,8 +117,8 @@ export function Locandina({ film, now }: { film: Film; now: Date }) {
   return (
     <section ref={root} className={s.locandina} aria-label={film.title}>
       <div className={s.cornice} data-cornice>
-        <div className={s.strato} data-poster><Image src={img(film.poster_path, 'w780')} alt={`Locandina di ${film.title}`} fill sizes="(max-width: 768px) 70vw, 40vw" style={{ objectFit: 'cover' }} /></div>
-        <div className={`${s.strato} ${s.fondale}`} data-fondale><Image src={img(film.backdrop_path, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></div>
+        <div className={s.strato} data-poster><Vicina><Image src={img(film.poster_path, 'w780')} alt={`Locandina di ${film.title}`} fill sizes="(max-width: 768px) 70vw, 40vw" style={{ objectFit: 'cover' }} /></Vicina></div>
+        <div className={`${s.strato} ${s.fondale}`} data-fondale><Vicina><Image src={img(film.backdrop_path, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></Vicina></div>
       </div>
       <Coda film={film} show={nextShow(film, now)} className={s.codaSotto} />
     </section>
@@ -209,7 +209,7 @@ export function Iride({ film, now }: { film: Film; now: Date }) {
   });
   return (
     <section ref={root} className={s.palcoPieno} aria-label={film.title}>
-      <div className={s.pieno} data-iride><Image src={img(film.backdrop_path, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></div>
+      <div className={s.pieno} data-iride><Vicina><Image src={img(film.backdrop_path, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></Vicina></div>
       <Coda film={film} show={nextShow(film, now)} className={s.codaSopra} />
     </section>
   );
@@ -233,7 +233,7 @@ export function TrailerMuto({ film, trailerKey, now }: { film: Film; trailerKey:
             tabIndex={-1}
           />
         )}
-        <div className={s.trailerAttesa} style={{ opacity: mostra ? 0 : 1 }}><Image src={img(film.backdrop_path, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></div>
+        <div className={s.trailerAttesa} style={{ opacity: mostra ? 0 : 1 }}><Vicina><Image src={img(film.backdrop_path, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></Vicina></div>
       </div>
       <Coda film={film} show={nextShow(film, now)} className={s.codaSotto} />
     </section>
@@ -254,7 +254,7 @@ export function Doppio({ a, b }: { a: Slot<Film>; b: Slot<Film> }) {
   });
   const lato = (x: Slot<Film>, k: 's' | 'd') => (
     <div className={`${s.lato} ${k === 's' ? s.latoS : s.latoD}`} data-lato={k}>
-      <div className={s.latoImg}><Image src={img(x.movie.backdrop_path, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></div>
+      <div className={s.latoImg}><Vicina><Image src={img(x.movie.backdrop_path, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></Vicina></div>
       <div className={s.etichetta}>
         <FilmLogo film={x.movie} className={s.latoLogo} />
         <div className={`${base.titoli} ${s.latoOra}`}>{time(x.show.date)}</div>
@@ -291,7 +291,7 @@ export function Ventaglio({ films, now }: { films: Film[]; now: Date }) {
           const sh = nextShow(f, now), n = films.length;
           return (
             <button key={f.id} className={s.carta} data-carta style={{ transform: `rotate(${(i - (n - 1) / 2) * 11}deg)` }} onClick={() => book(sh, f)} aria-label={`${f.title}, ${dayLong(sh.date)} alle ${time(sh.date)}: prenota`}>
-              <Image src={img(f.poster_path, 'w342')} alt="" fill sizes="240px" style={{ objectFit: 'cover' }} />
+              <Vicina><Image src={img(f.poster_path, 'w342')} alt="" fill sizes="240px" style={{ objectFit: 'cover' }} /></Vicina>
               <span className={`${base.dati} ${s.cartaQuando}`} data-carta-quando>{dayLong(sh.date).split(' ').slice(0, 2).join(' ')} · {time(sh.date)}</span>
             </button>
           );
@@ -331,7 +331,7 @@ export function Sottotitoli({ film, show }: { film: Film; show: Show }) {
   return (
     <section ref={root} className={s.sottotitoli} aria-label={`La trama di ${film.title}`}>
       <span className={`${base.dati} ${s.vo}`}>Versione originale{show.language ? ` · ${show.language}` : ''}{show.subtitles ? ` · sottotitoli ${show.subtitles.toLowerCase()}` : ''}</span>
-      <div className={s.subQuadro}><Image src={img(fondale, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></div>
+      <div className={s.subQuadro}><Vicina><Image src={img(fondale, 'w1280')} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} /></Vicina></div>
       <p className={s.sub} aria-hidden>{k >= 0 && subs[k] ? subs[k].map((r, i) => <span key={i}>{r}<br /></span>) : null}</p>
       <p className={s.soloLettori}>{film.overview}</p>
       <Coda film={film} show={show} className={s.codaSotto} />
