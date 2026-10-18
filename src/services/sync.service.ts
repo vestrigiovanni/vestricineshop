@@ -6,9 +6,14 @@ import { revalidatePath } from 'next/cache';
 import { MovieOverride } from './db.service';
 import { normalizeLanguageCode } from '@/constants/languages';
 import { getLanguageName } from '@/services/tmdb.utils';
+import { isSyncOff } from '@/services/syncSwitch';
 
 
 export async function syncPretixToDatabase(options: { forceMetadataRefresh?: boolean; skipPush?: boolean } = {}) {
+  if (isSyncOff()) {
+    console.log('[SYNC] Modalità vetrina (VESTRI_SYNC_OFF=1): sincronizzazione saltata.');
+    return { success: true, upserted: 0, projectionsCleaned: 0, moviesCleaned: 0, duration: 0 };
+  }
   console.log('[SYNC] Starting Pretix -> Database synchronization...');
   const startTime = Date.now();
 
@@ -369,6 +374,7 @@ const DB_STALENESS_MS = 60000; // 1 minute (Use DB if younger)
  * Renamed to updateEventAvailability for consistency with granular quota logic.
  */
 export async function updateEventAvailability(subeventId: number, force: boolean = false) {
+  if (isSyncOff()) return;
   const now = Date.now();
   
   // 1. Throttle check (Memory)
@@ -443,6 +449,7 @@ const GLOBAL_SYNC_THROTTLE_MS = 60000; // 1 minute
  * This ensures that even without a manual purchase, the Sold Out status is updated.
  */
 export async function syncFutureSubeventsSurgically() {
+  if (isSyncOff()) return;
   const now = Date.now();
   if (now - lastGlobalSurgicalSync < GLOBAL_SYNC_THROTTLE_MS) {
     return; // Throttle: don't sync too often
@@ -523,6 +530,7 @@ export async function syncFutureSubeventsSurgically() {
  * Used immediately after scheduling to avoid a full database refresh.
  */
 export async function syncNewlyCreatedEvents(pretixIds: number[]) {
+  if (isSyncOff()) return;
   console.log(`[SYNC-SURGICAL] Starting surgical sync for ${pretixIds.length} events...`);
   const { getSubEvent, getSeatingPlansMap } = await import('@/services/pretix');
   const roomsMap = await getSeatingPlansMap();
