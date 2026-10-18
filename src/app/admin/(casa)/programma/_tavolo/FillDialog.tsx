@@ -8,9 +8,10 @@ import Dialog from '@/components/cabina/Dialog';
 import { useToast } from '@/components/cabina/Toast';
 import type { Intensity } from '@/services/scheduling/engine';
 import type { Band } from '@/services/scheduling/times';
+import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { fillRequest, mergeFilled, type Draft, type FillChoice } from './draft';
 import { periodLabel } from './labels';
-import PosterBoard from './PosterBoard';
+import FilmBrowser from './FilmBrowser';
 import { BAND_CHOICES, type CatalogItem } from './types';
 import styles from './CatalogDrawer.module.css';
 import fill from './FillDialog.module.css';
@@ -122,14 +123,10 @@ export default function FillDialog({ roomId, from, days, draft, preset, update, 
   }
 
   return (
-    <Dialog open onClose={() => { if (!working) onClose(); }} title="Riempi i buchi" variant="wide">
+    <Dialog open onClose={() => { if (!working) onClose(); }} title="Riempi i buchi" variant="cinema">
       <div className={fill.layout}>
         <section className={fill.main}>
-          <header className={fill.head}>
-            <h2>Scegli i film da programmare</h2>
-            <p>{periodLabel(from, days)} · un clic su un poster lo aggiunge, un altro lo toglie. Gli orari li penso io.</p>
-          </header>
-          <PosterBoard selected={selected} onToggle={toggle} exclude={draft.rejected} />
+          <FilmBrowser selected={selected} onToggle={toggle} exclude={draft.rejected} period={periodLabel(from, days)} />
         </section>
 
         <aside className={fill.side}>
@@ -145,7 +142,11 @@ export default function FillDialog({ roomId, from, days, draft, preset, update, 
               {list.map((c) => (
                 <li key={c.film.tmdbId}>
                   <div className={fill.pickedHead}>
-                    <span>{c.film.title}</span>
+                    <span className={fill.pickedThumb}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {c.film.posterPath && <img src={getTMDBImageUrl(c.film.posterPath, 'w92')} alt="" />}
+                    </span>
+                    <span className={fill.pickedTitle}>{c.film.title}</span>
                     <button type="button" onClick={() => setList((l) => l.filter((x) => x !== c))} aria-label={`Togli ${c.film.title}`}>
                       <X size={14} />
                     </button>

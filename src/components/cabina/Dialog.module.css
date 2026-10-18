@@ -32,6 +32,20 @@
   flex-direction: column;
   overflow: hidden;
 }
+.cinemaBackdrop { padding: 12px; }
+/* Il tavolo della videoteca: quasi tutto lo schermo, fondo nero di sala. */
+.cinema {
+  max-width: 1560px;
+  height: calc(100dvh - 24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--c-bg);
+}
+@media (max-width: 640px) {
+  .cinemaBackdrop { padding: 0; }
+  .cinema { height: 100dvh; border-radius: 0; border: 0; }
+}
 .sheet {
   max-width: none;
   border-radius: 14px 14px 0 0;

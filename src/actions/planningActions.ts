@@ -12,7 +12,7 @@
 import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { countSoldTickets, listSubEvents } from '@/services/pretix';
-import { getMovieDetails } from '@/services/tmdb';
+import { getDirectors, getMovieDetails, getMovieLogo, getMovieTrailers } from '@/services/tmdb';
 import {
   buildSchedule,
   plannedCapacity,
@@ -24,6 +24,7 @@ import {
 import { autoPick, bandAffinity, type AutoPickFilm } from '@/services/scheduling/autoPick';
 import { judgeTaste, type TasteData, type TasteVerdict } from '@/services/scheduling/taste';
 import gustoSala from '@/data/gusto-sala.json';
+import { arrivalTimes, buildShelves, directorsOf, type Shelf, type ShelfFilm } from '@/services/scheduling/shelves';
 import {
   CLOSING_MINUTE,
   MINUTES_PER_DAY,
@@ -475,6 +476,8 @@ export interface PlanningCatalogFilm {
   scheduledCount: number;
   /** Quando è entrato in libreria, in millisecondi. Le novità pesano di più. */
   addedAt: number | null;
+  /** Quando è stato scritto in catalogo: l'arrivo, finché Plex non dice il suo. */
+  catalogedAt?: number;
 }
 
 export interface PlanningAutoPlanInput {
@@ -536,7 +539,7 @@ async function usableCatalog(limit = 1200): Promise<PlanningCatalogFilm[]> {
       id: true, title: true, tmdbTitle: true, year: true, durationMin: true, runtime: true,
       director: true, originalTitle: true, tmdbId: true, posterPath: true, genres: true, voteAverage: true,
       voteCount: true, awardLabels: true, inPlex: true, plexLibraries: true,
-      verifyStatus: true, addedAt: true,
+      verifyStatus: true, addedAt: true, createdAt: true,
     },
     orderBy: [{ voteCount: 'desc' as const }, { id: 'asc' as const }],
     take: limit,
@@ -585,6 +588,7 @@ async function usableCatalog(limit = 1200): Promise<PlanningCatalogFilm[]> {
     verifyStatus: f.verifyStatus,
     scheduledCount: f.tmdbId ? countMap.get(f.tmdbId) ?? 0 : 0,
     addedAt: f.addedAt?.getTime() ?? null,
+    catalogedAt: f.createdAt.getTime(),
   }));
 }
 
@@ -803,6 +807,227 @@ export async function planningCatalogBoard(input: {
   const pages = Math.max(Math.ceil(ranked.length / count), 1);
   const page = Math.min(Math.max(Math.trunc(input.page ?? 0), 0), pages - 1);
   return { films: ranked.slice(page * count, (page + 1) * count), total: ranked.length, page, pages };
+}
+
+export type ShelfCatalogFilm = PlanningCatalogFilm & {
+  tasteNote: string | null;
+  /** Quando è arrivato, da Plex o dal catalogo; null se non si sa. */
+  arrivedAt?: number | null;
+};
+
+export interface PlanningShelvesResult {
+  /** Ogni film nominato da una riga o dalla vetrina, una volta sola. */
+  films: Record<string, ShelfCatalogFilm>;
+  shelves: Shelf[];
+  hero: { tmdbId: string; backdropPath: string | null; overview: string | null }[];
+  total: number;
+}
+
+function toShelfFilm(f: PlanningCatalogFilm, t: TasteVerdict | undefined, arrivedAt: number | null): ShelfFilm {
+  return {
+    tmdbId: f.tmdbId!,
+    title: f.title,
+    year: f.year,
+    runtime: f.runtime ?? f.durationMin,
+    director: f.director,
+    genres: f.genres,
+    voteAverage: f.voteAverage,
+    voteCount: f.voteCount,
+    awardLabels: f.awardLabels,
+    scheduledCount: f.scheduledCount,
+    addedAt: arrivedAt,
+    taste: t?.score ?? 0,
+    canon: t?.canon ?? false,
+    stars: t?.stars,
+    watchlist: t?.watchlist,
+    salaList: t?.salaList,
+  };
+}
+
+/**
+ * La libreria divisa in scaffali, per sceglierci dentro come in una
+ * videoteca: arrivati da poco, il cinema di un regista, i generi, i decenni.
+ * Le righe le compone `buildShelves`; qui si legge il catalogo e si aggiunge
+ * alla vetrina in cima l'immagine larga e la trama, che il resto non usa.
+ */
+export async function planningCatalogShelves(input: { seed?: number; exclude?: string[] } = {}): Promise<PlanningShelvesResult> {
+  const excluded = new Set(input.exclude ?? []);
+  const catalog = (await usableCatalog()).filter((f) => f.tmdbId && !excluded.has(f.tmdbId));
+  const taste = tasteOf(catalog);
+  const arrivals = arrivalTimes(catalog.map((f) => ({ tmdbId: f.tmdbId!, addedAt: f.addedAt, catalogedAt: f.catalogedAt ?? null })));
+  const { shelves, heroIds } = buildShelves(
+    catalog.map((f) => toShelfFilm(f, taste.get(f.tmdbId!), arrivals.get(f.tmdbId!) ?? null)),
+    { seed: (input.seed ?? 1) >>> 0, now: Date.now() },
+  );
+
+  const wanted = new Set([...heroIds, ...shelves.flatMap((s) => s.ids)]);
+  const films: Record<string, ShelfCatalogFilm> = {};
+  for (const f of catalog) {
+    if (wanted.has(f.tmdbId!)) {
+      films[f.tmdbId!] = { ...f, tasteNote: taste.get(f.tmdbId!)?.note ?? null, arrivedAt: arrivals.get(f.tmdbId!) ?? null };
+    }
+  }
+
+  const heroRows = heroIds.length
+    ? await prisma.catalogFilm.findMany({
+        where: { tmdbId: { in: heroIds } },
+        select: { tmdbId: true, backdropPath: true, overview: true },
+      })
+    : [];
+  const heroById = new Map(heroRows.map((r) => [r.tmdbId, r]));
+  // Il catalogo non sempre ha l'immagine larga e la trama: per i pochi film in
+  // vetrina si chiedono a TMDB (dalla sua cache), senza scriverle da nessuna parte.
+  const hero = (
+    await Promise.all(
+      heroIds.map(async (id) => {
+        const row = heroById.get(id);
+        if (row?.backdropPath) return { tmdbId: id, backdropPath: row.backdropPath, overview: row.overview ?? null };
+        const details = await Promise.race([
+          getMovieDetails(id).catch(() => null),
+          new Promise<null>((r) => setTimeout(() => r(null), 3500)),
+        ]);
+        return { tmdbId: id, backdropPath: details?.backdrop_path ?? null, overview: row?.overview || details?.overview || null };
+      }),
+    )
+  )
+    // In vetrina senza un'immagine larga non si sta: il poster stirato è peggio di niente.
+    .filter((h) => h.backdropPath)
+    .slice(0, 5);
+
+  return { films, shelves, hero, total: catalog.length };
+}
+
+export interface PlanningFilmCard {
+  tmdbId: string;
+  title: string;
+  originalTitle: string | null;
+  tagline: string | null;
+  overview: string | null;
+  year: number | null;
+  runtime: number | null;
+  genres: string[];
+  countries: string[];
+  voteAverage: number | null;
+  voteCount: number | null;
+  directors: string[];
+  cast: { name: string; character: string | null; profilePath: string | null }[];
+  logoPath: string | null;
+  backdropPath: string | null;
+  posterPath: string | null;
+  trailerKey: string | null;
+  awardLabels: string[];
+  plexLibraries: string[];
+  addedAt: number | null;
+  /** Quante volte è passato in sala, e l'ultima. */
+  history: { count: number; last: string | null; next: string | null };
+  tasteNote: string | null;
+  related: { director: string | null; byDirector: ShelfCatalogFilm[]; similar: ShelfCatalogFilm[] };
+}
+
+/** TMDB scrive i paesi in inglese anche quando gli si chiede l'italiano. */
+function countriesIt(list: { iso_3166_1: string; name: string }[] | undefined): string[] {
+  const names = new Intl.DisplayNames(['it'], { type: 'region' });
+  return (list ?? []).map((c) => {
+    try {
+      return names.of(c.iso_3166_1) ?? c.name;
+    } catch {
+      return c.name;
+    }
+  });
+}
+
+/**
+ * La scheda di un film, come quando su Netflix apri "altre info": trama, chi
+ * c'è, il trailer, e — perché qui si programma — quante volte è già passato in
+ * sala e cos'altro c'è dello stesso regista.
+ *
+ * Solo lettura: a differenza di `adminGetMovieById` non scrive niente nel
+ * database. Aprire la scheda di un film per curiosità non deve lasciarne traccia.
+ */
+export async function planningFilmCard(tmdbId: string): Promise<PlanningFilmCard | null> {
+  const [details, row, shows, catalog] = await Promise.all([
+    getMovieDetails(tmdbId).catch(() => null),
+    prisma.catalogFilm.findFirst({
+      where: { tmdbId },
+      select: {
+        title: true, tmdbTitle: true, originalTitle: true, year: true, runtime: true, durationMin: true, director: true,
+        genres: true, overview: true, backdropPath: true, posterPath: true, voteAverage: true, voteCount: true,
+        awardLabels: true, plexLibraries: true, addedAt: true,
+      },
+    }),
+    prisma.pretixSync.findMany({ where: { tmdbId }, select: { dateFrom: true }, orderBy: { dateFrom: 'desc' } }),
+    usableCatalog(),
+  ]);
+  if (!details && !row) return null;
+
+  // Il trailer può non arrivare mai: la scheda non lo aspetta più di qualche secondo.
+  const trailerKeys = details
+    ? await Promise.race([
+        getMovieTrailers(tmdbId, details.original_language).catch(() => [] as string[]),
+        new Promise<string[]>((r) => setTimeout(() => r([]), 4000)),
+      ])
+    : [];
+
+  const now = Date.now();
+  const past = shows.filter((s) => s.dateFrom.getTime() <= now);
+  const future = shows.filter((s) => s.dateFrom.getTime() > now);
+
+  const taste = tasteOf(catalog);
+  const self = catalog.find((f) => f.tmdbId === tmdbId);
+  const directors = details ? getDirectors(details) : directorsOf({ director: row?.director ?? null });
+  const mainDirector = (self ? directorsOf(self)[0] : undefined) ?? directors[0] ?? null;
+  const withNote = (f: PlanningCatalogFilm): ShelfCatalogFilm => ({ ...f, tasteNote: taste.get(f.tmdbId!)?.note ?? null });
+  const others = catalog.filter((f) => f.tmdbId && f.tmdbId !== tmdbId);
+  const byDirector = mainDirector
+    ? others.filter((f) => directorsOf(f).includes(mainDirector)).slice(0, 18).map(withNote)
+    : [];
+  const genres = new Set(self?.genres ?? row?.genres ?? []);
+  const directorIds = new Set(byDirector.map((f) => f.tmdbId));
+  const similar = others
+    .filter((f) => !directorIds.has(f.tmdbId))
+    .map((f) => {
+      const shared = f.genres.filter((g) => genres.has(g)).length;
+      const decade = self?.year && f.year && Math.abs(self.year - f.year) <= 10 ? 0.5 : 0;
+      return { f, k: shared * 1.2 + decade + (taste.get(f.tmdbId!)?.score ?? 0) * 0.5 };
+    })
+    .filter(({ f }) => f.genres.some((g) => genres.has(g)))
+    .sort((a, b) => b.k - a.k)
+    .slice(0, 18)
+    .map(({ f }) => withNote(f));
+
+  const credits = details?.credits?.cast ?? [];
+  const year = row?.year ?? (details?.release_date ? Number(details.release_date.slice(0, 4)) || null : null);
+
+  return {
+    tmdbId,
+    title: row?.tmdbTitle || details?.title || row?.title || '',
+    originalTitle: details?.original_title ?? row?.originalTitle ?? null,
+    tagline: details?.tagline || null,
+    // La trama del catalogo è in italiano e già scelta: vince su quella di TMDB.
+    overview: row?.overview || details?.overview || null,
+    year,
+    runtime: row?.runtime ?? details?.runtime ?? row?.durationMin ?? null,
+    genres: details?.genres?.map((g) => g.name) ?? row?.genres ?? [],
+    countries: countriesIt((details as unknown as { production_countries?: { iso_3166_1: string; name: string }[] } | null)?.production_countries),
+    voteAverage: row?.voteAverage ?? details?.vote_average ?? null,
+    voteCount: row?.voteCount ?? null,
+    directors,
+    cast: credits.slice(0, 12).map((c) => ({ name: c.name, character: c.character || null, profilePath: c.profile_path })),
+    logoPath: details ? getMovieLogo(details) : null,
+    backdropPath: row?.backdropPath ?? details?.backdrop_path ?? null,
+    posterPath: row?.posterPath ?? details?.poster_path ?? null,
+    trailerKey: trailerKeys[0] ?? null,
+    awardLabels: row?.awardLabels ?? [],
+    plexLibraries: row?.plexLibraries ?? [],
+    addedAt: row?.addedAt?.getTime() ?? null,
+    history: {
+      count: shows.length,
+      last: past[0]?.dateFrom.toISOString() ?? null,
+      next: future.at(-1)?.dateFrom.toISOString() ?? null,
+    },
+    tasteNote: taste.get(tmdbId)?.note ?? null,
+    related: { director: mainDirector, byDirector, similar },
+  };
 }
 
 /**

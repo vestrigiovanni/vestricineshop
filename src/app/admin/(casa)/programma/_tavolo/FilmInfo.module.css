@@ -1,0 +1,111 @@
+/* La scheda di un film: sale sopra gli scaffali, come "altre info" su Netflix. */
+
+.backdrop {
+  position: absolute; inset: 0; z-index: 20; overflow: hidden;
+  display: flex; justify-content: center; align-items: flex-start; padding: 28px 16px 0;
+  background: rgba(8, 6, 4, 0.74); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  animation: fade var(--c-fast);
+}
+@keyframes fade { from { opacity: 0; } }
+
+.panel {
+  position: relative; width: 100%; max-width: 880px; max-height: 100%; overflow-y: auto;
+  background: var(--c-bg-raised); border-radius: var(--c-radius-lg) var(--c-radius-lg) 0 0;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7); padding-bottom: 32px; outline: none;
+  animation: rise 260ms cubic-bezier(0.2, 0, 0, 1);
+}
+@keyframes rise { from { opacity: 0; transform: translateY(24px) scale(0.98); } }
+
+.close {
+  position: absolute; top: 14px; right: 14px; z-index: 5; display: grid; place-items: center;
+  width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%;
+  background: rgba(8, 6, 4, 0.82); color: var(--c-ink); cursor: pointer;
+}
+.close:hover { color: var(--c-amber); }
+
+/* ── L'immagine larga ─────────────────────────────────────────────────────── */
+.top { position: relative; aspect-ratio: 16 / 8.2; background: var(--c-bg-sunken); overflow: hidden; }
+.topImg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.topImg[data-empty] { background: linear-gradient(160deg, #3a2c1f, #15110d); }
+.topImg[data-loading] { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.6; } }
+.topShade { position: absolute; inset: 0; background: linear-gradient(0deg, var(--c-bg-raised) 2%, rgba(23, 19, 15, 0.35) 45%, rgba(23, 19, 15, 0) 70%); }
+.topBody { position: absolute; left: 40px; right: 40px; bottom: 26px; display: grid; gap: 16px; justify-items: start; }
+.logo { max-width: min(400px, 70%); max-height: 140px; object-fit: contain; object-position: left bottom; filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.6)); }
+.title { margin: 0; font-family: var(--c-font-serif); font-size: clamp(28px, 4.4vw, 44px); font-weight: 400; line-height: 1.04; color: var(--c-ink); text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6); }
+.trailer { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.primary, .secondary {
+  display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 22px 0 18px;
+  border: 0; border-radius: var(--c-radius); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: background var(--c-fast), transform var(--c-fast);
+}
+.primary { background: var(--c-ink); color: var(--c-bg); }
+.primary:hover { background: #fff; }
+.primary[data-on] { background: var(--c-amber); color: var(--c-amber-ink); }
+.secondary { background: rgba(138, 125, 108, 0.45); color: var(--c-ink); backdrop-filter: blur(4px); }
+.secondary:hover { background: rgba(138, 125, 108, 0.65); }
+.primary:active, .secondary:active { transform: scale(0.97); }
+
+/* ── La trama e i fatti ───────────────────────────────────────────────────── */
+.body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 28px; padding: 10px 40px 0; }
+.main { display: grid; gap: 10px; align-content: start; }
+.meta { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--c-font-mono); font-size: 12.5px; color: var(--c-ink); }
+.badge, .badgeAmber { padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; }
+.badge { border: 1px solid rgba(239, 230, 216, 0.4); }
+.badgeAmber { background: var(--c-amber-soft); color: var(--c-amber); border: 1px solid rgba(232, 163, 61, 0.4); }
+.taste { margin: 0; font-family: var(--c-font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--c-amber); }
+.tagline { margin: 0; font-family: var(--c-font-serif); font-style: italic; font-size: 17px; color: var(--c-ink); }
+.overview { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--c-ink); opacity: 0.9; }
+.lines { display: grid; gap: 8px; }
+.lines span { height: 12px; border-radius: 3px; background: var(--c-line); animation: pulse 1.4s ease-in-out infinite; }
+.lines span:last-child { width: 60%; }
+
+.facts { margin: 0; display: grid; gap: 10px; align-content: start; font-size: 13px; line-height: 1.45; }
+.facts dt { display: inline; color: var(--c-dim); }
+.facts dt::after { content: ': '; }
+.facts dd { display: inline; margin: 0; color: var(--c-ink); }
+
+/* ── In sala ──────────────────────────────────────────────────────────────── */
+.sala { margin: 26px 40px 0; padding: 16px 18px; border: 1px solid var(--c-line); border-radius: var(--c-radius); background: var(--c-bg-sunken); }
+.sala h3, .section h3 {
+  margin: 0 0 10px; font-family: var(--c-font-mono); font-size: 10.5px; font-weight: 400;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--c-amber);
+}
+.sala ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13.5px; color: var(--c-ink); }
+.sala .amber { color: var(--c-amber); }
+.awards { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.awards span { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--c-line-strong); font-size: 11.5px; color: var(--c-ink); }
+
+/* ── Il cast e i film vicini ──────────────────────────────────────────────── */
+.section { margin: 28px 0 0; padding: 0 40px; }
+.section h3 { font-family: var(--c-font-serif); font-size: 19px; letter-spacing: 0; text-transform: none; color: var(--c-ink); }
+.cast { margin: 0; padding: 0 0 6px; list-style: none; display: flex; gap: 16px; overflow-x: auto; scrollbar-width: thin; }
+.cast li { flex: 0 0 92px; display: grid; justify-items: center; gap: 2px; text-align: center; }
+.face {
+  display: grid; place-items: center; width: 76px; height: 76px; margin-bottom: 6px; border-radius: 50%; overflow: hidden;
+  background: linear-gradient(160deg, #3a2c1f, #15110d); box-shadow: 0 0 0 1px var(--c-line);
+  font-family: var(--c-font-serif); font-size: 20px; color: var(--c-dim);
+}
+.face img { width: 100%; height: 100%; object-fit: cover; }
+.castName { font-size: 12.5px; line-height: 1.2; color: var(--c-ink); }
+.castRole { font-size: 11px; line-height: 1.2; color: var(--c-dim); font-style: italic; }
+
+.related {
+  --card-w: 132px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr)); gap: 18px 10px; padding-top: 6px;
+}
+.related > * { width: auto !important; }
+
+@media (max-width: 640px) {
+  .backdrop { padding: 0; }
+  .panel { max-height: 100%; height: 100%; border-radius: 0; }
+  .top { aspect-ratio: 16 / 11; }
+  .topBody { left: 16px; right: 16px; bottom: 16px; gap: 12px; }
+  .primary, .secondary { height: 38px; font-size: 14px; padding: 0 16px 0 12px; }
+  .body { grid-template-columns: 1fr; gap: 16px; padding: 6px 16px 0; }
+  .sala { margin: 20px 16px 0; }
+  .section { padding: 0 16px; }
+  .related { --card-w: 100px; }
+}

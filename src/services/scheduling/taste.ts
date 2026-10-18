@@ -43,6 +43,12 @@ export interface TasteVerdict {
   note: string | null;
   /** Sta nel canone di "Storia del cinema" o del documentario. */
   canon: boolean;
+  /** Le stelle che gli ha dato Gio, quando l'ha visto. */
+  stars?: number;
+  /** Sta nella watchlist: Gio vuole vederlo. */
+  watchlist?: true;
+  /** Sta nella lista "VestriCinema" dei film da portare in sala. */
+  salaList?: true;
 }
 
 /**
@@ -150,7 +156,7 @@ export function judgeTaste(data: TasteData, pool: TasteFilm[]): Map<string, Tast
       const score = fromStars(stars) + (hit?.liked ? 0.3 : 0);
       const note =
         stars >= 5 ? 'Cinque stelle per te' : stars >= 4 ? `Ti è piaciuto: ${starsLabel(stars)}` : null;
-      out.set(f.tmdbId, { score, note, canon });
+      out.set(f.tmdbId, { score, note, canon, stars });
       continue;
     }
 
@@ -161,10 +167,12 @@ export function judgeTaste(data: TasteData, pool: TasteFilm[]): Map<string, Tast
       score += Math.max(Math.min((avg - 3) * 0.6, 1.1), -1);
       if (avg >= 4) note = `Di ${f.director}, che ami`;
     }
-    if (watch.find(titlesOf(f), f.year)) {
+    const inWatch = watch.find(titlesOf(f), f.year) === true;
+    const inSala = sala.find(titlesOf(f), f.year) === true;
+    if (inWatch) {
       score += 0.7;
       note = 'Nella tua watchlist';
-    } else if (sala.find(titlesOf(f), f.year)) {
+    } else if (inSala) {
       score += 0.6;
       note ??= 'Nella tua lista VestriCinema';
     }
@@ -172,7 +180,7 @@ export function judgeTaste(data: TasteData, pool: TasteFilm[]): Map<string, Tast
       score += 0.4;
       note ??= 'Dal canone della storia del cinema';
     }
-    out.set(f.tmdbId, { score, note, canon });
+    out.set(f.tmdbId, { score, note, canon, ...(inWatch && { watchlist: true }), ...(inSala && { salaList: true }) });
   }
   return out;
 }

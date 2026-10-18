@@ -1,0 +1,232 @@
+/* La libreria come una videoteca: vetrina, poi scaffali che scorrono di lato. */
+
+.browser {
+  --card-w: 150px;
+  --gutter: 26px;
+  position: relative; display: flex; flex-direction: column; flex: 1; min-height: 0;
+}
+
+/* ── La barra ─────────────────────────────────────────────────────────────── */
+.bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  padding: 16px var(--gutter) 12px; border-bottom: 1px solid var(--c-line);
+  background: linear-gradient(var(--c-bg), rgba(16, 13, 10, 0.92));
+  position: relative; z-index: 3;
+}
+.barTitle { flex: 1 1 260px; min-width: 0; }
+.barTitle h2 { margin: 0; font-family: var(--c-font-serif); font-size: 22px; font-weight: 400; color: var(--c-ink); }
+.barTitle p { margin: 3px 0 0; font-size: 12.5px; color: var(--c-dim); }
+.barTitle p svg { vertical-align: -1px; }
+
+.search {
+  flex: 0 1 300px; display: flex; align-items: center; gap: 8px; padding: 0 10px; min-height: 36px;
+  background: var(--c-bg-sunken); border: 1px solid var(--c-line); border-radius: 999px; color: var(--c-dim);
+  transition: border-color var(--c-fast);
+}
+.search:focus-within { border-color: var(--c-amber); }
+.search input { flex: 1; min-width: 0; background: none; border: 0; color: var(--c-ink); font: inherit; font-size: 13.5px; }
+.search input:focus { outline: none; }
+.search button { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; background: none; border: 0; color: var(--c-dim); cursor: pointer; }
+.search button:hover { color: var(--c-ink); }
+
+.shuffle {
+  display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px;
+  background: none; border: 1px solid var(--c-line); border-radius: 999px;
+  font-family: var(--c-font-mono); font-size: 11.5px; letter-spacing: 0.04em; color: var(--c-ink); cursor: pointer;
+}
+.shuffle:hover:not(:disabled) { border-color: var(--c-amber); color: var(--c-amber); }
+.shuffle:disabled { opacity: 0.45; cursor: default; }
+
+/* ── Lo scorrimento ───────────────────────────────────────────────────────── */
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-bottom: 28px; transition: opacity var(--c-fast); }
+.scroll[data-loading] { opacity: 0.5; pointer-events: none; }
+.empty { margin: 56px var(--gutter); text-align: center; font-size: 14px; color: var(--c-dim); }
+.count {
+  margin: 18px var(--gutter) 0; font-family: var(--c-font-mono); font-size: 10.5px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-dim);
+}
+
+/* ── La vetrina ───────────────────────────────────────────────────────────── */
+.hero {
+  position: relative; overflow: hidden; isolation: isolate;
+  height: clamp(300px, 46vh, 470px); background: var(--c-bg-sunken);
+}
+.heroImg {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 25%;
+  opacity: 0; transform: scale(1.04); transition: opacity 900ms ease, transform 9s linear; z-index: -2;
+}
+.heroImg[data-on] { opacity: 1; transform: scale(1); }
+.heroShade {
+  position: absolute; inset: 0; z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(16, 13, 10, 0.94) 0%, rgba(16, 13, 10, 0.72) 32%, rgba(16, 13, 10, 0.05) 68%),
+    linear-gradient(0deg, var(--c-bg) 0%, rgba(16, 13, 10, 0) 38%);
+}
+.heroBody {
+  position: absolute; left: var(--gutter); bottom: 34px; width: min(520px, calc(100% - 2 * var(--gutter)));
+  display: grid; gap: 8px; animation: heroIn 600ms cubic-bezier(0.2, 0, 0, 1);
+}
+@keyframes heroIn { from { opacity: 0; transform: translateY(8px); } }
+.heroKicker { margin: 0; font-family: var(--c-font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-amber); }
+.heroLogo { max-width: min(380px, 80%); max-height: 130px; object-fit: contain; object-position: left bottom; filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.6)); }
+.heroTitle { margin: 0; font-family: var(--c-font-serif); font-size: clamp(30px, 4vw, 48px); font-weight: 400; line-height: 1.02; color: var(--c-ink); text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6); }
+.heroMeta { margin: 4px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-family: var(--c-font-mono); font-size: 12px; color: var(--c-ink); }
+.heroDirector { margin: 0; font-family: var(--c-font-serif); font-style: italic; font-size: 15px; color: var(--c-ink); opacity: 0.85; }
+.heroOverview {
+  margin: 2px 0 0; font-size: 14px; line-height: 1.5; color: var(--c-ink); opacity: 0.88;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.heroActions { display: flex; gap: 10px; margin-top: 8px; }
+.heroPrimary, .heroSecondary {
+  display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 22px 0 18px;
+  border: 0; border-radius: var(--c-radius); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: background var(--c-fast), transform var(--c-fast);
+}
+.heroPrimary { background: var(--c-ink); color: var(--c-bg); }
+.heroPrimary:hover { background: #fff; }
+.heroPrimary[data-on] { background: var(--c-amber); color: var(--c-amber-ink); }
+.heroSecondary { background: rgba(138, 125, 108, 0.42); color: var(--c-ink); backdrop-filter: blur(4px); }
+.heroSecondary:hover { background: rgba(138, 125, 108, 0.6); }
+.heroPrimary:active, .heroSecondary:active { transform: scale(0.97); }
+.heroDots { position: absolute; right: var(--gutter); bottom: 38px; display: flex; gap: 6px; }
+.heroDots button {
+  width: 22px; height: 3px; padding: 0; border: 0; border-radius: 2px;
+  background: rgba(239, 230, 216, 0.3); cursor: pointer; transition: background var(--c-fast), width var(--c-fast);
+}
+.heroDots button[data-on] { width: 34px; background: var(--c-amber); }
+
+/* ── Gli scaffali ─────────────────────────────────────────────────────────── */
+.shelf { margin-top: 22px; content-visibility: auto; contain-intrinsic-size: auto 300px; }
+.shelfHead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; padding: 0 var(--gutter); }
+.shelfHead h3 { margin: 0; font-family: var(--c-font-serif); font-size: 19px; font-weight: 400; color: var(--c-ink); }
+.shelfHint { font-size: 12px; color: var(--c-dim); }
+.shelfPicked {
+  padding: 1px 7px; border-radius: 999px; background: var(--c-amber-soft);
+  font-family: var(--c-font-mono); font-size: 10.5px; color: var(--c-amber);
+}
+.shelfAction {
+  display: inline-flex; align-items: center; gap: 5px; margin-left: auto; padding: 2px 10px; height: 24px;
+  background: none; border: 1px solid var(--c-line); border-radius: 999px;
+  font-family: var(--c-font-mono); font-size: 10.5px; color: var(--c-dim); cursor: pointer;
+}
+.shelfAction:hover { border-color: var(--c-amber); color: var(--c-amber); }
+
+.shelfBody { position: relative; }
+.track {
+  display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity;
+  /* Spazio sopra e sotto perché il poster che si alza non venga tagliato. */
+  padding: 12px var(--gutter) 16px; scroll-padding: 0 var(--gutter);
+  scrollbar-width: none; overscroll-behavior-x: contain;
+}
+.track::-webkit-scrollbar { display: none; }
+
+.arrow {
+  position: absolute; top: 12px; bottom: 16px; z-index: 4; width: calc(var(--gutter) + 12px);
+  display: grid; place-items: center; padding: 0; border: 0; color: var(--c-ink); cursor: pointer;
+  opacity: 0; transition: opacity var(--c-fast);
+}
+.arrowLeft { left: 0; background: linear-gradient(90deg, rgba(16, 13, 10, 0.92), rgba(16, 13, 10, 0)); }
+.arrowRight { right: 0; background: linear-gradient(270deg, rgba(16, 13, 10, 0.92), rgba(16, 13, 10, 0)); }
+.shelfBody:hover .arrow, .arrow:focus-visible { opacity: 1; }
+.arrow:hover svg { color: var(--c-amber); transform: scale(1.15); }
+.arrow svg { transition: transform var(--c-fast); }
+
+/* ── Il poster ────────────────────────────────────────────────────────────── */
+.card {
+  position: relative; flex: 0 0 var(--card-w); width: var(--card-w); scroll-snap-align: start;
+  transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+.card:hover, .card:focus-within { transform: translateY(-4px) scale(1.06); z-index: 2; }
+.cardPoster {
+  position: relative; display: block; width: 100%; aspect-ratio: 2 / 3; padding: 0;
+  border: 0; border-radius: 4px; overflow: hidden; cursor: pointer;
+  background: linear-gradient(160deg, #3a2c1f, #15110d);
+  box-shadow: 0 0 0 1px var(--c-line);
+  transition: box-shadow var(--c-fast);
+}
+.cardPoster img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity var(--c-fast); }
+.card:hover .cardPoster { box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--c-line-strong); }
+.card[data-on] .cardPoster { box-shadow: 0 0 0 3px var(--c-amber), 0 10px 26px rgba(232, 163, 61, 0.18); }
+.cardPoster:focus-visible { outline: 2px solid var(--c-amber); outline-offset: 2px; }
+.noPoster {
+  display: grid; place-items: center; height: 100%; padding: 10px;
+  font-family: var(--c-font-serif); font-size: 14px; text-align: center; color: var(--c-dim);
+}
+
+.badges { position: absolute; top: 6px; left: 6px; display: flex; gap: 4px; }
+.badge, .badgeNew {
+  display: inline-block; padding: 1px 5px; border-radius: 3px;
+  font-family: var(--c-font-mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.05em; line-height: 1.5;
+}
+.badge { background: rgba(8, 6, 4, 0.78); color: var(--c-ink); border: 1px solid rgba(239, 230, 216, 0.25); }
+.badgeNew { background: var(--c-amber); color: var(--c-amber-ink); text-transform: uppercase; }
+.heroMeta .badge { margin-left: 4px; }
+
+.check {
+  position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 26px; height: 26px;
+  border-radius: 50%; background: var(--c-amber); color: var(--c-amber-ink); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  animation: pop 220ms cubic-bezier(0.3, 1.6, 0.6, 1);
+}
+@keyframes pop { from { transform: scale(0.4); opacity: 0; } }
+
+.cardHover {
+  position: absolute; inset: auto 0 0 0; display: grid; gap: 2px; padding: 34px 9px 9px; text-align: left;
+  background: linear-gradient(0deg, rgba(8, 6, 4, 0.97) 40%, rgba(8, 6, 4, 0));
+  opacity: 0; transform: translateY(6px); transition: opacity var(--c-fast), transform var(--c-fast);
+}
+.card:hover .cardHover, .cardPoster:focus-visible .cardHover { opacity: 1; transform: none; }
+.cardTitle {
+  font-family: var(--c-font-serif); font-size: 14px; line-height: 1.15; color: var(--c-ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.cardMeta { font-family: var(--c-font-mono); font-size: 9.5px; color: var(--c-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cardNote { font-size: 10.5px; color: var(--c-amber); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cardAdd {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; margin-top: 6px; height: 24px;
+  border-radius: 3px; background: var(--c-ink); color: var(--c-bg); font-size: 11.5px; font-weight: 600;
+}
+.card[data-on] .cardAdd { background: var(--c-amber); color: var(--c-amber-ink); }
+
+.infoBtn {
+  position: absolute; top: 6px; right: 6px; z-index: 1; display: grid; place-items: center;
+  width: 28px; height: 28px; padding: 0; border-radius: 50%;
+  border: 1.5px solid rgba(239, 230, 216, 0.7); background: rgba(8, 6, 4, 0.7); color: var(--c-ink);
+  cursor: pointer; opacity: 0; transition: opacity var(--c-fast), border-color var(--c-fast), color var(--c-fast);
+}
+.card[data-on] .infoBtn { top: 38px; }
+.card:hover .infoBtn, .infoBtn:focus-visible { opacity: 1; }
+.infoBtn:hover { border-color: var(--c-amber); color: var(--c-amber); }
+/* Sul telefono il mouse non c'è: la "i" resta sempre a vista. */
+@media (hover: none) {
+  .infoBtn { opacity: 1; width: 26px; height: 26px; }
+  .card:hover { transform: none; }
+  .cardHover { display: none; }
+  .arrow { display: none; }
+}
+
+/* ── I risultati della ricerca ────────────────────────────────────────────── */
+.results { padding: 20px var(--gutter) 0; }
+.resultsHead { margin: 0 0 14px; font-family: var(--c-font-serif); font-size: 19px; font-weight: 400; color: var(--c-ink); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr)); gap: 22px 10px; }
+.grid .card { width: auto; }
+
+/* ── Il caricamento ───────────────────────────────────────────────────────── */
+.ghost { background: linear-gradient(100deg, var(--c-bg-sunken) 40%, var(--c-bg-raised) 50%, var(--c-bg-sunken) 60%) 0 0 / 200% 100%; animation: shimmer 1.4s linear infinite; }
+.ghostLine { display: block; width: 180px; height: 16px; border-radius: 3px; background: var(--c-bg-raised); }
+.ghostCard { aspect-ratio: 2 / 3; border-radius: 4px; background: var(--c-bg-raised); animation: shimmer 1.4s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+@media (max-width: 640px) {
+  .browser { --card-w: 112px; --gutter: 14px; }
+  .bar { padding: 12px var(--gutter) 10px; }
+  .barTitle p { display: none; }
+  .search { flex: 1 1 auto; }
+  .hero { height: 300px; }
+  .heroBody { bottom: 22px; }
+  .heroOverview { -webkit-line-clamp: 2; font-size: 13px; }
+  .heroPrimary, .heroSecondary { height: 38px; padding: 0 16px 0 12px; font-size: 14px; }
+  .heroDots { display: none; }
+  .shelfHead h3 { font-size: 16px; }
+  .shelfHint { display: none; }
+  .grid { gap: 14px 8px; }
+}

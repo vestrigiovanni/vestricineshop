@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import styles from './Dialog.module.css';
 
-type Variant = 'center' | 'large' | 'palette' | 'sheet' | 'wide';
+type Variant = 'center' | 'large' | 'palette' | 'sheet' | 'wide' | 'cinema';
 
 interface Props {
   open: boolean;
