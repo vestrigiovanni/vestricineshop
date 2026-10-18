@@ -1,0 +1,73 @@
+/* La nuova home: sempre nero, la lampada solo su Prenota.
+ * Colori presi da Cabina (src/components/cabina/cabina.css), più il nero
+ * pieno della sala. Caratteri scelti da Giovanni il 18 ottobre 2026:
+ * Libre Caslon Display per i titoli, Hanken Grotesk per i dati, Newsreader
+ * per il testo. Niente JetBrains Mono in questa pagina. */
+.home {
+  --h-nero: #000;
+  --h-notte: #0a0908;
+  --h-carta: #efe6d8;
+  --h-polvere: #8a7d6c;
+  --h-filo: rgba(239, 230, 216, 0.14);
+  --h-lampada: #e8a33d;
+  --h-lampada-ink: #140e05;
+
+  --h-titoli: var(--font-home-titoli), 'Libre Caslon Display', Georgia, serif;
+  --h-dati: var(--font-home-dati), 'Hanken Grotesk', system-ui, sans-serif;
+  --h-testo: var(--font-home-testo), 'Newsreader', Georgia, serif;
+
+  --h-m: clamp(16px, 4vw, 56px);
+  --h-apple: cubic-bezier(0.16, 1, 0.3, 1);
+
+  position: relative;
+  background: var(--h-nero);
+  color: var(--h-carta);
+  font-family: var(--h-testo);
+  font-size: 18px;
+  line-height: 1.5;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
+}
+
+/* Regista, orari piccoli, sala, lingua, specifiche. */
+.dati {
+  font-family: var(--h-dati);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Premi, orari grandi, titoli di sezione. */
+.titoli {
+  font-family: var(--h-titoli);
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* L'unica azione accesa della pagina. */
+.prenota {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--h-lampada);
+  color: var(--h-lampada-ink);
+  font-family: var(--h-dati);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.3s var(--h-apple), filter 0.3s;
+}
+.prenota:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.prenota:focus-visible { outline: 2px solid var(--h-carta); outline-offset: 3px; }
+.prenota:disabled { background: transparent; color: var(--h-polvere); border: 1px solid var(--h-filo); cursor: default; }
+
+/* Loghi TMDB quasi neri: accesi in bianco (lo decide la misura, non un elenco). */
+.logoAcceso { filter: brightness(0) invert(0.94); }

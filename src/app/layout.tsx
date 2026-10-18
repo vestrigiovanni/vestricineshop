@@ -3,7 +3,7 @@ import { Inter, Playfair_Display } from 'next/font/google';
 import ClientFooter from '../components/ClientFooter';
 import './globals.css';
 import '@/components/cabina/cabina.css';
-import { cabSerif, cabMono } from '@/components/cabina/fonts';
+import { cabSerif, cabMono, homeTitoli, homeDati, homeTesto } from '@/components/cabina/fonts';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -57,7 +57,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it">
-      <body className={`${inter.variable} ${playfair.variable} ${cabSerif.variable} ${cabMono.variable} antialiased`} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <body className={`${inter.variable} ${playfair.variable} ${cabSerif.variable} ${cabMono.variable} ${homeTitoli.variable} ${homeDati.variable} ${homeTesto.variable} antialiased`} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <TrailerProvider>
           <AutoScrollProvider>
             <Providers>
