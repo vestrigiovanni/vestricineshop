@@ -22,7 +22,7 @@ export function Pellicola({ films, now }: { films: Film[]; now: Date }) {
   useRegia(root, phone => {
     const strisce = gsap.utils.toArray<HTMLElement>('[data-striscia]');
     const corsa = (el: HTMLElement) => Math.max(0, el.scrollWidth - (el.parentElement?.clientWidth || window.innerWidth));
-    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: () => '+=' + Math.round(window.innerHeight * (phone ? 1 : 1.2)), scrub: 0.7, pin: true, invalidateOnRefresh: true } });
+    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: () => '+=' + Math.round(window.innerHeight * (phone ? 1 : 1.2)), scrub: 0.7, pin: true, anticipatePin: 1, invalidateOnRefresh: true } });
     strisce.forEach((el, i) => {
       if (i % 2) tl.fromTo(el, { x: () => -corsa(el) }, { x: 0, ease: 'none' }, 0);
       else tl.fromTo(el, { x: 0 }, { x: () => -corsa(el), ease: 'none' }, 0);
@@ -126,7 +126,7 @@ export function Giornata({ dayKey, slots, now }: { dayKey: string; slots: Slot<F
 export function Locandina({ film, now }: { film: Film; now: Date }) {
   const root = useRef<HTMLElement>(null);
   useRegia(root, () => {
-    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=60%', scrub: 0.6, pin: true } });
+    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=60%', scrub: 0.6, pin: true, anticipatePin: 1 } });
     tl.to('[data-cornice]', { height: () => Math.min(window.innerWidth / 2.39, window.innerHeight * 0.62), width: '100vw', ease: 'power2.inOut', duration: 1 })
       .to('[data-poster]', { opacity: 0, duration: 0.5 }, 0.35)
       .to('[data-fondale]', { opacity: 1, duration: 0.5 }, 0.35)
@@ -195,7 +195,7 @@ export function Barre({ film, now }: { film: Film; now: Date }) {
   useEffect(() => { disegna(); const r = () => disegna(); window.addEventListener('resize', r); return () => window.removeEventListener('resize', r); });
   useRegia(root, () => {
     const st = { p: 0 };
-    gsap.to(st, { p: 1, ease: 'none', onUpdate: () => { progresso.current = st.p; disegna(); }, scrollTrigger: { trigger: root.current, start: 'top top', end: '+=60%', scrub: 0.4, pin: true } });
+    gsap.to(st, { p: 1, ease: 'none', onUpdate: () => { progresso.current = st.p; disegna(); }, scrollTrigger: { trigger: root.current, start: 'top top', end: '+=60%', scrub: 0.4, pin: true, anticipatePin: 1 } });
   });
 
   return (
@@ -221,7 +221,7 @@ export function Barre({ film, now }: { film: Film; now: Date }) {
 export function Iride({ film, now }: { film: Film; now: Date }) {
   const root = useRef<HTMLElement>(null);
   useRegia(root, () => {
-    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=60%', scrub: 0.5, pin: true } });
+    const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=60%', scrub: 0.5, pin: true, anticipatePin: 1 } });
     tl.fromTo('[data-iride]', { clipPath: 'circle(0% at 50% 45%)' }, { clipPath: 'circle(80% at 50% 45%)', ease: 'power2.inOut', duration: 1 })
       .fromTo('[data-coda]', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3 }, 0.75);
   });
@@ -279,7 +279,7 @@ export function Doppio({ a, b }: { a: Slot<Film>; b: Slot<Film> }) {
   useRegia(root, () => {
     const el = root.current!, sx = el.querySelector<HTMLElement>('[data-lato="s"]')!, dx = el.querySelector<HTMLElement>('[data-lato="d"]')!, linea = el.querySelector<HTMLElement>('[data-linea]')!;
     const p = { v: 50 }, set = () => { sx.style.width = p.v + '%'; dx.style.width = 100 - p.v + '%'; linea.style.left = p.v + '%'; };
-    gsap.timeline({ scrollTrigger: { trigger: el, start: 'top top', end: '+=70%', scrub: 0.6, pin: true } })
+    gsap.timeline({ scrollTrigger: { trigger: el, start: 'top top', end: '+=70%', scrub: 0.6, pin: true, anticipatePin: 1 } })
       .to(p, { v: 78, onUpdate: set, duration: 1, ease: 'power1.inOut' })
       .to(p, { v: 22, onUpdate: set, duration: 1.4, ease: 'power1.inOut' })
       .to(p, { v: 50, onUpdate: set, duration: 0.8 });
@@ -311,7 +311,7 @@ export function Ventaglio({ films, now }: { films: Film[]; now: Date }) {
   useRegia(root, phone => {
     const carte = gsap.utils.toArray<HTMLElement>('[data-carta]'), n = carte.length, ampio = phone ? 9 : 13;
     gsap.set(carte, { rotation: i => (i - (n - 1) / 2) * 1.2 });
-    gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=55%', scrub: 0.6, pin: true } })
+    gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: '+=55%', scrub: 0.6, pin: true, anticipatePin: 1 } })
       .to(carte, { rotation: i => (i - (n - 1) / 2) * ampio, ease: 'power2.out', duration: 1 })
       .to('[data-carta-quando]', { opacity: 1, duration: 0.3 }, 0.7);
   });
@@ -357,7 +357,7 @@ export function Sottotitoli({ film, show }: { film: Film; show: Show }) {
   useEffect(() => { if (prefersMotion()) setK(-1); }, []);
   useRegia(root, () => {
     const st = { i: -1 };
-    gsap.to(st, { i: subs.length - 0.01, ease: 'none', onUpdate: () => setK(Math.floor(st.i)), scrollTrigger: { trigger: root.current, start: 'top top', end: '+=' + subs.length * 12 + '%', scrub: true, pin: true } });
+    gsap.to(st, { i: subs.length - 0.01, ease: 'none', onUpdate: () => setK(Math.floor(st.i)), scrollTrigger: { trigger: root.current, start: 'top top', end: '+=' + subs.length * 12 + '%', scrub: true, pin: true, anticipatePin: 1 } });
   }, [subs.length]);
   const fondale = backdropsOf(film)[2] || film.backdrop_path;
   return (

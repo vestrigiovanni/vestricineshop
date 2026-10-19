@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import type { Slot } from './regia';
-import { Film, Show, FilmLogo, PrenotaButton, ScrollTrigger, Testata, dayLabel, dayLong, getLenis, gsap, img, lingua, prefersMotion, runtime, sala, specs, time, useRegia } from './shared';
+import { Film, Show, FilmLogo, PrenotaButton, ScrollTrigger, Testata, dayLabel, dayLong, gsap, img, lingua, prefersMotion, runtime, sala, specs, time, useRegia } from './shared';
 import { formatDayNumber, formatWeekdayShort } from '@/utils/cinemaDate';
 import base from './Home.module.css';
 import s from './Programma.module.css';
@@ -83,9 +83,7 @@ export function Settimana({ days, now }: { days: { dayKey: string; slots: Slot<F
     ScrollTrigger.refresh();
     const sopra = (date.current?.offsetHeight || 0) + 16;
     if (el.getBoundingClientRect().top < sopra - 1) {
-      const lenis = getLenis();
-      if (lenis) lenis.scrollTo(el, { offset: -sopra, duration: 0.9 });
-      else window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - sopra });
+      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - sopra, behavior: prefersMotion() ? 'smooth' : 'auto' });
     }
     if (!prefersMotion()) return;
     gsap.set(el, { opacity: 1, y: 0 });

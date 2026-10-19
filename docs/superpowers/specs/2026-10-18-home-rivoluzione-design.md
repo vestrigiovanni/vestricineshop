@@ -199,6 +199,13 @@ Richiesta di Giovanni: "più film, più varietà", e un sito che sembri costruit
 - **Premi**: la parete si chiude sempre senza buchi; il premio della pagina d'onore sale lettera per lettera.
 - **Pellicola**: un quadro solo con tre strisce che scorrono in versi opposti. Le corse dei pezzi fissati sono più corte: la pagina passa da circa 32.000 a 23.500 px su desktop.
 - **Indice**: una capsula in basso (Oggi · I film · Premi · Programma) che compare dopo l'apertura e si ritira sul piede.
-- **Movimento**: GSAP 3.15 (SplitText e Flip, ora gratuiti) e scorrimento morbido con Lenis 1.3.26, legato all'orologio di GSAP; sul telefono resta lo scorrimento del sistema. Dentro le finestre (prenotazione, trailer, età) Lenis non interviene, e con la prenotazione aperta si ferma.
+- **Movimento**: GSAP 3.15 (SplitText e Flip, ora gratuiti). Lo scorrimento resta quello del browser: vedi sotto.
+
+### Lenis tolto, lo stesso giorno
+Pubblicata la ristrutturazione, Giovanni ha trovato il sito "a scatti, soprattutto su Firefox". Misure:
+- nel browser del pannello (Chromium) la pagina scorre a 60 fotogrammi al secondo dall'inizio alla fine;
+- in un Firefox 158 separato, con profilo temporaneo, una pagina di prova della stessa origine faceva scorrere la home in un iframe e contava i fotogrammi pezzo per pezzo: 60 al secondo, 9 lenti su 3.600, tutti al primo caricamento delle immagini. Sfocature, maschere, nastro e cartellone non pesano.
+
+Il disegno quindi regge; quello che cambiava era chi fa scorrere. Lenis rifà lo scorrimento in JavaScript a ogni fotogramma: con trackpad e mouse veri, estensioni e un disco quasi pieno, ogni intoppo del browser diventa uno scatto, mentre lo scorrimento nativo di Firefox gira fuori dal JavaScript e non si blocca. Lenis è stato tolto (`vaiA` usa lo scorrimento morbido del browser), i sette pezzi fissati hanno `anticipatePin: 1` (senza Lenis Firefox li aggancerebbe con un fotogramma di ritardo) e ScrollTrigger ignora la barra degli indirizzi che compare e sparisce sul telefono.
 - **Titoli di sezione**: una testata comune (`Testata` in `shared.tsx`), occhiello in Hanken e titolo che sale riga per riga.
 - **Piede**: "Vestri Cinema" in Libre Caslon a tutta larghezza, "Torna su", l'ingresso al gestionale quasi invisibile come prima. Al posto di "VESTRICINEMASHOP".

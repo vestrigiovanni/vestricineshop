@@ -6,7 +6,6 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import { Flip } from 'gsap/Flip';
-import type Lenis from 'lenis';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { formatShowDayLabel, formatShowDayLong, formatShowDayShort, formatShowTime } from '@/utils/cinemaDate';
 import type { HomeMovie, HomeShow } from './regia';
@@ -21,23 +20,20 @@ let registrato = false;
 export function registraGsap() {
   if (registrato || typeof window === 'undefined') return;
   gsap.registerPlugin(ScrollTrigger, SplitText, Flip);
+  // Sul telefono la barra degli indirizzi che compare e sparisce non deve far
+  // ricalcolare i pezzi fissati a metà scorrimento: sarebbe un salto.
+  ScrollTrigger.config({ ignoreMobileResize: true });
   registrato = true;
 }
 export { gsap, ScrollTrigger, SplitText, Flip };
 
 // ─── Scorrimento ──────────────────────────────────────────────────────────
 
-/** Lo scorrimento morbido della pagina: uno solo, acceso da HomePage. */
-let lenis: Lenis | null = null;
-export const setLenis = (l: Lenis | null) => { lenis = l; };
-export const getLenis = () => lenis;
-
-/** Porta la pagina a una sezione, con lo stesso passo dello scorrimento. */
-export function vaiA(selector: string) {
+/** Porta la pagina a una sezione, con lo scorrimento morbido del browser. */
+export function vaiA(selector: string, sopra = 0) {
   const el = document.querySelector<HTMLElement>(selector);
   if (!el) return;
-  if (lenis) lenis.scrollTo(el, { duration: 1.8, easing: (t: number) => 1 - Math.pow(1 - t, 4) });
-  else el.scrollIntoView({ behavior: prefersMotion() ? 'smooth' : 'auto' });
+  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - sopra, behavior: prefersMotion() ? 'smooth' : 'auto' });
 }
 
 /** Un film della home: quello che arriva dalla pagina, con i campi che la home legge. */

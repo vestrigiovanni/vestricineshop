@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
-import Lenis from 'lenis';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import { choicesFromShowcase } from '../BookingDrawer/showChoices';
 import { buildHomePlan, giroFrom, HomePiece, Slot } from './regia';
-import { BookContext, Film, Show, ScrollTrigger, SplitText, gsap, getLenis, nextShow, prefersMotion, registraGsap, setLenis, vaiA } from './shared';
+import { BookContext, Film, Show, ScrollTrigger, SplitText, gsap, nextShow, prefersMotion, registraGsap, vaiA } from './shared';
 import Apertura from './Apertura';
 import Nastro from './Nastro';
 import Cartellone from './Cartellone';
@@ -66,32 +65,10 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   });
   const book = useCallback((show: Show, film: Film) => setBooking({ subeventId: show.id, film }), []);
 
-  // Lo scorrimento morbido, legato all'orologio di GSAP: i pezzi fissati e
-  // le animazioni a scorrimento seguono lo stesso passo. Sul telefono resta
-  // lo scorrimento del sistema (Lenis non tocca il tocco).
-  useEffect(() => {
-    registraGsap();
-    if (!prefersMotion()) return;
-    const lenis = new Lenis({
-      lerp: 0.085,
-      wheelMultiplier: 0.9,
-      // Prenotazione, trailer, età: dentro le finestre si scorre come sempre.
-      prevent: node => /dialog/.test(node.getAttribute?.('role') || '') || node.getAttribute?.('aria-modal') === 'true',
-    });
-    setLenis(lenis);
-    lenis.on('scroll', ScrollTrigger.update);
-    const tick = (t: number) => lenis.raf(t * 1000);
-    gsap.ticker.add(tick);
-    gsap.ticker.lagSmoothing(0);
-    return () => { gsap.ticker.remove(tick); lenis.destroy(); setLenis(null); };
-  }, []);
-
-  // Con la prenotazione aperta la pagina dietro sta ferma.
-  useEffect(() => {
-    const lenis = getLenis();
-    if (!lenis) return;
-    if (booking) lenis.stop(); else { lenis.start(); lenis.resize(); }
-  }, [booking]);
+  // Lo scorrimento resta quello del browser. Il 19 ottobre 2026 c'era Lenis,
+  // che lo rifaceva in JavaScript fotogramma per fotogramma: su Firefox, con
+  // trackpad ed estensioni vere, ogni intoppo del browser diventava uno scatto.
+  // Lo scorrimento nativo invece gira fuori dal JavaScript e non si blocca.
 
   // I titoli di sezione salgono riga per riga, gli occhielli e le righe sotto li seguono.
   useEffect(() => {
