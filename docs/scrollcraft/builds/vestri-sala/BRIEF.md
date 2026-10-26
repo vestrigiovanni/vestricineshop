@@ -128,3 +128,28 @@ Non verificato:
   modifica la sessione si era chiusa e la pagina girava in background.
 
 Il controllo automatico della skill (`shoot.mjs`) non è stato fatto, perché manca Chrome per playwright.
+
+## Correzioni di Giovanni (26 ottobre 2026, sera)
+
+Dopo averla provata pubblicata, Giovanni ha chiesto:
+- **Ancora poco fluido.** Tolti i colpevoli che restavano: la transizione delle variabili di
+  colore su `:root` (a ogni cambio di film Firefox ricalcolava tutta la pagina per più di un
+  secondo), i giri di React del programma intero a ogni cambio di film (ora la luce ha due
+  contesti), le misure della pagina dieci volte al secondo (ora un IntersectionObserver),
+  l'inclinazione delle locandine al passaggio del mouse (un ciclo a ogni fotogramma), le
+  scritture ripetute del motore (ritocco segnato "Vestri Cinema" in `scrollcraft.js`).
+  Le dissolvenze di "Oggi" e le entrate di "Più avanti" vanno ora a tempo, sulla scheda
+  grafica, invece di seguire lo scorrimento passo per passo. Misurato in Firefox in finestra:
+  2 fotogrammi oltre i 50 ms su 3750.
+- **Tutti i film del giorno**, non due: "Oggi" ha tutti i film del giorno del primo, il primo
+  compreso e senza tetto; gli esauriti di quel giorno restano, con "Altre date".
+- **Il trailer parte appena ci si collega**, non quando ci si arriva: si accende a pagina
+  caricata; se un browser lo ferma fuori schermo, arrivandoci lo si rimette in pari.
+- **Le fasce a tendina di "Più avanti" non erano eleganti**: ora una galleria di fotogrammi,
+  uno grande e uno piccolo che si alternano, con una dissolvenza lenta.
+- **Prenota apre la scheda nell'apertura**, come prima del 18 ottobre: premi coi loghi dei
+  festival, trama, crediti e specifiche, giorni e orari, poi Prenota apre il cassetto
+  (`SchedaFilm.tsx`).
+- **Il programma finale era troppo lungo**: i giorni sono chiusi e si aprono al clic.
+- **La scritta "Vestri Cinema" in fondo non piaceva**: c'è il logo di Giovanni
+  (`public/assets/vestri-cinema.png`) nella barra, nel piede, nel favicon e in Cabina.

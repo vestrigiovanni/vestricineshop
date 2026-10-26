@@ -23,10 +23,16 @@
 
 .sala {
   justify-self: start;
-  font: 600 19px/1 var(--v-font-display);
-  letter-spacing: -0.02em;
-  color: inherit;
+  display: flex;
+  align-items: center;
+  height: 52px;
   cursor: pointer;
+}
+/* Il logo di Vestri Cinema (bianco, su trasparente). */
+.marchio {
+  display: block;
+  width: auto;
+  height: 40px;
 }
 
 /* Il film in vista: cambia sfumando. */

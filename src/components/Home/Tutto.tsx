@@ -2,8 +2,9 @@
 
 import Image from 'next/image';
 import type { CSSProperties } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { Giorno, Slot } from './programma';
-import { useLuce, varDi } from './Luce';
+import { useStanze, varDi } from './Luce';
 import { Film, Prenota, giornoDi, img, lingua, ora, tecnica, vaiA } from './shared';
 import s from './Tutto.module.css';
 
@@ -12,9 +13,13 @@ import s from './Tutto.module.css';
  * film in programma": le locandine di tutti i film insieme, poi la settimana
  * giorno per giorno, ogni riga col suo Prenota nel colore del suo film. La
  * stanza prende la luce di tutti i film.
+ *
+ * I giorni sono chiusi e si aprono al clic: aperti tutti, la lista era troppo
+ * lunga (Giovanni, 26 ottobre 2026). Chiuso, un giorno dice comunque quanti
+ * film ha, da che ora a che ora, e mostra le loro locandine.
  */
 export default function Tutto({ film, giorni, now }: { film: Slot<Film>[]; giorni: Giorno<Film>[]; now: Date }) {
-  const { stanze } = useLuce();
+  const { stanze } = useStanze();
   const spettacoli = giorni.reduce((n, g) => n + g.slots.length, 0);
   return (
     <section id="programma" className={s.tutto} data-luce="tutti" aria-labelledby="tutto-titolo">
@@ -38,8 +43,21 @@ export default function Tutto({ film, giorni, now }: { film: Slot<Film>[]; giorn
 
       <div className={s.settimana}>
         {giorni.map(g => (
-          <section key={g.dayKey} className={s.giorno} aria-label={giornoDi(g.slots[0].show.date, now)}>
-            <h3 className={s.nomeGiorno}>{giornoDi(g.slots[0].show.date, now)}</h3>
+          <details key={g.dayKey} className={s.giorno}>
+            <summary className={s.capoGiorno}>
+              <h3 className={s.nomeGiorno}>{giornoDi(g.slots[0].show.date, now)}</h3>
+              <span className={s.contoGiorno}>
+                {g.slots.length === 1 ? `Un film alle ${ora(g.slots[0].show)}` : `${g.slots.length} film, dalle ${ora(g.slots[0].show)} alle ${ora(g.slots[g.slots.length - 1].show)}`}
+              </span>
+              <span className={s.miniature} aria-hidden>
+                {g.slots.slice(0, 6).map(x => (
+                  <span key={x.show.id} className={s.miniatura}>
+                    {x.movie.poster_path && <Image src={img(x.movie.poster_path, 'w92')} alt="" fill sizes="32px" />}
+                  </span>
+                ))}
+              </span>
+              <ChevronDown className={s.freccia} size={20} strokeWidth={2} aria-hidden />
+            </summary>
             <ul className={s.righe}>
               {g.slots.map(x => (
                 <li key={x.show.id} className={s.riga} style={varDi(stanze[x.movie.id]) as CSSProperties}>
@@ -52,7 +70,7 @@ export default function Tutto({ film, giorni, now }: { film: Slot<Film>[]; giorn
                 </li>
               ))}
             </ul>
-          </section>
+          </details>
         ))}
       </div>
     </section>

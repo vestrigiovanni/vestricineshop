@@ -883,7 +883,11 @@
           a.vp = a.dwell ? dwell(vraw, a.dwell) : vraw;
         }
         a.live = (y > a.top - vh * 1.25) && (y < a.top + a.height + vh * 1.25);
-        a.el.style.setProperty('--sc-p', a.p.toFixed(4));
+        // Vestri Cinema: si scrive solo quando cambia. Ogni scrittura di una
+        // variabile fa ricalcolare a Firefox gli stili di tutto l'atto, anche
+        // degli atti fuori schermo fermi a 0 o a 1.
+        var ps = a.p.toFixed(4);
+        if (ps !== a.ps) { a.ps = ps; a.el.style.setProperty('--sc-p', ps); }
 
         // Fetch earlier than we drive. A 1080p clip is megabytes, and a reader
         // who scrolls briskly will otherwise arrive at a stage that is still
@@ -901,7 +905,8 @@
           var over = a.rail.scrollWidth - vw;
           if (over > 0) {
             var extra = over * (a.railExtra || 0);
-            a.rail.style.transform = 'translate3d(' + (-(over + extra) * a.p).toFixed(2) + 'px,0,0)';
+            var rt = 'translate3d(' + (-(over + extra) * a.p).toFixed(2) + 'px,0,0)';
+            if (rt !== a.railT) { a.railT = rt; a.rail.style.transform = rt; }
           }
         }
 
@@ -915,6 +920,7 @@
             for (var z = 0; z < a.cues.length; z++) {
               var pq = a.cues[z];
               pq.el.style.opacity = '0';
+              pq.op = '0';
               pq.el.style.pointerEvents = 'none';
               pq.state = 0;
               if (pq.units) for (var zu = 0; zu < pq.units.length; zu++) pq.units[zu].style.opacity = '0';
@@ -957,9 +963,10 @@
             }
             q.el.style.opacity = '1';
           } else {
-            q.el.style.opacity = vis.toFixed(3);
-            q.el.style.transform = reduce ? 'none'
-              : 'translate3d(0,' + ((1 - vis) * 2.4 * q.rise).toFixed(2) + 'vh,0)';
+            var op = vis.toFixed(3);
+            var tf = reduce ? 'none' : 'translate3d(0,' + ((1 - vis) * 2.4 * q.rise).toFixed(2) + 'vh,0)';
+            if (op !== q.op) { q.op = op; q.el.style.opacity = op; }
+            if (tf !== q.tf) { q.tf = tf; q.el.style.transform = tf; }
           }
           var on = vis > 0.5;
           if (on !== (q.state === 1)) { q.state = on ? 1 : 0; q.el.style.pointerEvents = on ? 'auto' : 'none'; }
@@ -978,12 +985,13 @@
           var R = a.reveals[rv];
           var t = smooth((a.p - R.from) / Math.max(R.to - R.from, 0.001));
           var pct = ((1 - t) * 100).toFixed(2);
-          R.el.style.clipPath =
+          var cp =
             R.dir === 'down' ? 'inset(' + pct + '% 0 0 0)' :
             R.dir === 'left' ? 'inset(0 ' + pct + '% 0 0)' :
             R.dir === 'right' ? 'inset(0 0 0 ' + pct + '%)' :
             R.dir === 'iris' ? 'circle(' + (t * 78).toFixed(2) + '% at 50% 50%)' :
                                'inset(0 0 ' + pct + '% 0)';
+          if (cp !== R.cp) { R.cp = cp; R.el.style.clipPath = cp; }
         }
 
         // counters
@@ -1232,7 +1240,8 @@
 
     layout();
     initPointer();
-    scTickFrame = requestAnimationFrame(tick);
+    // Vestri Cinema: il ciclo dei video c'è solo se ci sono video da guidare.
+    if (playheads.length) scTickFrame = requestAnimationFrame(tick);
     document.documentElement.classList.add('sc-ready');
 
     var api = { layout: layout, read: read, acts: acts, worlds: worlds, clips: playheads, lerp: LERP };

@@ -29,6 +29,13 @@
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
 }
 
+/* Il logo della sala (bianco, su trasparente). */
+.logo {
+  display: block;
+  width: auto;
+  height: 64px;
+  margin: 0 0 18px;
+}
 .kicker {
   margin: 0 0 10px;
   font-family: var(--c-font-mono);

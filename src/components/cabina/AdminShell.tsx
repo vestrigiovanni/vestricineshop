@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Armchair, CalendarRange, Ellipsis, ExternalLink, Film, Library, LogOut, Monitor, Search, Sunrise, Ticket, Wrench } from 'lucide-react';
@@ -59,7 +60,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     <div className={styles.shell} data-compact={compact || undefined}>
       <header className={styles.topbar}>
         <Link href="/admin" className={styles.brand}>
-          Vestri Cinema<span className={styles.brandTag}>Cabina</span>
+          <Image src="/assets/vestri-cinema.png" alt="Vestri Cinema" width={437} height={373} className={styles.brandLogo} priority />
+          <span className={styles.brandTag}>Cabina</span>
         </Link>
         <nav className={styles.tabs} aria-label="Stanze">
           {ROOMS.filter((r) => r.inBar !== false).map((room) => (

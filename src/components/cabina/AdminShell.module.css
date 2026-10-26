@@ -26,6 +26,15 @@
   text-decoration: none;
   white-space: nowrap;
 }
+/* Il logo della sala (bianco, su trasparente). */
+.brandLogo {
+  display: block;
+  width: auto;
+  height: 34px;
+  align-self: center;
+}
+.shell[data-compact] .brandLogo { height: 28px; }
+
 .brandTag {
   font-family: var(--c-font-mono);
   font-size: 9px;

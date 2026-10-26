@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import styles from './Footer.module.css';
 
 /**
- * Il piede del sito pubblico: il nome della sala in grande, come una
- * firma in fondo alla pagina, e sotto una riga sola.
+ * Il piede del sito pubblico: il logo della sala, come una firma in fondo
+ * alla pagina, e sotto una riga sola. Fino al 26 ottobre 2026 era la scritta
+ * "Vestri Cinema" in grande, in SF Pro: a Giovanni non piaceva.
  *
  * L'ingresso al gestionale è un link a /admin: se non c'è la sessione, ci
  * pensa il proxy a chiedere la chiave.
@@ -21,7 +23,7 @@ export default function Footer() {
   return (
     <footer className={`cabina-tokens ${styles.footer}`}>
       <div className={styles.container}>
-        <p className={styles.firma} aria-hidden>Vestri Cinema</p>
+        <Image src="/assets/vestri-cinema.png" alt="Vestri Cinema" width={437} height={373} className={styles.firma} />
         <div className={styles.riga}>
           <p>&copy; {anno ?? ''} Vestri Cinema</p>
           <button type="button" className={styles.su} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Torna su ↑</button>

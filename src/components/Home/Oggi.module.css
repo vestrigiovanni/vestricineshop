@@ -30,11 +30,27 @@
   background: #111;
   box-shadow: var(--v-ombra), var(--v-luce-bordo);
 }
+/* Il film nuovo sale sopra il vecchio, che resta sotto finché non è coperto:
+ * niente buco scuro a metà dissolvenza. Solo opacità e trasformazioni, che il
+ * browser anima da solo. */
 .quadro {
   position: absolute;
   inset: 0;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0s linear 1.2s;
 }
-.quadro img { object-fit: cover; }
+.quadro[data-acceso] {
+  z-index: 1;
+  opacity: 1;
+  transition: opacity 1.2s var(--v-ease);
+}
+.quadro img {
+  object-fit: cover;
+  transform: scale(1.045);
+  transition: transform 2.6s var(--v-ease);
+}
+.quadro[data-acceso] img { transform: none; }
 
 /* I testi stanno uno sopra l'altro nello stesso posto: si dà il cambio. */
 .testi {
@@ -46,6 +62,20 @@
 .testo {
   grid-area: 1 / 1;
   align-self: center;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, 14px, 0);
+  /* Quello che esce se ne va in fretta, prima che entri il successivo. */
+  transition: opacity 300ms var(--v-ease), transform 300ms var(--v-ease), visibility 0s linear 300ms;
+}
+.testo[data-acceso] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 700ms var(--v-ease) 240ms, transform 900ms var(--v-ease) 240ms, visibility 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .testo, .quadro img { transform: none; }
 }
 
 .giorno {
@@ -68,7 +98,7 @@
   font-size: 17px;
   line-height: 1.47;
 }
-.azione { margin-top: 26px; }
+.azione { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; margin-top: 26px; }
 
 @media (max-width: 860px) {
   .palco {

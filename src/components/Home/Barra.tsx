@@ -4,17 +4,17 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { ChevronDown } from 'lucide-react';
 import type { Slot } from './programma';
-import { useLuce } from './Luce';
+import { useScena } from './Luce';
 import { Film, Prenota, img, quando, vaiA } from './shared';
 import s from './Barra.module.css';
 
 /**
- * La barra in alto, come quella di una pagina prodotto Apple: il nome della
+ * La barra in alto, come quella di una pagina prodotto Apple: il logo della
  * sala, il film che hai davanti e il suo Prenota. Il titolo apre l'indice di
  * tutti i film, che porta dove si vuole. Sull'apertura è trasparente.
  */
 export default function Barra({ film, now }: { film: Slot<Film>[]; now: Date }) {
-  const { filmVisto } = useLuce();
+  const { filmVisto } = useScena();
   const [solida, setSolida] = useState(false);
   const [aperto, setAperto] = useState(false);
   const pannello = useRef<HTMLDivElement>(null);
@@ -41,7 +41,9 @@ export default function Barra({ film, now }: { film: Slot<Film>[]; now: Date }) 
   return (
     <header className={s.barra} data-solida={solida || aperto}>
       <div className={s.riga}>
-        <button type="button" className={s.sala} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Vestri Cinema</button>
+        <button type="button" className={s.sala} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Vestri Cinema, torna all'inizio">
+          <Image src="/assets/vestri-cinema.png" alt="" width={437} height={373} className={s.marchio} priority />
+        </button>
         <button type="button" className={s.titolo} aria-expanded={aperto} aria-controls="indice-film" onClick={() => setAperto(a => !a)}>
           <span className={s.titoloTesto} key={attuale.movie.id}>{attuale.movie.title}</span>
           <ChevronDown className={s.freccia} size={16} strokeWidth={2.2} aria-hidden />

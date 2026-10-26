@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
@@ -77,7 +78,8 @@ export default function LoginPage() {
     <main className={styles.page}>
       <div className={styles.beam} aria-hidden />
       <section className={styles.card}>
-        <p className={styles.kicker}>Vestri Cinema · Cabina</p>
+        <Image src="/assets/vestri-cinema.png" alt="Vestri Cinema" width={437} height={373} className={styles.logo} priority />
+        <p className={styles.kicker}>Cabina</p>
         <h1 className={styles.title}>Si entra in cabina</h1>
         <p className={styles.lead}>Il gestionale del cinema. Serve la chiave.</p>
         <Suspense fallback={<p className={styles.lead}>Un attimo…</p>}>

@@ -69,7 +69,8 @@
   letter-spacing: -0.022em;
   white-space: nowrap;
   cursor: pointer;
-  transition: transform 140ms var(--v-ease), filter 160ms var(--v-ease);
+  /* Il colore del film arriva sfumando sul tasto, non su tutta la pagina. */
+  transition: transform 140ms var(--v-ease), filter 160ms var(--v-ease), background-color 700ms var(--v-ease), color 700ms var(--v-ease);
 }
 .prenota:active { transform: scale(0.97); }
 @media (hover: hover) and (pointer: fine) {

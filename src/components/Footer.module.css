@@ -1,5 +1,5 @@
 /* Il piede del sito pubblico, restyling del 26 ottobre 2026: minimale come una
- * pagina Apple. Il nome della sala resta grande, in SF Pro, sul fondo della
+ * pagina Apple. In alto il logo della sala, sul fondo della
  * stanza (prende la tinta dell'ultimo film visto, vedi Home/Luce.tsx). */
 .footer {
   position: relative;
@@ -20,16 +20,12 @@
   padding: 0 clamp(20px, 5vw, 80px);
 }
 
-/* Il nome della sala a tutta larghezza. */
+/* Il logo della sala, al centro, come la firma alla fine dei titoli di coda. */
 .firma {
-  margin: 0 0 clamp(28px, 4vw, 48px);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', var(--font-inter), 'Helvetica Neue', Arial, sans-serif;
-  font-weight: 600;
-  font-size: clamp(56px, 13.4vw, 240px);
-  line-height: 0.9;
-  letter-spacing: -0.055em;
-  color: #f5f5f7;
-  white-space: nowrap;
+  display: block;
+  width: clamp(150px, 18vw, 260px);
+  height: auto;
+  margin: 0 auto clamp(40px, 5vw, 72px);
 }
 
 .riga {
@@ -71,5 +67,4 @@
 
 @media (max-width: 767px) {
   .riga { flex-wrap: wrap; }
-  .firma { font-size: 15.5vw; }
 }

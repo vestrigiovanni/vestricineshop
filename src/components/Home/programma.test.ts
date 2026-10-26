@@ -33,9 +33,10 @@ describe('la regia della home', () => {
     ];
     const p = buildProgramma(movies, NOW)!;
     expect(p.primo.movie.title).toBe('Primo');
-    expect(p.oggi.map(s => s.movie.title)).toEqual(['Pomeriggio', 'Stasera']);
+    // "Oggi" ha tutti i film del giorno, il primo compreso.
+    expect(p.oggi.map(s => s.movie.title)).toEqual(['Primo', 'Pomeriggio', 'Stasera']);
     expect(p.prossimi).toHaveLength(4);
-    const atti = [p.primo, ...p.oggi, ...p.prossimi, ...(p.trailer ? [p.trailer.slot] : []), ...p.lontani].map(s => s.movie.title);
+    const atti = [p.primo, ...p.oggi.filter(s => s !== p.primo), ...p.prossimi, ...(p.trailer ? [p.trailer.slot] : []), ...p.lontani].map(s => s.movie.title);
     expect(new Set(atti).size).toBe(atti.length);
     expect(atti).toHaveLength(movies.length);
     // L'ultimo dei lontani è il più lontano di tutti.
@@ -60,6 +61,20 @@ describe('la regia della home', () => {
     const p = buildProgramma([film('Solo', [giorno(26, 20)])], NOW)!;
     expect(p.oggi).toEqual([]);
     expect(p.trailer!.slot.movie.title).toBe('Solo');
+  });
+
+  it('"Oggi" non ha tetto: ci sono tutti i film del giorno', () => {
+    const p = buildProgramma([10, 12, 14, 16, 18, 20, 22].map(h => film(`Ore${h}`, [giorno(26, h)])), NOW)!;
+    expect(p.oggi).toHaveLength(7);
+  });
+
+  it('in "Oggi" restano anche i film esauriti per quel giorno, e non tornano più avanti', () => {
+    const pieno = film('Pieno', [giorno(26, 20), giorno(29, 20)]);
+    pieno.subevents[0].isSoldOut = true;
+    const p = buildProgramma([film('Primo', [giorno(26, 16)]), pieno, ...[27, 27, 28, 28, 30].map((d, i) => film(`D${i}`, [giorno(d, 10 + i)]))], NOW)!;
+    expect(p.oggi.map(s => [s.movie.title, s.show.date])).toEqual([['Primo', giorno(26, 16)], ['Pieno', giorno(26, 20)]]);
+    const dopo = [...p.prossimi, ...p.lontani, ...(p.trailer ? [p.trailer.slot] : [])].map(s => s.movie.title);
+    expect(dopo).not.toContain('Pieno');
   });
 
   it('se il primo è l\'unico film del giorno, "Oggi" prende i due che vengono dopo', () => {

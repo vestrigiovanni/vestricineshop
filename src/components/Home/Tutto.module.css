@@ -45,28 +45,68 @@
   .opera:hover { transform: translateY(-3px); }
 }
 
-/* La settimana: righe come le schede, con un filo fra l'una e l'altra. */
+/* La settimana: un giorno per riga, chiuso. Si apre al clic. */
 .settimana {
   margin-top: clamp(72px, 9vw, 140px);
-  display: grid;
-  gap: clamp(48px, 5vw, 72px);
   max-width: 1100px;
+  border-bottom: 1px solid var(--v-filo);
+}
+.giorno { border-top: 1px solid var(--v-filo); }
+.capoGiorno {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px 24px;
+  min-height: 76px;
+  padding: 14px 4px;
+  list-style: none;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: background-color 160ms var(--v-ease);
+}
+.capoGiorno::-webkit-details-marker { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .capoGiorno:hover { background: rgba(245, 245, 247, 0.04); }
 }
 .nomeGiorno {
-  margin: 0 0 8px;
-  font: 600 clamp(24px, 2.2vw, 32px)/1.15 var(--v-font-display);
+  margin: 0;
+  font: 600 clamp(21px, 2vw, 28px)/1.15 var(--v-font-display);
   letter-spacing: -0.025em;
 }
-.righe { list-style: none; margin: 0; padding: 0; }
+.contoGiorno {
+  color: var(--v-tenue);
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: -0.012em;
+  font-variant-numeric: tabular-nums;
+}
+.miniature { display: flex; gap: 6px; }
+.miniatura {
+  position: relative;
+  width: 32px;
+  aspect-ratio: 2 / 3;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #1c1c1e;
+}
+.miniatura img { object-fit: cover; }
+.freccia { color: var(--v-tenue); transition: transform 260ms var(--v-ease); }
+.giorno[open] .freccia { transform: rotate(180deg); }
+
+.righe { list-style: none; margin: 0 0 20px; padding: 0; }
+.giorno[open] .righe { animation: apre 420ms var(--v-ease) both; }
+@keyframes apre { from { opacity: 0; transform: translate3d(0, -6px, 0); } }
+@media (prefers-reduced-motion: reduce) {
+  .giorno[open] .righe { animation: none; }
+}
 .riga {
   display: grid;
   grid-template-columns: 5.5em minmax(0, 1fr) auto;
   align-items: center;
   gap: 4px 24px;
-  padding: 14px 0;
+  padding: 14px 4px;
   border-top: 1px solid var(--v-filo);
 }
-.riga:last-child { border-bottom: 1px solid var(--v-filo); }
 .ora {
   font: 600 21px/1.2 var(--v-font-display);
   letter-spacing: -0.02em;
@@ -86,6 +126,11 @@
 .prenota { justify-self: end; }
 
 @media (max-width: 640px) {
+  .capoGiorno { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
+  .nomeGiorno { grid-column: 1; }
+  .contoGiorno { grid-column: 1; grid-row: 2; font-size: 14px; }
+  .miniature { display: none; }
+  .freccia { grid-column: 2; grid-row: 1 / span 2; }
   .riga { grid-template-columns: 4.2em minmax(0, 1fr); }
   .prenota { grid-column: 2; justify-self: start; min-height: 36px; }
   .ora { font-size: 19px; align-self: start; padding-top: 2px; }

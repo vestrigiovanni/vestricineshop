@@ -36,3 +36,16 @@ export function useMotore(root: RefObject<HTMLElement | null>) {
     };
   }, [root]);
 }
+
+/**
+ * Il progresso di un atto fissato (0–1), quello che il motore pubblica in
+ * `--sc-p`. Lo si prende dal motore, che l'ha già calcolato: chiederlo alla
+ * pagina (`getBoundingClientRect`) obbligherebbe Firefox a ricalcolare gli
+ * stili e la disposizione a metà dello scorrimento.
+ */
+export function progresso(atto: HTMLElement): number {
+  const a = window.ScrollCraft?.instances[0]?.acts.find(x => x.el === atto);
+  if (a) return a.p;
+  const r = atto.getBoundingClientRect();
+  return Math.min(1, Math.max(0, -r.top / Math.max(r.height - innerHeight, 1)));
+}

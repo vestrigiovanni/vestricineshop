@@ -58,13 +58,16 @@
   letter-spacing: -0.025em;
 }
 
-/* Le opere arrivano in fila, come un cassetto tirato. */
-@media (prefers-reduced-motion: no-preference) {
-  .opera {
-    --k: clamp(0, calc(var(--sc-p, 0) * (var(--n) + 1.5) - var(--i) + 0.8), 1);
-    opacity: calc(0.55 + var(--k) * 0.45);
-    transform: translate3d(0, calc((1 - var(--k)) * 28px), 0);
-  }
+/* Le opere arrivano in fila, come un cassetto tirato: ognuna sale e si accende
+ * quando entra in vista, a tempo suo (vedi `data-sc-in` in Prossimi.tsx). */
+/* Il foglio del motore sta in un layer: qui si ridice anche lo stato d'arrivo. */
+.opera {
+  transition-duration: 900ms;
+  transform: translate3d(0, 28px, 0);
+}
+.opera:global(.sc-in) { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .opera { transform: none; }
 }
 
 @media (max-width: 860px) {

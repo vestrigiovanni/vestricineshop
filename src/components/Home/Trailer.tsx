@@ -22,59 +22,81 @@ export function Silenzio({ film }: { film: Film }) {
 
 /**
  * Atto 5, il trailer: il picco della pagina, quello che Giovanni vuole far
- * ricordare. Il trailer parte muto prima di arrivare sullo schermo (così ci si
- * imbatte in un film che va già), sale con le dita dentro una cornice, si
- * allarga a tutto schermo e si ferma lì a farsi guardare. Solo alla fine
- * arrivano il logo e Prenota. Fuori vista si mette in pausa.
+ * ricordare. Il trailer parte muto appena la pagina ha finito di caricarsi,
+ * non quando ci si avvicina: chi ci arriva lo trova già avviato, a metà
+ * ("il trailer va fatto partire appena l'utente si collega sul sito",
+ * 26 ottobre 2026). Sale con le dita dentro una cornice, si allarga a tutto
+ * schermo e si ferma lì a farsi guardare. Solo alla fine arrivano il logo e
+ * Prenota.
  */
 export default function Trailer({ slot, trailerKey, now }: { slot: Slot<Film>; trailerKey: string; now: Date }) {
   const { movie: film, show } = slot;
   const { openTrailer } = useTrailer();
   const root = useRef<HTMLElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
-  const [vicino, setVicino] = useState(false);
+  const [acceso, setAcceso] = useState(false);
   const [va, setVa] = useState(false);
-  // Si accende quando manca uno schermo e mezzo: arrivandoci, sta già andando.
+  // Il trailer si accende quando la pagina ha finito di caricarsi (e il browser ha
+  // un momento libero): l'apertura arriva prima, poi parte il video, lontano.
   useEffect(() => {
-    const el = root.current;
     // Senza movimento niente video che parte da solo: resta il fotogramma, e il trailer a richiesta.
-    if (!el || !prefersMotion()) return;
-    const io = new IntersectionObserver(([e]) => setVicino(v => v || e.isIntersecting), { rootMargin: '150% 0px' });
-    io.observe(el);
-    return () => io.disconnect();
+    if (!prefersMotion()) return;
+    let timer = 0;
+    const accendi = () => { timer = window.setTimeout(() => setAcceso(true), 1200); };
+    if (document.readyState === 'complete') accendi();
+    else addEventListener('load', accendi, { once: true });
+    return () => { removeEventListener('load', accendi); clearTimeout(timer); };
   }, []);
 
-  // Lontano dallo schermo il trailer si ferma; tornando, riparte.
+  // L'orologio del trailer: dove sarebbe se fosse andato sempre da quando è partito.
+  // Alcuni browser fermano i video muti fuori schermo; arrivando, lo si rimette in pari.
+  const orologio = useRef({ partito: 0, tempo: 0, durata: 0, stato: -1 });
   useEffect(() => {
-    const el = root.current;
-    if (!el || !vicino) return;
-    const comanda = (func: string) => frame.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args: [] }), '*');
-    const io = new IntersectionObserver(([e]) => comanda(e.isIntersecting ? 'playVideo' : 'pauseVideo'), { rootMargin: '60% 0px' });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [vicino]);
-
-  // Il fondale resta finché YouTube non dice che il video sta davvero andando
-  // (playerState 1): se l'autoplay è bloccato si vede il fotogramma, non il nero.
-  useEffect(() => {
-    if (!vicino) return;
+    if (!acceso) return;
     const ascolta = (e: MessageEvent) => {
       try {
         if (!/youtube(-nocookie)?\.com$/.test(new URL(e.origin).hostname)) return;
         const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        if (d?.info?.playerState === 1) setVa(true);
+        const info = d?.info;
+        if (!info) return;
+        const o = orologio.current;
+        if (typeof info.currentTime === 'number') o.tempo = info.currentTime;
+        if (typeof info.duration === 'number' && info.duration > 0) o.durata = info.duration;
+        if (typeof info.playerState === 'number') o.stato = info.playerState;
+        // Il fondale resta finché YouTube non dice che il video sta davvero andando
+        // (playerState 1): se l'autoplay è bloccato si vede il fotogramma, non il nero.
+        if (info.playerState === 1 && !o.partito) {
+          o.partito = performance.now() - o.tempo * 1000;
+          setVa(true);
+        }
       } catch { /* messaggi d'altro tipo */ }
     };
     window.addEventListener('message', ascolta);
     return () => window.removeEventListener('message', ascolta);
-  }, [vicino]);
+  }, [acceso]);
+
+  useEffect(() => {
+    const el = root.current;
+    if (!el || !acceso) return;
+    const comanda = (func: string, args: unknown[] = []) => frame.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      const o = orologio.current;
+      comanda('playVideo');
+      if (!o.partito || !o.durata) return;
+      const dovrebbe = ((performance.now() - o.partito) / 1000) % o.durata;
+      if (Math.abs(dovrebbe - o.tempo) > 4) comanda('seekTo', [dovrebbe, true]);
+    }, { rootMargin: '100% 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [acceso]);
   const presentati = () => frame.current?.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: trailerKey }), '*');
 
   return (
     <section ref={root} className={s.trailer} data-sc-act="pin" data-sc-span="3.6" style={{ height: '360vh' }} data-luce="buio" data-luce-film={film.id} data-film-ancora={film.id} aria-labelledby="trailer-titolo">
       <div className={`sc-stage ${s.palco}`} data-sc-stage>
         <div className={s.schermo}>
-          {vicino && (
+          {acceso && (
             <iframe
               ref={frame}
               className={s.video}

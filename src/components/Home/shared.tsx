@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type RefObject } from 'react';
 import Image from 'next/image';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
-import { cinemaToday, formatShowDayLong, formatShowTime, toCinemaDayKey } from '@/utils/cinemaDate';
+import { cinemaToday, formatShowDayLong, formatShowDayShort, formatShowTime, toCinemaDayKey } from '@/utils/cinemaDate';
 import { resolveFestival } from './festivals';
 import { premioDi, type HomeMovie, type HomeShow } from './programma';
 import base from './Home.module.css';
@@ -49,6 +49,12 @@ export function giornoDi(date: string, now: Date): string {
   return maiuscola(formatShowDayLong(date));
 }
 
+/** "Oggi", "Domani", "Mer 28 ott": per le linguette dei giorni. */
+export function giornoBreve(date: string, now: Date): string {
+  const g = giornoDi(date, now);
+  return g === 'Oggi' || g === 'Domani' ? g : maiuscola(formatShowDayShort(date));
+}
+
 /** "Oggi alle 16:00", "Mercoledì 28 ottobre alle 15:00". */
 export const quando = (s: Show, now: Date) => `${giornoDi(s.date, now)} alle ${ora(s)}`;
 
@@ -78,6 +84,11 @@ export function premio(f: Film): string {
 
 // ─── Prenotazione ─────────────────────────────────────────────────────────
 
+/**
+ * Che cosa fa Prenota: porta il film nell'apertura, con la sua scheda intera
+ * (trama, premi, giorni e orari), e da lì si apre il cassetto. Così era prima
+ * del 18 ottobre, e così l'ha rivoluto Giovanni il 26.
+ */
 export type BookFn = (show: Show, film: Film) => void;
 export const BookContext = createContext<BookFn>(() => {});
 export const useBook = () => useContext(BookContext);

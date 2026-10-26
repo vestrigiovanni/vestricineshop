@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import { choicesFromShowcase } from '../BookingDrawer/showChoices';
 import { buildProgramma, type Programma } from './programma';
-import { BookContext, Film, Show } from './shared';
+import { BookContext, Film, Show, prefersMotion } from './shared';
 import { Ambiente, LuceProvider } from './Luce';
 import { useMotore } from './motore';
 import Barra from './Barra';
@@ -65,10 +65,11 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   const struttura = useMemo(() => {
     const p = buildProgramma(movies, now);
     if (!p || initialMovieId == null || p.primo.movie.id === initialMovieId) return p;
-    // `?film=`: quel film apre la pagina e il primo passa in testa a "Oggi"; gli altri restano dove sono.
+    // `?film=`: quel film apre la pagina e il primo passa in testa a "Oggi" (se non c'è già); gli altri restano dove sono.
     const scelto = p.film.find(x => x.movie.id === initialMovieId);
     const via = <T,>(xs: T[]) => xs.filter(x => x !== scelto);
-    return scelto ? { ...p, primo: scelto, oggi: [p.primo, ...via(p.oggi)], prossimi: via(p.prossimi), lontani: via(p.lontani) } : p;
+    const oggi = p.oggi.includes(p.primo) ? via(p.oggi) : [p.primo, ...via(p.oggi)];
+    return scelto ? { ...p, primo: scelto, oggi, prossimi: via(p.prossimi), lontani: via(p.lontani) } : p;
   }, [movies, now, initialMovieId]);
   const plan = useMemo(() => (struttura ? aggiorna(struttura, live) : null), [struttura, live]);
 
@@ -76,7 +77,23 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
     if (initialSubeventId == null) return null;
     return { subeventId: initialSubeventId, film: live.find(m => m.subevents.some(s => s.id === initialSubeventId)) || null };
   });
-  const book = useCallback((show: Show, film: Film) => setBooking({ subeventId: show.id, film }), []);
+  const apri = useCallback((show: Show, film: Film) => setBooking({ subeventId: show.id, film }), []);
+
+  // Ogni Prenota porta il suo film nell'apertura, con la scheda intera: da vicino
+  // si torna su scorrendo, da lontano con uno stacco (il fondale risale dal nero).
+  const [scelto, setScelto] = useState<{ film: Film; show: Show } | null>(null);
+  const scegli = useCallback((show: Show, film: Film) => {
+    setScelto({ film, show });
+    const lontano = scrollY > innerHeight * 2.5;
+    window.scrollTo({ top: 0, behavior: lontano || !prefersMotion() ? 'instant' : 'smooth' });
+  }, []);
+  const chiudi = useCallback(() => setScelto(null), []);
+  useEffect(() => {
+    if (!scelto || booking) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setScelto(null); };
+    addEventListener('keydown', esc);
+    return () => removeEventListener('keydown', esc);
+  }, [scelto, booking]);
 
   useMotore(root);
 
@@ -85,18 +102,20 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   }
 
   const film = booking?.film;
+  // La scheda coi dati dal vivo (gli esauriti cambiano mentre la si guarda).
+  const scheda = scelto && { film: live.find(m => m.id === scelto.film.id) || scelto.film, show: scelto.show };
   const choices = film ? choicesFromShowcase(film.subevents.filter(s => new Date(s.date) >= now)) : [];
   const filmLuce = plan.film.map(x => x.movie);
 
   return (
-    <BookContext.Provider value={book}>
+    <BookContext.Provider value={scegli}>
       <LuceProvider films={filmLuce} root={root}>
         <div ref={root} className={base.home}>
           <Ambiente films={filmLuce} />
           <h1 className={base.nascosto}>Vestri Cinema: i film in sala</h1>
           <Barra film={plan.film} now={now} />
           <div className={base.atti}>
-            <Apertura film={plan.primo.movie} show={plan.primo.show} now={now} />
+            <Apertura film={plan.primo.movie} show={plan.primo.show} now={now} scheda={scheda} onApri={apri} onChiudi={chiudi} />
             {plan.oggi.length > 0 && <Oggi slots={plan.oggi} now={now} />}
             {plan.prossimi.length > 0 && <Prossimi slots={plan.prossimi} lontani={plan.lontani.length + (plan.trailer ? 1 : 0)} now={now} />}
             {plan.trailer && <Silenzio film={plan.trailer.slot.movie} />}

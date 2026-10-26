@@ -4,6 +4,8 @@
 export interface FestivalInfo {
   key: string;
   name: string;
+  /** Il nome corto, sotto il logo nella scheda: "Cannes", "Venezia". */
+  breve: string;
   logo: string;
   logoWidth: number;
   logoHeight: number;
@@ -12,18 +14,18 @@ export interface FestivalInfo {
 const STD = { logoWidth: 95, logoHeight: 95 };
 
 export const FESTIVALS: Record<string, FestivalInfo> = {
-  cannes: { key: 'cannes', name: 'Festival di Cannes', logo: '/logos/cannes_v1.png', ...STD },
-  venice: { key: 'venice', name: "Mostra Internazionale d'Arte Cinematografica di Venezia", logo: '/logos/venezia_v1.png', ...STD },
-  berlin: { key: 'berlin', name: 'Berlinale', logo: '/logos/berlinale_v1.png', ...STD },
-  oscar: { key: 'oscar', name: 'Academy Awards', logo: '/logos/oscars_v1.png', ...STD },
-  bafta: { key: 'bafta', name: 'BAFTA', logo: '/logos/bafta_v1.png', ...STD },
-  ssiff: { key: 'ssiff', name: 'Festival di San Sebastián', logo: '/logos/ssiff_v1.png', ...STD },
-  telluride: { key: 'telluride', name: 'Telluride Film Festival', logo: '/logos/telluride_v1.png', ...STD },
-  toronto: { key: 'toronto', name: 'Toronto International Film Festival', logo: '/logos/tiff.png', logoWidth: 200, logoHeight: 95 },
-  locarno: { key: 'locarno', name: 'Locarno Film Festival', logo: '/logos/locarno.png', ...STD },
-  davids: { key: 'davids', name: 'David di Donatello', logo: '/logos/david.png', ...STD },
-  nastri: { key: 'nastri', name: "Nastri d'Argento", logo: '/logos/nastri.png', ...STD },
-  romacinemafest: { key: 'romacinemafest', name: 'Festa del Cinema di Roma', logo: '/logos/roma.png', ...STD },
+  cannes: { key: 'cannes', name: 'Festival di Cannes', breve: 'Cannes', logo: '/logos/cannes_v1.png', ...STD },
+  venice: { key: 'venice', name: "Mostra Internazionale d'Arte Cinematografica di Venezia", breve: 'Venezia', logo: '/logos/venezia_v1.png', ...STD },
+  berlin: { key: 'berlin', name: 'Berlinale', breve: 'Berlinale', logo: '/logos/berlinale_v1.png', ...STD },
+  oscar: { key: 'oscar', name: 'Academy Awards', breve: 'Oscar', logo: '/logos/oscars_v1.png', ...STD },
+  bafta: { key: 'bafta', name: 'BAFTA', breve: 'BAFTA', logo: '/logos/bafta_v1.png', ...STD },
+  ssiff: { key: 'ssiff', name: 'Festival di San Sebastián', breve: 'San Sebastián', logo: '/logos/ssiff_v1.png', ...STD },
+  telluride: { key: 'telluride', name: 'Telluride Film Festival', breve: 'Telluride', logo: '/logos/telluride_v1.png', ...STD },
+  toronto: { key: 'toronto', name: 'Toronto International Film Festival', breve: 'Toronto', logo: '/logos/tiff.png', logoWidth: 200, logoHeight: 95 },
+  locarno: { key: 'locarno', name: 'Locarno Film Festival', breve: 'Locarno', logo: '/logos/locarno.png', ...STD },
+  davids: { key: 'davids', name: 'David di Donatello', breve: 'David di Donatello', logo: '/logos/david.png', ...STD },
+  nastri: { key: 'nastri', name: "Nastri d'Argento", breve: "Nastri d'Argento", logo: '/logos/nastri.png', ...STD },
+  romacinemafest: { key: 'romacinemafest', name: 'Festa del Cinema di Roma', breve: 'Roma', logo: '/logos/roma.png', ...STD },
 };
 
 /** Tie-break nell'ordinamento dei blocchi festival. */
