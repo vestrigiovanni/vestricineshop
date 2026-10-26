@@ -180,7 +180,12 @@ export function LuceProvider({ films, root, children }: { films: FilmLuce[]; roo
       setScena(trovata);
       if (film && /^\d+$/.test(film)) setFilmVisto(Number(film));
     };
-    const chiedi = () => { if (!timer) timer = window.setTimeout(leggi, 100); };
+    const chiedi = () => {
+      // Nel modo leggero (leggero.ts) la stanza cambia quando ci si ferma: col
+      // processore ogni cambio di colori e di luce, a metà scorrimento, è un fotogramma lungo.
+      if (el.hasAttribute('data-leggero')) { clearTimeout(timer); timer = window.setTimeout(leggi, 180); return; }
+      if (!timer) timer = window.setTimeout(leggi, 100);
+    };
     const io = new IntersectionObserver(entries => {
       for (const e of entries) {
         const n = e.target as HTMLElement;

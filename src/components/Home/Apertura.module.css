@@ -183,3 +183,12 @@
   }
   .chiudi { top: 64px; }
 }
+
+/* Nel modo leggero (leggero.ts) l'apertura sta ferma: il fondale non si
+ * allontana e non si chiude in cornice, la locandina non sale. A tutto schermo,
+ * disegnato dal processore, ogni passo era un fotogramma lungo. */
+:global([data-leggero]) .lontano { transform: none; clip-path: none; }
+:global([data-leggero]) .vicino { transform: none; opacity: 1; }
+:global([data-leggero]) .velo { opacity: 1; }
+:global([data-leggero]) .sorge,
+:global([data-leggero]) .locandina { animation: none; }

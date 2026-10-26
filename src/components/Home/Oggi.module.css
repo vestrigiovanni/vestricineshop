@@ -119,3 +119,11 @@
   .riga { font-size: 15px; }
   .azione { margin-top: 18px; }
 }
+
+/* Nel modo leggero (leggero.ts) i film si danno il cambio senza dissolvenza:
+ * dissolvere un fotogramma così grande, col processore, rallentava lo scorrimento. */
+:global([data-leggero]) .quadro,
+:global([data-leggero]) .quadro img,
+:global([data-leggero]) .testo { transition: none; }
+:global([data-leggero]) .quadro img,
+:global([data-leggero]) .testo { transform: none; }

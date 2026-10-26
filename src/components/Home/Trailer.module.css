@@ -102,3 +102,7 @@
   .quando { font-size: 17px; }
   .logo { max-height: 12vh; }
 }
+
+/* Nel modo leggero (leggero.ts) lo schermo è subito intero: allargarlo seguendo
+ * lo scorrimento, disegnato dal processore, costava un fotogramma lungo a ogni passo. */
+:global([data-leggero]) .schermo { clip-path: none; }

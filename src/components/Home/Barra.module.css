@@ -136,3 +136,11 @@
   .barra[data-solida='true'] .sala { opacity: 0; pointer-events: none; }
   .voce { display: none; }
 }
+
+/* Nel modo leggero (leggero.ts) niente sfocatura: senza accelerazione Firefox
+ * la rifà a ogni passo di scorrimento, ed era il costo più grande della pagina. */
+:global([data-leggero]) .barra[data-solida='true'] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: color-mix(in srgb, var(--f-fondo) 94%, transparent);
+}

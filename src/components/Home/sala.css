@@ -26,3 +26,13 @@
   --sc-font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', var(--font-inter), 'Helvetica Neue', Arial, sans-serif;
   --sc-font-text: -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-inter), 'Helvetica Neue', Arial, sans-serif;
 }
+
+/* Il modo leggero (leggero.ts), sui computer che disegnano col processore: le
+ * entrate a tempo si spengono e quello che entra è già al suo posto. */
+[data-leggero] [data-sc-in],
+[data-leggero] [data-sc-stagger] > *,
+[data-leggero] [data-sc-in] img {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}

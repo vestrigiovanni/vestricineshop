@@ -153,3 +153,19 @@ Dopo averla provata pubblicata, Giovanni ha chiesto:
 - **Il programma finale era troppo lungo**: i giorni sono chiusi e si aprono al clic.
 - **La scritta "Vestri Cinema" in fondo non piaceva**: c'è il logo di Giovanni
   (`public/assets/vestri-cinema.png`) nella barra, nel piede, nel favicon e in Cabina.
+
+## "Manca ancora un po' di fluidità su Firefox" (27 ottobre 2026)
+
+Il Firefox di Giovanni ha l'accelerazione hardware spenta (`layers.acceleration.disabled`):
+disegna col processore. Misurata così la home pubblicata faceva un fotogramma ogni 49 ms
+(il 51% oltre i 33 ms); con la scheda grafica, sulla stessa macchina, uno ogni 16,7 ms.
+Col processore costa tutto ciò che si muove: la sfocatura della barra (la voce più cara),
+le sfumature della luce d'ambiente a ogni cambio di film, le entrate a tempo, l'apertura e
+il trailer che seguono lo scorrimento.
+
+Il **modo leggero** (`src/components/Home/leggero.ts`): mentre si scorre la pagina misura il
+passo dei fotogrammi; se la mediana di 24 supera 30 ms mette `data-leggero` sulla home, per
+tutta la sessione. Allora la barra è piena invece che sfocata, la luce e "Oggi" cambiano
+senza sfumare, quello che entra è già al suo posto, apertura e trailer stanno fermi, e la
+stanza cambia luce quando ci si ferma. Con la scheda grafica non si accende mai. Misurato
+col processore: dal 51% al 3,6% di fotogrammi oltre i 33 ms.

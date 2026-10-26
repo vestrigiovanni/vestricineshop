@@ -8,6 +8,7 @@ import { buildProgramma, type Programma } from './programma';
 import { BookContext, Film, Show, prefersMotion } from './shared';
 import { Ambiente, LuceProvider } from './Luce';
 import { useMotore } from './motore';
+import { useLeggero } from './leggero';
 import Barra from './Barra';
 import Apertura from './Apertura';
 import Oggi from './Oggi';
@@ -96,6 +97,7 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   }, [scelto, booking]);
 
   useMotore(root);
+  useLeggero(root);
 
   if (!plan) {
     return <section className={base.home} style={{ minHeight: '70vh', display: 'grid', placeItems: 'center' }}><p className={base.logoTesto} style={{ fontSize: 40 }}>Nessun film in programmazione.</p></section>;

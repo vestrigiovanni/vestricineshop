@@ -46,3 +46,9 @@
   .ambiente, .tutti { transition: none; }
   .strato { animation: none; }
 }
+
+/* Nel modo leggero (leggero.ts) la luce cambia senza sfumare: una sfumatura a
+ * tutto schermo, disegnata dal processore, è una fila di fotogrammi lunghi. */
+:global([data-leggero]) .ambiente,
+:global([data-leggero]) .tutti { transition: none; }
+:global([data-leggero]) .ambiente .strato { animation: none; transition: none; }
