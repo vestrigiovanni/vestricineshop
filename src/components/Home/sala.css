@@ -1,0 +1,36 @@
+/* La base globale della home.
+ *
+ * Il foglio del motore scroll-craft entra in un layer: le sue regole di base
+ * (reset, token, dispositivi) valgono solo dove nessun nostro stile dice
+ * altro, così non scavalcano mai il cassetto della prenotazione o il piede. */
+@import '../../vendor/scrollcraft/scrollcraft.css' layer(scrollcraft);
+
+/* I colori della stanza sono colori veri per il browser: così, quando passa
+ * un altro film, sfumano invece di saltare. */
+@property --f-fondo { syntax: '<color>'; inherits: true; initial-value: #0b0b0c; }
+@property --f-bagliore { syntax: '<color>'; inherits: true; initial-value: #3a3a3e; }
+@property --f-accento { syntax: '<color>'; inherits: true; initial-value: #f5f5f7; }
+@property --f-accento-ink { syntax: '<color>'; inherits: true; initial-value: #111113; }
+@property --f-tenue { syntax: '<color>'; inherits: true; initial-value: #a1a1a6; }
+
+:root {
+  --background: var(--f-fondo);
+  --sc-canvas: var(--f-fondo);
+  --sc-surface: #1c1c1e;
+  --sc-ink: #f5f5f7;
+  --sc-ink-soft: var(--f-tenue);
+  --sc-accent: var(--f-accento);
+  --sc-accent-ink: var(--f-accento-ink);
+  --sc-font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', var(--font-inter), 'Helvetica Neue', Arial, sans-serif;
+  --sc-font-text: -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-inter), 'Helvetica Neue', Arial, sans-serif;
+  transition:
+    --f-fondo 1.2s cubic-bezier(0.23, 1, 0.32, 1),
+    --f-bagliore 1.2s cubic-bezier(0.23, 1, 0.32, 1),
+    --f-accento 0.9s cubic-bezier(0.23, 1, 0.32, 1),
+    --f-accento-ink 0.9s cubic-bezier(0.23, 1, 0.32, 1),
+    --f-tenue 0.9s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { transition: none; }
+}

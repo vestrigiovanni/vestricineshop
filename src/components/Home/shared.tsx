@@ -1,40 +1,12 @@
 'use client';
 
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type DependencyList, type RefObject } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type RefObject } from 'react';
 import Image from 'next/image';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { SplitText } from 'gsap/SplitText';
-import { Flip } from 'gsap/Flip';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
-import { formatShowDayLabel, formatShowDayLong, formatShowDayShort, formatShowTime } from '@/utils/cinemaDate';
-import type { HomeMovie, HomeShow } from './regia';
+import { cinemaToday, formatShowDayLong, formatShowTime, toCinemaDayKey } from '@/utils/cinemaDate';
+import { resolveFestival } from './festivals';
+import { premioDi, type HomeMovie, type HomeShow } from './programma';
 import base from './Home.module.css';
-
-/**
- * ScrollTrigger si registra al primo effetto, non quando il modulo si carica:
- * registrandosi tocca lo stile del <body>, e prima dell'idratazione React lo
- * vedrebbe diverso da quello del server.
- */
-let registrato = false;
-export function registraGsap() {
-  if (registrato || typeof window === 'undefined') return;
-  gsap.registerPlugin(ScrollTrigger, SplitText, Flip);
-  // Sul telefono la barra degli indirizzi che compare e sparisce non deve far
-  // ricalcolare i pezzi fissati a metà scorrimento: sarebbe un salto.
-  ScrollTrigger.config({ ignoreMobileResize: true });
-  registrato = true;
-}
-export { gsap, ScrollTrigger, SplitText, Flip };
-
-// ─── Scorrimento ──────────────────────────────────────────────────────────
-
-/** Porta la pagina a una sezione, con lo scorrimento morbido del browser. */
-export function vaiA(selector: string, sopra = 0) {
-  const el = document.querySelector<HTMLElement>(selector);
-  if (!el) return;
-  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - sopra, behavior: prefersMotion() ? 'smooth' : 'auto' });
-}
 
 /** Un film della home: quello che arriva dalla pagina, con i campi che la home legge. */
 export interface Film extends HomeMovie {
@@ -52,70 +24,57 @@ export interface Show extends HomeShow {
 
 export const img = (path: string | null | undefined, size = 'w1280') => getTMDBImageUrl(path, size) || '';
 
-// ─── Movimento ────────────────────────────────────────────────────────────
-
-const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
-
 export function prefersMotion(): boolean {
   return typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-/**
- * Le animazioni di un pezzo: girano dentro un `gsap.context` legato al suo
- * contenitore e si smontano da sole. Con "riduci movimento" non partono e il
- * pezzo resta com'è, completo e fermo.
- */
-export function useRegia(scope: RefObject<HTMLElement | null>, setup: (phone: boolean) => void | (() => void), deps: DependencyList = []) {
-  useIsoLayoutEffect(() => {
-    if (!scope.current || !prefersMotion()) return;
-    registraGsap();
-    let cleanup: void | (() => void);
-    const ctx = gsap.context(() => { cleanup = setup(window.innerWidth < 768); }, scope);
-    return () => { if (typeof cleanup === 'function') cleanup(); ctx.revert(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+/** Porta la pagina a un elemento, con lo scorrimento del browser. */
+export function vaiA(selector: string, sopra = 64) {
+  const el = document.querySelector<HTMLElement>(selector);
+  if (!el) return;
+  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - sopra, behavior: prefersMotion() ? 'smooth' : 'auto' });
 }
 
-// ─── Testata di una sezione ───────────────────────────────────────────────
+// ─── Le parole della scheda ───────────────────────────────────────────────
 
-/**
- * La testata di ogni sezione: un occhiello in Hanken, il titolo in Libre
- * Caslon (sale riga per riga, vedi `data-split` in HomePage) e una riga sotto.
- */
-export function Testata({ id, occhiello, children, sotto, destra, className = '' }: {
-  id?: string;
-  occhiello?: React.ReactNode;
-  children: React.ReactNode;
-  sotto?: React.ReactNode;
-  destra?: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <header className={`${base.testata} ${className}`}>
-      <div className={base.testataSinistra}>
-        {occhiello && <span className={`${base.dati} ${base.occhiello}`} data-sale>{occhiello}</span>}
-        <h2 id={id} className={`${base.titoli} ${base.titolo}`} data-split>{children}</h2>
-        {sotto && <div className={base.sotto} data-sale>{sotto}</div>}
-      </div>
-      {destra && <div className={base.testataDestra} data-sale>{destra}</div>}
-    </header>
-  );
-}
-
-const UNITA = ['', 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove', 'dieci', 'undici', 'dodici', 'tredici', 'quattordici', 'quindici', 'sedici', 'diciassette', 'diciotto', 'diciannove'];
-const DECINE = ['', '', 'venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta'];
-
-/** 32 → "trentadue". Fino a 99; oltre, le cifre. */
-export function inLettere(n: number): string {
-  if (!Number.isInteger(n) || n < 0 || n > 99) return String(n);
-  if (n === 0) return 'zero';
-  if (n < 20) return UNITA[n];
-  const d = DECINE[Math.floor(n / 10)], u = n % 10;
-  if (!u) return d;
-  const tronca = u === 1 || u === 8 ? d.slice(0, -1) : d;
-  return tronca + (u === 3 ? 'tré' : UNITA[u]);
-}
 export const maiuscola = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+export const ora = (s: Show) => s.timeLabel || formatShowTime(s.date);
+
+/** "Oggi", "Domani", "Mercoledì 28 ottobre". */
+export function giornoDi(date: string, now: Date): string {
+  const key = toCinemaDayKey(date);
+  if (key === toCinemaDayKey(now)) return 'Oggi';
+  const domani = new Date(cinemaToday(now).getTime() + 24 * 3600 * 1000);
+  if (key === toCinemaDayKey(domani)) return 'Domani';
+  return maiuscola(formatShowDayLong(date));
+}
+
+/** "Oggi alle 16:00", "Mercoledì 28 ottobre alle 15:00". */
+export const quando = (s: Show, now: Date) => `${giornoDi(s.date, now)} alle ${ora(s)}`;
+
+export const durata = (m?: number | null) => (m ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min` : '');
+
+/** Regia, anno, durata: i crediti, in quest'ordine. */
+export const crediti = (f: Film) => [f.director, f.release_year, durata(f.runtime)].filter(Boolean) as string[];
+
+/** "Francese, sottotitoli in italiano". */
+export function lingua(s: Show): string {
+  const l = (s.language || '').trim();
+  const lingua = /^originale$/i.test(l) ? 'Versione originale' : l;
+  // Nel catalogo "senza sottotitoli" si scrive anche "Nessuno".
+  const sub = (s.subtitles || '').trim().replace(/^(nessun[oai]?|no|none|-)$/i, '');
+  return [lingua, sub ? `sottotitoli in ${sub.toLowerCase()}` : ''].filter(Boolean).join(', ');
+}
+
+/** Come si proietta: "4K", "Dolby Atmos". */
+export const tecnica = (s: Show) => (s.specs || []).map(x => x.replace('DOLBY_VISION', 'Dolby Vision').replace('ATMOS', 'Dolby Atmos'));
+
+/** "Palma d'oro, Festival di Cannes 1994". */
+export function premio(f: Film): string {
+  const p = premioDi(f);
+  if (!p) return '';
+  return `${maiuscola(p.prize)}, ${resolveFestival(p.type).name}${p.year ? ` ${p.year}` : ''}`;
+}
 
 // ─── Prenotazione ─────────────────────────────────────────────────────────
 
@@ -123,41 +82,36 @@ export type BookFn = (show: Show, film: Film) => void;
 export const BookContext = createContext<BookFn>(() => {});
 export const useBook = () => useContext(BookContext);
 
-export function PrenotaButton({ show, film, label, className = '' }: { show: Show; film: Film; label?: string; className?: string }) {
+/**
+ * Prenota: l'unica azione della pagina, con un'etichetta sola. Pieno (la
+ * pillola, nel colore del film) o come link ("Prenota ›") dentro una scheda.
+ */
+export function Prenota({ show, film, now, variante = 'pieno', className = '' }: { show: Show; film: Film; now: Date; variante?: 'pieno' | 'link'; className?: string }) {
   const book = useBook();
   if (show.isSoldOut) return <span className={`${base.esaurito} ${className}`}>Esaurito</span>;
   return (
-    <button className={`${base.prenota} ${className}`} onClick={() => book(show, film)} aria-label={`Prenota ${film.title} alle ${formatShowTime(show.date)}`}>
-      {label ?? 'Prenota'}
+    <button
+      type="button"
+      className={`${variante === 'pieno' ? base.prenota : base.prenotaLink} ${className}`}
+      onClick={() => book(show, film)}
+      aria-label={`Prenota ${film.title}, ${quando(show, now).toLowerCase()}`}
+    >
+      Prenota
     </button>
   );
 }
-
-// ─── Testi ────────────────────────────────────────────────────────────────
-
-export const dayLong = (date: string) => formatShowDayLong(date);
-/** "mar 20 ott" */
-export const dayShort = (date: string) => formatShowDayShort(date);
-export const dayLabel = (date: string, now: Date) => formatShowDayLabel(date, now);
-export const time = (date: string) => formatShowTime(date);
-export const runtime = (m?: number | null) => (m ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}′` : '');
-export const specs = (s: Show) => (s.specs || []).map(x => x.replace('DOLBY_VISION', 'Dolby Vision').replace('ATMOS', 'Atmos'));
-export const lingua = (s: Show) => [s.language, s.subtitles ? `sott. ${s.subtitles.toLowerCase().slice(0, 3)}` : ''].filter(Boolean).join(' · ');
-export const sala = (s: Show) => (s.roomName ? `Sala ${s.roomName}` : '');
-export const dataLine = (f: Film, s: Show) => [f.director, f.release_year, runtime(f.runtime), lingua(s), ...specs(s)].filter(Boolean);
 
 // ─── Logo del film ────────────────────────────────────────────────────────
 
 /**
  * Il logo TMDB del film al posto del titolo. Se il logo è quasi nero lo si
  * accende in bianco: lo decide una misura sui pixel, fatta sull'immagine
- * servita da Next (stessa origine, quindi leggibile). Senza logo, il titolo
- * in Libre Caslon.
+ * servita da Next (stessa origine, quindi leggibile). Senza logo, il titolo.
  */
 export function FilmLogo({ film, className = '', sizes = '(max-width: 768px) 70vw, 420px', priority = false }: { film: Film; className?: string; sizes?: string; priority?: boolean }) {
   const [acceso, setAcceso] = useState(false);
   const path = film.logo_path && film.logo_path !== 'none' ? film.logo_path : '';
-  if (!path) return <span className={`${base.titoli} ${className}`} data-logo-testo>{film.title}</span>;
+  if (!path) return <span className={`${base.logoTesto} ${className}`}>{film.title}</span>;
   return (
     <Image
       src={img(path, 'w500')}
@@ -166,8 +120,7 @@ export function FilmLogo({ film, className = '', sizes = '(max-width: 768px) 70v
       height={200}
       sizes={sizes}
       priority={priority}
-      className={`${className} ${acceso ? base.logoAcceso : ''}`}
-      style={{ width: 'auto', height: 'auto' }}
+      className={`${base.logo} ${className} ${acceso ? base.logoAcceso : ''}`}
       onLoad={e => { if (isDark(e.currentTarget)) setAcceso(true); }}
     />
   );
@@ -186,25 +139,25 @@ function isDark(el: HTMLImageElement): boolean {
   } catch { return false; }
 }
 
-// ─── Coda di un pezzo: logo, quando, Prenota ──────────────────────────────
+// ─── La scheda ────────────────────────────────────────────────────────────
 
-export function Coda({ film, show, className = '' }: { film: Film; show: Show; className?: string }) {
+/**
+ * La scheda di un film: la stessa per ogni film della pagina, come le
+ * etichette di una collezione. Solo dati veri, niente frasi.
+ */
+export function Scheda({ film, show, now, className = '', conLogo = true, prenota = 'link' }: { film: Film; show: Show; now: Date; className?: string; conLogo?: boolean; prenota?: 'pieno' | 'link' }) {
+  const righe = [crediti(film).join(' · '), [lingua(show), ...tecnica(show)].filter(Boolean).join(' · '), premio(film)].filter(Boolean);
   return (
-    <div className={className} data-coda>
-      <FilmLogo film={film} className={base.codaLogo} />
-      <div className={base.codaRiga}>
-        <span className={base.dati}>{[dayLong(show.date), time(show.date), sala(show)].filter(Boolean).join(' · ')}</span>
-        <PrenotaButton show={show} film={film} />
-      </div>
+    <div className={`${base.scheda} ${className}`}>
+      <p className={base.quando}>{quando(show, now)}</p>
+      {conLogo ? <h3 className={base.schedaTitolo}><FilmLogo film={film} className={base.schedaLogo} sizes="240px" /></h3> : <h3 className={base.schedaNome}>{film.title}</h3>}
+      {righe.map(r => <p key={r} className={base.riga}>{r}</p>)}
+      <Prenota show={show} film={film} now={now} variante={prenota} />
     </div>
   );
 }
 
-/** Il primo spettacolo ancora prenotabile di un film (o il primo, se sono tutti esauriti). */
-export function nextShow(f: Film, now: Date): Show {
-  const future = f.subevents.filter(s => new Date(s.date) >= now);
-  return future.find(s => !s.isSoldOut) || future[0] || f.subevents[0];
-}
+// ─── Caricamento pigro ────────────────────────────────────────────────────
 
 /** Osserva quando un elemento entra in vista (una volta sola). */
 export function useInView<T extends HTMLElement>(margin = '200px'): [RefObject<T | null>, boolean] {
@@ -221,10 +174,9 @@ export function useInView<T extends HTMLElement>(margin = '200px'): [RefObject<T
 }
 
 /**
- * Le immagini di un pezzo si chiedono solo quando il pezzo è a circa uno
- * schermo e mezzo di distanza: al primo caricamento il telefono scarica
- * l'apertura e poco altro. Va dentro un contenitore posizionato (come le
- * immagini `fill` che avvolge).
+ * Le immagini di un atto si chiedono solo quando l'atto è a circa uno schermo
+ * e mezzo: al primo caricamento il telefono scarica l'apertura e poco altro.
+ * Va dentro un contenitore posizionato (come le immagini `fill` che avvolge).
  */
 export function Vicina({ children }: { children: React.ReactNode }) {
   const [ref, near] = useInView<HTMLSpanElement>('150% 0px');

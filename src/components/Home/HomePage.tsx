@@ -1,18 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import BookingDrawer from '../BookingDrawer/BookingDrawer';
 import { choicesFromShowcase } from '../BookingDrawer/showChoices';
-import { buildHomePlan, giroFrom, HomePiece, Slot } from './regia';
-import { BookContext, Film, Show, ScrollTrigger, SplitText, gsap, nextShow, prefersMotion, registraGsap, vaiA } from './shared';
+import { buildProgramma, type Programma } from './programma';
+import { BookContext, Film, Show } from './shared';
+import { Ambiente, LuceProvider } from './Luce';
+import { useMotore } from './motore';
+import Barra from './Barra';
 import Apertura from './Apertura';
-import Nastro from './Nastro';
-import Cartellone from './Cartellone';
-import Conto from './Conto';
-import { Oggi, Settimana } from './Programma';
-import { Onore, Parete } from './Premi';
-import { Pellicola, Giornata, Locandina, Barre, Iride, TrailerMuto, Doppio, Ventaglio, Sottotitoli } from './Pezzi';
+import Oggi from './Oggi';
+import Prossimi from './Prossimi';
+import Trailer, { Silenzio } from './Trailer';
+import Lontani from './Lontani';
+import Tutto from './Tutto';
+import './sala.css';
 import base from './Home.module.css';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -28,6 +31,17 @@ interface Props {
   initialSubeventId?: number | null;
 }
 
+/**
+ * La home, rifatta il 26 ottobre 2026 con la skill scroll-craft (brief in
+ * docs/scrollcraft/builds/vestri-sala/BRIEF.md). Una galleria che va dal film
+ * più vicino al più lontano, calma all'inizio e intensa alla fine, in una
+ * stanza buia che prende la luce del film che hai davanti.
+ *
+ * Il motore di scroll-craft (src/vendor/scrollcraft) fissa gli atti con
+ * `position: sticky` e pubblica il loro progresso in `--sc-p`: lo scorrimento
+ * resta quello del browser (il 19 ottobre Lenis, che lo rifaceva in
+ * JavaScript, andava a scatti su Firefox).
+ */
 export default function HomePage({ movies, nowIso, initialAvailability, initialMovieId, initialSubeventId }: Props) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   const root = useRef<HTMLDivElement>(null);
@@ -46,18 +60,17 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
     }));
   }, [movies, availability]);
 
-  const plan: HomePiece<Film>[] = useMemo(() => {
-    const p = buildHomePlan(live, now);
-    if (initialMovieId == null) return p;
-    const film = live.find(m => m.id === initialMovieId);
-    if (!film) return p;
-    return p.map(piece => {
-      if (piece.kind !== 'apertura') return piece;
-      const primo: Slot<Film> = { movie: film, show: nextShow(film, now) };
-      const resto = piece.giro.filter(x => x.movie.id !== film.id);
-      return { kind: 'apertura', movie: film, show: primo.show, giro: giroFrom([primo, ...resto], primo) };
-    });
-  }, [live, now, initialMovieId]);
+  // La regia si fa sui film come arrivano dal server: la disponibilità dal vivo
+  // cambia i Prenota, non la forma della pagina (il motore ha già misurato gli atti).
+  const struttura = useMemo(() => {
+    const p = buildProgramma(movies, now);
+    if (!p || initialMovieId == null || p.primo.movie.id === initialMovieId) return p;
+    // `?film=`: quel film apre la pagina e il primo passa in testa a "Oggi"; gli altri restano dove sono.
+    const scelto = p.film.find(x => x.movie.id === initialMovieId);
+    const via = <T,>(xs: T[]) => xs.filter(x => x !== scelto);
+    return scelto ? { ...p, primo: scelto, oggi: [p.primo, ...via(p.oggi)], prossimi: via(p.prossimi), lontani: via(p.lontani) } : p;
+  }, [movies, now, initialMovieId]);
+  const plan = useMemo(() => (struttura ? aggiorna(struttura, live) : null), [struttura, live]);
 
   const [booking, setBooking] = useState<{ subeventId: number; film: Film | null } | null>(() => {
     if (initialSubeventId == null) return null;
@@ -65,68 +78,34 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   });
   const book = useCallback((show: Show, film: Film) => setBooking({ subeventId: show.id, film }), []);
 
-  // Lo scorrimento resta quello del browser. Il 19 ottobre 2026 c'era Lenis,
-  // che lo rifaceva in JavaScript fotogramma per fotogramma: su Firefox, con
-  // trackpad ed estensioni vere, ogni intoppo del browser diventava uno scatto.
-  // Lo scorrimento nativo invece gira fuori dal JavaScript e non si blocca.
+  useMotore(root);
 
-  // I titoli di sezione salgono riga per riga, gli occhielli e le righe sotto li seguono.
-  useEffect(() => {
-    const el = root.current;
-    if (!el || !prefersMotion()) return;
-    registraGsap();
-    const ctx = gsap.context(() => {
-      gsap.utils.toArray<HTMLElement>('[data-split]').forEach(t => {
-        SplitText.create(t, {
-          type: 'lines',
-          mask: 'lines',
-          linesClass: 'riga',
-          autoSplit: true,
-          onSplit: self => gsap.from(self.lines, { yPercent: 108, duration: 1.4, stagger: 0.1, ease: 'expo.out', scrollTrigger: { trigger: t, start: 'top 88%', once: true } }),
-        });
-      });
-      gsap.utils.toArray<HTMLElement>('[data-sale]').forEach(t =>
-        gsap.from(t, { opacity: 0, y: 18, duration: 1.2, ease: 'expo.out', delay: 0.15, scrollTrigger: { trigger: t, start: 'top 92%', once: true } }));
-    }, el);
-    return () => ctx.revert();
-  }, []);
-
-  // Le immagini arrivano piano: ricalcola le misure dei pezzi fissati quando la pagina è carica.
-  useEffect(() => {
-    registraGsap();
-    const refresh = () => ScrollTrigger.refresh();
-    window.addEventListener('load', refresh);
-    const t = setTimeout(refresh, 1500);
-    document.fonts?.ready.then(refresh);
-    return () => { window.removeEventListener('load', refresh); clearTimeout(t); };
-  }, []);
-
-  if (!plan.length) {
-    return <section className={base.home} style={{ minHeight: '60vh', display: 'grid', placeItems: 'center' }}><p className={base.titoli} style={{ fontSize: 40 }}>Nessun film in programmazione</p></section>;
+  if (!plan) {
+    return <section className={base.home} style={{ minHeight: '70vh', display: 'grid', placeItems: 'center' }}><p className={base.logoTesto} style={{ fontSize: 40 }}>Nessun film in programmazione.</p></section>;
   }
 
-  // Tutti gli spettacoli futuri, per il conto alla rovescia che passa al successivo.
-  const settimana = plan.find(p => p.kind === 'settimana');
-  const seguenti = settimana && settimana.kind === 'settimana' ? settimana.days.flatMap(d => d.slots) : [];
   const film = booking?.film;
   const choices = film ? choicesFromShowcase(film.subevents.filter(s => new Date(s.date) >= now)) : [];
-  const kinds = new Set(plan.map(p => p.kind));
-  const voci = [
-    kinds.has('oggi') && { pezzo: 'oggi', nome: 'Oggi' },
-    kinds.has('cartellone') && { pezzo: 'cartellone', nome: 'I film', fino: kinds.has('conto') ? 'conto' : undefined },
-    (kinds.has('onore') || kinds.has('parete')) && { pezzo: kinds.has('onore') ? 'onore' : 'parete', nome: 'Premi', fino: kinds.has('parete') ? 'parete' : undefined },
-    kinds.has('settimana') && { pezzo: 'settimana', nome: 'Programma' },
-  ].filter((v): v is Voce => !!v);
+  const filmLuce = plan.film.map(x => x.movie);
 
   return (
     <BookContext.Provider value={book}>
-      <div ref={root} className={base.home}>
-        {/* Ogni pezzo sta in un contenitore suo: GSAP, quando fissa un pezzo, lo
-            sposta dentro un pin-spacer, e React deve poter inserire e togliere
-            i fratelli senza cercarli dove non sono più. */}
-        {plan.map(p => <div key={p.kind} data-pezzo={p.kind}><Pezzo piece={p} now={now} seguenti={seguenti} /></div>)}
-        <Indice voci={voci} />
-      </div>
+      <LuceProvider films={filmLuce} root={root}>
+        <div ref={root} className={base.home}>
+          <Ambiente films={filmLuce} />
+          <h1 className={base.nascosto}>Vestri Cinema: i film in sala</h1>
+          <Barra film={plan.film} now={now} />
+          <div className={base.atti}>
+            <Apertura film={plan.primo.movie} show={plan.primo.show} now={now} />
+            {plan.oggi.length > 0 && <Oggi slots={plan.oggi} now={now} />}
+            {plan.prossimi.length > 0 && <Prossimi slots={plan.prossimi} lontani={plan.lontani.length + (plan.trailer ? 1 : 0)} now={now} />}
+            {plan.trailer && <Silenzio film={plan.trailer.slot.movie} />}
+            {plan.trailer && <Trailer slot={plan.trailer.slot} trailerKey={plan.trailer.key} now={now} />}
+            {plan.lontani.length > 0 && <Lontani slots={plan.lontani} now={now} />}
+            <Tutto film={plan.film} giorni={plan.giorni} now={now} />
+          </div>
+        </div>
+      </LuceProvider>
       <BookingDrawer
         isOpen={booking != null}
         onClose={() => setBooking(null)}
@@ -140,71 +119,22 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
 }
 
 /**
- * L'indice: le quattro stanze della pagina in una capsula in basso. Compare
- * dopo l'apertura, segna dove si è e porta dove si vuole.
+ * La stessa struttura coi dati dal vivo: ogni film e ogni spettacolo vengono
+ * sostituiti dalla loro versione aggiornata (esauriti compresi).
  */
-interface Voce { pezzo: string; nome: string; fino?: string }
-
-function Indice({ voci }: { voci: Voce[] }) {
-  const [dopoApertura, setDopoApertura] = useState(false);
-  const [inFondo, setInFondo] = useState(false);
-  const [qui, setQui] = useState<string | null>(null);
-  const visibile = dopoApertura && !inFondo;
-  useEffect(() => {
-    registraGsap();
-    const trigger: ScrollTrigger[] = [];
-    const apertura = document.querySelector('[data-pezzo="apertura"]');
-    if (apertura) trigger.push(ScrollTrigger.create({ trigger: apertura, start: 'bottom 60%', onEnter: () => setDopoApertura(true), onLeaveBack: () => setDopoApertura(false) }));
-    // Sul piede la capsula si ritira: lì ci sono già "Torna su" e il nome della sala.
-    const piede = document.querySelector('footer');
-    if (piede) trigger.push(ScrollTrigger.create({ trigger: piede, start: 'top bottom', onEnter: () => setInFondo(true), onLeaveBack: () => setInFondo(false) }));
-    // Ogni voce vale dal suo pezzo alla fine del suo ultimo pezzo.
-    voci.forEach(v => {
-      const da = document.querySelector(`[data-pezzo="${v.pezzo}"]`);
-      const a = v.fino ? document.querySelector(`[data-pezzo="${v.fino}"]`) : null;
-      if (!da) return;
-      trigger.push(ScrollTrigger.create({
-        trigger: da,
-        start: 'top 55%',
-        endTrigger: a || da,
-        end: 'bottom 55%',
-        onToggle: self => setQui(q => (self.isActive ? v.pezzo : q === v.pezzo ? null : q)),
-      }));
-    });
-    return () => trigger.forEach(t => t.kill());
-  }, [voci.map(v => v.pezzo).join()]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (voci.length < 2) return null;
-  return (
-    <nav className={base.indice} data-visibile={visibile} aria-label="Sezioni della pagina">
-      {voci.map(v => (
-        <a key={v.pezzo} href={`#${v.pezzo}`} aria-current={qui === v.pezzo ? 'true' : undefined} tabIndex={visibile ? undefined : -1}
-          onClick={e => { e.preventDefault(); vaiA(`[data-pezzo="${v.pezzo}"]`); }}>
-          {v.nome}
-        </a>
-      ))}
-    </nav>
-  );
-}
-
-function Pezzo({ piece: p, now, seguenti }: { piece: HomePiece<Film>; now: Date; seguenti: Slot<Film>[] }) {
-  switch (p.kind) {
-    case 'apertura': return <Apertura giro={p.giro} now={now} />;
-    case 'nastro': return <Nastro films={p.movies} now={now} />;
-    case 'oggi': return <Oggi dayKey={p.dayKey} slots={p.slots} now={now} />;
-    case 'cartellone': return <Cartellone films={p.movies} now={now} />;
-    case 'conto': return <Conto film={p.movie} show={p.show} seguenti={seguenti} now={now} />;
-    case 'onore': return <Onore film={p.movie} award={p.award} now={now} />;
-    case 'parete': return <Parete items={p.items} now={now} />;
-    case 'pellicola': return <Pellicola films={p.movies} now={now} />;
-    case 'giornata': return <Giornata dayKey={p.dayKey} slots={p.slots} now={now} />;
-    case 'locandina': return <Locandina film={p.movie} now={now} />;
-    case 'barre': return <Barre film={p.movie} now={now} />;
-    case 'iride': return <Iride film={p.movie} now={now} />;
-    case 'trailer': return <TrailerMuto film={p.movie} trailerKey={p.trailerKey} now={now} />;
-    case 'doppio': return <Doppio a={p.a} b={p.b} />;
-    case 'ventaglio': return <Ventaglio films={p.movies} now={now} />;
-    case 'sottotitoli': return <Sottotitoli film={p.movie} show={p.show} />;
-    case 'settimana': return <Settimana days={p.days} now={now} />;
-  }
+function aggiorna(p: Programma<Film>, live: Film[]): Programma<Film> {
+  const filmDi = new Map(live.map(m => [m.id, m]));
+  const slot = (x: { movie: Film; show: Show }) => {
+    const movie = filmDi.get(x.movie.id) || x.movie;
+    return { movie, show: movie.subevents.find(s => s.id === x.show.id) || x.show };
+  };
+  return {
+    primo: slot(p.primo),
+    oggi: p.oggi.map(slot),
+    prossimi: p.prossimi.map(slot),
+    trailer: p.trailer && { slot: slot(p.trailer.slot), key: p.trailer.key },
+    lontani: p.lontani.map(slot),
+    giorni: p.giorni.map(g => ({ dayKey: g.dayKey, slots: g.slots.map(slot) })),
+    film: p.film.map(slot),
+  };
 }

@@ -1,0 +1,75 @@
+.prossimi { position: relative; }
+
+.palco {
+  display: flex;
+  align-items: center;
+}
+
+/* Il binario: più largo dello schermo, il motore lo porta di lato. */
+.binario {
+  align-items: flex-end;
+  gap: clamp(28px, 3.4vw, 56px);
+  padding: 0 var(--v-margine);
+  width: max-content;
+}
+
+.capo {
+  flex: 0 0 auto;
+  width: clamp(260px, 26vw, 420px);
+  align-self: center;
+  padding-right: clamp(8px, 2vw, 40px);
+}
+.titolo {
+  margin: 0;
+  font: 600 clamp(40px, 4.6vw, 72px)/1.04 var(--v-font-display);
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.sotto {
+  margin: 18px 0 0;
+  color: var(--v-tenue);
+  font-size: 21px;
+  line-height: 1.38;
+  letter-spacing: -0.02em;
+}
+
+.opera {
+  flex: 0 0 auto;
+  width: min(23vw, 42vh, 340px);
+}
+.locandina {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #151517;
+  box-shadow: var(--v-ombra), var(--v-luce-bordo);
+}
+.locandina img { object-fit: cover; }
+.scheda { margin-top: 20px; }
+
+.coda {
+  flex: 0 0 auto;
+  align-self: center;
+  width: clamp(220px, 20vw, 320px);
+  margin: 0;
+  color: var(--v-tenue);
+  font: 600 clamp(24px, 2.4vw, 32px)/1.2 var(--v-font-display);
+  letter-spacing: -0.025em;
+}
+
+/* Le opere arrivano in fila, come un cassetto tirato. */
+@media (prefers-reduced-motion: no-preference) {
+  .opera {
+    --k: clamp(0, calc(var(--sc-p, 0) * (var(--n) + 1.5) - var(--i) + 0.8), 1);
+    opacity: calc(0.55 + var(--k) * 0.45);
+    transform: translate3d(0, calc((1 - var(--k)) * 28px), 0);
+  }
+}
+
+@media (max-width: 860px) {
+  .capo { width: 72vw; }
+  .opera { width: min(62vw, 38vh); }
+  .sotto { font-size: 17px; }
+  .coda { width: 60vw; }
+}

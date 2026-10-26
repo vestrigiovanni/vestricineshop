@@ -1,31 +1,34 @@
+/* Il piede del sito pubblico, restyling del 26 ottobre 2026: minimale come una
+ * pagina Apple. Il nome della sala resta grande, in SF Pro, sul fondo della
+ * stanza (prende la tinta dell'ultimo film visto, vedi Home/Luce.tsx). */
 .footer {
   position: relative;
   width: 100%;
   margin-top: auto;
-  padding: clamp(56px, 8vw, 120px) 0 22px;
-  background: #000;
-  border-top: 1px solid rgba(239, 230, 216, 0.14);
-  color: #8a7d6c;
-  font-family: var(--font-home-dati), 'Hanken Grotesk', system-ui, sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  padding: clamp(64px, 8vw, 128px) 0 24px;
+  background: var(--f-fondo, #0b0b0c);
+  border-top: 1px solid rgba(245, 245, 247, 0.12);
+  color: var(--f-tenue, #a1a1a6);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-inter), 'Helvetica Neue', Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.33;
+  letter-spacing: -0.01em;
   overflow: hidden;
 }
 
 .container {
-  padding: 0 clamp(16px, 4vw, 56px);
+  padding: 0 clamp(20px, 5vw, 80px);
 }
 
-/* Il nome della sala a tutta larghezza, in Libre Caslon. */
+/* Il nome della sala a tutta larghezza. */
 .firma {
   margin: 0 0 clamp(28px, 4vw, 48px);
-  font-family: var(--font-home-titoli), 'Libre Caslon Display', Georgia, serif;
-  font-size: clamp(64px, 15.5vw, 280px);
-  line-height: 0.85;
-  letter-spacing: -0.03em;
-  text-transform: none;
-  color: #efe6d8;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', var(--font-inter), 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 600;
+  font-size: clamp(56px, 13.4vw, 240px);
+  line-height: 0.9;
+  letter-spacing: -0.055em;
+  color: #f5f5f7;
   white-space: nowrap;
 }
 
@@ -34,8 +37,8 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(239, 230, 216, 0.14);
+  padding-top: 16px;
+  border-top: 1px solid rgba(245, 245, 247, 0.12);
 }
 
 .riga p {
@@ -47,28 +50,26 @@
   padding: 0 4px;
   background: none;
   border: 0;
-  color: #efe6d8;
+  color: #f5f5f7;
   font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
   cursor: pointer;
 }
-.su:focus-visible { outline: 2px solid #efe6d8; outline-offset: 4px; }
+.su:focus-visible { outline: 2px solid var(--f-accento, #f5f5f7); outline-offset: 4px; border-radius: 6px; }
 
-/* L'ingresso al gestionale resta quasi invisibile, come oggi. */
+/* L'ingresso al gestionale resta quasi invisibile. */
 .adminButton {
-  color: rgba(239, 230, 216, 0.28);
+  color: rgba(245, 245, 247, 0.28);
   text-decoration: none;
   padding: 4px;
-  transition: color var(--c-fast);
+  transition: color 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .adminButton:hover,
 .adminButton:focus-visible {
-  color: #8a7d6c;
+  color: var(--f-tenue, #a1a1a6);
 }
 
 @media (max-width: 767px) {
   .riga { flex-wrap: wrap; }
-  .firma { font-size: 17vw; }
+  .firma { font-size: 15.5vw; }
 }

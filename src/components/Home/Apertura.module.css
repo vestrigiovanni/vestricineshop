@@ -1,164 +1,141 @@
 .apertura {
   position: relative;
-  height: 100svh;
-  min-height: 600px;
-  overflow: hidden;
-  background: #000;
+  /* L'uscita: da metà atto il fondale si chiude in una cornice. */
+  --t: clamp(0, calc((var(--sc-p, 0) - 0.5) * 2), 1);
 }
 
-.fondi { position: absolute; inset: 0; will-change: transform; }
-.fondo { position: absolute; inset: 0; will-change: transform, opacity; }
+.palco {
+  background: var(--f-fondo);
+}
 
-/* Il velo: chiaro in alto, nero in basso, dove sta il testo. */
+/* ─── Il piano lontano: il fondale ─── */
+.lontano {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  will-change: transform, clip-path;
+}
+.sorge {
+  position: absolute;
+  inset: 0;
+}
+.fondale {
+  object-fit: cover;
+  object-position: center 30%;
+}
+
+/* Il velo solo dove sta il testo: in basso a sinistra. */
 .velo {
   position: absolute;
   inset: 0;
   z-index: 1;
+  pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, transparent 18%, transparent 38%, rgba(0, 0, 0, 0.82) 72%, #000 100%),
-    radial-gradient(120% 80% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.45) 100%);
+    linear-gradient(to top, color-mix(in oklab, var(--f-fondo) 94%, transparent) 0%, color-mix(in oklab, var(--f-fondo) 62%, transparent) 26%, transparent 58%),
+    linear-gradient(to right, color-mix(in oklab, var(--f-fondo) 70%, transparent) 0%, transparent 52%);
 }
 
-/* La testata: il nome della sala a sinistra, il programma a destra. */
-.testa {
-  position: absolute;
-  z-index: 3;
-  top: 0;
-  left: var(--h-m);
-  right: var(--h-m);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 76px;
-}
-.marca { font-size: 24px; letter-spacing: -0.01em; color: var(--h-carta); }
-.programma {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 44px;
-  color: var(--h-carta);
-  text-decoration: none;
-}
-.programma::after { content: '↓'; font-family: var(--h-titoli); font-size: 16px; letter-spacing: 0; transition: transform 0.5s var(--h-apple); }
-.programma:hover::after { transform: translateY(3px); }
-.programma:focus-visible { outline: 2px solid var(--h-carta); outline-offset: 4px; }
-
-/* Il palco: il film in scena e, sotto, la fila del giro. */
-.palco {
+/* ─── Il piano vicino: la locandina ─── */
+.vicino {
   position: absolute;
   z-index: 2;
-  left: var(--h-m);
-  right: var(--h-m);
-  bottom: clamp(20px, 4vh, 40px);
-  display: flex;
-  flex-direction: column;
-  gap: clamp(24px, 4.5vh, 48px);
+  right: var(--v-margine);
+  bottom: 13vh;
+  width: clamp(150px, 16vw, 290px);
+  aspect-ratio: 2 / 3;
 }
-.slides { display: grid; }
-.info {
-  grid-area: 1 / 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 20px 48px;
-  align-items: end;
-}
-.dorme { opacity: 0; visibility: hidden; }
-
-.logoBox { display: inline-block; }
-.logo { display: block; max-height: clamp(80px, 15vh, 160px); max-width: min(560px, 100%); object-fit: contain; object-position: left bottom; }
-.info [data-logo-testo] { font-size: clamp(48px, 7vw, 104px); line-height: 0.95; }
-.righe { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 8px 22px; color: rgba(239, 230, 216, 0.78); }
-
-.destra { text-align: right; }
-.quando { color: var(--h-cenere); }
-.ora { font-size: clamp(64px, 10vw, 150px); line-height: 0.9; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.sala { margin-top: 10px; color: var(--h-cenere); }
-.azioni { margin-top: 22px; display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; align-items: center; }
-.trailer {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 0 22px;
-  background: rgba(239, 230, 216, 0.06);
-  color: var(--h-carta);
-  border: 1px solid var(--h-filo-forte);
-  border-radius: 999px;
-  font-family: var(--h-dati);
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: border-color 0.4s, background-color 0.4s;
-}
-.trailer span { font-size: 9px; }
-.trailer:hover { border-color: var(--h-carta); background: rgba(239, 230, 216, 0.12); }
-.trailer:focus-visible { outline: 2px solid var(--h-carta); outline-offset: 3px; }
-
-/* La fila del giro: un orario per film, e una linea che si riempie. */
-.giro {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: 14px;
-  border-top: 1px solid var(--h-filo);
-  padding-top: 14px;
-}
-.tacca {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  min-width: 0;
-  min-height: 44px;
-  padding: 0;
-  background: none;
-  border: 0;
-  color: var(--h-polvere);
-  text-align: left;
-  cursor: pointer;
-  transition: color 0.5s;
-}
-.tacca:hover, .taccaAttiva { color: var(--h-carta); }
-.tacca:focus-visible { outline: 2px solid var(--h-carta); outline-offset: 4px; }
-.taccaOra { color: inherit; }
-.taccaTitolo {
-  max-width: 100%;
+.locandina {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--h-titoli);
+  box-shadow: var(--v-ombra), var(--v-luce-bordo);
+}
+.locandina img { object-fit: cover; }
+
+/* ─── Il testo ─── */
+.copia {
+  position: absolute;
+  z-index: 3;
+  left: var(--v-margine);
+  bottom: clamp(48px, 12vh, 128px);
+  width: min(640px, 58vw);
+}
+.quando {
+  margin: 0 0 18px;
+  color: var(--f-accento);
+  font: 600 21px/1.2 var(--v-font-display);
+  letter-spacing: -0.012em;
+  font-variant-numeric: tabular-nums;
+}
+.titolo {
+  margin: 0;
+  font-size: clamp(44px, 6vw, 88px);
+}
+.logo {
+  max-height: clamp(96px, 17vh, 180px);
+  max-width: min(560px, 100%);
+}
+.crediti {
+  margin: 22px 0 0;
+  max-width: 46ch;
+  color: rgba(245, 245, 247, 0.82);
   font-size: 17px;
-  line-height: 1.2;
+  line-height: 1.47;
+  text-wrap: pretty;
 }
-.taccaLinea { position: relative; display: block; width: 100%; height: 1px; margin-top: 4px; background: var(--h-filo); overflow: hidden; }
-.taccaPieno { position: absolute; inset: 0; background: var(--h-carta); transform-origin: left center; }
+.azioni {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 28px;
+  margin-top: 28px;
+}
 
-/* Prima che parta la regia gli elementi aspettano nel buio. Se lo script non
- * arriva, dopo 6 s compaiono comunque. */
+/* ─── Il movimento ─── */
 @media (prefers-reduced-motion: no-preference) {
-  .entra { opacity: 0; animation: rivela 0.8s 6s forwards; }
-  .regia .entra { animation: none; }
-}
-.ferma .entra { opacity: 1; animation: none; }
-@keyframes rivela { to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) {
-  .taccaAttiva .taccaPieno { transform: none !important; }
+  .lontano {
+    transform: translate3d(0, calc(var(--sc-p, 0) * -4vh), 0) scale(calc(1.05 - var(--sc-p, 0) * 0.05));
+    clip-path: inset(calc(var(--t) * 9vh) calc(var(--t) * 7vw) round calc(var(--t) * 28px));
+  }
+  .vicino {
+    transform: translate3d(0, calc(var(--sc-p, 0) * -30vh), 0);
+    opacity: calc(1 - var(--t));
+  }
+  .velo { opacity: calc(1 - var(--t) * 0.6); }
+
+  /* L'ingresso, una volta: il fondale sale dal nero, poi la locandina e il testo. */
+  .sorge { animation: sorge 2.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .locandina { animation: entra 1.6s cubic-bezier(0.16, 1, 0.3, 1) 1s both; }
+  .entra { animation: entra 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both; }
 }
 
-@media (max-width: 767px) {
-  .testa { height: 60px; }
-  .marca { font-size: 20px; }
-  .info { grid-template-columns: 1fr; }
-  .destra { text-align: left; }
-  .azioni { justify-content: flex-start; }
-  .ora { font-size: 72px; }
-  .righe { margin-top: 14px; gap: 6px 16px; }
-  .giro { gap: 8px; padding-top: 0; border-top: 0; }
-  .taccaTitolo { display: none; }
-  .taccaOra { font-size: 9px; letter-spacing: 0.12em; white-space: nowrap; }
-  .taccaGiorno { display: none; }
+@keyframes sorge {
+  from { opacity: 0; transform: scale(1.12); }
+}
+@keyframes entra {
+  from { opacity: 0; transform: translate3d(0, 24px, 0); }
+}
+
+/* ─── Telefono: la locandina in alto, il testo largo in basso ─── */
+@media (max-width: 860px) {
+  .vicino {
+    top: 76px;
+    bottom: auto;
+    right: var(--v-margine);
+    width: 28vw;
+  }
+  .copia {
+    left: var(--v-margine);
+    right: var(--v-margine);
+    width: auto;
+    bottom: clamp(36px, 8vh, 72px);
+  }
+  .quando { font-size: 17px; margin-bottom: 12px; }
+  .logo { max-height: 13vh; max-width: 82vw; }
+  .crediti { font-size: 15px; margin-top: 14px; }
+  .azioni { margin-top: 20px; }
+  .velo {
+    background: linear-gradient(to top, color-mix(in oklab, var(--f-fondo) 96%, transparent) 0%, color-mix(in oklab, var(--f-fondo) 72%, transparent) 34%, transparent 66%);
+  }
 }

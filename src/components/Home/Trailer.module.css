@@ -1,0 +1,104 @@
+/* ─── Le luci si spengono ─── */
+.silenzio {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 0 var(--v-margine);
+}
+.motto {
+  margin: 0;
+  max-width: 28ch;
+  color: var(--v-tenue);
+  font: 500 clamp(21px, 2.2vw, 28px)/1.35 var(--v-font-display);
+  letter-spacing: -0.02em;
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* ─── Il trailer ─── */
+.trailer {
+  position: relative;
+  /* Quanto si è allargato lo schermo: tutto entro il primo quarto dell'atto. */
+  --e: clamp(0, calc(var(--sc-p, 0) / 0.28), 1);
+  /* Il velo e il testo arrivano solo alla fine. */
+  --fine: clamp(0, calc((var(--sc-p, 0) - 0.7) * 4), 1);
+}
+
+.schermo {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  clip-path: inset(calc((1 - var(--e)) * 14vh) calc((1 - var(--e)) * 12vw) round calc((1 - var(--e)) * 28px));
+  will-change: clip-path;
+}
+
+/* Il video copre lo schermo come una foto (object-fit: cover, per un iframe). */
+.video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100vw, 177.78vh);
+  height: max(100vh, 56.25vw);
+  width: max(100vw, 177.78svh);
+  height: max(100svh, 56.25vw);
+  transform: translate(-50%, -50%);
+  border: 0;
+  pointer-events: none;
+}
+
+.attesa {
+  position: absolute;
+  inset: 0;
+  transition: opacity 900ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.attesa img { object-fit: cover; }
+
+.velo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--fine);
+  background: linear-gradient(to top, rgba(7, 7, 8, 0.92) 0%, rgba(7, 7, 8, 0.55) 26%, transparent 55%);
+}
+
+.copia {
+  position: absolute;
+  z-index: 2;
+  left: var(--v-margine);
+  right: var(--v-margine);
+  bottom: clamp(40px, 10vh, 112px);
+  max-width: 640px;
+}
+.quando {
+  margin: 0 0 14px;
+  color: var(--f-accento);
+  font: 600 19px/1.2 var(--v-font-display);
+  letter-spacing: -0.01em;
+}
+.titolo { margin: 0; font-size: clamp(40px, 5vw, 72px); }
+.logo { max-height: clamp(80px, 14vh, 150px); max-width: min(460px, 100%); }
+.azioni {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 28px;
+  margin-top: 24px;
+}
+
+/* Senza movimento niente video che parte da solo: il fotogramma, e il trailer a richiesta. */
+@media (prefers-reduced-motion: reduce) {
+  .trailer { height: 140vh !important; }
+  .schermo { clip-path: none; }
+}
+
+@media (max-width: 860px) {
+  .schermo { clip-path: inset(calc((1 - var(--e)) * 18vh) calc((1 - var(--e)) * 5vw) round calc((1 - var(--e)) * 20px)); }
+  /* In verticale il trailer non si taglia: occupa tutta la larghezza, come in sala, nel buio. */
+  .video { width: 100vw; height: 56.25vw; top: 42%; }
+  .attesa { top: 42%; bottom: auto; height: 56.25vw; transform: translateY(-50%); }
+  .quando { font-size: 17px; }
+  .logo { max-height: 12vh; }
+}
