@@ -48,7 +48,7 @@ export interface Giorno<M extends HomeMovie = HomeMovie> { dayKey: string; slots
 export interface Programma<M extends HomeMovie = HomeMovie> {
   /** Atto 1: il primo spettacolo, a tutto schermo. */
   primo: Slot<M>;
-  /** Atto 2: tutti i film dello stesso giorno, il primo compreso, uno che sfuma nell'altro. */
+  /** Atto 2: gli altri film del giorno del primo (o del giorno dopo), uno che sfuma nell'altro. */
   oggi: Slot<M>[];
   /** Atto 3: le locandine dei giorni dopo, che scorrono di lato. */
   prossimi: Slot<M>[];
@@ -147,22 +147,28 @@ export function buildProgramma<M extends HomeMovie>(movies: M[], now: Date = new
   const [primo, ...dopo] = film;
   const giornoPrimo = toCinemaDayKey(primo.show.date);
 
-  // Oggi: tutti i film del giorno, il primo compreso e senza tetto ("visualizzi tutti
-  // i film del giorno e non solo due", Giovanni, 26 ottobre 2026). Anche quelli esauriti
-  // per quel giorno: si vedono, con "Esaurito", invece di sparire verso la loro data
-  // successiva. Se il primo è da solo, i due che vengono dopo.
-  const delGiorno = movies
+  // Oggi: tutti gli altri film del giorno del primo, senza tetto ("visualizzi tutti i film
+  // del giorno e non solo due", Giovanni, 26 ottobre 2026). Il primo no: si è appena visto
+  // nell'apertura. Se quel giorno non ha altro (il primo è l'ultimo della sera), tutti i
+  // film del primo giorno che ne ha, mattina e sera ("vorrei vederli tutti quelli di
+  // domani", 30 ottobre). Anche gli esauriti di quel giorno: si vedono, con "Esaurito",
+  // invece di sparire verso la loro data successiva.
+  const futuri = (movie: M) => movie.subevents
+    .filter(s => new Date(s.date) >= now)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const altri = movies.filter(m => m.id !== primo.movie.id);
+  const giornoOggi = altri
+    .flatMap(m => futuri(m).map(s => toCinemaDayKey(s.date)))
+    .filter(d => d >= giornoPrimo)
+    .sort()[0];
+  const oggi = altri
     .map(movie => {
-      if (movie.id === primo.movie.id) return primo;
-      const quel = movie.subevents
-        .filter(s => new Date(s.date) >= now && toCinemaDayKey(s.date) === giornoPrimo)
-        .sort((a, b) => a.date.localeCompare(b.date));
+      const quel = futuri(movie).filter(s => toCinemaDayKey(s.date) === giornoOggi);
       const show = quel.find(s => !s.isSoldOut) || quel[0];
       return show ? { movie, show } : null;
     })
     .filter((s): s is Slot<M> => !!s)
     .sort((a, b) => a.show.date.localeCompare(b.show.date));
-  const oggi = delGiorno.length > 1 ? delGiorno : dopo.slice(0, 2);
   const inOggi = new Set(oggi.map(s => s.movie.id));
   const resto = dopo.filter(s => !inOggi.has(s.movie.id));
 

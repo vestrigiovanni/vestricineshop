@@ -1,11 +1,12 @@
-/* Il piede del sito pubblico, restyling del 26 ottobre 2026: minimale come una
- * pagina Apple. In alto il logo della sala, sul fondo della
- * stanza (prende la tinta dell'ultimo film visto, vedi Home/Luce.tsx). */
+/* Il piede del sito pubblico, minimale come una pagina Apple: una riga sola,
+ * col logo piccolo, sul fondo della stanza (prende la tinta dell'ultimo film
+ * visto, vedi Home/Luce.tsx). Il 30 ottobre 2026 è sceso da un logo grande al
+ * centro, con tanto spazio sopra, a questa riga. */
 .footer {
   position: relative;
   width: 100%;
   margin-top: auto;
-  padding: clamp(64px, 8vw, 128px) 0 24px;
+  padding: 14px 0 calc(14px + env(safe-area-inset-bottom, 0px));
   background: var(--f-fondo, #0b0b0c);
   border-top: 1px solid rgba(245, 245, 247, 0.12);
   color: var(--f-tenue, #a1a1a6);
@@ -16,29 +17,23 @@
   overflow: hidden;
 }
 
-.container {
+.riga {
+  display: flex;
+  align-items: center;
+  gap: 8px 20px;
   padding: 0 clamp(20px, 5vw, 80px);
 }
 
-/* Il logo della sala, al centro, come la firma alla fine dei titoli di coda. */
+/* Il logo della sala, piccolo, in testa alla riga. */
 .firma {
   display: block;
-  width: clamp(150px, 18vw, 260px);
-  height: auto;
-  margin: 0 auto clamp(40px, 5vw, 72px);
+  flex: none;
+  width: auto;
+  height: 32px;
 }
 
-.riga {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(245, 245, 247, 0.12);
-}
-
-.riga p {
-  margin: 0;
+.anno {
+  margin: 0 auto 0 0;
 }
 
 .su {

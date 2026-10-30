@@ -28,7 +28,7 @@ interface Props {
  *
  * Ogni Prenota della pagina porta qui il suo film, con la scheda intera
  * (SchedaFilm): il fondale cambia salendo di nuovo dal nero, e la stanza
- * prende la luce di quel film.
+ * prende la luce di quel film. La X riporta dov'eri (HomePage).
  */
 export default function Apertura({ film, show, now, scheda, onApri, onChiudi }: Props) {
   const { openTrailer } = useTrailer();
@@ -44,6 +44,9 @@ export default function Apertura({ film, show, now, scheda, onApri, onChiudi }: 
           </div>
         </div>
         <div className={s.velo} />
+        {/* Il logo della sala sta con l'apertura e se ne va con lei: in cima solo il logo,
+            senza la barra che scendendo si faceva banda (Giovanni, 30 ottobre 2026). */}
+        <Image src="/assets/vestri-cinema.png" alt="Vestri Cinema" width={437} height={373} className={s.marchio} priority />
         {f.poster_path && (
           <div className={s.vicino}>
             <div className={s.locandina} key={f.id}>
@@ -52,7 +55,7 @@ export default function Apertura({ film, show, now, scheda, onApri, onChiudi }: 
           </div>
         )}
         {scheda && (
-          <button type="button" className={s.chiudi} onClick={onChiudi} aria-label="Chiudi la scheda e torna al prossimo film">
+          <button type="button" className={s.chiudi} onClick={onChiudi} aria-label="Chiudi la scheda e torna dov'eri">
             <X size={20} strokeWidth={2} aria-hidden />
           </button>
         )}

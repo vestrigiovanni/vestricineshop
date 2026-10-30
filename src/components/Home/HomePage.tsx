@@ -9,7 +9,6 @@ import { BookContext, Film, Show, prefersMotion } from './shared';
 import { Ambiente, LuceProvider } from './Luce';
 import { useMotore } from './motore';
 import { useLeggero } from './leggero';
-import Barra from './Barra';
 import Apertura from './Apertura';
 import Oggi from './Oggi';
 import Prossimi from './Prossimi';
@@ -66,11 +65,10 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   const struttura = useMemo(() => {
     const p = buildProgramma(movies, now);
     if (!p || initialMovieId == null || p.primo.movie.id === initialMovieId) return p;
-    // `?film=`: quel film apre la pagina e il primo passa in testa a "Oggi" (se non c'è già); gli altri restano dove sono.
+    // `?film=`: quel film apre la pagina e il primo passa in testa a "Oggi"; gli altri restano dove sono.
     const scelto = p.film.find(x => x.movie.id === initialMovieId);
-    const via = <T,>(xs: T[]) => xs.filter(x => x !== scelto);
-    const oggi = p.oggi.includes(p.primo) ? via(p.oggi) : [p.primo, ...via(p.oggi)];
-    return scelto ? { ...p, primo: scelto, oggi, prossimi: via(p.prossimi), lontani: via(p.lontani) } : p;
+    const via = <T extends { movie: Film },>(xs: T[]) => xs.filter(x => x.movie.id !== initialMovieId);
+    return scelto ? { ...p, primo: scelto, oggi: [p.primo, ...via(p.oggi)], prossimi: via(p.prossimi), lontani: via(p.lontani) } : p;
   }, [movies, now, initialMovieId]);
   const plan = useMemo(() => (struttura ? aggiorna(struttura, live) : null), [struttura, live]);
 
@@ -82,19 +80,26 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
 
   // Ogni Prenota porta il suo film nell'apertura, con la scheda intera: da vicino
   // si torna su scorrendo, da lontano con uno stacco (il fondale risale dal nero).
+  // Chiudendo la scheda si torna dov'eri ("voglio che rimanga lì dove ero",
+  // Giovanni, 30 ottobre 2026): prima la X lasciava in cima alla pagina.
   const [scelto, setScelto] = useState<{ film: Film; show: Show } | null>(null);
+  const ritorno = useRef(0);
   const scegli = useCallback((show: Show, film: Film) => {
     setScelto({ film, show });
-    const lontano = scrollY > innerHeight * 2.5;
-    window.scrollTo({ top: 0, behavior: lontano || !prefersMotion() ? 'instant' : 'smooth' });
+    ritorno.current = scrollY;
+    salta(0);
   }, []);
-  const chiudi = useCallback(() => setScelto(null), []);
+  const chiudi = useCallback(() => {
+    setScelto(null);
+    // Solo se si sta ancora guardando la scheda: chi intanto è sceso resta dov'è.
+    if (scrollY < innerHeight * 0.5) salta(ritorno.current);
+  }, []);
   useEffect(() => {
     if (!scelto || booking) return;
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setScelto(null); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') chiudi(); };
     addEventListener('keydown', esc);
     return () => removeEventListener('keydown', esc);
-  }, [scelto, booking]);
+  }, [scelto, booking, chiudi]);
 
   useMotore(root);
   useLeggero(root);
@@ -115,7 +120,6 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
         <div ref={root} className={base.home}>
           <Ambiente films={filmLuce} />
           <h1 className={base.nascosto}>Vestri Cinema: i film in sala</h1>
-          <Barra film={plan.film} now={now} />
           <div className={base.atti}>
             <Apertura film={plan.primo.movie} show={plan.primo.show} now={now} scheda={scheda} onApri={apri} onChiudi={chiudi} />
             {plan.oggi.length > 0 && <Oggi slots={plan.oggi} now={now} />}
@@ -137,6 +141,12 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
       />
     </BookContext.Provider>
   );
+}
+
+/** Porta la pagina a `top`: da vicino scorrendo, da lontano con uno stacco. */
+function salta(top: number) {
+  const lontano = Math.abs(scrollY - top) > innerHeight * 2.5;
+  window.scrollTo({ top, behavior: lontano || !prefersMotion() ? 'instant' : 'smooth' });
 }
 
 /**

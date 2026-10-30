@@ -33,10 +33,10 @@ describe('la regia della home', () => {
     ];
     const p = buildProgramma(movies, NOW)!;
     expect(p.primo.movie.title).toBe('Primo');
-    // "Oggi" ha tutti i film del giorno, il primo compreso.
-    expect(p.oggi.map(s => s.movie.title)).toEqual(['Primo', 'Pomeriggio', 'Stasera']);
+    // "Oggi" ha gli altri film del giorno: il primo si è appena visto nell'apertura.
+    expect(p.oggi.map(s => s.movie.title)).toEqual(['Pomeriggio', 'Stasera']);
     expect(p.prossimi).toHaveLength(4);
-    const atti = [p.primo, ...p.oggi.filter(s => s !== p.primo), ...p.prossimi, ...(p.trailer ? [p.trailer.slot] : []), ...p.lontani].map(s => s.movie.title);
+    const atti = [p.primo, ...p.oggi, ...p.prossimi, ...(p.trailer ? [p.trailer.slot] : []), ...p.lontani].map(s => s.movie.title);
     expect(new Set(atti).size).toBe(atti.length);
     expect(atti).toHaveLength(movies.length);
     // L'ultimo dei lontani è il più lontano di tutti.
@@ -63,23 +63,40 @@ describe('la regia della home', () => {
     expect(p.trailer!.slot.movie.title).toBe('Solo');
   });
 
-  it('"Oggi" non ha tetto: ci sono tutti i film del giorno', () => {
+  it('"Oggi" non ha tetto: ci sono tutti i film del giorno, tranne il primo', () => {
     const p = buildProgramma([10, 12, 14, 16, 18, 20, 22].map(h => film(`Ore${h}`, [giorno(26, h)])), NOW)!;
-    expect(p.oggi).toHaveLength(7);
+    expect(p.oggi).toHaveLength(6);
+    expect(p.oggi.map(s => s.movie.title)).not.toContain('Ore10');
   });
 
   it('in "Oggi" restano anche i film esauriti per quel giorno, e non tornano più avanti', () => {
     const pieno = film('Pieno', [giorno(26, 20), giorno(29, 20)]);
     pieno.subevents[0].isSoldOut = true;
     const p = buildProgramma([film('Primo', [giorno(26, 16)]), pieno, ...[27, 27, 28, 28, 30].map((d, i) => film(`D${i}`, [giorno(d, 10 + i)]))], NOW)!;
-    expect(p.oggi.map(s => [s.movie.title, s.show.date])).toEqual([['Primo', giorno(26, 16)], ['Pieno', giorno(26, 20)]]);
+    expect(p.oggi.map(s => [s.movie.title, s.show.date])).toEqual([['Pieno', giorno(26, 20)]]);
     const dopo = [...p.prossimi, ...p.lontani, ...(p.trailer ? [p.trailer.slot] : [])].map(s => s.movie.title);
     expect(dopo).not.toContain('Pieno');
   });
 
-  it('se il primo è l\'unico film del giorno, "Oggi" prende i due che vengono dopo', () => {
-    const p = buildProgramma([film('Uno', [giorno(26, 20)]), film('Due', [giorno(27, 20)]), film('Tre', [giorno(28, 20)]), film('Quattro', [giorno(29, 20)])], NOW)!;
-    expect(p.oggi.map(s => s.movie.title)).toEqual(['Due', 'Tre']);
+  it('se il primo è l\'ultimo film della sera, "Oggi" prende tutti quelli del giorno dopo', () => {
+    const p = buildProgramma([
+      film('Sera', [giorno(26, 20)]),
+      film('Mattina', [giorno(27, 10)]),
+      film('Pranzo', [giorno(27, 13)]),
+      film('Notte', [giorno(27, 21)]),
+      film('Poi', [giorno(28, 20)]),
+    ], NOW)!;
+    expect(p.primo.movie.title).toBe('Sera');
+    expect(p.oggi.map(s => s.movie.title)).toEqual(['Mattina', 'Pranzo', 'Notte']);
+  });
+
+  it('il film dell\'apertura non torna in "Oggi", nemmeno se si proietta anche il giorno dopo', () => {
+    const p = buildProgramma([
+      film('Sera', [giorno(26, 20), giorno(27, 18)]),
+      film('Mattina', [giorno(27, 10)]),
+      film('Notte', [giorno(27, 21)]),
+    ], NOW)!;
+    expect(p.oggi.map(s => s.movie.title)).toEqual(['Mattina', 'Notte']);
   });
 
   it('il programma intero ha tutti gli spettacoli, raggruppati per giorno di sala', () => {

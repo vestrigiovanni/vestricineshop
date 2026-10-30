@@ -16,8 +16,7 @@ import s from './Luce.module.css';
  *
  * Chi vuole colorare la stanza mette `data-luce` su un elemento:
  * - `data-luce="<id del film>"`: il film, quando l'elemento copre il centro dello schermo;
- * - `data-luce="buio"`: luci spente, prima del trailer (con `data-luce-film` la barra
- *   propone intanto il film che sta per arrivare);
+ * - `data-luce="buio"`: luci spente, prima del trailer;
  * - `data-luce="tutti"`: la luce di tutti i film insieme, in fondo.
  * Dentro un atto fissato, `data-luce-da` e `data-luce-a` dicono in quale tratto
  * dell'atto vale (il progresso `--sc-p` che pubblica il motore scroll-craft).
@@ -32,15 +31,13 @@ interface StanzeCtx {
 }
 interface ScenaCtx {
   scena: Scena;
-  /** L'ultimo film che ha colorato la stanza: resta anche a luci spente. */
-  filmVisto: number | null;
 }
 
 // Due contesti e non uno: il film in vista cambia di continuo mentre si scorre,
 // i colori dei film no. Chi legge solo i colori (le locandine, il programma
 // intero) così non si ridisegna a ogni cambio di film.
 const StanzeContext = createContext<StanzeCtx>({ stanze: {}, luci: {} });
-const ScenaContext = createContext<ScenaCtx>({ scena: null, filmVisto: null });
+const ScenaContext = createContext<ScenaCtx>({ scena: null });
 export const useStanze = () => useContext(StanzeContext);
 export const useScena = () => useContext(ScenaContext);
 
@@ -102,7 +99,6 @@ export function LuceProvider({ films, root, children }: { films: FilmLuce[]; roo
   const [tinte, setTinte] = useState<Record<number, Tinta>>({});
   const [luci, setLuci] = useState<Record<number, string>>({});
   const [scena, setScena] = useState<Scena>(null);
-  const [filmVisto, setFilmVisto] = useState<number | null>(null);
   const chiave = films.map(f => `${f.id}:${f.backdrop_path || f.poster_path || ''}`).join('|');
 
   // Si misurano tutti i film subito: sono miniature da 64 pixel. I risultati
@@ -154,7 +150,7 @@ export function LuceProvider({ films, root, children }: { films: FilmLuce[]; roo
       const cx = innerWidth / 2;
       // Le locandine di lato si muovono senza uscire dalla linea: per loro il rettangolo si rilegge.
       for (const n of linea.keys()) if (n.closest('[data-sc-pan]')) linea.set(n, n.getBoundingClientRect());
-      let trovata: Scena = null, film: string | null = null, distanza = Infinity;
+      let trovata: Scena = null, distanza = Infinity;
       el.querySelectorAll<HTMLElement>('[data-luce]').forEach(n => {
         let d = 0;
         const da = n.getAttribute('data-luce-da');
@@ -174,11 +170,9 @@ export function LuceProvider({ films, root, children }: { films: FilmLuce[]; roo
         if (d > distanza) return;
         distanza = d;
         trovata = n.getAttribute('data-luce');
-        film = n.getAttribute('data-luce-film') || trovata;
       });
       if (trovata === null) return;
       setScena(trovata);
-      if (film && /^\d+$/.test(film)) setFilmVisto(Number(film));
     };
     const chiedi = () => {
       // Nel modo leggero (leggero.ts) la stanza cambia quando ci si ferma: col
@@ -240,7 +234,7 @@ export function LuceProvider({ films, root, children }: { films: FilmLuce[]; roo
   }, []);
 
   const valoreStanze = useMemo(() => ({ stanze, luci }), [stanze, luci]);
-  const valoreScena = useMemo(() => ({ scena, filmVisto }), [scena, filmVisto]);
+  const valoreScena = useMemo(() => ({ scena }), [scena]);
   return (
     <StanzeContext.Provider value={valoreStanze}>
       <ScenaContext.Provider value={valoreScena}>{children}</ScenaContext.Provider>

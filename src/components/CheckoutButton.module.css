@@ -1,5 +1,5 @@
-/* La conferma, nella colonna della prenotazione: prima l'email (o niente),
- * poi il biglietto. Dentro una `.cabina`; i valori dopo la virgola servono se
+/* La conferma, nella colonna della prenotazione: prima "Continua senza email",
+ * grande, poi l'email, piccola; infine il biglietto. Dentro una `.cabina`; i valori dopo la virgola servono se
  * il componente finisse fuori. */
 
 /* --- Il modulo --- */
@@ -10,24 +10,32 @@
   width: 100%;
 }
 
+/* L'email: una riga sola, campo e bottone piccoli. */
 .inputWrapper {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 8px;
+  margin: 0;
 }
 
 .emailInput {
   box-sizing: border-box;
-  width: 100%;
-  padding: 12px 14px;
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: 8px 12px;
   border: 1px solid var(--c-line-strong, #3a3128);
   border-radius: var(--c-radius, 6px);
   outline: none;
   background: var(--c-bg, #100d0a);
   color: var(--c-ink, #efe6d8);
   font-family: var(--c-font-sans, sans-serif);
-  font-size: 16px;
+  font-size: 14px;
   transition: border-color var(--c-fast, 150ms);
+}
+
+/* Sul telefono sotto i 16px Safari ingrandisce la pagina quando si tocca il campo. */
+@media (pointer: coarse) {
+  .emailInput { font-size: 16px; }
 }
 
 .emailInput::placeholder {
@@ -64,6 +72,40 @@
   cursor: not-allowed;
 }
 
+/* "Continua senza email": il tasto che usano quasi tutti, grande e subito sotto
+ * il dito. Una pillola, come "Prenota i posti" appena premuto. */
+.principale {
+  min-height: 56px;
+  padding: 18px 20px;
+  border-radius: 999px;
+  font-size: 14px;
+}
+
+.emailBtn {
+  flex: none;
+  padding: 8px 12px;
+  border: 1px solid var(--c-line-strong, #3a3128);
+  border-radius: var(--c-radius, 6px);
+  background: none;
+  color: var(--c-ink, #efe6d8);
+  font-family: var(--c-font-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--c-fast, 150ms), color var(--c-fast, 150ms);
+}
+
+.emailBtn:hover:not(:disabled) {
+  border-color: var(--c-dim, #8a7d6c);
+}
+
+.emailBtn:disabled {
+  color: var(--c-dim, #8a7d6c);
+  cursor: not-allowed;
+}
+
 .divider {
   display: flex;
   align-items: center;
@@ -83,24 +125,6 @@
   background: var(--c-line, #2a231c);
 }
 
-.anonymousBtn {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid var(--c-line-strong, #3a3128);
-  border-radius: var(--c-radius, 6px);
-  background: none;
-  color: var(--c-ink, #efe6d8);
-  font-family: var(--c-font-mono, monospace);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: border-color var(--c-fast, 150ms);
-}
-
-.anonymousBtn:hover:not(:disabled) {
-  border-color: var(--c-dim, #8a7d6c);
-}
 
 .error {
   margin: 0;

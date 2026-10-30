@@ -34,6 +34,9 @@ interface SubeventMetadata {
   tmdbId?: string;
 }
 
+/** L'indirizzo con cui Pretix registra chi prenota senza email. */
+const OSPITE = 'guest_ANONIMO@vestricinema.it';
+
 interface CheckoutButtonProps {
   subeventId?: number;
   selectedSeats: string[];
@@ -61,6 +64,8 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
     }
 
     // Age verification is now handled by BookingFlow.tsx before seat selection.
+
+    setIsAnonymous(finalEmail === OSPITE);
 
     // 0. Reset state & Clear session to prevent stale data restoration
     if (subeventId) sessionStorage.removeItem(`order_${subeventId}`);
@@ -211,7 +216,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
           tickets: ticketsToSave,
           orderCode: newOrderCode,
           subeventData: newSubeventData,
-          isAnonymous: targetEmail === 'guest_ANONIMO@vestricinema.it'
+          isAnonymous: targetEmail === OSPITE
         }));
       }
 
@@ -310,8 +315,7 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
     setOrderCode('');
     setError(null);
     
-    setIsAnonymous(true);
-    handleCheckout('guest_ANONIMO@vestricinema.it');
+    handleCheckout(OSPITE);
   };
 
   if (success) {
@@ -385,37 +389,38 @@ export default function CheckoutButton({ subeventId, selectedSeats, onSuccess, m
     );
   }
 
+  // Prima, in grande, la strada che prendono quasi tutti: senza email. L'email
+  // resta sotto, piccola, per chi vuole la copia (Giovanni, 30 ottobre 2026).
   return (
     <div className={styles.container}>
-      <div className={styles.inputWrapper}>
-        <input 
-          type="email" 
-          placeholder="La tua email (opzionale se rapido)" 
+      <button
+        type="button"
+        className={`${styles.button} ${styles.principale}`}
+        onClick={handleAnonymousCheckout}
+        disabled={loading}
+      >
+        {loading && isAnonymous ? 'Prenotazione in corso…' : 'Continua senza email'}
+      </button>
+
+      <div className={styles.divider}>
+        <span>oppure ricevilo per email</span>
+      </div>
+
+      <form className={styles.inputWrapper} onSubmit={(e) => { e.preventDefault(); handleCheckout(); }}>
+        <input
+          type="email"
+          placeholder="La tua email"
+          aria-label="La tua email"
+          autoComplete="email"
           className={styles.emailInput}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-        <button 
-          className={styles.button} 
-          onClick={() => handleCheckout()} 
-          disabled={loading || !email}
-        >
-          {loading ? 'Prenotazione in corso...' : 'Conferma con Email'}
+        <button type="submit" className={styles.emailBtn} disabled={loading || !email}>
+          {loading && !isAnonymous ? 'Prenoto…' : 'Conferma'}
         </button>
-      </div>
-
-      <div className={styles.divider}>
-        <span>oppure</span>
-      </div>
-
-      <button 
-        className={styles.anonymousBtn}
-        onClick={handleAnonymousCheckout}
-        disabled={loading}
-      >
-        Continua senza email
-      </button>
+      </form>
 
       {error && <p className={styles.error}>{error}</p>}
     </div>

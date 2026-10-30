@@ -35,6 +35,17 @@
     linear-gradient(to right, color-mix(in oklab, var(--f-fondo) 70%, transparent) 0%, transparent 52%);
 }
 
+/* Il logo di Vestri Cinema (bianco, su trasparente), in alto a sinistra. */
+.marchio {
+  position: absolute;
+  z-index: 4;
+  top: 6px;
+  left: var(--v-margine);
+  width: auto;
+  height: 40px;
+  pointer-events: none;
+}
+
 /* ─── Il piano vicino: la locandina ─── */
 .vicino {
   position: absolute;

@@ -14,7 +14,7 @@ import s from './Trailer.module.css';
  */
 export function Silenzio({ film }: { film: Film }) {
   return (
-    <section className={s.silenzio} data-sc-act="flow" data-luce="buio" data-luce-film={film.id} aria-label="Si spengono le luci">
+    <section className={s.silenzio} data-sc-act="flow" data-luce="buio" aria-label="Si spengono le luci">
       {film.tagline && <p className={s.motto} data-sc-in>{film.tagline}</p>}
     </section>
   );
@@ -93,7 +93,7 @@ export default function Trailer({ slot, trailerKey, now }: { slot: Slot<Film>; t
   const presentati = () => frame.current?.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: trailerKey }), '*');
 
   return (
-    <section ref={root} className={s.trailer} data-sc-act="pin" data-sc-span="3.6" style={{ height: '360vh' }} data-luce="buio" data-luce-film={film.id} data-film-ancora={film.id} aria-labelledby="trailer-titolo">
+    <section ref={root} className={s.trailer} data-sc-act="pin" data-sc-span="3.6" style={{ height: '360vh' }} data-luce="buio" data-film-ancora={film.id} aria-labelledby="trailer-titolo">
       <div className={`sc-stage ${s.palco}`} data-sc-stage>
         <div className={s.schermo}>
           {acceso && (

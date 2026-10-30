@@ -169,3 +169,18 @@ tutta la sessione. Allora la barra è piena invece che sfocata, la luce e "Oggi"
 senza sfumare, quello che entra è già al suo posto, apertura e trailer stanno fermi, e la
 stanza cambia luce quando ci si ferma. Con la scheda grafica non si accende mai. Misurato
 col processore: dal 51% al 3,6% di fotogrammi oltre i 33 ms.
+
+## Correzioni di Giovanni (30 ottobre 2026)
+
+- **"Oggi" senza doppioni e con tutto il giorno dopo.** Il film dell'apertura non torna in
+  "Oggi": lì ci sono gli altri film del suo giorno. Se il primo è l'ultimo della sera, "Oggi"
+  diventa "Domani" con tutti i film del giorno dopo, mattina e sera (prima ne prendeva due).
+- **La X della scheda riporta dov'eri.** Prenota porta ancora il film nell'apertura con la
+  scheda intera, ma la pagina ricorda il punto da cui si è partiti e la X (o Esc) ci torna.
+- **Niente barra in alto.** Tolta la barra che dopo l'apertura diventava una banda sfocata,
+  con titolo, indice dei film, "Programma" e "Prenota" (ridondanti). Resta solo il logo, dentro
+  l'apertura: c'è finché c'è lei e se ne va con lei.
+- **Il piede è una riga sola**, col logo piccolo; prima il logo era grande al centro, con
+  molto spazio sopra.
+- **Dopo i posti, "Continua senza email" è il tasto grande**, per primo; l'email sta sotto,
+  in una riga piccola (campo e "Conferma").
