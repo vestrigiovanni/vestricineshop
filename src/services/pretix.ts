@@ -13,6 +13,8 @@ const PRETIX_API_URL = 'https://pretix.eu/api/v1';
 const PRETIX_ORGANIZER = 'vestri';
 const PRETIX_EVENT = 'npkez';
 const PRETIX_TOKEN = process.env.PRETIX_TOKEN;
+/** L'indirizzo con cui il sito registra chi prenota senza email (vedi CheckoutButton). */
+const GUEST_EMAIL = 'guest_ANONIMO@vestricinema.it';
 
 if (!PRETIX_TOKEN && process.env.NODE_ENV === 'production') {
   console.error('[PRETIX] ERRORE CRITICO: PRETIX_TOKEN non configurato su Vercel!');
@@ -709,6 +711,9 @@ export async function finalizeBooking(email: string, seats: string[], subeventId
     const orderPayload = {
       email,
       locale: 'it',
+      // Via API Pretix non manda mail se non glielo si chiede: la mandiamo
+      // con il biglietto solo a chi ha lasciato un indirizzo vero.
+      send_email: email !== GUEST_EMAIL,
       positions: seats.map((seatGuid: string) => ({
         item: ITEM_INTERO_ID, // Product for 'INTERO' - VIP seats are blocked above
         seat: seatGuid,
