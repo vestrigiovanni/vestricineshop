@@ -17,6 +17,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { normalizeText } from '@/services/catalogMatch';
+import { enrichPendingFilms, backfillFilmMetadata } from '@/services/catalogImport';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -195,7 +196,7 @@ async function finalize(allPlexKeys: string[]) {
 export async function POST(request: Request) {
   if (!isAuthorized(request)) return unauthorized();
 
-  let body: { films?: PlexFilm[]; finalize?: boolean; allPlexKeys?: string[] };
+  let body: { films?: PlexFilm[]; finalize?: boolean; allPlexKeys?: string[]; enrich?: 'tmdb' | 'backfill' };
   try {
     body = await request.json();
   } catch {
@@ -203,6 +204,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Dopo l'invio, lo script chiede a blocchi quello che fa "Importa e aggiorna" nel
+    // gestionale: abbinare a TMDB i film nuovi, poi completarne le schede.
+    if (body.enrich === 'tmdb') return NextResponse.json(await enrichPendingFilms(25));
+    if (body.enrich === 'backfill') return NextResponse.json(await backfillFilmMetadata(25));
+
     if (body.finalize) {
       if (!Array.isArray(body.allPlexKeys) || body.allPlexKeys.length === 0) {
         // Una lista vuota vorrebbe dire "svuota la libreria": rifiutiamo, perché

@@ -308,11 +308,27 @@ async function main() {
   const finale = await post({ finalize: true, allPlexKeys: copies.map((c) => c.plexKey) });
   console.log(`✓ ${finale.removedFromPlex} usciti`);
 
+  // Come "Importa e aggiorna" nel gestionale: i film nuovi prendono locandina e
+  // scheda da TMDB. A blocchi, finché ne restano — o finché non si scende più
+  // (un film che TMDB non sa completare non deve far girare a vuoto).
+  for (const [fase, nome] of [['tmdb', 'Abbino a TMDB i film nuovi'], ['backfill', 'Completo le schede (voto, trama, sfondo)']]) {
+    let prima = Infinity;
+    for (;;) {
+      const r = await post({ enrich: fase });
+      if (r.remaining === 0 || r.processed === 0 || r.remaining >= prima) {
+        console.log(`   ${nome}: ${r.remaining === 0 ? 'fatto' : `ne restano ${r.remaining} che TMDB non sa completare`}`);
+        break;
+      }
+      prima = r.remaining;
+      process.stdout.write(`   ${nome}… ne restano ${r.remaining}\r`);
+    }
+  }
+
   console.log(
     `\n✓ Fatto.\n` +
     `   ${totals.created} nuovi · ${totals.updated} aggiornati · ${finale.removedFromPlex} usciti dalla libreria\n` +
     `   ${totals.matchedByTmdb} abbinati direttamente per id TMDB (nessun matching per titolo)\n` +
-    `   ${finale.needEnrich} in attesa di arricchimento TMDB` +
+    `   ${finale.needEnrich} erano in attesa di arricchimento TMDB` +
     (totals.errors.length ? `\n   ⚠ ${totals.errors.length} errori:\n     ${totals.errors.slice(0, 10).join('\n     ')}` : '') +
     `\n`
   );
