@@ -25,6 +25,7 @@ import { autoPick, bandAffinity, type AutoPickFilm } from '@/services/scheduling
 import { judgeTaste, type TasteData, type TasteVerdict } from '@/services/scheduling/taste';
 import gustoSala from '@/data/gusto-sala.json';
 import { arrivalTimes, buildShelves, directorsOf, type Shelf, type ShelfFilm } from '@/services/scheduling/shelves';
+import { isCatalogSort, sortCatalog, type CatalogSort } from '@/services/scheduling/catalogSort';
 import {
   CLOSING_MINUTE,
   MINUTES_PER_DAY,
@@ -773,10 +774,13 @@ export async function planningCatalogBoard(input: {
   /** Solo film mai programmati. */
   onlyNever?: boolean;
   search?: string;
-} = {}): Promise<{ films: (PlanningCatalogFilm & { tasteNote: string | null })[]; total: number; page: number; pages: number }> {
+  /** Come mettere in fila la libreria; di base, a caso pesato sul gusto. */
+  sort?: CatalogSort;
+} = {}): Promise<{ films: (PlanningCatalogFilm & { tasteNote: string | null; arrivedAt: number | null })[]; total: number; page: number; pages: number }> {
   const count = Math.min(Math.max(Math.trunc(input.count ?? 100), 1), 200);
   const excluded = new Set(input.exclude ?? []);
   const search = input.search?.trim().toLowerCase();
+  const sort = isCatalogSort(input.sort) ? input.sort : 'mix';
 
   const catalog = await usableCatalog();
   const taste = tasteOf(catalog);
@@ -791,18 +795,18 @@ export async function planningCatalogBoard(input: {
     return true;
   });
 
-  const seed = (input.seed ?? 1) >>> 0;
-  let a = seed;
-  const rng = () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  const ranked = eligible
-    .map((f) => ({ f, key: rng() * 3 + (taste.get(f.tmdbId!)?.score ?? 0) }))
-    .sort((x, y) => y.key - x.key)
-    .map(({ f }) => ({ ...f, tasteNote: taste.get(f.tmdbId!)?.note ?? null }));
+  const arrivals = arrivalTimes(eligible.map((f) => ({ tmdbId: f.tmdbId!, addedAt: f.addedAt, catalogedAt: f.catalogedAt ?? null })));
+  const ranked = sortCatalog(
+    eligible.map((f) => ({
+      ...f,
+      runtime: f.runtime ?? f.durationMin,
+      arrivedAt: arrivals.get(f.tmdbId!) ?? null,
+      taste: taste.get(f.tmdbId!)?.score ?? 0,
+      tasteNote: taste.get(f.tmdbId!)?.note ?? null,
+    })),
+    sort,
+    input.seed ?? 1,
+  ).map(({ taste: _taste, ...f }) => f);
 
   const pages = Math.max(Math.ceil(ranked.length / count), 1);
   const page = Math.min(Math.max(Math.trunc(input.page ?? 0), 0), pages - 1);

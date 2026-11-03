@@ -210,6 +210,24 @@
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr)); gap: 22px 10px; }
 .grid .card { width: auto; }
 
+/* ── Tutta la libreria ────────────────────────────────────────────────────── */
+.views { display: inline-flex; height: 36px; padding: 3px; border: 1px solid var(--c-line); border-radius: 999px; }
+.views button {
+  padding: 0 13px; background: none; border: 0; border-radius: 999px; cursor: pointer;
+  font-family: var(--c-font-mono); font-size: 11.5px; letter-spacing: 0.04em; color: var(--c-dim);
+}
+.views button:hover { color: var(--c-ink); }
+.views button[aria-pressed='true'] { background: var(--c-amber-soft); color: var(--c-amber); }
+.allBar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin: 0 0 16px; }
+.allBar .resultsHead { flex: 1 1 auto; margin: 0; }
+.sortSelect, .chip {
+  height: 32px; padding: 0 12px; background: var(--c-bg-sunken); color: var(--c-ink);
+  border: 1px solid var(--c-line); border-radius: 999px; cursor: pointer;
+  font-family: var(--c-font-mono); font-size: 11px; letter-spacing: 0.04em;
+}
+.sortSelect:hover, .chip:hover { border-color: var(--c-amber); }
+.chip[aria-pressed='true'] { border-color: var(--c-amber); background: var(--c-amber-soft); color: var(--c-amber); }
+
 /* ── Il caricamento ───────────────────────────────────────────────────────── */
 .ghost { background: linear-gradient(100deg, var(--c-bg-sunken) 40%, var(--c-bg-raised) 50%, var(--c-bg-sunken) 60%) 0 0 / 200% 100%; animation: shimmer 1.4s linear infinite; }
 .ghostLine { display: block; width: 180px; height: 16px; border-radius: 3px; background: var(--c-bg-raised); }

@@ -11,14 +11,16 @@ interface CardProps {
   on: boolean;
   onToggle: (film: BrowserFilm) => void;
   onInfo: (film: BrowserFilm) => void;
+  /** La misura TMDB del poster: nella griglia di tutta la libreria basta piccola. */
+  size?: string;
 }
 
 /**
  * Un poster. Il clic sul poster lo sceglie al volo; la "i" apre la scheda.
  * Al passaggio del mouse il poster si alza e mostra cosa sa di sé.
  */
-export function PosterCard({ film, on, onToggle, onInfo }: CardProps) {
-  const poster = getTMDBImageUrl(film.posterPath, 'w342');
+export function PosterCard({ film, on, onToggle, onInfo, size = 'w342' }: CardProps) {
+  const poster = getTMDBImageUrl(film.posterPath, size);
   const prefetch = () => {
     if (film.tmdbId) void loadFilmCard(film.tmdbId);
   };
@@ -33,7 +35,7 @@ export function PosterCard({ film, on, onToggle, onInfo }: CardProps) {
       >
         {poster ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={poster} alt="" loading="lazy" draggable={false} />
+          <img src={poster} alt="" loading="lazy" decoding="async" draggable={false} />
         ) : (
           <span className={styles.noPoster}>{film.title}</span>
         )}
