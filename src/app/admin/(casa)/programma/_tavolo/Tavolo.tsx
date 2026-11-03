@@ -9,7 +9,7 @@ import Button from '@/components/cabina/Button';
 import Dialog from '@/components/cabina/Dialog';
 import { useToast } from '@/components/cabina/Toast';
 import type { Intensity, ScheduledShow } from '@/services/scheduling/engine';
-import { MINUTES_PER_DAY, OPENING_MINUTE, daysBetweenISO, formatClock } from '@/services/scheduling/times';
+import { MINUTES_PER_DAY, OPENING_MINUTE, addDaysISO, daysBetweenISO, formatClock } from '@/services/scheduling/times';
 import type { CatalogItem } from './types';
 import BlockPanel, { type MoveIntent } from './BlockPanel';
 import CatalogDrawer from './CatalogDrawer';
@@ -31,9 +31,9 @@ import {
 } from './draft';
 import FillDialog from './FillDialog';
 import { minuteAt, place, ticks } from './geometry';
-import { dayShort, periodLabel } from './labels';
+import { dayShort } from './labels';
 import type { TavoloData } from './load';
-import { SPANS, shiftFrom, toSearch, type Span } from './query';
+import { SPANS, shiftFrom, spanBetween, toSearch, type Span } from './query';
 import { useCommit } from './useCommit';
 import { useDraft } from './useDraft';
 import { findBlock, type TavoloBlock, type TavoloDay } from './week';
@@ -397,13 +397,36 @@ export default function Tavolo({ data }: { data: TavoloData }) {
               <button type="button" onClick={() => go({ from: shiftFrom(data.from, data.days, -1) })} aria-label="Periodo precedente">
                 <ChevronLeft size={15} />
               </button>
-              <span>{periodLabel(data.from, data.days)}</span>
+              <label className={styles.dateField}>
+                <span>dal</span>
+                <input
+                  type="date"
+                  value={data.from}
+                  onChange={(e) => e.target.value && go({ from: e.target.value })}
+                  aria-label="Primo giorno"
+                />
+              </label>
+              <label className={styles.dateField}>
+                <span>al</span>
+                <input
+                  type="date"
+                  value={addDaysISO(data.from, data.days - 1)}
+                  min={data.from}
+                  max={addDaysISO(data.from, 29)}
+                  onChange={(e) => {
+                    const days = e.target.value ? spanBetween(data.from, e.target.value) : null;
+                    if (days) go({ days });
+                  }}
+                  aria-label="Ultimo giorno"
+                />
+              </label>
               <button type="button" onClick={() => go({ from: shiftFrom(data.from, data.days, 1) })} aria-label="Periodo successivo">
                 <ChevronRight size={15} />
               </button>
             </div>
             <select className={styles.select} value={data.days} onChange={(e) => go({ days: Number(e.target.value) as Span })} aria-label="Ampiezza">
               {SPANS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {!SPANS.some((s) => s.value === data.days) && <option value={data.days}>{data.days} giorni</option>}
             </select>
           </div>
           <h1 className={styles.title}>{title}</h1>

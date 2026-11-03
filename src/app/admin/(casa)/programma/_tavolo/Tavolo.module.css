@@ -10,6 +10,13 @@
 .select { padding: 0 8px; }
 .period { display: flex; align-items: center; gap: 4px; padding: 0 4px; }
 .period span { padding: 0 6px; white-space: nowrap; }
+.dateField { display: flex; align-items: center; gap: 4px; padding: 0 2px; }
+.dateField span { padding: 0; color: var(--c-dim); }
+.dateField input {
+  background: none; border: 0; color: inherit; font: inherit; letter-spacing: inherit;
+  padding: 2px 0; cursor: pointer;
+}
+.dateField input:focus-visible { outline: 1px solid var(--c-amber); outline-offset: 2px; border-radius: 3px; }
 .period button { display: grid; place-items: center; width: 26px; height: 26px; background: none; border: 0; color: var(--c-dim); cursor: pointer; border-radius: 4px; }
 .period button:hover { color: var(--c-amber); background: var(--c-amber-soft); }
 .title { margin: 0; font-family: var(--c-font-serif); font-weight: 600; font-size: 32px; line-height: 1; }
