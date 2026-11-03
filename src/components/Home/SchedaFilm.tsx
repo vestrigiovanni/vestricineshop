@@ -76,7 +76,10 @@ export default function SchedaFilm({ film, show, now, onApri }: { film: Film; sh
             const f = resolveFestival(p.type);
             return (
               <li key={`${p.type}-${p.year}-${p.prize}`} className={s.premio}>
-                <Image src={f.logo} alt="" width={52} height={52} sizes="52px" className={s.festival} />
+                {/* Passandoci sopra col mouse, il logo dice il suo festival per intero. */}
+                <span className={s.festivalLogo} data-nome={f.name}>
+                  <Image src={f.logo} alt={f.name} width={52} height={52} sizes="52px" className={s.festival} />
+                </span>
                 {/* Il premio solo se vinto: una candidatura alla Palma d'oro non è una Palma d'oro. */}
                 <span className={s.premioNome}>{p.won.length ? maiuscola(p.prize) : p.nominated.length ? 'Candidatura' : 'Selezione ufficiale'}</span>
                 <span className={s.premioDove}>{!p.won.length && p.nominated.length ? `${maiuscola(p.prize)}, ` : ''}{f.breve}{p.year ? ` ${p.year}` : ''}</span>
