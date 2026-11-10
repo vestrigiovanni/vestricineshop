@@ -1,54 +1,33 @@
-/* La luce d'ambiente: dietro tutta la pagina, sotto ogni clic. Niente
- * `filter` qui: l'immagine arriva già sfocata da Luce.tsx (`sfoca`), perché
- * Firefox ricalcolava la sfocatura a ogni passo di scorrimento. */
+/* La luce d'ambiente: dietro tutta la pagina, sotto ogni clic. Niente `filter`
+ * e niente sfumature qui: ogni luce arriva da Luce.tsx come un'immagine sola,
+ * già sfocata e con la vignetta dentro (`sfoca`). Col processore uno strato
+ * opaco costa una copia; tre strati trasparenti da fondere, a tutto schermo,
+ * erano un fotogramma lungo. */
 .ambiente {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  transition: opacity 1.6s cubic-bezier(0.23, 1, 0.32, 1);
+  background: #070708;
 }
 
+/* Uno strato per scena: il film, il buio (senza immagine), o tutti i film. */
 .strato {
   position: absolute;
-  inset: -12%;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.5;
-  animation: entra 1.4s cubic-bezier(0.23, 1, 0.32, 1) both;
+  inset: 0;
+  background-color: #070708;
+  background-size: 100% 100%;
+  animation: entra var(--m-scena) var(--m-esce) both;
 }
 
 @keyframes entra {
   from { opacity: 0; }
-  to { opacity: 0.5; }
 }
-
-.tutti {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 1.6s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-/* Il centro resta più scuro dei bordi: la luce viene dallo schermo, non dal pavimento. */
-.vignetta {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(120% 90% at 50% 45%, transparent 30%, var(--f-fondo, #0b0b0c) 100%);
-}
-
-.ambiente[data-scena='buio'] { opacity: 0; }
-.ambiente[data-scena='tutti'] .strato { opacity: 0; transition: opacity 1.2s; animation: none; }
-.ambiente[data-scena='tutti'] .tutti { opacity: 0.42; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ambiente, .tutti { transition: none; }
-  .strato { animation: none; }
+  .strato { animation-duration: 1ms; }
 }
 
-/* Nel modo leggero (leggero.ts) la luce cambia senza sfumare: una sfumatura a
- * tutto schermo, disegnata dal processore, è una fila di fotogrammi lunghi. */
-:global([data-leggero]) .ambiente,
-:global([data-leggero]) .tutti { transition: none; }
-:global([data-leggero]) .ambiente .strato { animation: none; transition: none; }
+/* Nel modo leggero (leggero.ts) la luce cambia senza sfumare. */
+:global([data-leggero]) .strato { animation-duration: 1ms; }
