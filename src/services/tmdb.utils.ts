@@ -118,3 +118,28 @@ export function pickExtraBackdrops(
 
   return [...noLang, ...withLang].slice(0, max).map(b => b.file_path);
 }
+
+/** Quello che serve di `/movie/{id}?append_to_response=translations` per scegliere il motto. */
+export interface TMDBTaglineSource {
+  tagline?: string | null;
+  original_language?: string | null;
+  translations?: { translations?: { iso_639_1?: string; data?: { tagline?: string | null } }[] } | null;
+}
+
+/**
+ * Il motto di un film: in italiano se TMDB ce l'ha, sennò nella lingua
+ * originale (solo se si scrive in caratteri latini), sennò in inglese.
+ * È la stessa regola dei trailer: un motto in giapponese non lo legge nessuno.
+ * Niente motto, stringa vuota: non se ne inventa uno.
+ */
+export function pickTagline(details: TMDBTaglineSource | null | undefined): string {
+  if (!details) return '';
+  const pulito = (t?: string | null) => (t || '').trim();
+  const italiano = pulito(details.tagline);
+  if (italiano) return italiano;
+  const tradotto = (lingua: string) =>
+    (details.translations?.translations || []).map(t => (t.iso_639_1 === lingua ? pulito(t.data?.tagline) : '')).find(Boolean) || '';
+  const originale = details.original_language ? tradotto(details.original_language) : '';
+  if (originale && !isNonLatin(originale)) return originale;
+  return tradotto('en');
+}

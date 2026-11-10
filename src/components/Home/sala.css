@@ -27,11 +27,40 @@
   --sc-font-text: -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-inter), 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* Le entrate, una volta, quando qualcosa arriva in vista (il motore aggiunge
+ * `sc-in`). Curve, durata e distanza sono quelle del sistema di movimento
+ * (Home.module.css). Il foglio del motore sta in un layer, quindi qui si
+ * ridicono tutti e due gli stati. Entrano solo cose piccole (titoli, righe,
+ * cartellini): un blocco grande che sfuma, col processore, è un fotogramma lungo. */
+[data-sc-in],
+[data-sc-stagger] > * {
+  opacity: 0;
+  transform: translate3d(0, var(--m-salita, 16px), 0);
+  transition: opacity var(--m-entrata, 640ms) var(--m-esce, ease-out), transform var(--m-entrata, 640ms) var(--m-esce, ease-out);
+}
+[data-sc-in].sc-in,
+[data-sc-stagger] > .sc-in {
+  opacity: 1;
+  transform: none;
+}
+/* Chi fa entrare i figli in fila resta fermo: a sfumare sono loro, uno per uno. */
+[data-sc-in][data-sc-stagger] {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-sc-in],
+  [data-sc-stagger] > * {
+    transform: none;
+    transition-duration: 200ms;
+  }
+}
+
 /* Il modo leggero (leggero.ts), sui computer che disegnano col processore: le
  * entrate a tempo si spengono e quello che entra è già al suo posto. */
 [data-leggero] [data-sc-in],
-[data-leggero] [data-sc-stagger] > *,
-[data-leggero] [data-sc-in] img {
+[data-leggero] [data-sc-stagger] > * {
   opacity: 1;
   transform: none;
   transition: none;

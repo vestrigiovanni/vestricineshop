@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickExtraBackdrops, TMDBBackdrop } from './tmdb.utils';
+import { pickExtraBackdrops, pickTagline, TMDBBackdrop } from './tmdb.utils';
 
 const bd = (file_path: string, iso: string | null, vote = 5, votes = 10): TMDBBackdrop => ({
   file_path,
@@ -38,5 +38,33 @@ describe('pickExtraBackdrops', () => {
   it('restituisce array vuoto senza candidati', () => {
     expect(pickExtraBackdrops([], '/main.jpg')).toEqual([]);
     expect(pickExtraBackdrops([bd('/main.jpg', null)], '/main.jpg')).toEqual([]);
+  });
+});
+
+describe('pickTagline', () => {
+  const con = (tagline: string, original_language: string, tradotti: Record<string, string>) => ({
+    tagline,
+    original_language,
+    translations: { translations: Object.entries(tradotti).map(([iso_639_1, t]) => ({ iso_639_1, data: { tagline: t } })) },
+  });
+
+  it('preferisce il motto italiano', () => {
+    expect(pickTagline(con('Ogni famiglia ha i suoi segreti.', 'en', { en: 'Every family has its secrets.' }))).toBe('Ogni famiglia ha i suoi segreti.');
+  });
+
+  it('senza italiano prende la lingua originale, poi l\'inglese', () => {
+    expect(pickTagline(con('', 'fr', { fr: 'Le temps détruit tout.', en: 'Time destroys everything.' }))).toBe('Le temps détruit tout.');
+    expect(pickTagline(con('  ', 'sv', { en: 'A film by Ingmar Bergman.' }))).toBe('A film by Ingmar Bergman.');
+  });
+
+  it('una lingua che non si scrive in caratteri latini lascia il posto all\'inglese', () => {
+    expect(pickTagline(con('', 'ja', { ja: '生きろ。', en: 'The fate of the world rests on the courage of one warrior.' }))).toBe('The fate of the world rests on the courage of one warrior.');
+  });
+
+  it('senza motto non se ne inventa uno', () => {
+    expect(pickTagline(con('', 'en', {}))).toBe('');
+    expect(pickTagline(con('', 'ja', { ja: '生きろ。' }))).toBe('');
+    expect(pickTagline(null)).toBe('');
+    expect(pickTagline({})).toBe('');
   });
 });

@@ -27,4 +27,6 @@ export interface GroupedMovie {
   extraBackdrops?: string[];
   genres?: string[];
   voteAverage?: number | null;
+  /** Il titolo originale, dal catalogo della libreria. */
+  originalTitle?: string;
 }

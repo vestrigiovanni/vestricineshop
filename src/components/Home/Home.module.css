@@ -3,27 +3,65 @@
  * che prende il colore del film in vista (vedi Luce.tsx). Sotto, il foglio del
  * motore scroll-craft, in un layer (sala.css). */
 .home {
+  /* ─── Caratteri ─── */
   --v-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-inter), 'Helvetica Neue', Arial, sans-serif;
   --v-font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', var(--font-inter), 'Helvetica Neue', Arial, sans-serif;
+  /* Il peso e la spaziatura dei titoli stanno qui: cambiare carattere è cambiare queste quattro righe. */
+  --v-peso-titolo: 600;
+  --v-stretto: -0.035em;
+  --v-serrato: -0.022em;
+
+  /* ─── La scala dei caratteri: una sola, per tutti gli atti ─── */
+  --t-atto: clamp(40px, 4.6vw, 72px);     /* il titolo di un atto */
+  --t-sotto: clamp(19px, 1.6vw, 21px);    /* la riga sotto il titolo */
+  --t-quando: clamp(17px, 1.45vw, 21px);  /* "Oggi alle 20:30" */
+  --t-testo: 17px;
+  --t-riga: 15px;                         /* le righe del cartellino */
+  --t-nota: 13px;
+
+  /* ─── Colori ─── */
   --v-ink: #f5f5f7;
   --v-tenue: var(--f-tenue);
   --v-filo: rgba(245, 245, 247, 0.12);
   --v-filo-forte: rgba(245, 245, 247, 0.22);
+
+  /* ─── Griglia: dodici colonne, lo stesso margine in ogni atto ─── */
   --v-margine: clamp(20px, 5vw, 80px);
-  --v-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --v-canale: clamp(16px, 2vw, 32px);
+  --v-misura: 46ch;
   --v-raggio: 28px;
+  --v-raggio-piccolo: 14px;
   /* Un'ombra sola e corta: Firefox ridisegna le ombre di ciò che si muove a ogni
    * fotogramma, e le tre ombre larghe di prima (fino a 90px di sfumatura)
    * facevano scattare le locandine che scorrono. */
   --v-ombra: 0 14px 28px -12px rgba(0, 0, 0, 0.6);
   --v-luce-bordo: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
+  /* ─── Il sistema di movimento (10 novembre 2026) ───
+   * Tre curve, sei durate, una distanza e uno scarto: ogni entrata e ogni
+   * passaggio della home prende da qui, e da nessun'altra parte. Si anima solo
+   * `transform` e `opacity`: col processore (il Firefox di Giovanni) tutto il
+   * resto è un fotogramma lungo. */
+  --m-esce: cubic-bezier(0.23, 1, 0.32, 1);      /* ciò che entra, o risponde a un gesto */
+  --m-posa: cubic-bezier(0.16, 1, 0.3, 1);       /* ciò che arriva piano e si posa: un fondale */
+  --m-sposta: cubic-bezier(0.77, 0, 0.175, 1);   /* ciò che cambia posto restando in vista */
+  --m-tocco: 140ms;     /* la pressione di un tasto */
+  --m-rapida: 180ms;    /* hover e piccoli cambi di stato */
+  --m-breve: 300ms;     /* ciò che esce: in fretta, prima di chi entra */
+  --m-entrata: 640ms;   /* ciò che entra in vista */
+  --m-scena: 900ms;     /* un film che dà il cambio a un altro */
+  --m-alba: 1800ms;     /* il fondale che sale dal nero */
+  --m-salita: 16px;     /* di quanto sale ciò che entra */
+  --m-fila: 70ms;       /* lo scarto fra una voce e la successiva */
+  /* Il nome di prima, per chi lo usa ancora (prenotazione, piede). */
+  --v-ease: var(--m-esce);
+
   position: relative;
   color: var(--v-ink);
   font-family: var(--v-font);
-  font-size: 17px;
+  font-size: var(--t-testo);
   line-height: 1.47;
-  letter-spacing: -0.022em;
+  letter-spacing: var(--v-serrato);
   overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   color-scheme: dark;
@@ -65,16 +103,15 @@
   border-radius: 999px;
   background: var(--f-accento);
   color: var(--f-accento-ink);
-  font: 600 17px/1 var(--v-font);
-  letter-spacing: -0.022em;
+  font: 600 var(--t-testo)/1 var(--v-font);
+  letter-spacing: var(--v-serrato);
   white-space: nowrap;
   cursor: pointer;
-  /* Il colore del film arriva sfumando sul tasto, non su tutta la pagina. */
-  transition: transform 140ms var(--v-ease), filter 160ms var(--v-ease), background-color 700ms var(--v-ease), color 700ms var(--v-ease);
+  transition: transform var(--m-tocco) var(--m-esce), opacity var(--m-rapida) var(--m-esce);
 }
 .prenota:active { transform: scale(0.97); }
 @media (hover: hover) and (pointer: fine) {
-  .prenota:hover { filter: brightness(1.08); }
+  .prenota:hover { opacity: 0.86; }
 }
 
 .prenotaLink {
@@ -92,7 +129,7 @@
   font-size: 1.15em;
   line-height: 1;
   transform: translateY(-0.04em);
-  transition: transform 160ms var(--v-ease);
+  transition: transform var(--m-rapida) var(--m-esce);
 }
 @media (hover: hover) and (pointer: fine) {
   .prenotaLink:hover { text-decoration: underline; text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
@@ -107,52 +144,221 @@
   font: 400 17px/1 var(--v-font);
 }
 
-/* ─── Logo del film ─── */
+/* ─── Logo del film ───
+ * Il logo sta in una scatola di altezza fissa, decisa da chi lo usa: ogni logo
+ * ha le sue proporzioni, e senza scatola quando l'immagine arrivava il testo
+ * intorno si spostava. Dentro, il logo si appoggia in basso a sinistra. */
+.logoBox {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+}
 .logo {
-  display: block;
-  width: auto;
-  height: auto;
-  max-width: 100%;
   object-fit: contain;
   object-position: left bottom;
   filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.45));
 }
+.logoBox[data-verso='centro'] { align-items: center; }
+.logoBox[data-verso='centro'] .logo { object-position: left center; }
 .logoAcceso { filter: brightness(0) invert(1) drop-shadow(0 2px 12px rgba(0, 0, 0, 0.45)); }
-.logoTesto {
-  display: block;
-  font: 600 1em/1.05 var(--v-font-display);
+/* Senza logo, il titolo: è testo, c'è da subito, e la sua altezza è la sua. */
+.logoBox.logoTesto {
+  height: auto;
+  font: var(--v-peso-titolo) 1em/1.05 var(--v-font-display);
   letter-spacing: -0.03em;
   text-wrap: balance;
 }
 
-/* ─── La scheda: uguale per ogni film ─── */
-.scheda {
+/* ─── I titoli degli atti: uno stile solo ─── */
+.attoTitolo {
+  margin: 0;
+  font: var(--v-peso-titolo) var(--t-atto)/1.04 var(--v-font-display);
+  letter-spacing: var(--v-stretto);
+  text-wrap: balance;
+}
+.attoSotto {
+  margin: 16px 0 0;
+  color: var(--v-tenue);
+  font-size: var(--t-sotto);
+  line-height: 1.38;
+  letter-spacing: -0.02em;
+  text-wrap: pretty;
+}
+
+/* ─── Il sistema dei metadati (Dati.tsx): quando e dove, cartellino, premi, posti ───
+ * Le stesse righe in ogni atto, come le etichette di una collezione. */
+.quando {
+  margin: 0;
+  color: var(--f-accento);
+  font: 600 var(--t-quando)/1.25 var(--v-font-display);
+  letter-spacing: -0.012em;
+  font-variant-numeric: tabular-nums;
+  text-wrap: balance;
+}
+/* La sala sta accanto all'ora, più piano: è la stessa per (quasi) tutti gli spettacoli. */
+.sala {
+  color: var(--v-tenue);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.sala::before {
+  content: '·';
+  margin: 0 0.5em;
+}
+
+.cartellino {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
-}
-.quando {
-  margin: 0 0 6px;
-  color: var(--f-accento);
-  font: 600 14px/1.3 var(--v-font);
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-}
-.schedaTitolo { margin: 0 0 8px; font-size: 24px; }
-.schedaLogo { max-height: 56px; max-width: min(240px, 100%); }
-.schedaNome {
-  margin: 0 0 6px;
-  font: 600 21px/1.2 var(--v-font-display);
-  letter-spacing: -0.02em;
-  text-wrap: balance;
+  gap: 2px;
 }
 .riga {
   margin: 0;
+  max-width: var(--v-misura);
   color: var(--v-tenue);
-  font-size: 14px;
-  line-height: 1.43;
-  letter-spacing: -0.016em;
+  font-size: var(--t-riga);
+  line-height: 1.45;
+  letter-spacing: -0.014em;
   text-wrap: pretty;
 }
-.scheda > :last-child { margin-top: 6px; }
+/* Il divieto: una sigla in un bordo sottile, come sul manifesto. */
+.divieto {
+  display: inline-block;
+  padding: 0 0.42em;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px var(--v-filo-forte);
+  font-size: 0.86em;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-decoration: none;
+  color: var(--v-ink);
+  cursor: help;
+}
+
+/* Il premio in una riga: il logo del festival, poi il premio e dove. */
+.premio {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 6px 0 0;
+  color: var(--v-tenue);
+  font-size: var(--t-riga);
+  line-height: 1.3;
+  letter-spacing: -0.014em;
+}
+.premio strong {
+  color: var(--v-ink);
+  font-weight: 600;
+}
+.premio strong::after {
+  content: '·';
+  margin: 0 0.45em;
+  color: var(--v-tenue);
+  font-weight: 400;
+}
+/* I loghi sono quadrati, larghi (Cannes, Venezia) o alti (Oscar, BAFTA): stanno
+ * tutti nello stesso quadrato, interi. */
+.festival {
+  flex: none;
+  display: block;
+  object-fit: contain;
+}
+.premio .festival { width: 28px; height: 28px; }
+
+/* I premi per esteso (la scheda intera): ognuno sotto il logo del suo festival. */
+.premi {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 28px;
+  margin: 0;
+  padding: 0;
+}
+.premioVoce {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 150px;
+  color: var(--v-tenue);
+  font-size: 12px;
+  line-height: 1.3;
+}
+.premioVoce strong {
+  color: var(--v-ink);
+  font: 600 var(--t-nota)/1.25 var(--v-font);
+  letter-spacing: -0.008em;
+}
+.premioVoce .festival {
+  width: 52px;
+  height: 52px;
+  object-position: left center;
+  margin-bottom: 4px;
+}
+/* Il nome del festival, in un'etichetta sopra il logo quando ci passa il mouse. */
+.festivalNome {
+  position: relative;
+  display: block;
+}
+.festivalNome::after {
+  content: attr(data-nome);
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: 260px;
+  padding: 7px 11px;
+  border-radius: 10px;
+  background: rgba(20, 20, 22, 0.92);
+  box-shadow: var(--v-ombra), var(--v-luce-bordo);
+  font: 500 12.5px/1.3 var(--v-font);
+  color: var(--v-ink);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(0, 4px, 0);
+  transition: opacity var(--m-rapida) var(--m-esce), transform var(--m-rapida) var(--m-esce);
+}
+@media (hover: hover) {
+  .festivalNome:hover::after {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* I posti: "Ultimo posto" nel colore del film, "Esaurito" piano. */
+.posti {
+  color: var(--v-tenue);
+  font-size: var(--t-riga);
+  line-height: 1.3;
+  letter-spacing: -0.014em;
+  white-space: nowrap;
+}
+.posti[data-stato='ultimi'] {
+  color: var(--f-accento);
+  font-weight: 600;
+}
+/* Il pallino: pieno se ci sono posti, vuoto se è esaurito. Lo si capisce senza leggere. */
+.posti::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 0.55em;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: 0.12em;
+}
+.posti[data-stato='esaurito']::before {
+  background: none;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+@media (max-width: 860px) {
+  .premio .festival { width: 24px; height: 24px; }
+  .premi { gap: 10px 18px; }
+  .premioVoce { max-width: 120px; font-size: 11px; }
+  .premioVoce strong { font-size: 12px; }
+  .premioVoce .festival { width: 40px; height: 40px; }
+}

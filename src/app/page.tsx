@@ -8,7 +8,7 @@ import { unstable_noStore as noStore } from 'next/cache';
 import type { MovieOverride, PretixSync } from '@prisma/client';
 import { commonProjectionSpecs, normalizeProjectionSpecs } from '@/constants/projectionSpecs';
 import { pickInitialMovieId, pickInitialSubeventId } from '@/components/Home/linkData';
-import { withExtraBackdrops } from '@/services/filmImagery';
+import { withExtraBackdrops, withTaglines } from '@/services/filmImagery';
 
 // Define the type for the projection with the included movie
 type ProjectionWithMovie = PretixSync & {
@@ -101,9 +101,23 @@ export default async function Home({
       specs: normalizeProjectionSpecs(p.projectionSpecs),
       specsNote: p.projectionSpecsNote || '',
       rating: p.movie.customRating || 'T',
-      roomName: roomName
+      roomName: roomName,
+      // I posti liberi e quelli della sala, quando Pretix li ha detti (sola lettura):
+      // la home ci scrive "Ultimo posto" quando ne restano pochi.
+      availableSeats: typeof p.availableSeats === 'number' ? p.availableSeats : null,
+      totalSeats: typeof p.totalSeats === 'number' ? p.totalSeats : null,
     });
   }
+
+  // Generi, voto e titolo originale: nella scheda del film (MovieOverride) il
+  // 10 novembre 2026 erano vuoti per tutti i film in sala, mentre il catalogo
+  // della libreria (CatalogFilm) li ha per tutti. Li si legge da lì, senza
+  // scrivere niente: chi li ha già nella scheda tiene i suoi.
+  const catalogo = await prisma.catalogFilm.findMany({
+    where: { tmdbId: { in: Object.keys(groupedRecord) } },
+    select: { tmdbId: true, genres: true, voteAverage: true, originalTitle: true },
+  });
+  const delCatalogo = new Map(catalogo.map(c => [String(c.tmdbId), c]));
 
   // L'anno di uscita: la data arriva come "2024-10-18" dal catalogo, ma alcuni
   // record hanno formati liberi. Risolto qui per non far calcolare nulla al client.
@@ -151,14 +165,16 @@ export default async function Home({
       awards: (movie as any).awards || [],
       tagline: ((movie as any).tagline || '').trim(),
       extraBackdrops: Array.isArray((movie as any).extraBackdrops) ? (movie as any).extraBackdrops : [],
-      genres: Array.isArray((movie as any).genres) ? (movie as any).genres : [],
-      voteAverage: typeof (movie as any).voteAverage === 'number' ? (movie as any).voteAverage : null,
+      genres: Array.isArray(m.genres) && m.genres.length ? m.genres : (delCatalogo.get(String(movie.tmdbId))?.genres ?? []),
+      voteAverage: typeof m.voteAverage === 'number' && m.voteAverage > 0 ? m.voteAverage : (delCatalogo.get(String(movie.tmdbId))?.voteAverage ?? null),
+      originalTitle: (delCatalogo.get(String(movie.tmdbId))?.originalTitle || '').trim(),
     };
   });
 
   // Fondali extra da TMDB (in cache per un giorno) per i film che nel catalogo
   // non ne hanno: sono la materia dei disegni che cambiano coi film in sala.
-  const movies = await withExtraBackdrops(catalogMovies);
+  // Lo stesso per il motto, che nel catalogo manca: letto da TMDB, in cache, senza scrivere.
+  const movies = await withTaglines(await withExtraBackdrops(catalogMovies));
 
   // Ordinamento: Film disponibili prima, poi per data prossima proiezione
   movies.sort((a, b) => {

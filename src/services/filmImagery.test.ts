@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('next/cache', () => ({ unstable_cache: (fn: unknown) => fn }));
 
-import { withExtraBackdrops } from './filmImagery';
+import { withExtraBackdrops, withTaglines } from './filmImagery';
 
 const film = (id: number, extra: string[] = []) => ({ id, backdrop_path: '/main.jpg', extraBackdrops: extra });
 
@@ -35,5 +35,29 @@ describe('withExtraBackdrops', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     const [m] = await withExtraBackdrops([film(3)]);
     expect(m.extraBackdrops).toEqual([]);
+  });
+});
+
+describe('withTaglines', () => {
+  it('prende il motto da TMDB per i film che non ce l\'hanno', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ tagline: 'Il tempo distrugge tutto.', original_language: 'fr' }) })));
+    const [m] = await withTaglines([{ id: 979, tagline: '' }]);
+    expect(m.tagline).toBe('Il tempo distrugge tutto.');
+  });
+
+  it('non tocca un motto che c\'è già, e non chiama TMDB', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    const [m] = await withTaglines([{ id: 1, tagline: 'Scritto a mano.' }]);
+    expect(m.tagline).toBe('Scritto a mano.');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('se TMDB non risponde, o non ha un motto, il film resta senza', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 503 })));
+    expect((await withTaglines([{ id: 2, tagline: undefined as string | undefined }]))[0].tagline).toBeUndefined();
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ tagline: '', original_language: 'en' }) })));
+    expect((await withTaglines([{ id: 3, tagline: '' }]))[0].tagline).toBe('');
   });
 });
