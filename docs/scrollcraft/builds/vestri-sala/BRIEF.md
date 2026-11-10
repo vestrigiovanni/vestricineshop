@@ -216,3 +216,29 @@ testo dell'apertura, un blocco grande sopra il fondale; l'entrata dei cartellini
 attaccati ai loro fotogrammi. Tolti tutti e tre: ora il testo dell'apertura sale via con l'atto,
 e in Più avanti entra solo il titolo. Restano sopra il 5%: trailer (12%), programma (7%), luci
 spente (5%).
+
+Terzo giro (10 novembre, notte), prima → dopo: trailer 11% → 2,4–2,9%; programma 6% → 0,9%;
+luci spente 0% in ogni giro (il 5% era rumore). I colpevoli, trovati con `--css` senza
+ricompilare:
+
+- **Trailer: il velo**, non il ritaglio né il video (a video spento i fotogrammi lenti restavano,
+  senza velo sparivano). Una sfumatura CSS (`linear-gradient`) su mezzo schermo viene
+  ricalcolata a ogni fotogramma in cui lì sopra cambia qualcosa: 50–80 ms l'uno, per tutta la
+  dissolvenza del velo e l'entrata del testo. Ora è la stessa sfumatura come immagine (SVG nel
+  CSS), identica al pixel, disegnata una volta. Vale come regola: una sfumatura grande sotto
+  qualcosa che si muove va fatta immagine.
+- **Tutto il programma: l'ombra sfumata** delle locandine del muro, che entrano in fila. Tolta
+  l'ombra, l'entrata a scaglioni resta.
+
+Misura finale (`misure/finale.json`, due giri uguali), fotogrammi oltre i 33 ms, mediana 16,7 ms
+in ogni atto: apertura 1,4–2,9%; Oggi 21–22%; locandine 0%; luci spente 0%; trailer 2,4–2,9%;
+Più avanti 2,5%; programma 0,9%; pagina 4,9–5,1%. Nessuno spostamento di layout.
+
+**Resta aperto Oggi.** Alle 18 misurava 1% con un film solo; la sera, coi cinque film dell'indomani
+(atto alto 4111 px invece di 1209), è al 21–22%. Sono le dissolvenze a tempo fra un film e
+l'altro: spente in prova (`transition: none` dentro l'atto) Oggi scende a 0,3% e la pagina
+all'1,5%. Non toccato: cambiare quel passaggio è una scelta di regia.
+
+I caratteri restano SF Pro: provati Libre Caslon Display e Hanken Grotesk su apertura e Oggi
+(11 novembre), Giovanni ha scelto di non cambiare. Le schermate "dopo" con movimento ridotto,
+computer e telefono, stanno in `al-cento/dopo`.
