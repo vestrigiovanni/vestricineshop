@@ -11,8 +11,6 @@
 .binario {
   width: 100%;
   overflow: hidden;
-  /* Lo spazio per le ombre delle locandine, che uno scorrimento taglierebbe. */
-  padding: 32px 0;
 }
 .fila {
   display: flex;
@@ -39,7 +37,9 @@
   border-radius: 16px;
   overflow: hidden;
   background: #151517;
-  box-shadow: var(--v-ombra), var(--v-luce-bordo);
+  /* Niente ombra: è una sfumatura, e a ogni passo del binario il processore doveva
+   * ridipingerla sotto ogni locandina (metà dei fotogrammi oltre i 33 ms, 10 novembre
+   * 2026). Sul fondo scuro della stanza non si vedeva quasi. */
 }
 .locandina img { object-fit: cover; }
 
