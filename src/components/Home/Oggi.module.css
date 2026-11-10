@@ -1,129 +1,197 @@
+/* Atto 2: i film del giorno, uno che sfuma nell'altro dentro una cornice ferma. */
 .oggi { position: relative; }
 
 .palco {
   display: grid;
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.25fr);
+  grid-template-rows: 1fr auto auto 1fr;
   align-items: center;
-  gap: clamp(32px, 5vw, 96px);
-  padding: 72px var(--v-margine) 48px;
+  column-gap: clamp(32px, 5vw, 96px);
+  padding: 72px var(--v-margine) 40px;
 }
 
-.nome {
+.capo {
   position: absolute;
-  top: 88px;
+  top: clamp(64px, 10vh, 96px);
   left: var(--v-margine);
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.nome {
   margin: 0;
-  font: 600 clamp(28px, 3vw, 40px)/1.1 var(--v-font-display);
+  font: var(--v-peso-titolo) clamp(28px, 3vw, 40px)/1.1 var(--v-font-display);
   letter-spacing: -0.025em;
+}
+.conto {
+  margin: 0;
+  color: var(--v-tenue);
+  font-size: var(--t-sotto);
+  letter-spacing: -0.02em;
 }
 
 /* La cornice ferma, a destra: i film ci si sciolgono dentro. */
 .cornice {
   grid-column: 2;
-  grid-row: 1;
+  grid-row: 2;
   position: relative;
   aspect-ratio: 16 / 9;
-  max-height: 72vh;
+  max-height: 62vh;
   width: 100%;
   border-radius: var(--v-raggio);
   overflow: hidden;
   background: #111;
   box-shadow: var(--v-ombra), var(--v-luce-bordo);
 }
-/* Il film nuovo sale sopra il vecchio, che resta sotto finché non è coperto:
- * niente buco scuro a metà dissolvenza. Solo opacità e trasformazioni, che il
- * browser anima da solo. */
 .quadro {
   position: absolute;
   inset: 0;
   z-index: 0;
-  opacity: 0;
-  transition: opacity 0s linear 1.2s;
 }
-.quadro[data-acceso] {
-  z-index: 1;
-  opacity: 1;
-  transition: opacity 1.2s var(--v-ease);
-}
+.quadro[data-acceso] { z-index: 1; }
+/* Il film nuovo sale sopra il vecchio, che resta sotto finché non è coperto:
+ * niente buco scuro a metà dissolvenza. Si dissolve l'immagine sola. */
 .quadro img {
   object-fit: cover;
-  transform: scale(1.045);
-  transition: transform 2.6s var(--v-ease);
+  opacity: 0;
+  transition: opacity 0s linear var(--m-scena);
 }
-.quadro[data-acceso] img { transform: none; }
+.quadro[data-acceso] img {
+  opacity: 1;
+  transition: opacity var(--m-scena) var(--m-esce);
+}
 
-/* I testi stanno uno sopra l'altro nello stesso posto: si dà il cambio. */
+/* I testi stanno uno sopra l'altro nello stesso posto: si danno il cambio. */
 .testi {
   grid-column: 1;
-  grid-row: 1;
+  grid-row: 2 / span 2;
   display: grid;
   align-self: center;
 }
 .testo {
   grid-area: 1 / 1;
   align-self: center;
-  opacity: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   visibility: hidden;
-  transform: translate3d(0, 14px, 0);
-  /* Quello che esce se ne va in fretta, prima che entri il successivo. */
-  transition: opacity 300ms var(--v-ease), transform 300ms var(--v-ease), visibility 0s linear 300ms;
+  transition: visibility 0s linear var(--m-breve);
 }
 .testo[data-acceso] {
-  opacity: 1;
   visibility: visible;
-  transform: none;
-  transition: opacity 700ms var(--v-ease) 240ms, transform 900ms var(--v-ease) 240ms, visibility 0s;
+  transition: visibility 0s;
 }
+/* Le righe se ne vanno in fretta, tutte insieme; quelle nuove entrano una dopo
+ * l'altra. Ogni riga è un elemento solo: niente gruppi da fondere. */
+.testo > * {
+  opacity: 0;
+  transform: translate3d(0, var(--m-salita), 0);
+  transition: opacity var(--m-breve) var(--m-esce), transform var(--m-breve) var(--m-esce);
+}
+.testo[data-acceso] > * {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--m-entrata) var(--m-esce) calc(var(--m-breve) + var(--i, 0) * var(--m-fila)), transform var(--m-entrata) var(--m-esce) calc(var(--m-breve) + var(--i, 0) * var(--m-fila));
+}
+.testo > :nth-child(2) { --i: 1; }
+.testo > :nth-child(3) { --i: 2; }
+.testo > :nth-child(4) { --i: 3; }
+.testo > :nth-child(5) { --i: 4; }
+.testo > :nth-child(6) { --i: 5; }
 @media (prefers-reduced-motion: reduce) {
-  .testo, .quadro img { transform: none; }
+  .testo > * { transform: none; }
 }
 
-.giorno {
-  margin: 0 0 4px;
-  color: var(--f-accento);
-  font: 600 17px/1.3 var(--v-font);
-}
 .ora {
   margin: 0;
-  font: 600 clamp(64px, 8.4vw, 128px)/0.95 var(--v-font-display);
+  font: var(--v-peso-titolo) clamp(64px, 8.4vw, 128px)/0.95 var(--v-font-display);
   letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
 }
-.titolo { margin: 22px 0 18px; font-size: 32px; }
-.logo { max-height: clamp(56px, 9vh, 96px); max-width: min(380px, 100%); }
-.riga {
-  margin: 0;
-  max-width: 40ch;
-  color: var(--v-tenue);
-  font-size: 17px;
-  line-height: 1.47;
-}
-.azione { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; margin-top: 26px; }
+.giorno { margin-top: 10px; }
+.titolo { margin: 20px 0 16px; font-size: 32px; width: 100%; }
+.logo { height: clamp(56px, 9vh, 96px); max-width: min(380px, 100%); }
+.azione { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; margin-top: 24px; }
 
+/* ─── La scaletta del giorno ─── */
+.scaletta {
+  grid-column: 2;
+  grid-row: 3;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  margin: 18px 0 0;
+  padding: 0;
+}
+.tappa {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--v-tenue);
+  font: 400 var(--t-riga)/1.2 var(--v-font);
+  letter-spacing: -0.014em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--m-rapida) var(--m-esce), background-color var(--m-rapida) var(--m-esce);
+}
+.tappaOra {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tappaNome {
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tappa[data-acceso] {
+  color: var(--v-ink);
+  background: rgba(245, 245, 247, 0.1);
+}
+.tappa[data-acceso] .tappaOra { color: var(--f-accento); }
+@media (hover: hover) and (pointer: fine) {
+  .tappa:not([data-acceso]):hover { color: var(--v-ink); }
+}
+
+/* ─── Telefono: titolo e scaletta in alto, la cornice, poi il testo ─── */
 @media (max-width: 860px) {
   .palco {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto 1fr;
     align-content: start;
-    gap: 24px;
-    padding-top: 120px;
+    row-gap: 14px;
+    padding: calc(64px + env(safe-area-inset-top, 0px)) var(--v-margine) 24px;
   }
-  .nome { top: 72px; }
+  .capo { position: static; grid-row: 1; }
+  /* La scaletta scorre di lato, sotto il titolo: solo le ore, il film acceso col suo nome. */
+  .scaletta {
+    grid-column: 1;
+    grid-row: 2;
+    flex-wrap: nowrap;
+    margin: 0 calc(var(--v-margine) * -1);
+    padding: 0 var(--v-margine);
+    overflow-x: auto;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .scaletta::-webkit-scrollbar { display: none; }
+  .tappa:not([data-acceso]) .tappaNome { display: none; }
   /* L'altezza della cornice la decide lo schermo, non la larghezza: sotto deve starci il testo. */
-  .cornice { grid-column: 1; grid-row: 1; border-radius: 18px; aspect-ratio: auto; height: min(56.25vw, 36svh); max-height: none; }
-  .testi { grid-column: 1; grid-row: 2; align-self: start; }
+  .cornice { grid-column: 1; grid-row: 3; border-radius: 18px; aspect-ratio: auto; height: min(56.25vw, 27svh); max-height: none; }
+  .testi { grid-column: 1; grid-row: 4; align-self: start; margin-top: 6px; }
   .testo { align-self: start; }
-  .ora { font-size: clamp(48px, min(15vw, 8svh), 72px); }
-  .titolo { margin: 14px 0 12px; }
-  .logo { max-height: 64px; }
-  .riga { font-size: 15px; }
-  .azione { margin-top: 18px; }
+  .ora { font-size: clamp(44px, min(14vw, 7svh), 68px); }
+  .giorno { margin-top: 6px; }
+  .titolo { margin: 12px 0 10px; }
+  .logo { height: clamp(40px, 7svh, 60px); }
+  .azione { margin-top: 16px; gap: 6px 20px; }
 }
 
-/* Nel modo leggero (leggero.ts) i film si danno il cambio senza dissolvenza:
- * dissolvere un fotogramma così grande, col processore, rallentava lo scorrimento. */
-:global([data-leggero]) .quadro,
+/* Nel modo leggero (leggero.ts) i film si danno il cambio senza dissolvenza. */
 :global([data-leggero]) .quadro img,
-:global([data-leggero]) .testo { transition: none; }
-:global([data-leggero]) .quadro img,
-:global([data-leggero]) .testo { transform: none; }
+:global([data-leggero]) .testo,
+:global([data-leggero]) .testo > * { transition: none; }
+:global([data-leggero]) .testo > * { transform: none; }
