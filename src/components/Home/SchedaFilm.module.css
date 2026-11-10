@@ -6,120 +6,67 @@
   align-items: flex-start;
 }
 
-/* Le voci entrano in fila, una volta, quando la scheda arriva. */
+/* Le voci entrano in fila, una volta, quando la scheda arriva: curva, durata e
+ * scarto sono quelli del sistema di movimento. */
 @media (prefers-reduced-motion: no-preference) {
-  .scheda > * { animation: entra 900ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .scheda > :nth-child(2) { animation-delay: 60ms; }
-  .scheda > :nth-child(3) { animation-delay: 120ms; }
-  .scheda > :nth-child(4) { animation-delay: 180ms; }
-  .scheda > :nth-child(5) { animation-delay: 240ms; }
-  .scheda > :nth-child(6) { animation-delay: 300ms; }
-  .scheda > :nth-child(7) { animation-delay: 360ms; }
+  .scheda > * { animation: entra var(--m-entrata) var(--m-esce) calc(var(--i, 0) * var(--m-fila)) both; }
+  .scheda > :nth-child(2) { --i: 1; }
+  .scheda > :nth-child(3) { --i: 2; }
+  .scheda > :nth-child(4) { --i: 3; }
+  .scheda > :nth-child(5) { --i: 4; }
+  .scheda > :nth-child(6) { --i: 5; }
+  .scheda > :nth-child(7) { --i: 6; }
+  .scheda > :nth-child(8) { --i: 7; }
+  .scheda > :nth-child(n + 9) { --i: 8; }
 }
 @keyframes entra {
-  from { opacity: 0; transform: translate3d(0, 16px, 0); }
+  from { opacity: 0; transform: translate3d(0, var(--m-salita), 0); }
 }
 
-/* ─── I premi, coi loghi dei festival ─── */
-.premi {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px 28px;
-  margin: 0 0 22px;
-  padding: 0;
-}
-.premio {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  max-width: 150px;
-}
-/* I loghi sono quadrati, larghi (Cannes, Venezia) o alti (Oscar, BAFTA): stanno
- * tutti nello stesso quadrato, interi. */
-.festival {
-  display: block;
-  width: 52px;
-  height: 52px;
-  object-fit: contain;
-  object-position: left center;
-  margin-bottom: 4px;
-}
-/* Il nome del festival, in un'etichetta sopra il logo quando ci passa il mouse. */
-.festivalLogo {
-  position: relative;
-  display: block;
-}
-.festivalLogo::after {
-  content: attr(data-nome);
-  position: absolute;
-  z-index: 5;
-  left: 0;
-  bottom: calc(100% + 8px);
-  width: max-content;
-  max-width: 260px;
-  padding: 7px 11px;
-  border-radius: 10px;
-  background: rgba(20, 20, 22, 0.92);
-  box-shadow: var(--v-ombra), var(--v-luce-bordo);
-  font: 500 12.5px/1.3 var(--v-font);
-  color: var(--v-ink);
-  pointer-events: none;
-  opacity: 0;
-  transform: translate3d(0, 4px, 0);
-  transition: opacity 160ms var(--v-ease), transform 160ms var(--v-ease);
-}
-@media (hover: hover) {
-  .festivalLogo:hover::after {
-    opacity: 1;
-    transform: none;
-  }
-}
-.premioNome {
-  font: 600 13px/1.25 var(--v-font);
-  letter-spacing: -0.008em;
-  color: var(--v-ink);
-}
-.premioDove {
-  margin-top: 1px;
-  font-size: 12px;
-  line-height: 1.3;
-  color: var(--v-tenue);
-}
+.premi { margin-bottom: 20px; }
 
 /* ─── Il film ─── */
-.quando {
-  margin: 0 0 14px;
-  color: var(--f-accento);
-  font: 600 19px/1.2 var(--v-font-display);
-  letter-spacing: -0.012em;
-  font-variant-numeric: tabular-nums;
-}
 .titolo {
   margin: 0;
+  width: 100%;
   font-size: clamp(40px, 5vw, 72px);
   outline: none;
 }
-.logo { max-height: clamp(72px, 13vh, 140px); max-width: min(520px, 100%); }
-.dati {
-  margin: 18px 0 0;
+.logo { height: clamp(72px, 13vh, 140px); max-width: min(520px, 100%); }
+/* Il motto fra virgolette, e accanto il titolo originale quando è un altro. */
+.motto {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin: 12px 0 0;
   max-width: 54ch;
   color: rgba(245, 245, 247, 0.86);
-  font-size: 15px;
-  line-height: 1.47;
-  letter-spacing: -0.012em;
-  text-wrap: pretty;
+  font-size: var(--t-riga);
+  line-height: 1.4;
+  letter-spacing: -0.014em;
+  text-wrap: balance;
 }
+.motto q { font-style: italic; quotes: '«' '»'; }
+.originale { color: var(--v-tenue); }
+.quando { margin-top: 16px; }
+.dati {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+.voto { white-space: nowrap; }
+.voto strong { color: var(--v-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-/* ─── La trama ─── */
+/* ─── La trama e il cast ─── */
 .trama {
-  margin-top: 14px;
+  margin-top: 12px;
   max-width: 58ch;
 }
 .tramaCorta, .tramaTutta {
   margin: 0;
   color: var(--v-tenue);
-  font-size: 15px;
+  font-size: var(--t-riga);
   line-height: 1.53;
   letter-spacing: -0.012em;
   text-wrap: pretty;
@@ -132,7 +79,7 @@
   overflow: hidden;
 }
 .cast {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   color: var(--v-tenue);
   font-size: 14px;
   line-height: 1.45;
@@ -142,11 +89,45 @@
   min-height: 32px;
   margin-top: 2px;
   color: var(--f-accento);
-  font: 400 15px/1 var(--v-font);
+  font: 400 var(--t-riga)/1 var(--v-font);
   cursor: pointer;
 }
 @media (hover: hover) and (pointer: fine) {
   .altro:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+}
+
+/* ─── I fotogrammi: quello scelto diventa il fondale ─── */
+.fotogrammi {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  /* Lo spazio per il bordo del fotogramma scelto. */
+  padding: 2px;
+}
+.fotogrammi::-webkit-scrollbar { display: none; }
+.fotogramma {
+  position: relative;
+  flex: none;
+  width: 104px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #151517;
+  cursor: pointer;
+  opacity: 0.62;
+  transition: opacity var(--m-rapida) var(--m-esce);
+}
+.fotogramma img { object-fit: cover; }
+.fotogramma[aria-pressed='true'] {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--f-accento);
+}
+@media (hover: hover) and (pointer: fine) {
+  .fotogramma:hover { opacity: 1; }
 }
 
 /* ─── Giorni e orari ─── */
@@ -154,7 +135,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 22px;
+  margin-top: 18px;
   max-width: 100%;
 }
 .giorni, .ore {
@@ -180,7 +161,7 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 180ms var(--v-ease), color 180ms var(--v-ease), border-color 180ms var(--v-ease);
+  transition: background-color var(--m-rapida) var(--m-esce), color var(--m-rapida) var(--m-esce), border-color var(--m-rapida) var(--m-esce);
 }
 .giorno {
   color: rgba(245, 245, 247, 0.78);
@@ -200,7 +181,7 @@
   box-shadow: inset 0 0 0 1px var(--f-accento);
 }
 .ora:disabled { opacity: 0.4; cursor: default; }
-.esauritoOra { font-weight: 400; }
+.notaOra { font-weight: 400; }
 @media (hover: hover) and (pointer: fine) {
   .giorno:not([aria-pressed='true']):hover { background: rgba(245, 245, 247, 0.14); }
   .ora:not(:disabled):not([aria-pressed='true']):hover { border-color: rgba(245, 245, 247, 0.5); }
@@ -210,33 +191,40 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 28px;
-  margin-top: 24px;
+  gap: 8px 24px;
+  margin-top: 20px;
 }
 
-/* Schermi bassi: la scheda deve stare sopra la piega. */
-@media (max-height: 780px) and (min-width: 861px) {
+/* Schermi bassi (il portatile di Giovanni è alto 806): la scheda deve stare sopra la piega. */
+@media (max-height: 900px) and (min-width: 861px) {
   .premi { margin-bottom: 14px; }
-  .premioDove { display: none; }
-  .logo { max-height: 11vh; }
+  .scheda .premi :global(img) { width: 42px; height: 42px; }
+  .logo { height: 11vh; }
   .tramaCorta { -webkit-line-clamp: 2; line-clamp: 2; }
-  .orari { margin-top: 16px; }
-  .azioni { margin-top: 18px; }
+  .cast:not([data-aperta]) { display: none; }
+  .fotogramma { width: 92px; }
+  .orari { margin-top: 14px; }
+  .azioni { margin-top: 16px; }
+}
+@media (max-height: 720px) and (min-width: 861px) {
+  .motto, .fotogrammi { display: none; }
 }
 
 /* ─── Telefono ─── */
 @media (max-width: 860px) {
-  .premi { gap: 10px 18px; margin-bottom: 16px; }
-  .premio { max-width: 120px; }
-  .festival { width: 40px; height: 40px; }
-  .premioNome { font-size: 12px; }
-  .premioDove { font-size: 11px; }
-  .quando { font-size: 17px; margin-bottom: 10px; }
-  .logo { max-height: 72px; max-width: 78vw; }
-  .dati { font-size: 14px; margin-top: 12px; }
+  .premi { margin-bottom: 14px; }
+  .logo { height: 72px; max-width: 78vw; }
+  .motto { margin-top: 8px; font-size: 14px; }
+  .quando { margin-top: 10px; }
   .trama { margin-top: 10px; }
   .tramaCorta, .tramaTutta { font-size: 14px; }
-  .orari { margin-top: 16px; width: 100%; }
+  /* Il cast si legge aprendo la trama: sul telefono lo spazio è del Prenota. */
+  .cast:not([data-aperta]) { display: none; }
+  .fotogramma { width: 88px; }
+  .orari { margin-top: 14px; width: 100%; }
   .giorni { max-width: 100%; }
-  .azioni { margin-top: 18px; }
+  .azioni { margin-top: 16px; gap: 6px 20px; }
+}
+@media (max-width: 860px) and (max-height: 760px) {
+  .motto, .fotogrammi { display: none; }
 }

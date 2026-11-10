@@ -4,23 +4,40 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useTrailer } from '@/context/TrailerContext';
 import { toCinemaDayKey } from '@/utils/cinemaDate';
-import { resolveFestival } from './festivals';
-import { trailerOf, weighAward } from './programma';
-import { Film, FilmLogo, Show, crediti, giornoBreve, lingua, maiuscola, ora, quando, tecnica } from './shared';
+import { trailerOf } from './programma';
+import { Posti, Premi, Quando } from './Dati';
+import { crediti, divieto, divietoEsteso, generi, lingua, posti, tecnica, titoloOriginale, unisci, voto } from './metadati';
+import { Film, FilmLogo, Show, giornoBreve, img, ora, quando } from './shared';
 import base from './Home.module.css';
 import s from './SchedaFilm.module.css';
 
-/** Oltre questi caratteri la trama si chiude su tre righe, con "Altro". */
+/** Oltre questi caratteri la trama si chiude su poche righe, con "Altro". */
 const TRAMA_CORTA = 180;
+/** Quanti fotogrammi del film si possono sfogliare (il primo è il fondale di sempre). */
+const FOTOGRAMMI = 5;
+
+interface Props {
+  film: Film;
+  show: Show;
+  now: Date;
+  onApri: (show: Show, film: Film) => void;
+  /** Il fotogramma che fa da fondale adesso, e come cambiarlo. */
+  fotogramma: string;
+  onFotogramma: (path: string) => void;
+}
 
 /**
  * La scheda intera di un film, dentro l'apertura: ci si arriva da qualunque
- * Prenota della pagina. I premi coi loghi dei festival, il logo, i crediti e
- * come si proietta, la trama (col cast, aprendola), i giorni di proiezione coi
- * loro orari, e Prenota, che apre il cassetto sullo spettacolo scelto.
+ * Prenota della pagina. Qui c'è tutto quello che il catalogo e TMDB sanno del
+ * film: i premi coi loghi dei festival, il logo, il motto, il titolo
+ * originale, regia anno durata e generi, la versione di questo spettacolo
+ * (lingua, sottotitoli, come si proietta), il divieto, il voto, la trama e il
+ * cast, i fotogrammi (quello scelto diventa il fondale), i giorni di
+ * proiezione coi loro orari e i posti, e Prenota, che apre il cassetto sullo
+ * spettacolo scelto.
  * Così era la hero prima del 18 ottobre 2026, e Giovanni l'ha rivoluta.
  */
-export default function SchedaFilm({ film, show, now, onApri }: { film: Film; show: Show; now: Date; onApri: (show: Show, film: Film) => void }) {
+export default function SchedaFilm({ film, show, now, onApri, fotogramma, onFotogramma }: Props) {
   const { openTrailer } = useTrailer();
   const titolo = useRef<HTMLHeadingElement>(null);
   const trailer = trailerOf(film);
@@ -47,9 +64,6 @@ export default function SchedaFilm({ film, show, now, onApri }: { film: Film; sh
   const delGiorno = giorni.find(g => g.key === giorno) || giorni[0];
   const [tutta, setTutta] = useState(false);
 
-  // I premi più importanti, col logo del festival: al massimo quattro.
-  const premi = useMemo(() => (film.awards || []).map(weighAward).sort((a, b) => b.weight - a.weight).slice(0, 4), [film.awards]);
-
   // Chi è arrivato qui da un Prenota più in basso deve ritrovarsi sulla scheda, anche con la tastiera.
   useEffect(() => {
     const metti = () => titolo.current?.focus({ preventScroll: true });
@@ -65,45 +79,61 @@ export default function SchedaFilm({ film, show, now, onApri }: { film: Film; sh
     if (primo) setScelta(primo.id);
   };
 
-  const dati = [...crediti(film), sel ? lingua(sel) : '', ...(sel ? tecnica(sel) : [])].filter(Boolean);
+  const motto = (film.tagline || '').trim();
+  const originale = titoloOriginale(film);
+  const ilFilm = unisci([...crediti(film), ...generi(film)]);
+  const versione = sel ? unisci([lingua(sel), ...tecnica(sel)]) : '';
+  const vietato = divieto(film);
+  const punti = voto(film);
   const lunga = (film.overview || '').length > TRAMA_CORTA;
+  const cast = (film.cast || []).filter(Boolean).slice(0, 5);
+  const fotogrammi = [film.backdrop_path, ...(film.extraBackdrops || [])].filter((p, i, tutti): p is string => !!p && tutti.indexOf(p) === i).slice(0, FOTOGRAMMI);
 
   return (
     <div className={s.scheda}>
-      {premi.length > 0 && (
-        <ul className={s.premi} aria-label="Premi">
-          {premi.map(p => {
-            const f = resolveFestival(p.type);
-            return (
-              <li key={`${p.type}-${p.year}-${p.prize}`} className={s.premio}>
-                {/* Passandoci sopra col mouse, il logo dice il suo festival per intero. */}
-                <span className={s.festivalLogo} data-nome={f.name}>
-                  <Image src={f.logo} alt={f.name} width={52} height={52} sizes="52px" className={s.festival} />
-                </span>
-                {/* Il premio solo se vinto: una candidatura alla Palma d'oro non è una Palma d'oro. */}
-                <span className={s.premioNome}>{p.won.length ? maiuscola(p.prize) : p.nominated.length ? 'Candidatura' : 'Selezione ufficiale'}</span>
-                <span className={s.premioDove}>{!p.won.length && p.nominated.length ? `${maiuscola(p.prize)}, ` : ''}{f.breve}{p.year ? ` ${p.year}` : ''}</span>
-              </li>
-            );
-          })}
-        </ul>
+      <Premi film={film} className={s.premi} />
+
+      <h2 id="apertura-titolo" ref={titolo} tabIndex={-1} className={s.titolo}>
+        <FilmLogo film={film} className={s.logo} subito sizes="(max-width: 860px) 80vw, 520px" />
+      </h2>
+      {(motto || originale) && (
+        <p className={s.motto}>
+          {motto && <q>{motto}</q>}
+          {originale && <span className={s.originale}>{originale}</span>}
+        </p>
       )}
 
-      <p className={s.quando}>{sel ? quando(sel, now) : 'Nessuno spettacolo in programma'}</p>
-      <h2 id="apertura-titolo" ref={titolo} tabIndex={-1} className={s.titolo}>
-        <FilmLogo film={film} className={s.logo} priority sizes="(max-width: 860px) 80vw, 520px" />
-      </h2>
-      {dati.length > 0 && <p className={s.dati}>{dati.join(' · ')}</p>}
+      {sel ? <Quando show={sel} now={now} className={s.quando} /> : <p className={`${base.quando} ${s.quando}`}>Nessuno spettacolo in programma</p>}
+      <div className={s.dati}>
+        {ilFilm && <p className={base.riga}>{ilFilm}</p>}
+        {(versione || vietato || punti) && (
+          <p className={base.riga}>
+            {versione}
+            {vietato && <>{versione ? ' · ' : ''}<abbr className={base.divieto} title={divietoEsteso(film)}>{vietato}</abbr></>}
+            {punti && <>{versione || vietato ? ' · ' : ''}<span className={s.voto} title="Il voto medio su TMDB"><strong>{punti}</strong> su TMDB</span></>}
+          </p>
+        )}
+      </div>
 
       {film.overview && (
         <div className={s.trama}>
           <p className={tutta || !lunga ? s.tramaTutta : s.tramaCorta}>{film.overview}</p>
-          {tutta && film.cast && film.cast.length > 0 && <p className={s.cast}><span>Con</span> {film.cast.join(', ')}</p>}
+          {cast.length > 0 && <p className={s.cast} data-aperta={tutta || !lunga ? '' : undefined}><span>Con</span> {cast.join(', ')}</p>}
           {lunga && (
             <button type="button" className={s.altro} onClick={() => setTutta(v => !v)} aria-expanded={tutta}>
               {tutta ? 'Meno' : 'Altro'}
             </button>
           )}
+        </div>
+      )}
+
+      {fotogrammi.length > 1 && (
+        <div className={s.fotogrammi} role="group" aria-label="I fotogrammi del film: quello scelto fa da fondale">
+          {fotogrammi.map((path, i) => (
+            <button key={path} type="button" className={s.fotogramma} aria-pressed={path === fotogramma} aria-label={`Fotogramma ${i + 1} di ${fotogrammi.length}`} onClick={() => onFotogramma(path)}>
+              <Image src={img(path, 'w300')} alt="" fill sizes="112px" />
+            </button>
+          ))}
         </div>
       )}
 
@@ -119,22 +149,28 @@ export default function SchedaFilm({ film, show, now, onApri }: { film: Film; sh
             </div>
           )}
           <div className={s.ore} role="group" aria-label={`Orari, ${giornoBreve(delGiorno.shows[0].date, now).toLowerCase()}`}>
-            {delGiorno.shows.map(x => (
-              <button key={x.id} type="button" className={s.ora} aria-pressed={x.id === sel?.id} disabled={x.isSoldOut} onClick={() => setScelta(x.id)}>
-                {ora(x)}{x.isSoldOut && <span className={s.esauritoOra}> · Esaurito</span>}
-              </button>
-            ))}
+            {delGiorno.shows.map(x => {
+              const p = posti(x);
+              return (
+                <button key={x.id} type="button" className={s.ora} aria-pressed={x.id === sel?.id} disabled={x.isSoldOut} onClick={() => setScelta(x.id)}>
+                  {ora(x)}{p.stato !== 'liberi' && <span className={s.notaOra}> · {p.testo}</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
       <div className={s.azioni}>
         {sel && !sel.isSoldOut ? (
-          <button type="button" className={base.prenota} onClick={() => onApri(sel, film)} aria-label={`Prenota ${film.title}, ${quando(sel, now).toLowerCase()}`}>
-            Prenota
-          </button>
+          <>
+            <button type="button" className={base.prenota} onClick={() => onApri(sel, film)} aria-label={`Prenota ${film.title}, ${quando(sel, now).toLowerCase()}`}>
+              Prenota
+            </button>
+            <Posti show={sel} sempre />
+          </>
         ) : (
-          <span className={base.esaurito}>Esaurito</span>
+          sel ? <Posti show={sel} className={base.esaurito} /> : <span className={base.esaurito}>Esaurito</span>
         )}
         {trailer && <button type="button" className={base.prenotaLink} onClick={() => openTrailer(trailer)}>Guarda il trailer</button>}
       </div>
