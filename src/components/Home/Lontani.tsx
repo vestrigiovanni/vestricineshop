@@ -14,11 +14,13 @@ import s from './Lontani.module.css';
  * mostra. Ogni fotogramma porta il logo del suo film, e sotto lo stesso
  * cartellino di tutti gli altri, nel colore del film.
  *
- * I fotogrammi arrivano con la pagina, fermi; a entrare, una volta, è il
- * cartellino sotto ciascuno. Fino al 10 novembre 2026 entrava tutto il blocco
- * (dissolvenza di un secondo, e l'immagine che si posava per due e mezzo): con
- * i film uno dopo l'altro c'era sempre qualcosa di grande in movimento, e nel
- * Firefox di Giovanni più di metà dei fotogrammi superava i 33 ms.
+ * Fotogrammi e cartellini arrivano con la pagina, fermi; a entrare, una volta,
+ * è solo il titolo dell'atto. Fino al 10 novembre 2026 entrava tutto il blocco
+ * (dissolvenza di un secondo, e l'immagine che si posava per due e mezzo), poi
+ * il solo cartellino: ma sta attaccato al suo fotogramma, e ogni passo della
+ * dissolvenza faceva ridipingere al processore anche quello. Coi film uno dopo
+ * l'altro, nel Firefox di Giovanni, un fotogramma su cinque superava i 33 ms;
+ * coi cartellini fermi sono due su cento.
  *
  * Fino al 26 ottobre erano fasce che si aprivano a tendina: "così non mi
  * piace, non è elegante" (Giovanni).
@@ -41,7 +43,7 @@ export default function Lontani({ slots, now, dopoIlBuio }: { slots: Slot<Film>[
               <div className={s.velo} />
               <h3 className={s.titolo}><FilmLogo film={x.movie} className={s.logo} sizes="(max-width: 860px) 60vw, 300px" /></h3>
             </div>
-            <div className={s.testo} data-sc-in>
+            <div className={s.testo}>
               <Quando show={x.show} now={now} className={s.quando} />
               <Cartellino film={x.movie} show={x.show} now={now} />
               <div className={s.azione}>
