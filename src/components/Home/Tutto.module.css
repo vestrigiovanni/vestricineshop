@@ -4,18 +4,11 @@
 }
 
 .capo { max-width: 980px; }
+/* Il titolo della chiusura è il più grande della pagina: qui l'energia è al massimo. */
 .titolo {
-  margin: 0;
-  font: 600 clamp(48px, 7vw, 112px)/1 var(--v-font-display);
+  font-size: clamp(48px, 7vw, 112px);
+  line-height: 1;
   letter-spacing: -0.045em;
-  text-wrap: balance;
-}
-.sotto {
-  margin: 20px 0 0;
-  color: var(--v-tenue);
-  font-size: clamp(19px, 1.8vw, 24px);
-  line-height: 1.33;
-  letter-spacing: -0.02em;
 }
 
 /* Tutte le locandine insieme. */
@@ -35,9 +28,9 @@
   border-radius: 10px;
   overflow: hidden;
   background: #151517;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.24), 0 10px 24px -6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.55);
   cursor: pointer;
-  transition: transform 180ms var(--v-ease);
+  transition: transform var(--m-rapida) var(--m-esce);
 }
 .opera img { object-fit: cover; }
 .opera:active { transform: scale(0.97); }
@@ -62,7 +55,7 @@
   list-style: none;
   cursor: pointer;
   border-radius: 12px;
-  transition: background-color 160ms var(--v-ease);
+  transition: background-color var(--m-rapida) var(--m-esce);
 }
 .capoGiorno::-webkit-details-marker { display: none; }
 @media (hover: hover) and (pointer: fine) {
@@ -70,12 +63,12 @@
 }
 .nomeGiorno {
   margin: 0;
-  font: 600 clamp(21px, 2vw, 28px)/1.15 var(--v-font-display);
+  font: var(--v-peso-titolo) clamp(21px, 2vw, 28px)/1.15 var(--v-font-display);
   letter-spacing: -0.025em;
 }
 .contoGiorno {
   color: var(--v-tenue);
-  font-size: 15px;
+  font-size: var(--t-riga);
   line-height: 1.4;
   letter-spacing: -0.012em;
   font-variant-numeric: tabular-nums;
@@ -90,11 +83,11 @@
   background: #1c1c1e;
 }
 .miniatura img { object-fit: cover; }
-.freccia { color: var(--v-tenue); transition: transform 260ms var(--v-ease); }
+.freccia { color: var(--v-tenue); transition: transform var(--m-breve) var(--m-esce); }
 .giorno[open] .freccia { transform: rotate(180deg); }
 
 .righe { list-style: none; margin: 0 0 20px; padding: 0; }
-.giorno[open] .righe { animation: apre 420ms var(--v-ease) both; }
+.giorno[open] .righe { animation: apre var(--m-breve) var(--m-esce) both; }
 @keyframes apre { from { opacity: 0; transform: translate3d(0, -6px, 0); } }
 @media (prefers-reduced-motion: reduce) {
   .giorno[open] .righe { animation: none; }
@@ -115,15 +108,21 @@
 }
 .film { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .nomeFilm {
-  font: 600 19px/1.3 var(--v-font-display);
+  font: var(--v-peso-titolo) 19px/1.3 var(--v-font-display);
   letter-spacing: -0.02em;
 }
 .dati {
   color: var(--v-tenue);
   font-size: 14px;
-  line-height: 1.43;
+  line-height: 1.5;
+  text-wrap: pretty;
 }
-.prenota { justify-self: end; }
+.prenota {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
 
 @media (max-width: 640px) {
   .capoGiorno { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
@@ -132,7 +131,7 @@
   .miniature { display: none; }
   .freccia { grid-column: 2; grid-row: 1 / span 2; }
   .riga { grid-template-columns: 4.2em minmax(0, 1fr); }
-  .prenota { grid-column: 2; justify-self: start; min-height: 36px; }
+  .prenota { grid-column: 2; justify-self: start; min-height: 36px; flex-wrap: wrap; gap: 0 14px; }
   .ora { font-size: 19px; align-self: start; padding-top: 2px; }
   .nomeFilm { font-size: 17px; }
 }
