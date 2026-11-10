@@ -1,3 +1,4 @@
+/* Atto 3: le locandine dei prossimi giorni, che scorrono di lato. */
 .prossimi { position: relative; }
 
 .palco {
@@ -5,37 +6,32 @@
   align-items: center;
 }
 
-/* Il binario: più largo dello schermo, il motore lo porta di lato. */
+/* Il binario: uno scorrimento vero, in orizzontale. Lo sposta Prossimi.tsx
+ * seguendo lo scorrimento della pagina; con le dita non si tocca. */
 .binario {
-  align-items: flex-end;
+  width: 100%;
+  overflow: hidden;
+  /* Lo spazio per le ombre delle locandine, che uno scorrimento taglierebbe. */
+  padding: 32px 0;
+}
+.fila {
+  display: flex;
+  align-items: flex-start;
   gap: clamp(28px, 3.4vw, 56px);
-  padding: 0 var(--v-margine);
   width: max-content;
+  padding: 0 var(--v-margine);
 }
 
 .capo {
-  flex: 0 0 auto;
+  flex: none;
   width: clamp(260px, 26vw, 420px);
   align-self: center;
   padding-right: clamp(8px, 2vw, 40px);
 }
-.titolo {
-  margin: 0;
-  font: 600 clamp(40px, 4.6vw, 72px)/1.04 var(--v-font-display);
-  letter-spacing: -0.035em;
-  text-wrap: balance;
-}
-.sotto {
-  margin: 18px 0 0;
-  color: var(--v-tenue);
-  font-size: 21px;
-  line-height: 1.38;
-  letter-spacing: -0.02em;
-}
 
 .opera {
-  flex: 0 0 auto;
-  width: min(23vw, 42vh, 340px);
+  flex: none;
+  width: min(21vw, 35vh, 320px);
 }
 .locandina {
   position: relative;
@@ -46,33 +42,52 @@
   box-shadow: var(--v-ombra), var(--v-luce-bordo);
 }
 .locandina img { object-fit: cover; }
-.scheda { margin-top: 20px; }
+
+.scheda {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 18px;
+}
+.quando { font-size: var(--t-riga); }
+.nome {
+  margin: 4px 0 6px;
+  font: var(--v-peso-titolo) 21px/1.2 var(--v-font-display);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.azione {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 18px;
+  margin-top: 2px;
+}
 
 .coda {
-  flex: 0 0 auto;
+  flex: none;
   align-self: center;
   width: clamp(220px, 20vw, 320px);
   margin: 0;
   color: var(--v-tenue);
-  font: 600 clamp(24px, 2.4vw, 32px)/1.2 var(--v-font-display);
+  font: var(--v-peso-titolo) clamp(24px, 2.4vw, 32px)/1.2 var(--v-font-display);
   letter-spacing: -0.025em;
 }
 
-/* Le opere arrivano in fila, come un cassetto tirato: ognuna sale e si accende
- * quando entra in vista, a tempo suo (vedi `data-sc-in` in Prossimi.tsx). */
-/* Il foglio del motore sta in un layer: qui si ridice anche lo stato d'arrivo. */
-.opera {
-  transition-duration: 900ms;
-  transform: translate3d(0, 28px, 0);
-}
-.opera:global(.sc-in) { transform: none; }
+/* Senza movimento il binario si scorre a mano, di lato, e l'atto è alto uno schermo. */
 @media (prefers-reduced-motion: reduce) {
-  .opera { transform: none; }
+  .prossimi { height: auto !important; }
+  .binario {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+  }
+  .opera { scroll-snap-align: center; }
 }
 
 @media (max-width: 860px) {
   .capo { width: 72vw; }
-  .opera { width: min(62vw, 38vh); }
-  .sotto { font-size: 17px; }
+  .opera { width: min(60vw, 34svh); }
   .coda { width: 60vw; }
+  .nome { font-size: 19px; }
 }
