@@ -1,30 +1,39 @@
-/* ─── Le luci si spengono ─── */
+/* ─── Atto 4: le luci si spengono ───
+ * Il buio è nella pagina: una sfumatura che scorre con lei, dal colore della
+ * stanza al nero della sala. */
 .silenzio {
   position: relative;
+  min-height: 60vh;
+  min-height: 60svh;
+  display: grid;
+  place-items: end center;
+  padding: 0 var(--v-margine) 16vh;
+  background: linear-gradient(to bottom, transparent 0%, rgba(7, 7, 8, 0.86) 46%, #070708 72%);
+}
+/* Col motto il silenzio dura uno schermo intero: c'è una riga da leggere. */
+.silenzio[data-motto] {
   min-height: 100vh;
   min-height: 100svh;
-  display: grid;
-  place-items: center;
-  padding: 0 var(--v-margine);
+  padding-bottom: 30vh;
 }
 .motto {
   margin: 0;
-  max-width: 28ch;
-  color: var(--v-tenue);
-  font: 500 clamp(21px, 2.2vw, 28px)/1.35 var(--v-font-display);
+  max-width: 26ch;
+  color: rgba(245, 245, 247, 0.82);
+  font: 500 clamp(22px, 2.4vw, 32px)/1.3 var(--v-font-display);
   letter-spacing: -0.02em;
   text-align: center;
   text-wrap: balance;
 }
 
-/* ─── Il trailer ─── */
+/* ─── Atto 5: il trailer ─── */
 .trailer {
   position: relative;
+  background: #070708;
   /* Quanto si è allargato lo schermo: tutto entro il primo quarto dell'atto. */
   --e: clamp(0, calc(var(--sc-p, 0) / 0.28), 1);
-  /* Il velo e il testo arrivano solo alla fine. */
-  --fine: clamp(0, calc((var(--sc-p, 0) - 0.7) * 4), 1);
 }
+.palco { background: #070708; }
 
 .schermo {
   position: absolute;
@@ -32,7 +41,6 @@
   overflow: hidden;
   background: #000;
   clip-path: inset(calc((1 - var(--e)) * 14vh) calc((1 - var(--e)) * 12vw) round calc((1 - var(--e)) * 28px));
-  will-change: clip-path;
 }
 
 /* Il video copre lo schermo come una foto (object-fit: cover, per un iframe). */
@@ -52,57 +60,60 @@
 .attesa {
   position: absolute;
   inset: 0;
-  transition: opacity 900ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition: opacity var(--m-scena) var(--m-esce);
 }
 .attesa img { object-fit: cover; }
 
+/* Il velo sta solo dove arriva il testo, nella metà bassa, e si accende a
+ * tempo quando l'atto è quasi alla fine (`data-fine`, da Trailer.tsx). */
 .velo {
   position: absolute;
-  inset: 0;
+  inset: 42% 0 0;
   pointer-events: none;
-  opacity: var(--fine);
-  background: linear-gradient(to top, rgba(7, 7, 8, 0.92) 0%, rgba(7, 7, 8, 0.55) 26%, transparent 55%);
+  opacity: 0;
+  background: linear-gradient(to top, rgba(7, 7, 8, 0.94) 0%, rgba(7, 7, 8, 0.62) 44%, transparent 100%);
+  transition: opacity var(--m-entrata) var(--m-esce);
 }
+.trailer[data-fine] .velo { opacity: 1; }
 
 .copia {
   position: absolute;
   z-index: 2;
   left: var(--v-margine);
   right: var(--v-margine);
-  bottom: clamp(40px, 10vh, 112px);
+  bottom: clamp(40px, 9vh, 104px);
   max-width: 640px;
 }
-.quando {
-  margin: 0 0 14px;
-  color: var(--f-accento);
-  font: 600 19px/1.2 var(--v-font-display);
-  letter-spacing: -0.01em;
-}
 .titolo { margin: 0; font-size: clamp(40px, 5vw, 72px); }
-.logo { max-height: clamp(80px, 14vh, 150px); max-width: min(460px, 100%); }
+.logo { height: clamp(80px, 14vh, 150px); max-width: min(460px, 100%); }
+.quando { margin-top: 18px; }
+.cartellino { margin-top: 8px; }
 .azioni {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 28px;
-  margin-top: 24px;
+  gap: 8px 24px;
+  margin-top: 22px;
 }
 
 /* Senza movimento niente video che parte da solo: il fotogramma, e il trailer a richiesta. */
 @media (prefers-reduced-motion: reduce) {
   .trailer { height: 140vh !important; }
   .schermo { clip-path: none; }
+  .velo { opacity: 1; }
 }
 
 @media (max-width: 860px) {
   .schermo { clip-path: inset(calc((1 - var(--e)) * 18vh) calc((1 - var(--e)) * 5vw) round calc((1 - var(--e)) * 20px)); }
   /* In verticale il trailer non si taglia: occupa tutta la larghezza, come in sala, nel buio. */
-  .video { width: 100vw; height: 56.25vw; top: 42%; }
-  .attesa { top: 42%; bottom: auto; height: 56.25vw; transform: translateY(-50%); }
-  .quando { font-size: 17px; }
-  .logo { max-height: 12vh; }
+  .video { width: 100vw; height: 56.25vw; top: 38%; }
+  .attesa { top: 38%; bottom: auto; height: 56.25vw; transform: translateY(-50%); }
+  .velo { inset: 55% 0 0; }
+  .logo { height: 11vh; }
+  .quando { margin-top: 12px; }
+  .azioni { margin-top: 16px; gap: 6px 20px; }
 }
 
-/* Nel modo leggero (leggero.ts) lo schermo è subito intero: allargarlo seguendo
- * lo scorrimento, disegnato dal processore, costava un fotogramma lungo a ogni passo. */
+/* Nel modo leggero (leggero.ts) lo schermo è subito intero. */
 :global([data-leggero]) .schermo { clip-path: none; }
+:global([data-leggero]) .velo { transition: none; }

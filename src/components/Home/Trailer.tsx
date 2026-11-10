@@ -4,18 +4,25 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useTrailer } from '@/context/TrailerContext';
 import type { Slot } from './programma';
-import { Film, FilmLogo, Prenota, img, prefersMotion, quando } from './shared';
+import { Cartellino, Posti, Quando } from './Dati';
+import { Film, FilmLogo, Prenota, img, prefersMotion } from './shared';
 import base from './Home.module.css';
 import s from './Trailer.module.css';
 
 /**
- * Atto 4, le luci si spengono: silenzio voluto. La luce d'ambiente cala fino al
- * buio e resta una riga sola, il motto del film che sta per arrivare.
+ * Atto 4, le luci si spengono: silenzio voluto. La pagina scende nel buio e
+ * resta una riga sola, il motto del film che sta per arrivare (se TMDB ne ha
+ * uno: non se ne inventano).
+ *
+ * Il buio è dipinto nella pagina (una sfumatura che scorre con lei), non è la
+ * luce d'ambiente che cala a tempo: quella, a tutto schermo, col processore
+ * teneva lento un fotogramma su due proprio qui.
  */
 export function Silenzio({ film }: { film: Film }) {
+  const motto = (film.tagline || '').trim();
   return (
-    <section className={s.silenzio} data-sc-act="flow" data-luce="buio" aria-label="Si spengono le luci">
-      {film.tagline && <p className={s.motto} data-sc-in>{film.tagline}</p>}
+    <section className={s.silenzio} data-atto="silenzio" data-sc-act="flow" data-luce="buio" data-motto={motto ? '' : undefined} aria-label="Si spengono le luci">
+      {motto && <p className={s.motto} data-sc-in>{motto}</p>}
     </section>
   );
 }
@@ -90,10 +97,31 @@ export default function Trailer({ slot, trailerKey, now }: { slot: Slot<Film>; t
     io.observe(el);
     return () => io.disconnect();
   }, [acceso]);
+  // Verso la fine arrivano il velo e il testo. Il velo copre mezzo schermo: si accende
+  // a tempo, una volta, invece di seguire lo scorrimento passo per passo.
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    let raf = 0, cima = 0, corsa = 1, fine = false;
+    const misura = () => { cima = el.getBoundingClientRect().top + scrollY; corsa = Math.max(el.offsetHeight - innerHeight, 1); };
+    const leggi = () => {
+      raf = 0;
+      const ora = (scrollY - cima) / corsa >= 0.72;
+      if (ora !== fine) { fine = ora; el.toggleAttribute('data-fine', ora); }
+    };
+    const chiedi = () => { if (!raf) raf = requestAnimationFrame(leggi); };
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { misura(); addEventListener('scroll', chiedi, { passive: true }); chiedi(); }
+      else removeEventListener('scroll', chiedi);
+    });
+    io.observe(el);
+    addEventListener('resize', misura);
+    return () => { io.disconnect(); removeEventListener('scroll', chiedi); removeEventListener('resize', misura); cancelAnimationFrame(raf); };
+  }, []);
   const presentati = () => frame.current?.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: trailerKey }), '*');
 
   return (
-    <section ref={root} className={s.trailer} data-sc-act="pin" data-sc-span="3.6" style={{ height: '360vh' }} data-luce="buio" data-film-ancora={film.id} aria-labelledby="trailer-titolo">
+    <section ref={root} className={s.trailer} data-atto="trailer" data-sc-act="pin" data-sc-span="3.6" style={{ height: '360vh' }} data-luce="buio" data-film-ancora={film.id} aria-labelledby="trailer-titolo">
       <div className={`sc-stage ${s.palco}`} data-sc-stage>
         <div className={s.schermo}>
           {acceso && (
@@ -113,10 +141,12 @@ export default function Trailer({ slot, trailerKey, now }: { slot: Slot<Film>; t
           <div className={s.velo} />
         </div>
         <div className={s.copia} data-sc-cue="0.74 1 0.25 0.08" data-luce={film.id} data-luce-da="0.74" data-luce-a="1.01">
-          <p className={s.quando}>{quando(show, now)}</p>
           <h2 id="trailer-titolo" className={s.titolo}><FilmLogo film={film} className={s.logo} sizes="(max-width: 860px) 70vw, 460px" /></h2>
+          <Quando show={show} now={now} className={s.quando} />
+          <Cartellino film={film} show={show} now={now} parti={['film', 'versione']} className={s.cartellino} />
           <div className={s.azioni}>
             <Prenota show={show} film={film} now={now} />
+            {!show.isSoldOut && <Posti show={show} sempre />}
             <button type="button" className={base.prenotaLink} onClick={() => openTrailer(trailerKey)}>Guarda con l&apos;audio</button>
           </div>
         </div>
