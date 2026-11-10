@@ -126,7 +126,7 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
             {plan.prossimi.length > 0 && <Prossimi slots={plan.prossimi} lontani={plan.lontani.length + (plan.trailer ? 1 : 0)} now={now} />}
             {plan.trailer && <Silenzio film={plan.trailer.slot.movie} />}
             {plan.trailer && <Trailer slot={plan.trailer.slot} trailerKey={plan.trailer.key} now={now} />}
-            {plan.lontani.length > 0 && <Lontani slots={plan.lontani} now={now} />}
+            {plan.lontani.length > 0 && <Lontani slots={plan.lontani} now={now} dopoIlBuio={!!plan.trailer} />}
             <Tutto film={plan.film} giorni={plan.giorni} now={now} />
           </div>
         </div>
