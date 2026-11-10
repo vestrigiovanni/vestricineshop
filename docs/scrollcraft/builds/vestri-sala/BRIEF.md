@@ -208,3 +208,11 @@ Fotogrammi oltre i 33 ms, prima → dopo (primo giro): pagina 47% → 22%; apert
 Oggi 26% → 1%; locandine 83% → 54%; luci spente 40% → 4%; trailer 16% → 12%; Più avanti
 56% → 24%; programma 13% → 7%. L'obiettivo (meno del 5% in ogni atto) è raggiunto su Oggi e
 sulle luci spente; sugli altri atti c'è ancora da lavorare. Le misure stanno in `al-cento/misure`.
+
+Secondo giro (10 novembre, sera), i tre atti rimasti, prima → dopo: locandine 50% → 1,1%;
+Più avanti 20% → 2,4%; apertura 22% → 0% (`misure/dopo-2.json`). I colpevoli: l'ombra sfumata
+sotto ciò che si muove (locandine del binario, locandina dell'apertura); la dissolvenza del
+testo dell'apertura, un blocco grande sopra il fondale; l'entrata dei cartellini di Più avanti,
+attaccati ai loro fotogrammi. Tolti tutti e tre: ora il testo dell'apertura sale via con l'atto,
+e in Più avanti entra solo il titolo. Restano sopra il 5%: trailer (12%), programma (7%), luci
+spente (5%).

@@ -29,9 +29,12 @@ interface Props {
  * Il fondale sta fermo: è grande quanto lo schermo, e muoverlo o chiuderlo in
  * una cornice seguendo lo scorrimento, col processore, era un fotogramma ogni
  * 83 ms (misurato il 10 novembre 2026 nel Firefox di Giovanni). La profondità
- * la danno le cose piccole: la locandina sale più in fretta della pagina e il
- * testo se ne va per primo, guidati da `--sc-p`, il progresso dell'atto. Poi
- * l'atto si scioglie nel fondo e sale via con lo scorrimento del browser.
+ * la dà una cosa piccola: la locandina sale più in fretta della pagina, guidata
+ * da `--sc-p`, il progresso dell'atto. Il testo resta dov'è: fino al 10 novembre
+ * sfumava per primo, ma è un blocco grande sopra il fondale, e ogni passo della
+ * dissolvenza faceva ridipingere fondale e velo lì sotto (dieci fotogrammi di
+ * fila a 83–100 ms). Poi l'atto si scioglie nel fondo e sale via con lo
+ * scorrimento del browser, testo compreso.
  *
  * Ogni Prenota della pagina porta qui il suo film, con la scheda intera
  * (SchedaFilm): il fondale nuovo sfuma sopra il vecchio, e la stanza prende la
@@ -80,7 +83,7 @@ export default function Apertura({ film, show, now, scheda, onApri, onChiudi }: 
             <X size={20} strokeWidth={2} aria-hidden />
           </button>
         )}
-        <div className={s.copia} data-sc-cue="0 0.7 0" style={{ opacity: 1 }}>
+        <div className={s.copia}>
           {scheda ? (
             <SchedaFilm key={`${f.id}-${scheda.show.id}`} film={f} show={scheda.show} now={now} onApri={onApri}
               fotogramma={fondale} onFotogramma={path => setScelto({ id: f.id, path })} />
