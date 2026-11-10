@@ -11,7 +11,9 @@
   letter-spacing: -0.045em;
 }
 
-/* Tutte le locandine insieme. */
+/* Tutte le locandine insieme. Entrano in fila, quindi niente ombra sfumata
+ * sotto: col processore un'ombra che si muove è un fotogramma lungo (era il
+ * 5–7% dei fotogrammi dell'atto, tutti qui), e sul nero non si vedeva. */
 .parete {
   list-style: none;
   margin: clamp(48px, 6vw, 88px) 0 0;
@@ -28,7 +30,6 @@
   border-radius: 10px;
   overflow: hidden;
   background: #151517;
-  box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.55);
   cursor: pointer;
   transition: transform var(--m-rapida) var(--m-esce);
 }

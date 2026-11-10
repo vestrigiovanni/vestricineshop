@@ -65,13 +65,19 @@
 .attesa img { object-fit: cover; }
 
 /* Il velo sta solo dove arriva il testo, nella metà bassa, e si accende a
- * tempo quando l'atto è quasi alla fine (`data-fine`, da Trailer.tsx). */
+ * tempo quando l'atto è quasi alla fine (`data-fine`, da Trailer.tsx).
+ *
+ * La sfumatura è un'immagine, non un `linear-gradient`: è la stessa, al pixel
+ * (dal basso 0.94, a 44% 0.62, in cima trasparente), ma col processore Firefox
+ * la sfumatura CSS la ricalcola a ogni fotogramma in cui lì sopra cambia
+ * qualcosa (il velo che sfuma, il testo che entra), e mezzo schermo così
+ * costava 50–80 ms a fotogramma. L'immagine la disegna una volta e la riusa. */
 .velo {
   position: absolute;
   inset: 42% 0 0;
   pointer-events: none;
   opacity: 0;
-  background: linear-gradient(to top, rgba(7, 7, 8, 0.94) 0%, rgba(7, 7, 8, 0.62) 44%, transparent 100%);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none' viewBox='0 0 1 100'%3E%3ClinearGradient id='g' x1='0' y1='1' x2='0' y2='0'%3E%3Cstop offset='0' stop-color='%23070708' stop-opacity='.94'/%3E%3Cstop offset='.44' stop-color='%23070708' stop-opacity='.62'/%3E%3Cstop offset='1' stop-color='%23070708' stop-opacity='0'/%3E%3C/linearGradient%3E%3Crect width='1' height='100' fill='url(%23g)'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
   transition: opacity var(--m-entrata) var(--m-esce);
 }
 .trailer[data-fine] .velo { opacity: 1; }
