@@ -184,3 +184,27 @@ col processore: dal 51% al 3,6% di fotogrammi oltre i 33 ms.
   molto spazio sopra.
 - **Dopo i posti, "Continua senza email" è il tasto grande**, per primo; l'email sta sotto,
   in una riga piccola (campo e "Conferma").
+
+## Verso il cento per cento (10 novembre 2026, branch `home-al-cento`, non pubblicato)
+
+Stesso impianto (atti, ordine, motore, regia, prenotazione). Cambiano tre cose.
+
+- **Un sistema solo per i metadati** (`metadati.ts` coi test, `Dati.tsx`): quando e sala,
+  cartellino (regia, anno, durata; lingua, sottotitoli, come si proietta, divieto), premio col
+  logo del festival, posti. Ogni atto usa quelli. Generi, voto e titolo originale si leggono dal
+  catalogo della libreria (`CatalogFilm`), il motto da TMDB in cache: nel database non si scrive.
+- **Un sistema solo per il movimento**: curve, durate e distanze sono token in
+  `Home.module.css` (`--m-*`), e le entrate (`data-sc-in`) li usano da `sala.css`.
+- **Fluidità col processore** (il Firefox di Giovanni). Misurata con `al-cento/fx.mjs`: un
+  Firefox a parte, profilo temporaneo, accelerazione spenta, 1440×806 a densità 2, pilotato in
+  WebDriver BiDi, scorrimento a passi di 14 px, modo leggero bloccato. I colpevoli trovati
+  spegnendo un effetto alla volta: i cambi di luce a metà scorrimento, le entrate a tempo su
+  blocchi grandi, i pezzi a tutto schermo che seguono lo scorrimento. Rimedi: la stanza prende
+  la luce quando ci si ferma (uno strato solo, opaco); nell'apertura il fondale sta fermo; il
+  buio prima del trailer è dipinto nella pagina; le locandine scorrono con uno scorrimento vero
+  (`scrollLeft`); entrano solo cose piccole.
+
+Fotogrammi oltre i 33 ms, prima → dopo (primo giro): pagina 47% → 22%; apertura 65% → 22%;
+Oggi 26% → 1%; locandine 83% → 54%; luci spente 40% → 4%; trailer 16% → 12%; Più avanti
+56% → 24%; programma 13% → 7%. L'obiettivo (meno del 5% in ogni atto) è raggiunto su Oggi e
+sulle luci spente; sugli altri atti c'è ancora da lavorare. Le misure stanno in `al-cento/misure`.
