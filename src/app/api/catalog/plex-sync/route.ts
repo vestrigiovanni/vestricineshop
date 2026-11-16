@@ -86,15 +86,17 @@ async function findExisting(film: PlexFilm, sourceKey: string) {
   if (film.tmdbId) {
     // `plexKey: null` evita di rubare la riga a un altro film già sincronizzato
     // (succede con i doppioni in libreria).
+    // Una riga "uscita da Plex" (inPlex false) è libera anch'essa: è lo stesso film
+    // spostato in un'altra cartella, che Plex ha registrato con una chiave nuova.
     const byTmdb = await prisma.catalogFilm.findFirst({
-      where: { tmdbId: film.tmdbId, plexKey: null },
+      where: { tmdbId: film.tmdbId, OR: [{ plexKey: null }, { inPlex: false }] },
       orderBy: { id: 'asc' },
     });
     if (byTmdb) return { row: byTmdb, via: 'tmdbId' as const };
   }
 
   const bySource = await prisma.catalogFilm.findUnique({ where: { sourceKey } });
-  if (bySource && bySource.plexKey === null) return { row: bySource, via: 'sourceKey' as const };
+  if (bySource && (bySource.plexKey === null || !bySource.inPlex)) return { row: bySource, via: 'sourceKey' as const };
 
   return null;
 }
