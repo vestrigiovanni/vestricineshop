@@ -12,6 +12,7 @@ import Button from '@/components/cabina/Button';
 import Dialog from '@/components/cabina/Dialog';
 import { useToast } from '@/components/cabina/Toast';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
+import { SENZA_RISPOSTA } from '@/services/esito';
 import Trascina, { anteprima, type Caricata } from './Trascina';
 import Riquadro from './Riquadro';
 import stanza from '../../_stanza.module.css';
@@ -72,12 +73,13 @@ export default function SpecialeRoom() {
   const [paginaDist, setPaginaDist] = useState('');
 
   const carica = useCallback(async () => {
-    try {
-      const r = await specialeElenco();
+    // Le azioni rispondono { ok, errore } e non lanciano: il catch è solo per la chiamata caduta.
+    const r = await specialeElenco().catch(() => ({ ok: false as const, errore: SENZA_RISPOSTA }));
+    if (r.ok) {
       setSpeciali(r.speciali);
       setFilm(r.film);
-    } catch (e) {
-      errore(e instanceof Error ? e.message : 'Non riesco a leggere le proiezioni speciali.');
+    } else {
+      errore(r.errore);
       setSpeciali([]);
     }
   }, [errore]);
@@ -88,7 +90,7 @@ export default function SpecialeRoom() {
   useEffect(() => {
     if (!tmdbId) return;
     let vivo = true;
-    specialeFotogrammi(tmdbId).then(r => { if (vivo) setTmdb(r); }).catch(() => { if (vivo) setTmdb(null); });
+    specialeFotogrammi(tmdbId).then(r => { if (vivo) setTmdb(r.ok ? r : null); }).catch(() => { if (vivo) setTmdb(null); });
     return () => { vivo = false; };
   }, [tmdbId]);
 
@@ -110,7 +112,9 @@ export default function SpecialeRoom() {
     if (!bozza?.tmdbId) { errore('Prima scegli il film.'); return; }
     setCerco(true);
     try {
-      const r = await specialeDalDistributore(bozza.tmdbId, paginaDist.trim() || undefined);
+      const r = await specialeDalDistributore(bozza.tmdbId, paginaDist.trim() || undefined)
+        .catch(() => ({ ok: false as const, errore: `${SENZA_RISPOSTA} Se si ripete, apri la pagina del distributore e trascina le immagini a mano.` }));
+      if (!r.ok) { errore(r.errore); return; }
       setDist(r);
       const con = (c: { src: string; w: number; h: number } | undefined, posto: Posto) => (c ? { ...c, date: posto } : undefined);
       setBozza(b => {
@@ -131,8 +135,6 @@ export default function SpecialeRoom() {
       });
       const presi = [r.banner.orizzontale && 'banner orizzontale', r.banner.verticale && 'banner verticale', r.locandina && 'locandina', r.foto.length && `${r.foto.length} foto`].filter(Boolean);
       toast(presi.length ? `Da ${r.distributore}: ${presi.join(', ')}. Controlla che non abbiano già le date, poi salva.` : `Trovato su ${r.distributore}, ma senza immagini da scaricare: apri la pagina.`, presi.length ? 'ok' : 'alarm');
-    } catch (e) {
-      errore(e instanceof Error ? e.message : 'Non ci sono riuscito.');
     } finally {
       setCerco(false);
     }
@@ -142,38 +144,31 @@ export default function SpecialeRoom() {
     if (!bozza) return;
     setSalvo(true);
     try {
-      await specialeSalva(bozza);
+      const r = await specialeSalva(bozza).catch(() => ({ ok: false as const, errore: `${SENZA_RISPOSTA} La bozza è ancora qui: non chiudere la pagina.` }));
+      if (!r.ok) { errore(r.errore); return; }
       toast(bozza.attiva ? 'Salvata: è sul sito.' : 'Salvata, spenta: il sito non la mostra.', 'ok');
       setBozza(null);
       await carica();
-    } catch (e) {
-      errore(e instanceof Error ? e.message : 'Non sono riuscito a salvarla.');
     } finally {
       setSalvo(false);
     }
   }
 
   async function accendi(x: SpecialeSalvata) {
-    try {
-      await specialeAccendi(x.id, !x.attiva);
-      toast(x.attiva ? 'Spenta: il sito non la mostra più.' : 'Accesa: è sul sito.', 'ok');
-      await carica();
-    } catch (e) {
-      errore(e instanceof Error ? e.message : 'Non ci sono riuscito.');
-    }
+    const r = await specialeAccendi(x.id, !x.attiva).catch(() => ({ ok: false as const, errore: SENZA_RISPOSTA }));
+    if (!r.ok) { errore(r.errore); return; }
+    toast(x.attiva ? 'Spenta: il sito non la mostra più.' : 'Accesa: è sul sito.', 'ok');
+    await carica();
   }
 
   async function elimina() {
     if (!daEliminare) return;
-    try {
-      await specialeElimina(daEliminare.id);
-      toast('Tolta dal sito.', 'ok');
-      setDaEliminare(null);
-      if (bozza?.id === daEliminare.id) setBozza(null);
-      await carica();
-    } catch (e) {
-      errore(e instanceof Error ? e.message : 'Non ci sono riuscito.');
-    }
+    const r = await specialeElimina(daEliminare.id).catch(() => ({ ok: false as const, errore: SENZA_RISPOSTA }));
+    if (!r.ok) { errore(r.errore); return; }
+    toast('Tolta dal sito.', 'ok');
+    setDaEliminare(null);
+    if (bozza?.id === daEliminare.id) setBozza(null);
+    await carica();
   }
 
   const titolo = (id: number) => filmDi.get(id)?.titolo ?? `Film ${id} (non più in programma)`;

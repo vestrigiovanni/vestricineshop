@@ -1,5 +1,6 @@
 import { unzipSync } from 'fflate';
 import { laPagina, slug, type Chi } from './scegli';
+import { retePersa, rispostaSito, Spiegato } from '../esito';
 
 /**
  * Dove i distributori italiani mettono il materiale stampa, e come leggerlo
@@ -39,10 +40,25 @@ interface Distributore {
 
 const UA = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15' };
 
+/** Una pagina come testo. Ogni intoppo diventa uno Spiegato («bimfilm.com non ha risposto in 20 secondi»). */
 export async function testo(url: string, ms = 20000): Promise<string> {
-  const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(ms), cache: 'no-store' });
-  if (!r.ok) throw new Error(`${new URL(url).host} risponde ${r.status}`);
-  return r.text();
+  const host = new URL(url).host;
+  try {
+    const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(ms), cache: 'no-store' });
+    if (!r.ok) throw rispostaSito(host, r.status);
+    return await r.text();
+  } catch (err) {
+    throw retePersa(host, err, Math.round(ms / 1000));
+  }
+}
+
+/** Un indirizzo incollato a mano, controllato. */
+function indirizzo(u: string): URL {
+  try {
+    return new URL(u);
+  } catch {
+    throw new Spiegato(`«${u}» non è un indirizzo: copialo intero dalla barra del browser.`);
+  }
 }
 
 const ENTITA: Record<string, string> = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ', times: '×' };
@@ -186,12 +202,15 @@ async function indiceDi(d: Distributore) {
 /**
  * La pagina del film presso il suo distributore. Con `pagina` (incollata a
  * mano) si salta la ricerca: basta che il sito sia uno di quelli conosciuti.
+ * In `muti` finiscono i distributori che non hanno risposto durante la
+ * ricerca: se il film non si trova, può essere colpa loro.
  */
-export async function trovaPagina(chi: Chi, pagina?: string): Promise<Trovata | null> {
+export async function trovaPagina(chi: Chi, pagina?: string, muti: string[] = []): Promise<Trovata | null> {
   if (pagina) {
-    const d = DISTRIBUTORI.find(x => x.host.test(new URL(pagina).host));
-    if (!d) throw new Error(`Non so ancora leggere ${new URL(pagina).host}. Conosco: ${DISTRIBUTORI.map(x => x.nome).join(', ')}.`);
-    return { distributore: d.nome, pagina, voci: await d.leggi(pagina) };
+    const host = indirizzo(pagina).host;
+    const d = DISTRIBUTORI.find(x => x.host.test(host));
+    if (!d) throw new Spiegato(`Non so ancora leggere ${host}. Conosco: ${DISTRIBUTORI.map(x => x.nome).join(', ')}. Per gli altri trascina le immagini a mano.`);
+    return { distributore: d.nome, pagina, voci: await leggiDa(d, pagina) };
   }
   const trovate = await Promise.all(DISTRIBUTORI.map(async d => {
     try {
@@ -203,12 +222,24 @@ export async function trovaPagina(chi: Chi, pagina?: string): Promise<Trovata | 
       return p ? { d, url: p.url, forza: 3 } : null;
     } catch (err) {
       console.error(`[stampa] ${d.nome} non risponde:`, err);
+      muti.push(d.nome);
       return null;
     }
   }));
   const prima = trovate.filter((x): x is NonNullable<typeof x> => !!x)[0];
   if (!prima) return null;
-  return { distributore: prima.d.nome, pagina: prima.url, voci: await prima.d.leggi(prima.url) };
+  return { distributore: prima.d.nome, pagina: prima.url, voci: await leggiDa(prima.d, prima.url) };
+}
+
+/** La pagina del film, con l'errore che dice dove si è inceppato. */
+async function leggiDa(d: Distributore, pagina: string): Promise<Voce[]> {
+  try {
+    return await d.leggi(pagina);
+  } catch (err) {
+    console.error(`[stampa] ${d.nome}, ${pagina}:`, err);
+    const perche = err instanceof Spiegato ? err.message : 'la pagina non si legge';
+    throw new Spiegato(`Il film è su ${d.nome} (${pagina}), ma ${perche.charAt(0).toLowerCase()}${perche.slice(1)}`);
+  }
 }
 
 // ─── Scaricare: bit.ly, Drive (file e cartelle), zip ─────────────────────
@@ -217,7 +248,9 @@ export async function trovaPagina(chi: Chi, pagina?: string): Promise<Trovata | 
 export async function risolvi(url: string): Promise<string> {
   let u = url;
   for (let i = 0; i < 4 && /(^|\.)bit\.ly$|(^|\.)tinyurl\.com$/.test(new URL(u).host); i++) {
-    const r = await fetch(u, { method: 'HEAD', redirect: 'manual', headers: UA, signal: AbortSignal.timeout(10000) });
+    const host = new URL(u).host;
+    const r = await fetch(u, { method: 'HEAD', redirect: 'manual', headers: UA, signal: AbortSignal.timeout(10000) })
+      .catch(err => { throw retePersa(host, err, 10); });
     const dove = r.headers.get('location');
     if (!dove) break;
     u = new URL(dove, u).toString();
@@ -241,15 +274,25 @@ const TETTO = 120 * 1024 * 1024;
 export async function scarica(url: string): Promise<Scaricato> {
   const id = idFileDrive(url);
   const dove = id ? `https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t` : url;
-  const r = await fetch(dove, { headers: UA, signal: AbortSignal.timeout(90000), cache: 'no-store' });
-  if (!r.ok) throw new Error(`download non riuscito (${r.status})`);
-  const lungo = Number(r.headers.get('content-length') || 0);
-  if (lungo > TETTO) throw new Error(`troppo grande (${Math.round(lungo / 1e6)} MB)`);
-  const tipo = r.headers.get('content-type') || '';
-  if (tipo.startsWith('text/html')) throw new Error('il link porta a una pagina, non a un file (forse serve il login)');
-  const cd = r.headers.get('content-disposition') || '';
-  const nome = decodeURIComponent(cd.match(/filename\*=UTF-8''([^;]+)/i)?.[1] ?? cd.match(/filename="?([^";]+)"?/i)?.[1] ?? nomeFile(r.url || dove));
-  return { nome, tipo, dati: new Uint8Array(await r.arrayBuffer()) };
+  const host = new URL(dove).host;
+  try {
+    const r = await fetch(dove, { headers: UA, signal: AbortSignal.timeout(90000), cache: 'no-store' });
+    if (!r.ok) throw new Spiegato(`download non riuscito (${host} risponde ${r.status})`);
+    const lungo = Number(r.headers.get('content-length') || 0);
+    if (lungo > TETTO) throw new Spiegato(`troppo grande (${Math.round(lungo / 1e6)} MB)`);
+    const tipo = r.headers.get('content-type') || '';
+    if (tipo.startsWith('text/html')) {
+      throw new Spiegato(id
+        ? 'Drive dà una pagina invece del file: non è condiviso con «chiunque abbia il link», o è troppo grande per l’anteprima. Aprilo e scaricalo a mano.'
+        : 'il link porta a una pagina, non a un file (forse serve il login)');
+    }
+    const cd = r.headers.get('content-disposition') || '';
+    let nome = nomeFile(r.url || dove);
+    try { nome = decodeURIComponent(cd.match(/filename\*=UTF-8''([^;]+)/i)?.[1] ?? cd.match(/filename="?([^";]+)"?/i)?.[1] ?? nome); } catch { /* nome strano: resta quello dell'indirizzo */ }
+    return { nome, tipo, dati: new Uint8Array(await r.arrayBuffer()) };
+  } catch (err) {
+    throw retePersa(host, err, 90);
+  }
 }
 
 export const eZip = (s: Scaricato) => /zip/i.test(s.tipo) || /\.zip$/i.test(s.nome) || (s.dati[0] === 0x50 && s.dati[1] === 0x4b);
