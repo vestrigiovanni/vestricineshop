@@ -200,6 +200,10 @@
   opacity: 1;
 }
 .citazione[data-trailer] .testata { height: clamp(18px, 1.7vw, 28px); }
+/* Una testata senza logo si scrive col suo nome, ma grande quanto sarebbe il logo:
+ * in corpo 12–16 px accanto a una frase da 90 px spariva. */
+.testataScritta { font-size: 22px; line-height: 1; letter-spacing: 0.06em; }
+.citazione[data-trailer] .testataScritta { font-size: clamp(20px, 1.9vw, 32px); }
 
 /* ─── Telefono: il volto in alto, il testo in basso a tutta larghezza ─── */
 @media (max-width: 860px) {

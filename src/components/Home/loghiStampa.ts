@@ -1,7 +1,7 @@
 /**
  * I loghi ufficiali delle testate (bianchi su trasparente, alti 72 px), in
  * public/loghi/stampa: gli stessi di VestriCinema V2 (comune/loghi.ts), che li
- * aveva da VestriApp, più Vogue ed Elle da Wikimedia Commons (25 novembre
+ * aveva da VestriApp, più Vogue, Elle e Vanity Fair da Wikimedia Commons (25 novembre
  * 2026). Una testata che non è qui si scrive col suo nome.
  */
 export const STAMPA = [
@@ -9,7 +9,7 @@ export const STAMPA = [
   'indiewire', 'los-angeles-times', 'npr', 'rolling-stone', 'san-francisco-chronicle', 'screen-daily', 'screen-rant',
   'sight-and-sound', 'slant-magazine', 'the-a-v-club', 'the-atlantic', 'the-guardian', 'the-hollywood-reporter',
   'the-independent', 'the-irish-times', 'the-new-york-times', 'the-new-yorker', 'the-observer', 'the-playlist',
-  'the-telegraph', 'the-washington-post', 'time', 'total-film', 'variety', 'vogue', 'vulture',
+  'the-telegraph', 'the-washington-post', 'time', 'total-film', 'vanity-fair', 'variety', 'vogue', 'vulture',
 ] as const;
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();

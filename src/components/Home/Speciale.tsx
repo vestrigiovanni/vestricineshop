@@ -93,7 +93,7 @@ export default function Speciale({ dati, now }: { dati: SpecialeInSala<Film>; no
               {logo
                 // eslint-disable-next-line @next/next/no-img-element -- logo piccolo, già della misura giusta
                 ? <img src={logo} alt={c.fonte} className={s.testata} />
-                : c.fonte && <span>{c.fonte}</span>}
+                : c.fonte && <span className={s.testataScritta}>{c.fonte}</span>}
             </figcaption>
           </figure>
         );
