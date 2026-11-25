@@ -9,6 +9,7 @@ import { useStanze, varDi } from './Luce';
 import { Posti } from './Dati';
 import { Film, FilmLogo, Prenota, immagine } from './shared';
 import { logoTestata } from './loghiStampa';
+import { Critica } from './Critica';
 import base from './Home.module.css';
 import s from './Speciale.module.css';
 
@@ -21,9 +22,10 @@ import s from './Speciale.module.css';
  * Pictures. Le date sono quelle del cinema (`periodo`), non quelle
  * dell'anteprima nazionale stampate nel materiale; sotto, sala e orari.
  *
- * Tutto fermo, scorre solo la pagina: niente sfumature CSS grandi (il velo è
- * un'immagine), niente ombre, niente entrate a tempo. Col processore, nel
- * Firefox di Giovanni, sono le cose che costano (vedi scroll-craft-home).
+ * Le immagini stanno ferme, scorre la pagina: niente sfumature CSS grandi (il
+ * velo è un'immagine), niente ombre, niente entrate a tempo. Col processore,
+ * nel Firefox di Giovanni, sono le cose che costano (vedi scroll-craft-home).
+ * Si muovono solo le frasi della critica, legate allo scorrimento (Critica.tsx).
  *
  * Prenota fa quello che fa ovunque: porta il film nell'apertura, con la scheda
  * intera e i giorni.
@@ -80,22 +82,17 @@ export default function Speciale({ dati, now }: { dati: SpecialeInSala<Film>; no
       {speciale.citazioni.map(c => {
         const logo = c.fonte ? logoTestata(c.fonte) : null;
         return (
-          <figure key={`${c.fonte}-${c.testo}`} className={s.citazione} data-trailer={carattere ? '' : undefined}
-            style={carattere ? ({ '--cit-font': `'Critica ${carattere.famiglia}'`, '--cit-peso': carattere.peso } as React.CSSProperties) : undefined}>
-            <Image src={immagine(c.fondale, 'original')} alt="" fill sizes="100vw" className={s.fondale} />
-            <div className={s.buio} />
-            <blockquote className={s.frase}>
-              <p>“{c.testo}”</p>
-            </blockquote>
-            {/* Come nel trailer: «NOME, testata»; la testata col suo logo ufficiale, se l'abbiamo. */}
-            <figcaption className={s.fonte}>
+          <Critica key={`${c.fonte}-${c.testo}`} className={s.citazione} testo={c.testo}
+            style={carattere ? ({ '--cit-font': `'Critica ${carattere.famiglia}'`, '--cit-peso': carattere.peso } as React.CSSProperties) : undefined}
+            fondale={<Image src={immagine(c.fondale, 'original')} alt="" fill sizes="100vw" className={s.fondale} />}
+            // Come nel trailer: «NOME, testata»; la testata col suo logo ufficiale, se l'abbiamo.
+            firma={<>
               {c.critico && <span>{c.critico}{c.fonte ? ', ' : ''}</span>}
               {logo
                 // eslint-disable-next-line @next/next/no-img-element -- logo piccolo, già della misura giusta
                 ? <img src={logo} alt={c.fonte} className={s.testata} />
                 : c.fonte && <span className={s.testataScritta}>{c.fonte}</span>}
-            </figcaption>
-          </figure>
+            </>} />
         );
       })}
     </section>
