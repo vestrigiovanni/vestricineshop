@@ -35,7 +35,7 @@ export const ITALIANI: DistributoreItaliano[] = [
   { nome: 'Wanted Cinema', riconosci: /\bwanted\b/i, sito: 'https://www.wantedcinema.eu', area: 'pagina' },
   { nome: 'Plaion Pictures', riconosci: /\bplaion\b/i, sito: 'https://plaionpictures.com', tmdb: 195247, area: 'pagina' },
   { nome: 'Cineteca di Bologna', riconosci: /\bcineteca\s+di\s+bologna\b/i, sito: 'https://cinetecadibologna.it', area: 'pagina' },
-  { nome: 'Europictures', riconosci: /\beuropictures\b/i, sito: 'https://www.europictures.it', area: 'pagina' },
+  { nome: 'Europictures', riconosci: /\beuropictures\b/i, sito: 'https://www.europictures.it', area: 'automatica' },
   { nome: 'Nexo Studios', riconosci: /\bnexo\b/i, sito: 'https://www.nexostudios.it', tmdb: 41020, area: 'pagina' },
   { nome: 'Universal Pictures', riconosci: /\buniversal\b|\buip\b/i, sito: 'https://www.universalpictures.it', tmdb: 33, area: 'login' },
   { nome: 'Warner Bros.', riconosci: /\bwarner\b/i, sito: 'https://www.warnerbros.it', tmdb: 17, area: 'login' },

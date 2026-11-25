@@ -256,7 +256,7 @@ const SCADENZA_RIEMPI = 100_000;
 
 /**
  * «Riempi dal distributore»: cerca il film fra le aree stampa conosciute (I
- * Wonder, Lucky Red, BIM, Notorious, Teodora), scarica banner, locandina e
+ * Wonder, Lucky Red, BIM, Notorious, Teodora, Europictures), scarica banner, locandina e
  * foto, e li dà alla bozza. Con `pagina` si salta la ricerca. Le immagini
  * vengono salvate come quelle trascinate; la proiezione no: la salva Giovanni.
  */
@@ -281,7 +281,7 @@ export async function specialeDalDistributore(tmdbId: number, pagina?: string): 
           : `${casa} non ha un’area stampa che so leggere: prendi il materiale dalla pagina del film${noto?.sito ? ` su ${noto.sito}` : ''} o chiedilo all’ufficio stampa, poi trascinalo qui.`;
         throw new Spiegato(`«${film.title}» in Italia è di ${casa}${anche}. ${cosa}`);
       }
-      throw new Spiegato(`Non trovo «${film.title}» fra I Wonder, Lucky Red, BIM, Notorious e Teodora${anche}. Se sai la pagina del distributore, incollala; se il distributore è un altro, trascina le immagini a mano.`);
+      throw new Spiegato(`Non trovo «${film.title}» fra I Wonder, Lucky Red, BIM, Notorious, Teodora ed Europictures${anche}. Se sai la pagina del distributore, incollala; se il distributore è un altro, trascina le immagini a mano.`);
     }
     return entro(
       riempi(trovata),

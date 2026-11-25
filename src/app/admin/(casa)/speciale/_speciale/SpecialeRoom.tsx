@@ -447,7 +447,7 @@ export default function SpecialeRoom() {
               </Button>
             </div>
             <p className={stanza.hint}>
-              Cerca il film fra I Wonder, Lucky Red, BIM, Notorious e Teodora, e mette banner, locandina e foto nei posti ancora vuoti.
+              Cerca il film fra I Wonder, Lucky Red, BIM, Notorious, Teodora ed Europictures, e mette banner, locandina e foto nei posti ancora vuoti.
               Ci vuole anche un minuto: gli zip del distributore pesano decine di mega.
             </p>
             <Distributore d={distIt} />

@@ -13,7 +13,10 @@ import { ITALIANI } from './italiani';
  * - BIM: sitemap; nella pagina una cartella Drive con sottocartelle (POSTER, BANNER, FOTO);
  * - Notorious: sitemap dei "movie"; foto e locandina nella vista "area stampa";
  * - Teodora: niente elenco; la pagina /film/<titolo> ha l'"Area stampa" su Dropbox,
- *   che non si scarica a pezzi: si dà il link.
+ *   che non si scarica a pezzi: si dà il link;
+ * - Europictures: sitemap di pagine e articoli; il pulsante «PRESS KIT» quasi
+ *   sempre è vuoto («#»), ma WordPress elenca le immagini caricate per il film
+ *   (/wp-json/wp/v2/media?search=<titolo>): locandina, copertine 1920×1080, foto.
  *
  * Medusa e i grandi studi chiedono il login: non ci sono.
  */
@@ -170,6 +173,31 @@ export const DISTRIBUTORI: Distributore[] = [
         ...immaginiWp([...voci, ...immagini(html, area)], u => /notoriouspictures\.it\/wp-content\/uploads\/.+\.jpe?g$/i.test(u) && !/logo|icon|placeholder/i.test(u)),
         ...voci.filter(v => DRIVE_O_ALTRO.test(v.url) || /\.pdf$/i.test(v.url)),
       ];
+    },
+  },
+  {
+    nome: 'Europictures',
+    host: /europictures\.it/,
+    indice: async () => {
+      const mappe = await Promise.all(['post', 'page'].map(n => testo(`https://www.europictures.it/${n}-sitemap.xml`)));
+      return mappe.flatMap(locDellaSitemap)
+        .map(u => slugDi(u, /^\/([^/]+)\/?$/)).filter((x): x is { slug: string; url: string } => !!x);
+    },
+    leggi: async pagina => {
+      const voci = link(await testo(pagina), pagina);
+      // Il press kit, quando il pulsante ha un link vero (uno zip in /press/, Drive o un PDF).
+      const kit = voci.filter(v => /press\s*kit|cartella stampa/i.test(v.etichetta) && !/#$/.test(v.url) && /^https?:/.test(v.url))
+        .map(v => ({ ...v, etichetta: 'Press kit' }));
+      // Le immagini caricate per il film: si cercano col titolo dell'indirizzo («the-specials» → «the specials»).
+      const cerca = new URL(pagina).pathname.replace(/\//g, ' ').replace(/-/g, ' ').trim();
+      const media = await testo(`https://www.europictures.it/wp-json/wp/v2/media?search=${encodeURIComponent(cerca)}&per_page=50&_fields=source_url,mime_type,media_details`)
+        .then(j => JSON.parse(j) as { source_url: string; mime_type: string; media_details?: { width?: number; height?: number } }[])
+        .catch(() => []);
+      const grandi = media
+        .filter(m => /^image\/(jpeg|png|webp)$/.test(m.mime_type) && !/logo|title|icon/i.test(m.source_url))
+        .filter(m => Math.max(m.media_details?.width ?? 0, m.media_details?.height ?? 0) >= 600)
+        .map(m => ({ etichetta: '', url: m.source_url }));
+      return [...immaginiWp(grandi, () => true), ...kit];
     },
   },
   {
