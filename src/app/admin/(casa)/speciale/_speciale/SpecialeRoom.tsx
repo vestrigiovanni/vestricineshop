@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Download, ExternalLink, Eye, EyeOff, GripVertical, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Clapperboard, Download, ExternalLink, Eye, EyeOff, GripVertical, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import {
-  specialeAccendi, specialeDalDistributore, specialeElenco, specialeElimina, specialeFotogrammi, specialeSalva,
-  type DalDistributore, type DatiSpeciale, type FilmInProgramma, type FotogrammiTmdb,
+  specialeAccendi, specialeCriticaChiedi, specialeCriticaStato, specialeDalDistributore, specialeElenco, specialeElimina,
+  specialeFotogrammi, specialeSalva, type DalDistributore, type DatiSpeciale, type FilmInProgramma, type FotogrammiTmdb,
 } from '@/actions/specialeActions';
 import type { SpecialeSalvata } from '@/services/speciali';
 import { periodo, type Citazione, type ConDate, type FotoDiScena, type Materiale, type Posto } from '@/components/Home/proiezioneSpeciale';
@@ -38,6 +38,7 @@ function vuota(film?: FilmInProgramma): DatiSpeciale {
     casaLogo: '',
     fondale: '',
     citazioni: [],
+    carattere: null,
     materiale: null,
   };
 }
@@ -46,7 +47,7 @@ function daSalvata(x: SpecialeSalvata): DatiSpeciale {
   return {
     id: x.id, tmdbId: x.tmdbId, attiva: x.attiva, inizio: x.inizio, sopra: x.sopra,
     casaNome: x.casa.nome, casaLogo: x.casa.logo, fondale: x.fondale,
-    citazioni: x.citazioni, materiale: x.materiale ?? null,
+    citazioni: x.citazioni, carattere: x.carattere ?? null, materiale: x.materiale ?? null,
   };
 }
 
@@ -70,6 +71,8 @@ export default function SpecialeRoom() {
   const [daEliminare, setDaEliminare] = useState<SpecialeSalvata | null>(null);
   const [dist, setDist] = useState<DalDistributore | null>(null);
   const [cerco, setCerco] = useState(false);
+  /** «Critica dal trailer»: il messaggio del Mac mentre lavora, null quando è fermo. */
+  const [leggo, setLeggo] = useState<string | null>(null);
   const [paginaDist, setPaginaDist] = useState('');
 
   const carica = useCallback(async () => {
@@ -102,6 +105,54 @@ export default function SpecialeRoom() {
   const cambia = (p: Partial<DatiSpeciale>) => setBozza(b => (b ? { ...b, ...p } : b));
   const materiale = (p: Partial<Materiale>) => setBozza(b => (b ? { ...b, materiale: { ...(b.materiale ?? {}), ...p } } : b));
   const cit = (i: number, p: Partial<Citazione>) => setBozza(b => (b ? { ...b, citazioni: b.citazioni.map((c, j) => (j === i ? { ...c, ...p } : c)) } : b));
+
+  /**
+   * «Critica dal trailer»: segna la richiesta, apre vestricritica:// (l'app sul
+   * Mac scarica il trailer italiano e lo legge) e aspetta la risposta. Le
+   * citazioni arrivano nella bozza come se fossero state trascinate: in fondo,
+   * senza doppioni; il carattere del trailer va alle citazioni. Niente si salva
+   * finché Giovanni non preme «Salva».
+   */
+  async function criticaDalTrailer() {
+    if (!bozza?.tmdbId) { errore('Prima scegli il film.'); return; }
+    const id = bozza.tmdbId;
+    const chiesta = await specialeCriticaChiedi(id).catch(() => ({ ok: false as const, errore: SENZA_RISPOSTA }));
+    if (!chiesta.ok) { errore(chiesta.errore); return; }
+    setLeggo('Apro «Critica dal trailer» sul Mac…');
+    window.location.href = `vestricritica://leggi?tmdb=${id}&sito=${encodeURIComponent(window.location.origin)}`;
+    const inizio = Date.now();
+    try {
+      for (;;) {
+        await new Promise(ok => setTimeout(ok, 2500));
+        const r = await specialeCriticaStato(id).catch(() => null);
+        if (!r) continue; // una chiamata caduta: si riprova al giro dopo
+        if (!r.ok) { errore(r.errore); return; }
+        const c = r.critica;
+        if (c.stato === 'errore') { errore(c.messaggio || 'Il Mac non ce l’ha fatta.'); return; }
+        if (c.stato === 'fatto') {
+          setBozza(b => {
+            if (!b || b.tmdbId !== id) return b;
+            const gia = new Set(b.citazioni.map(x => x.testo.trim().toLowerCase()));
+            const nuove = c.citazioni
+              .filter(x => !gia.has(x.testo.trim().toLowerCase()))
+              // Senza scena pulita nel trailer, un fotogramma TMDB come con «Citazione senza immagine».
+              .map((x, k) => ({ ...x, fondale: x.fondale || tmdb?.fotogrammi[(b.citazioni.length + k + 1) % Math.max(1, tmdb.fotogrammi.length)] || '' }));
+            return { ...b, citazioni: [...b.citazioni, ...nuove], carattere: c.carattere ?? b.carattere };
+          });
+          toast(`${c.messaggio} Controlla frasi e testate, poi salva.`, 'ok');
+          return;
+        }
+        if (c.stato === 'attesa' && Date.now() - inizio > 25_000) {
+          errore('Il Mac non ha risposto. Serve l’app «Critica dal trailer» su questo Mac (scripts/critica/installa.sh), e Firefox deve poterla aprire.');
+          return;
+        }
+        if (c.stato === 'lavoro' && c.ferma > 240) { errore('Il Mac si è fermato a metà. Riprova.'); return; }
+        setLeggo(c.messaggio || 'Il Mac lavora…');
+      }
+    } finally {
+      setLeggo(null);
+    }
+  }
 
   /**
    * «Riempi dal distributore»: mette banner, locandina e foto nei posti ancora
@@ -280,7 +331,18 @@ export default function SpecialeRoom() {
             <Fotogrammi lista={tmdb?.fotogrammi ?? []} scelto={bozza.fondale} onScegli={p => cambia({ fondale: p })} />
           </Sezione>
 
-          <Sezione titolo="La critica" nota="Una frase per schermata, sul suo fotogramma. Trascina più immagini qui sotto: una citazione per immagine, poi scrivi frase e testata. L’ordine si cambia trascinando le schede.">
+          <Sezione titolo="La critica" nota="Una frase per schermata, sul suo fotogramma. «Critica dal trailer» legge le citazioni dal trailer italiano su TMDB, con critico, testata e carattere. Oppure trascina le immagini qui sotto: una citazione per immagine, poi scrivi frase e testata. L’ordine si cambia trascinando le schede.">
+            <div className={s.leggiTrailer}>
+              <Button variant="fill" onClick={criticaDalTrailer} disabled={leggo !== null || !bozza.tmdbId}>
+                {leggo !== null ? <><Loader2 size={16} className={s.gira} /> {leggo}</> : <><Clapperboard size={16} /> Critica dal trailer</>}
+              </Button>
+              {bozza.carattere && (
+                <span className={s.carattere}>
+                  Carattere dal trailer: <b>{bozza.carattere.famiglia} {bozza.carattere.peso}</b>
+                  <button type="button" className={stanza.iconBtn} onClick={() => cambia({ carattere: null })} title="Usa il carattere del sito" aria-label="Usa il carattere del sito"><X size={14} /></button>
+                </span>
+              )}
+            </div>
             <Trascina etichetta="Trascina qui le immagini delle citazioni" multipla
               onCaricate={cs => cambia({ citazioni: [...bozza.citazioni, ...cs.map(c => ({ testo: '', fonte: '', fondale: c.src }))] })} onErrore={errore} />
             <Ordinabili
@@ -294,6 +356,7 @@ export default function SpecialeRoom() {
                   <div className={s.citazioneTesto}>
                     <textarea value={c.testo} placeholder="La frase, senza virgolette" rows={3} onChange={e => cit(i, { testo: e.target.value })} />
                     <input value={c.fonte} placeholder="La testata (Variety, Roger Ebert…)" onChange={e => cit(i, { fonte: e.target.value })} />
+                    <input value={c.critico ?? ''} placeholder="Il critico (facoltativo)" onChange={e => cit(i, { critico: e.target.value })} />
                     <Fotogrammi lista={tmdb?.fotogrammi ?? []} scelto={c.fondale} onScegli={p => cit(i, { fondale: p })} piccola />
                   </div>
                 </div>

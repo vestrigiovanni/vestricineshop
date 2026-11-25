@@ -269,6 +269,8 @@ model ProiezioneSpeciale {
   citazioni Json     @default("[]")
   /** Banner, locandina, trailer verticale e foto di scena: vedi `Materiale` in proiezioneSpeciale.ts. */
   materiale Json?
+  /** Il carattere delle citazioni preso dal trailer: { famiglia, peso, src }. */
+  carattere Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -284,4 +286,23 @@ model ImmagineSpeciale {
   h         Int
   dati      Bytes
   createdAt DateTime @default(now())
+}
+
+/**
+ * «Critica dal trailer» (25 novembre 2026): la scheda Speciale chiede, il Mac
+ * scarica il trailer italiano, legge le citazioni e risponde qui. Una riga per
+ * film; la scheda la legge e mette le citazioni nella bozza.
+ */
+model CriticaTrailer {
+  tmdbId    Int      @id
+  /** attesa (chiesta, il Mac non ha ancora risposto) · lavoro · fatto · errore */
+  stato     String
+  messaggio String   @default("")
+  /** La chiave YouTube del trailer letto. */
+  trailer   String   @default("")
+  /** [{ testo, fonte, critico, fondale }] */
+  citazioni Json     @default("[]")
+  /** { famiglia, peso, src } */
+  carattere Json?
+  updatedAt DateTime @updatedAt
 }

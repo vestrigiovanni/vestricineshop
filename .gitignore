@@ -46,3 +46,7 @@ next-env.d.ts
 
 # cosa plex-sync ha già mandato al sito (solo su questo Mac)
 /.plex-sync-inviati.json
+
+# Critica dal trailer: il lettore Vision compilato
+scripts/critica/.ocr
+/tmp/

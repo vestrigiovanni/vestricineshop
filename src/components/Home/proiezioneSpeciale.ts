@@ -13,9 +13,23 @@ import type { HomeMovie } from './programma';
  */
 export interface Citazione {
   testo: string;
+  /** La testata, scritta come la scrive lei ("RogerEbert.com", "la Repubblica"). */
   fonte: string;
-  /** Il fotogramma TMDB su cui sta la citazione. */
+  /** Il fotogramma su cui sta la citazione (TMDB, o caricato). */
   fondale: string;
+  /** Chi l'ha scritta, se il trailer lo dice ("Sean Fennessey"). */
+  critico?: string;
+}
+
+/**
+ * Il carattere delle citazioni, il più simile a quello del trailer, scelto
+ * fra quelli di Google Fonts da `scripts/critica-dal-trailer.mjs`. Il file
+ * (woff2) sta sul sito: nessuna richiesta a Google da chi guarda la home.
+ */
+export interface Carattere {
+  famiglia: string;
+  peso: number;
+  src: string;
 }
 
 /** Un'immagine del materiale del distributore, in `public/`. */
@@ -72,6 +86,8 @@ export interface ProiezioneSpeciale {
   /** Il fotogramma della pagina d'apertura. */
   fondale: string;
   citazioni: Citazione[];
+  /** Senza, le citazioni usano il carattere del sito. */
+  carattere?: Carattere;
   materiale?: Materiale;
 }
 

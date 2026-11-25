@@ -31,22 +31,36 @@
 }
 
 /* Il logo di Vestri Cinema a sinistra, quello della casa a destra, alla stessa altezza. */
-.marchio,
-.casa {
+/* «Vestri Cinema × A24», come la collaborazione di due maison: i due marchi
+ * alla stessa altezza ottica, una croce sottile in mezzo. */
+.collab {
   position: absolute;
   z-index: 2;
   top: calc(20px + env(safe-area-inset-top, 0px));
-  width: auto;
-  height: 40px;
+  left: var(--v-margine);
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 1.6vw, 22px);
   pointer-events: none;
 }
-.marchio { left: var(--v-margine); }
+.marchio,
 .casa {
-  right: var(--v-margine);
-  top: calc(26px + env(safe-area-inset-top, 0px));
+  display: block;
+  width: auto;
+  height: 40px;
+}
+.casa {
   height: 30px;
+  max-width: 160px;
+  object-fit: contain;
   /* Il logo di TMDB è nero su trasparente: si accende in bianco. È piccolo e fermo. */
   filter: brightness(0) invert(1);
+}
+.per {
+  font: 200 26px/1 var(--v-font);
+  color: #fff;
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .copia {
@@ -146,11 +160,38 @@
   position: relative;
   z-index: 1;
   margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
   font: 400 12px/1 var(--v-font);
   letter-spacing: 0.02em;
   text-transform: uppercase;
   opacity: 0.85;
 }
+.fonte span { white-space: pre; }
+/* Il logo ufficiale della testata, bianco su trasparente: alto come una riga e mezza. */
+.testata {
+  display: block;
+  height: 22px;
+  width: auto;
+}
+
+/* Il carattere del trailer (Critica dal trailer): come lì, in minuscolo con le
+ * maiuscole, e la firma in maiuscoletto piccolo nello stesso carattere. */
+.citazione[data-trailer] .frase p {
+  max-width: 18ch;
+  font: var(--cit-peso, 600) clamp(38px, 5.4vw, 92px)/1.08 var(--cit-font), var(--v-font-display);
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+.citazione[data-trailer] .fonte {
+  margin-top: clamp(14px, 1.6vw, 24px);
+  font: var(--cit-peso, 600) clamp(12px, 1vw, 16px)/1 var(--cit-font), var(--v-font);
+  letter-spacing: 0.04em;
+  opacity: 1;
+}
+.citazione[data-trailer] .testata { height: clamp(18px, 1.7vw, 28px); }
 
 /* ─── Telefono: il volto in alto, il testo in basso a tutta larghezza ─── */
 @media (max-width: 860px) {
@@ -162,7 +203,9 @@
   }
   .titolo { font-size: clamp(44px, 13vw, 72px); }
   .marchio { height: 32px; }
-  .casa { height: 24px; top: calc(24px + env(safe-area-inset-top, 0px)); }
+  .casa { height: 24px; }
+  .per { font-size: 21px; }
   .frase p { max-width: 11ch; }
   .frase p { font-size: clamp(38px, 11vw, 64px); }
+  .citazione[data-trailer] .frase p { max-width: 14ch; font-size: clamp(30px, 8.4vw, 50px); }
 }

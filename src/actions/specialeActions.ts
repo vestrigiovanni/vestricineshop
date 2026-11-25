@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { checkAdminSession } from '@/actions/authActions';
 import { tutteLeSpeciali, type SpecialeSalvata } from '@/services/speciali';
-import type { Citazione, Materiale } from '@/components/Home/proiezioneSpeciale';
+import type { Carattere, Citazione, Materiale } from '@/components/Home/proiezioneSpeciale';
 import { trovaPagina } from '@/services/stampa/distributori';
 import { riempi, type DalDistributore } from '@/services/stampa/riempi';
 import { entro, esito, Spiegato, type Esito } from '@/services/esito';
@@ -69,6 +69,7 @@ export interface DatiSpeciale {
   casaLogo: string;
   fondale: string;
   citazioni: Citazione[];
+  carattere: Carattere | null;
   materiale: Materiale | null;
 }
 
@@ -81,7 +82,7 @@ export async function specialeSalva(d: DatiSpeciale): Promise<Esito<{ id: string
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d.inizio)) throw new Spiegato('Il primo giorno va scritto come AAAA-MM-GG.');
     if (!pulito(d.fondale)) throw new Spiegato('Manca il fotogramma della pagina d’apertura.');
     const citazioni = (d.citazioni || [])
-      .map(c => ({ testo: pulito(c.testo), fonte: pulito(c.fonte), fondale: pulito(c.fondale) }))
+      .map(c => ({ testo: pulito(c.testo), fonte: pulito(c.fonte), fondale: pulito(c.fondale), ...(pulito(c.critico) ? { critico: pulito(c.critico) } : {}) }))
       .filter(c => c.testo && c.fondale);
     const dati = {
       tmdbId: d.tmdbId,
@@ -92,6 +93,9 @@ export async function specialeSalva(d: DatiSpeciale): Promise<Esito<{ id: string
       casaLogo: pulito(d.casaLogo),
       fondale: pulito(d.fondale),
       citazioni: citazioni as unknown as Prisma.InputJsonValue,
+      carattere: d.carattere?.src && d.carattere.famiglia
+        ? ({ famiglia: pulito(d.carattere.famiglia), peso: Number(d.carattere.peso) || 400, src: pulito(d.carattere.src) } as Prisma.InputJsonValue)
+        : Prisma.DbNull,
       materiale: d.materiale ? (d.materiale as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
     };
     const riga = d.id
@@ -191,5 +195,50 @@ export async function specialeDalDistributore(tmdbId: number, pagina?: string): 
       SCADENZA_RIEMPI - (Date.now() - via),
       `${trovata.distributore} è troppo lento: in ${Math.round(SCADENZA_RIEMPI / 1000)} secondi non ho finito di scaricare. Apri la pagina (${trovata.pagina}) e trascina le immagini a mano, oppure riprova.`,
     );
+  });
+}
+
+export interface CriticaDalTrailer {
+  stato: 'attesa' | 'lavoro' | 'fatto' | 'errore' | 'nessuna';
+  messaggio: string;
+  trailer: string;
+  citazioni: Citazione[];
+  carattere: Carattere | null;
+  /** Da quanti secondi la riga non cambia: se il Mac non risponde, la scheda lo dice. */
+  ferma: number;
+}
+
+/**
+ * «Critica dal trailer», la richiesta: la scheda la segna qui e poi apre
+ * vestricritica://, che fa partire il programma sul Mac. Il trailer si scarica
+ * solo da lì (YouTube rifiuta i server), e da lì arrivano le risposte
+ * (`/api/speciale/critica`).
+ */
+export async function specialeCriticaChiedi(tmdbId: number): Promise<Esito> {
+  return esito('Chiedere la critica dal trailer', async () => {
+    await soloGestionale();
+    if (!Number.isInteger(tmdbId) || tmdbId <= 0) throw new Spiegato('Prima scegli il film.');
+    const dati = { stato: 'attesa', messaggio: 'Aspetto il Mac…', trailer: '', citazioni: [] as Prisma.InputJsonValue, carattere: Prisma.DbNull };
+    await prisma.criticaTrailer.upsert({ where: { tmdbId }, create: { tmdbId, ...dati }, update: dati });
+    return {};
+  });
+}
+
+/** A che punto è la lettura del trailer di un film. */
+export async function specialeCriticaStato(tmdbId: number): Promise<Esito<{ critica: CriticaDalTrailer }>> {
+  return esito('Leggere la critica dal trailer', async () => {
+    await soloGestionale();
+    const r = await prisma.criticaTrailer.findUnique({ where: { tmdbId } });
+    if (!r) return { critica: { stato: 'nessuna', messaggio: '', trailer: '', citazioni: [], carattere: null, ferma: 0 } as CriticaDalTrailer };
+    return {
+      critica: {
+        stato: r.stato as CriticaDalTrailer['stato'],
+        messaggio: r.messaggio,
+        trailer: r.trailer,
+        citazioni: Array.isArray(r.citazioni) ? (r.citazioni as unknown as Citazione[]) : [],
+        carattere: (r.carattere as unknown as Carattere | null) ?? null,
+        ferma: Math.round((Date.now() - r.updatedAt.getTime()) / 1000),
+      },
+    };
   });
 }

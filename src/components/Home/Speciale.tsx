@@ -8,6 +8,7 @@ import type { SpecialeInSala } from './proiezioneSpeciale';
 import { useStanze, varDi } from './Luce';
 import { Posti } from './Dati';
 import { Film, Prenota, immagine } from './shared';
+import { logoTestata } from './loghiStampa';
 import base from './Home.module.css';
 import s from './Speciale.module.css';
 
@@ -31,6 +32,7 @@ export default function Speciale({ dati, now }: { dati: SpecialeInSala<Film>; no
   const { openTrailer } = useTrailer();
   const { stanze } = useStanze();
   const { speciale, movie, show, orari } = dati;
+  const carattere = speciale.carattere;
   const trailer = trailerOf(movie);
   const dove = sala(show);
   // "ogni giorno alle 16:00 e alle 21:00": gli orari, non le date.
@@ -42,8 +44,16 @@ export default function Speciale({ dati, now }: { dati: SpecialeInSala<Film>; no
       <div className={s.apertura}>
         <Image src={immagine(speciale.fondale, 'original')} alt="" fill preload sizes="100vw" className={s.fondale} />
         <div className={s.velo} />
-        <Image src="/assets/vestri-cinema.png" alt="Vestri Cinema" width={437} height={373} className={s.marchio} loading="eager" />
-        {speciale.casa.logo && <Image src={immagine(speciale.casa.logo, 'w500')} alt={speciale.casa.nome} width={500} height={205} className={s.casa} loading="eager" />}
+        {/* Come la collaborazione di una maison: Vestri Cinema × la casa del film. */}
+        <div className={s.collab}>
+          <Image src="/assets/vestri-cinema.png" alt="Vestri Cinema" width={437} height={373} className={s.marchio} loading="eager" />
+          {speciale.casa.logo && (
+            <>
+              <span className={s.per} aria-label="con">×</span>
+              <Image src={immagine(speciale.casa.logo, 'w500')} alt={speciale.casa.nome} width={500} height={205} className={s.casa} loading="eager" />
+            </>
+          )}
+        </div>
         <div className={s.copia}>
           {speciale.sopra && <p className={s.sopra}>{speciale.sopra}</p>}
           <h2 id="speciale-titolo" className={s.titolo}>{movie.title}</h2>
@@ -58,16 +68,31 @@ export default function Speciale({ dati, now }: { dati: SpecialeInSala<Film>; no
         </div>
       </div>
 
-      {speciale.citazioni.map(c => (
-        <figure key={`${c.fonte}-${c.testo}`} className={s.citazione}>
-          <Image src={immagine(c.fondale, 'original')} alt="" fill sizes="100vw" className={s.fondale} />
-          <div className={s.buio} />
-          <blockquote className={s.frase}>
-            <p>“{c.testo}”</p>
-          </blockquote>
-          <figcaption className={s.fonte}>{c.fonte}</figcaption>
-        </figure>
-      ))}
+      {carattere && (
+        // Il carattere del trailer, servito dal sito: nessuna richiesta a Google.
+        <style>{`@font-face{font-family:'Critica ${carattere.famiglia}';src:url('${carattere.src}') format('woff2');font-weight:${carattere.peso};font-display:swap}`}</style>
+      )}
+      {speciale.citazioni.map(c => {
+        const logo = c.fonte ? logoTestata(c.fonte) : null;
+        return (
+          <figure key={`${c.fonte}-${c.testo}`} className={s.citazione} data-trailer={carattere ? '' : undefined}
+            style={carattere ? ({ '--cit-font': `'Critica ${carattere.famiglia}'`, '--cit-peso': carattere.peso } as React.CSSProperties) : undefined}>
+            <Image src={immagine(c.fondale, 'original')} alt="" fill sizes="100vw" className={s.fondale} />
+            <div className={s.buio} />
+            <blockquote className={s.frase}>
+              <p>“{c.testo}”</p>
+            </blockquote>
+            {/* Come nel trailer: «NOME, testata»; la testata col suo logo ufficiale, se l'abbiamo. */}
+            <figcaption className={s.fonte}>
+              {c.critico && <span>{c.critico}{c.fonte ? ', ' : ''}</span>}
+              {logo
+                // eslint-disable-next-line @next/next/no-img-element -- logo piccolo, già della misura giusta
+                ? <img src={logo} alt={c.fonte} className={s.testata} />
+                : c.fonte && <span>{c.fonte}</span>}
+            </figcaption>
+          </figure>
+        );
+      })}
     </section>
   );
 }

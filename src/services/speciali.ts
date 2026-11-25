@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import type { Citazione, Materiale, ProiezioneSpeciale } from '@/components/Home/proiezioneSpeciale';
+import type { Carattere, Citazione, Materiale, ProiezioneSpeciale } from '@/components/Home/proiezioneSpeciale';
 
 /**
  * Le proiezioni speciali salvate dal gestionale (stanza "Speciale"). La home
@@ -23,6 +23,7 @@ export function daRiga(r: Riga): SpecialeSalvata {
     casa: { nome: r.casaNome, logo: r.casaLogo },
     fondale: r.fondale,
     citazioni: Array.isArray(r.citazioni) ? (r.citazioni as unknown as Citazione[]) : [],
+    carattere: (r.carattere as unknown as Carattere | null) ?? undefined,
     materiale: (r.materiale as unknown as Materiale | null) ?? undefined,
     updatedAt: r.updatedAt.toISOString(),
   };

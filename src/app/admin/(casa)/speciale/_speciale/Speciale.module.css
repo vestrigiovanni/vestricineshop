@@ -121,3 +121,13 @@
   .riempi { grid-template-columns: 1fr; }
   .voci ul { columns: 1; }
 }
+
+/* «Critica dal trailer» e il carattere preso dal trailer, accanto. */
+.leggiTrailer { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.carattere {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  opacity: 0.85;
+}
