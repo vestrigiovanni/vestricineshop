@@ -276,7 +276,12 @@
 .seatItemValue {
   font-size: 4.8rem;
   font-weight: 950;
-  line-height: 1;
+  /* `normal`, non 1: con un'interlinea più stretta del carattere html2canvas
+     (in Firefox) disegna le cifre più in basso della loro scatola, e il 1 di
+     fila/posto finiva sopra la riga degli attori. I margini negativi
+     restituiscono lo spazio che l'interlinea normale aggiunge. */
+  line-height: normal;
+  margin: -0.1em 0 -0.12em;
   color: #FFF;
   letter-spacing: -3px;
   text-shadow: 0 0 50px rgba(255, 255, 255, 0.2), 0 5px 20px rgba(0, 0, 0, 1);
@@ -291,18 +296,19 @@
 
 /* Cast — Cinematic Credits Style */
 .castLineCentral {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
+  line-height: normal;
   text-align: center;
   color: #FFFFFF;
   text-shadow: 0 4px 10px rgba(0, 0, 0, 1);
-  margin-top: 5px;
+  margin-top: 8px;
   padding: 0 20px;
-  max-width: 600px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 700px;
+  /* Niente nowrap + ellipsis: html2canvas non disegna i puntini e taglia il
+     nome a metà. Se tre nomi lunghi non stanno, vanno a capo su due righe. */
+  text-wrap: balance;
 }
 
 /* ── BOTTOM SECTION ───────────────────────────────────────── */
