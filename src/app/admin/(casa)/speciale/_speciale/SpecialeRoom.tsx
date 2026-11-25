@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Eye, EyeOff, GripVertical, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Download, ExternalLink, Eye, EyeOff, GripVertical, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import {
-  specialeAccendi, specialeElenco, specialeElimina, specialeFotogrammi, specialeSalva,
-  type DatiSpeciale, type FilmInProgramma, type FotogrammiTmdb,
+  specialeAccendi, specialeDalDistributore, specialeElenco, specialeElimina, specialeFotogrammi, specialeSalva,
+  type DalDistributore, type DatiSpeciale, type FilmInProgramma, type FotogrammiTmdb,
 } from '@/actions/specialeActions';
 import type { SpecialeSalvata } from '@/services/speciali';
 import { periodo, type Citazione, type ConDate, type FotoDiScena, type Materiale, type Posto } from '@/components/Home/proiezioneSpeciale';
@@ -67,6 +67,9 @@ export default function SpecialeRoom() {
   const [tmdb, setTmdb] = useState<FotogrammiTmdb | null>(null);
   const [salvo, setSalvo] = useState(false);
   const [daEliminare, setDaEliminare] = useState<SpecialeSalvata | null>(null);
+  const [dist, setDist] = useState<DalDistributore | null>(null);
+  const [cerco, setCerco] = useState(false);
+  const [paginaDist, setPaginaDist] = useState('');
 
   const carica = useCallback(async () => {
     try {
@@ -97,6 +100,43 @@ export default function SpecialeRoom() {
   const cambia = (p: Partial<DatiSpeciale>) => setBozza(b => (b ? { ...b, ...p } : b));
   const materiale = (p: Partial<Materiale>) => setBozza(b => (b ? { ...b, materiale: { ...(b.materiale ?? {}), ...p } } : b));
   const cit = (i: number, p: Partial<Citazione>) => setBozza(b => (b ? { ...b, citazioni: b.citazioni.map((c, j) => (j === i ? { ...c, ...p } : c)) } : b));
+
+  /**
+   * «Riempi dal distributore»: mette banner, locandina e foto nei posti ancora
+   * vuoti della bozza (quelli già scelti restano). Niente si salva finché
+   * Giovanni non preme «Salva».
+   */
+  async function riempiDalDistributore() {
+    if (!bozza?.tmdbId) { errore('Prima scegli il film.'); return; }
+    setCerco(true);
+    try {
+      const r = await specialeDalDistributore(bozza.tmdbId, paginaDist.trim() || undefined);
+      setDist(r);
+      const con = (c: { src: string; w: number; h: number } | undefined, posto: Posto) => (c ? { ...c, date: posto } : undefined);
+      setBozza(b => {
+        if (!b) return b;
+        const m = b.materiale ?? {};
+        return {
+          ...b,
+          materiale: {
+            ...m,
+            banner: {
+              orizzontale: m.banner?.orizzontale ?? con(r.banner.orizzontale, POSTO_BANNER),
+              verticale: m.banner?.verticale ?? con(r.banner.verticale, POSTO_BANNER),
+            },
+            locandina: m.locandina ?? con(r.locandina, POSTO_LOCANDINA),
+            foto: m.foto?.length ? m.foto : r.foto.map(f => ({ ...f })),
+          },
+        };
+      });
+      const presi = [r.banner.orizzontale && 'banner orizzontale', r.banner.verticale && 'banner verticale', r.locandina && 'locandina', r.foto.length && `${r.foto.length} foto`].filter(Boolean);
+      toast(presi.length ? `Da ${r.distributore}: ${presi.join(', ')}. Controlla che non abbiano già le date, poi salva.` : `Trovato su ${r.distributore}, ma senza immagini da scaricare: apri la pagina.`, presi.length ? 'ok' : 'alarm');
+    } catch (e) {
+      errore(e instanceof Error ? e.message : 'Non ci sono riuscito.');
+    } finally {
+      setCerco(false);
+    }
+  }
 
   async function salva() {
     if (!bozza) return;
@@ -271,6 +311,40 @@ export default function SpecialeRoom() {
           </Sezione>
 
           <Sezione titolo="Il materiale del distributore" nota="Banner, locandina e foto fra gli atti della home. Se l’immagine ha già le date del distributore, cancellale prima: qui sposti il riquadro dove il sito scrive le tue.">
+            <div className={s.riempi}>
+              <label className={stanza.field}>
+                <span>Pagina del distributore (se non la trova da solo)</span>
+                <input value={paginaDist} onChange={e => setPaginaDist(e.target.value)} placeholder="https://iwonderpictures.com/projects/…" />
+              </label>
+              <Button variant="fill" onClick={riempiDalDistributore} disabled={cerco || !bozza.tmdbId}>
+                {cerco ? <><Loader2 size={16} className={s.gira} /> Cerco e scarico…</> : <><Download size={16} /> Riempi dal distributore</>}
+              </Button>
+            </div>
+            <p className={stanza.hint}>
+              Cerca il film fra I Wonder, Lucky Red, BIM, Notorious e Teodora, e mette banner, locandina e foto nei posti ancora vuoti.
+              Ci vuole anche un minuto: gli zip del distributore pesano decine di mega.
+            </p>
+            {dist && (
+              <div className={s.trovato}>
+                <p className={stanza.meta}>
+                  Trovato su <b>{dist.distributore}</b> · <a href={dist.pagina} target="_blank" rel="noreferrer">apri la pagina <ExternalLink size={12} /></a>
+                  {dist.trailerVerticale && <> · <a href={dist.trailerVerticale} target="_blank" rel="noreferrer">trailer verticale <ExternalLink size={12} /></a></>}
+                </p>
+                {dist.avvisi.length > 0 && (
+                  <ul className={s.avvisi}>{dist.avvisi.map(a => <li key={a}>{a}</li>)}</ul>
+                )}
+                {dist.voci.length > 0 && (
+                  <details className={s.voci}>
+                    <summary>Tutto il materiale della pagina ({dist.voci.length})</summary>
+                    <ul>
+                      {dist.voci.map(v => (
+                        <li key={v.url}><a href={v.url} target="_blank" rel="noreferrer">{v.etichetta || v.url}</a></li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            )}
             <ConLeDate nome="Banner orizzontale (schermo grande)" valore={bozza.materiale?.banner?.orizzontale} posto={POSTO_BANNER} date={date} errore={errore}
               onCambia={v => materiale({ banner: { ...bozza.materiale?.banner, orizzontale: v } })} />
             <ConLeDate nome="Banner verticale (telefono)" valore={bozza.materiale?.banner?.verticale} posto={POSTO_BANNER} date={date} errore={errore}

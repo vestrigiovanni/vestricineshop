@@ -6,6 +6,10 @@ import prisma from '@/lib/prisma';
 import { checkAdminSession } from '@/actions/authActions';
 import { tutteLeSpeciali, type SpecialeSalvata } from '@/services/speciali';
 import type { Citazione, Materiale } from '@/components/Home/proiezioneSpeciale';
+import { trovaPagina } from '@/services/stampa/distributori';
+import { riempi, type DalDistributore } from '@/services/stampa/riempi';
+
+export type { DalDistributore } from '@/services/stampa/riempi';
 
 /**
  * La stanza "Speciale" del gestionale (25 novembre 2026): inserire, cambiare,
@@ -127,4 +131,35 @@ export async function specialeFotogrammi(tmdbId: number): Promise<FotogrammiTmdb
     .filter((c: { job: string }) => c.job === 'Director')
     .map((c: { name: string }) => c.name);
   return { fotogrammi, loghiCase, regia };
+}
+
+/**
+ * «Riempi dal distributore»: cerca il film fra le aree stampa conosciute (I
+ * Wonder, Lucky Red, BIM, Notorious, Teodora), scarica banner, locandina e
+ * foto, e li dà alla bozza. Con `pagina` si salta la ricerca. Le immagini
+ * vengono salvate come quelle trascinate; la proiezione no: la salva Giovanni.
+ */
+export async function specialeDalDistributore(tmdbId: number, pagina?: string): Promise<DalDistributore> {
+  await soloGestionale();
+  const chiave = process.env.TMDB_API_KEY;
+  if (!chiave) throw new Error('Manca la chiave di TMDB.');
+  const film = await fetch(
+    `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${chiave}&language=it-IT&append_to_response=credits,alternative_titles`,
+    { cache: 'no-store' },
+  ).then(r => (r.ok ? r.json() : null)).catch(() => null);
+  if (!film) throw new Error('TMDB non ha risposto. Riprova fra poco.');
+  const alternativi: string[] = (film.alternative_titles?.titles || [])
+    .filter((t: { iso_3166_1: string }) => ['IT', 'US', 'GB'].includes(t.iso_3166_1))
+    .map((t: { title: string }) => t.title);
+  const chi = {
+    titoli: [...new Set<string>([film.title, film.original_title, ...alternativi].filter(Boolean))],
+    regia: (film.credits?.crew || []).filter((c: { job: string }) => c.job === 'Director').map((c: { name: string }) => c.name),
+  };
+  const indirizzo = pagina?.trim();
+  if (indirizzo && !/^https?:\/\//.test(indirizzo)) throw new Error('L’indirizzo della pagina deve cominciare con https://');
+  const trovata = await trovaPagina(chi, indirizzo || undefined);
+  if (!trovata) {
+    throw new Error(`Non trovo «${film.title}» fra I Wonder, Lucky Red, BIM, Notorious e Teodora. Se sai la pagina del distributore, incollala.`);
+  }
+  return riempi(trovata);
 }
