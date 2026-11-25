@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import type { GroupedMovie } from '@/components/Home/types';
 import HomePage from '@/components/Home/HomePage';
+import { specialiAttive } from '@/services/speciali';
 import { extractYouTubeId } from '@/utils/youtubeUtils';
 import { formatShowDayLabel, formatShowTime, formatYear } from '@/utils/cinemaDate';
 import styles from './page.module.css';
@@ -223,6 +224,9 @@ export default async function Home({
     availabilityMap[se.id] = se.isSoldOut;
   });
 
+  // Le proiezioni speciali accese nel gestionale (stanza Speciale).
+  const speciali = await specialiAttive();
+
   const endTime = Date.now();
   console.log(`[SSR] Homepage caricata dal DB in ${endTime - startTime}ms`);
 
@@ -235,6 +239,7 @@ export default async function Home({
     <main className={`cabina pubblico ${styles.main}`}>
       <HomePage
         movies={movies}
+        speciali={speciali}
         nowIso={regiaNow.toISOString()}
         initialAvailability={availabilityMap}
         initialMovieId={initialMovieId}

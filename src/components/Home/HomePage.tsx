@@ -10,6 +10,9 @@ import { Ambiente, LuceProvider } from './Luce';
 import { useMotore } from './motore';
 import { useLeggero } from './leggero';
 import Apertura from './Apertura';
+import Speciale from './Speciale';
+import { IntermezzoBanner, IntermezzoQuinte, IntermezzoTrailer } from './Intermezzi';
+import { specialeInSala, type ProiezioneSpeciale } from './proiezioneSpeciale';
 import Oggi from './Oggi';
 import Prossimi from './Prossimi';
 import Trailer, { Silenzio } from './Trailer';
@@ -22,6 +25,8 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 interface Props {
   movies: Film[];
+  /** Le proiezioni speciali accese nel gestionale. */
+  speciali?: ProiezioneSpeciale[];
   /** L'istante usato dal server: la regia lo riusa, così la pagina idratata è identica. */
   nowIso: string;
   initialAvailability?: Record<number, boolean>;
@@ -42,7 +47,7 @@ interface Props {
  * resta quello del browser (il 19 ottobre Lenis, che lo rifaceva in
  * JavaScript, andava a scatti su Firefox).
  */
-export default function HomePage({ movies, nowIso, initialAvailability, initialMovieId, initialSubeventId }: Props) {
+export default function HomePage({ movies, speciali = [], nowIso, initialAvailability, initialMovieId, initialSubeventId }: Props) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   const root = useRef<HTMLDivElement>(null);
   const { data: availability } = useSWR<Record<string, boolean>>('/api/availability', fetcher, {
@@ -62,14 +67,19 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
 
   // La regia si fa sui film come arrivano dal server: la disponibilità dal vivo
   // cambia i Prenota, non la forma della pagina (il motore ha già misurato gli atti).
+  // La proiezione speciale, finché è in programma, apre la pagina da sola: esce
+  // dalla fila degli atti e resta nel programma completo, con gli altri film.
+  const speciale = useMemo(() => specialeInSala(movies, now, speciali), [movies, now, speciali]);
   const struttura = useMemo(() => {
-    const p = buildProgramma(movies, now);
+    const tutti = buildProgramma(movies, now);
+    const regia = speciale ? buildProgramma(movies.filter(m => m.id !== speciale.movie.id), now) : tutti;
+    const p = regia && tutti ? { ...regia, film: tutti.film, giorni: tutti.giorni } : tutti;
     if (!p || initialMovieId == null || p.primo.movie.id === initialMovieId) return p;
     // `?film=`: quel film apre la pagina e il primo passa in testa a "Oggi"; gli altri restano dove sono.
     const scelto = p.film.find(x => x.movie.id === initialMovieId);
     const via = <T extends { movie: Film },>(xs: T[]) => xs.filter(x => x.movie.id !== initialMovieId);
     return scelto ? { ...p, primo: scelto, oggi: [p.primo, ...via(p.oggi)], prossimi: via(p.prossimi), lontani: via(p.lontani) } : p;
-  }, [movies, now, initialMovieId]);
+  }, [movies, now, initialMovieId, speciale]);
   const plan = useMemo(() => (struttura ? aggiorna(struttura, live) : null), [struttura, live]);
 
   const [booking, setBooking] = useState<{ subeventId: number; film: Film | null } | null>(() => {
@@ -87,12 +97,12 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   const scegli = useCallback((show: Show, film: Film) => {
     setScelto({ film, show });
     ritorno.current = scrollY;
-    salta(0);
+    salta(cimaApertura());
   }, []);
   const chiudi = useCallback(() => {
     setScelto(null);
     // Solo se si sta ancora guardando la scheda: chi intanto è sceso resta dov'è.
-    if (scrollY < innerHeight * 0.5) salta(ritorno.current);
+    if (Math.abs(scrollY - cimaApertura()) < innerHeight * 0.5) salta(ritorno.current);
   }, []);
   useEffect(() => {
     if (!scelto || booking) return;
@@ -113,6 +123,8 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
   const scheda = scelto && { film: live.find(m => m.id === scelto.film.id) || scelto.film, show: scelto.show };
   const choices = film ? choicesFromShowcase(film.subevents.filter(s => new Date(s.date) >= now)) : [];
   const filmLuce = plan.film.map(x => x.movie);
+  // Coi dati dal vivo (gli esauriti); la forma della pagina resta quella del server.
+  const specialeVivo = speciale && (specialeInSala(live, now, speciali) ?? speciale);
 
   return (
     <BookContext.Provider value={scegli}>
@@ -121,12 +133,17 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
           <Ambiente films={filmLuce} />
           <h1 className={base.nascosto}>Vestri Cinema: i film in sala</h1>
           <div className={base.atti}>
+            {specialeVivo && <Speciale dati={specialeVivo} now={now} />}
             <Apertura film={plan.primo.movie} show={plan.primo.show} now={now} scheda={scheda} onApri={apri} onChiudi={chiudi} />
             {plan.oggi.length > 0 && <Oggi slots={plan.oggi} now={now} />}
+            {/* Gli intermezzi della proiezione speciale, distanti fra loro: chi scorre la ritrova. */}
+            {specialeVivo && <IntermezzoBanner dati={specialeVivo} now={now} />}
             {plan.prossimi.length > 0 && <Prossimi slots={plan.prossimi} lontani={plan.lontani.length + (plan.trailer ? 1 : 0)} now={now} />}
+            {specialeVivo && <IntermezzoQuinte dati={specialeVivo} now={now} />}
             {plan.trailer && <Silenzio film={plan.trailer.slot.movie} />}
             {plan.trailer && <Trailer slot={plan.trailer.slot} trailerKey={plan.trailer.key} now={now} />}
             {plan.lontani.length > 0 && <Lontani slots={plan.lontani} now={now} dopoIlBuio={!!plan.trailer} />}
+            {specialeVivo && <IntermezzoTrailer dati={specialeVivo} now={now} />}
             <Tutto film={plan.film} giorni={plan.giorni} now={now} />
           </div>
         </div>
@@ -141,6 +158,15 @@ export default function HomePage({ movies, nowIso, initialAvailability, initialM
       />
     </BookContext.Provider>
   );
+}
+
+/**
+ * Dove comincia l'apertura: in cima alla pagina, o sotto la proiezione speciale
+ * quando c'è. Lì Prenota porta la scheda del film.
+ */
+function cimaApertura(): number {
+  const a = document.querySelector<HTMLElement>('[data-atto="apertura"]');
+  return a ? Math.round(a.getBoundingClientRect().top + scrollY) : 0;
 }
 
 /** Porta la pagina a `top`: da vicino scorrendo, da lontano con uno stacco. */

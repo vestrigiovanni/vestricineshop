@@ -214,13 +214,13 @@ async function misura() {
     await fx.cmd('script.addPreloadScript', { functionDeclaration: preload({ css: opt('css'), js: opt('js'), leggero: ha('leggero') }) });
     await naviga(fx, url);
     const dati = JSON.parse(await fx.valuta(MISURA(Number(opt('passo', '14')))));
-    const ordine = ['apertura', 'oggi', 'prossimi', 'silenzio', 'trailer', 'lontani', 'tutto', 'altro'];
+    const ordine = ['speciale', 'apertura', 'oggi', 'intermezzo-banner', 'prossimi', 'intermezzo-quinte', 'silenzio', 'trailer', 'lontani', 'intermezzo-trailer', 'tutto', 'altro'];
     const per = {};
     for (const a of ordine) if (dati.tempi[a]) per[a] = riassunto(dati.tempi[a]);
     const tutti = Object.values(dati.tempi).flat();
     const out = { quando: new Date().toISOString(), etichetta: opt('etichetta', ''), finestra: ha('finestra'), vista: dati.vista, altezza: dati.altezza, ua: dati.ua, visibile: dati.visibile, leggero: dati.leggero, bloccato: dati.bloccato, fermo: riassunto(dati.fermo), pagina: riassunto(tutti), atti: per, cls: dati.cls, errori: fx.errori.slice(0, 12), estensione: dati.atti };
     if (opt('out')) { mkdirSync(dirname(opt('out')), { recursive: true }); writeFileSync(opt('out'), JSON.stringify({ ...out, tempi: dati.tempi }, null, 1)); }
-    const riga = (nome, r) => `${nome.padEnd(9)} n=${String(r.n).padStart(4)}  mediana ${String(r.mediana).padStart(5)} ms  p95 ${String(r.p95).padStart(6)}  >33ms ${String(r.oltre33).padStart(5)}%  >50ms ${String(r.oltre50).padStart(5)}%  max ${r.max}`;
+    const riga = (nome, r) => `${nome.padEnd(19)} n=${String(r.n).padStart(4)}  mediana ${String(r.mediana).padStart(5)} ms  p95 ${String(r.p95).padStart(6)}  >33ms ${String(r.oltre33).padStart(5)}%  >50ms ${String(r.oltre50).padStart(5)}%  max ${r.max}`;
     console.log(`# ${opt('etichetta', 'misura')} · ${dati.vista.join('×')} · alta ${dati.altezza}px · ${ha('finestra') ? 'in finestra' : 'senza finestra'} · leggero ${dati.leggero ? 'ACCESO' : 'spento'} (bloccato ${dati.bloccato} volte)`);
     console.log(riga('fermo', out.fermo));
     for (const [a, r] of Object.entries(per)) console.log(riga(a, r));

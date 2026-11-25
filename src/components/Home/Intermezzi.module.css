@@ -1,0 +1,204 @@
+/* Gli intermezzi della proiezione speciale: il materiale del distributore fra
+ * gli atti. Tutto fermo, scorre solo la pagina; il trailer verticale gira solo
+ * quando è in vista. Niente ombre, niente sfumature CSS, niente entrate a tempo. */
+
+.occhiello {
+  margin: 0 0 10px;
+  font: 700 var(--t-nota)/1 var(--v-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--f-accento);
+}
+.azioni {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px;
+}
+.riga {
+  margin: 0;
+  color: var(--v-tenue);
+  font-size: var(--t-riga);
+  letter-spacing: -0.01em;
+}
+
+/* ─── Le date del cinema, dove il distributore aveva le sue ───
+ * Le misure seguono l'immagine: il testo si dimensiona sulla sua larghezza
+ * (`cqw`, la cornice è un contenitore), come le scritte stampate lì attorno. */
+.date {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.12;
+  letter-spacing: 0;
+  pointer-events: none;
+}
+.date[data-riquadro] { border: solid #fff; }
+.dateEvento { font-weight: 700; }
+.datePeriodo { font-weight: 400; }
+
+.dateOriz { border-width: 0.2cqw; }
+.dateOriz .dateEvento { font-size: 2.3cqw; }
+.dateOriz .datePeriodo { font-size: 2.05cqw; }
+.dateVert { border-width: 0.3cqw; }
+.dateVert .dateEvento { font-size: 3.3cqw; }
+.dateVert .datePeriodo { font-size: 2.95cqw; }
+.dateLocandina .dateEvento { font-size: 3.5cqw; }
+.dateLocandina .datePeriodo { font-size: 3.1cqw; }
+
+/* ─── 1. Il banner ─── */
+.banner {
+  position: relative;
+  padding: clamp(64px, 8vw, 120px) 0 clamp(32px, 4vw, 56px);
+}
+.manifesto {
+  display: block;
+  width: 100%;
+  padding: 0;
+  cursor: pointer;
+}
+.cornice {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  background: #8ea08a; /* il verde del banner, prima che arrivi */
+  container-type: inline-size;
+}
+.cornice img { object-fit: cover; }
+.vert { display: none; }
+.piede {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 24px;
+  padding: 18px var(--v-margine) 0;
+}
+.piede .azioni { margin-top: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .manifesto:hover .cornice { opacity: 0.94; }
+}
+
+/* ─── 2. Locandina e foto di scena ─── */
+.quinte {
+  position: relative;
+  padding: clamp(96px, 12vw, 180px) var(--v-margine) clamp(48px, 6vw, 96px);
+}
+.capo { margin-bottom: clamp(40px, 5vw, 72px); max-width: 760px; }
+.mostra {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--v-canale);
+  align-items: start;
+}
+.locandina {
+  position: relative;
+  grid-column: span 4;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--v-raggio-piccolo);
+  background: #2a2a26;
+  container-type: inline-size;
+}
+.locandina img { object-fit: cover; }
+.mostra[data-solo='foto'] .foto { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mostra[data-solo='locandina'] .locandina { grid-column: 4 / span 6; }
+.foto {
+  grid-column: span 8;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(28px, 3vw, 48px) var(--v-canale);
+}
+.scatto { margin: 0; }
+.immagine {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--v-raggio-piccolo);
+  background: #1a1a1c;
+}
+.immagine img { object-fit: cover; }
+.didascalia {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+  color: var(--v-tenue);
+  font-size: var(--t-nota);
+  line-height: 1.35;
+}
+.credito { opacity: 0.7; }
+
+/* ─── 3. Il trailer verticale ─── */
+.verticale {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--v-canale);
+  align-items: center;
+  padding: clamp(96px, 12vw, 180px) var(--v-margine);
+}
+.testo { grid-column: 1 / span 6; }
+.grande {
+  margin: 0;
+  font: 700 clamp(48px, 6vw, 96px)/0.92 var(--v-font-display);
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.sopra {
+  text-wrap: balance;
+  margin: 18px 0 0;
+  font-size: var(--t-sotto);
+  letter-spacing: -0.02em;
+}
+.periodo {
+  text-wrap: balance;
+  margin: 28px 0 4px;
+  font: 700 clamp(20px, 1.7vw, 26px)/1.15 var(--v-font-display);
+  text-transform: uppercase;
+}
+.telefono {
+  grid-column: 8 / span 4;
+  justify-self: center;
+  width: min(100%, 360px);
+  aspect-ratio: 9 / 16;
+  border-radius: var(--v-raggio);
+  overflow: hidden;
+  background: #111;
+  outline: 1px solid var(--v-filo-forte);
+  outline-offset: -1px;
+}
+.video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ─── Telefono ─── */
+@media (max-width: 860px) {
+  .oriz { display: none; }
+  .vert { display: block; }
+  .piede { flex-direction: column; align-items: flex-start; }
+
+  .mostra { grid-template-columns: 1fr; }
+  .locandina { grid-column: auto; width: min(78%, 360px); justify-self: center; }
+  .foto { grid-column: auto; grid-template-columns: 1fr; }
+
+  .verticale { grid-template-columns: 1fr; gap: 40px; }
+  .testo, .telefono { grid-column: auto; }
+  .telefono { width: min(82%, 340px); }
+}

@@ -1,0 +1,168 @@
+/* La proiezione speciale: la pagina d'apertura del film e le frasi della critica.
+ * Tutto fermo: scorre solo la pagina, quella del browser. */
+.speciale {
+  position: relative;
+  background: var(--f-fondo, #070708);
+}
+
+/* ─── La pagina d'apertura ─── */
+.apertura {
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+}
+.fondale {
+  object-fit: cover;
+  object-position: 30% 35%;
+}
+
+/* Il velo è un'immagine, non un `linear-gradient` (col processore Firefox la
+ * sfumatura CSS la ricalcola; l'immagine la disegna una volta): scurisce a
+ * destra, dove sta il testo, e in fondo, dove la pagina continua nel buio. */
+.velo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none' viewBox='0 0 1 100'%3E%3ClinearGradient id='g' x1='0' y1='1' x2='0' y2='0'%3E%3Cstop offset='0' stop-color='%23070708' stop-opacity='.9'/%3E%3Cstop offset='.3' stop-color='%23070708' stop-opacity='.35'/%3E%3Cstop offset='.6' stop-color='%23070708' stop-opacity='0'/%3E%3C/linearGradient%3E%3Crect width='1' height='100' fill='url(%23g)'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none' viewBox='0 0 100 1'%3E%3ClinearGradient id='g' x1='1' y1='0' x2='0' y2='0'%3E%3Cstop offset='0' stop-color='%23070708' stop-opacity='.5'/%3E%3Cstop offset='.55' stop-color='%23070708' stop-opacity='0'/%3E%3C/linearGradient%3E%3Crect width='100' height='1' fill='url(%23g)'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+
+/* Il logo di Vestri Cinema a sinistra, quello della casa a destra, alla stessa altezza. */
+.marchio,
+.casa {
+  position: absolute;
+  z-index: 2;
+  top: calc(20px + env(safe-area-inset-top, 0px));
+  width: auto;
+  height: 40px;
+  pointer-events: none;
+}
+.marchio { left: var(--v-margine); }
+.casa {
+  right: var(--v-margine);
+  top: calc(26px + env(safe-area-inset-top, 0px));
+  height: 30px;
+  /* Il logo di TMDB è nero su trasparente: si accende in bianco. È piccolo e fermo. */
+  filter: brightness(0) invert(1);
+}
+
+.copia {
+  position: absolute;
+  z-index: 2;
+  right: var(--v-margine);
+  text-wrap: balance;
+  bottom: clamp(48px, 10vh, 112px);
+  width: min(900px, 62vw);
+  text-align: center;
+}
+.sopra {
+  margin: 0 0 6px;
+  font: 600 clamp(15px, 1.2vw, 19px)/1.3 var(--v-font);
+  letter-spacing: -0.01em;
+}
+.titolo {
+  margin: 0;
+  font: 700 clamp(56px, 6.6vw, 112px)/0.9 var(--v-font-display);
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.evento {
+  margin: clamp(28px, 5vh, 56px) 0 0;
+  font: 700 clamp(22px, 1.9vw, 30px)/1.1 var(--v-font-display);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.dove {
+  margin: 6px 0 0;
+  font: 400 clamp(18px, 1.6vw, 25px)/1.2 var(--v-font-display);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.orari {
+  margin: 10px 0 0;
+  font-size: var(--t-riga);
+  letter-spacing: -0.01em;
+  opacity: 0.86;
+}
+.azioni {
+  margin-top: 26px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 22px;
+}
+
+/* ─── Le frasi della critica: una per schermata, sul suo fotogramma ─── */
+.citazione {
+  position: relative;
+  margin: 0;
+  height: 100vh;
+  height: 100svh;
+  min-height: 520px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--v-margine);
+  text-align: center;
+}
+.citazione .fondale { object-position: center; }
+/* Un buio uniforme, non una sfumatura: costa niente e tiene leggibile il bianco. */
+.buio {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 7, 8, 0.42);
+  pointer-events: none;
+}
+/* L'ultima frase finisce nel buio, così l'apertura del film dopo non arriva di
+ * colpo. Anche questa sfumatura è un'immagine. */
+.citazione:last-of-type .buio {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none' viewBox='0 0 1 100'%3E%3ClinearGradient id='g' x1='0' y1='1' x2='0' y2='0'%3E%3Cstop offset='0' stop-color='%23070708' stop-opacity='1'/%3E%3Cstop offset='.35' stop-color='%23070708' stop-opacity='0'/%3E%3C/linearGradient%3E%3Crect width='1' height='100' fill='url(%23g)'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat,
+    rgba(7, 7, 8, 0.42);
+}
+.frase {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+/* La misura in `ch` va data alla frase, nel suo carattere grande: sul contenitore
+ * valeva 15 caratteri da 17 px, e le frasi andavano a capo a ogni parola. */
+.frase p {
+  margin: 0 auto;
+  max-width: 14ch;
+  font: 700 clamp(46px, 7vw, 116px)/0.9 var(--v-font-display);
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.fonte {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  font: 400 12px/1 var(--v-font);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+/* ─── Telefono: il volto in alto, il testo in basso a tutta larghezza ─── */
+@media (max-width: 860px) {
+  .apertura .fondale { object-position: 22% 30%; }
+  .copia {
+    left: var(--v-margine);
+    width: auto;
+    bottom: calc(36px + env(safe-area-inset-bottom, 0px));
+  }
+  .titolo { font-size: clamp(44px, 13vw, 72px); }
+  .marchio { height: 32px; }
+  .casa { height: 24px; top: calc(24px + env(safe-area-inset-top, 0px)); }
+  .frase p { max-width: 11ch; }
+  .frase p { font-size: clamp(38px, 11vw, 64px); }
+}

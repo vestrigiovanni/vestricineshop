@@ -1,0 +1,109 @@
+/* La stanza Speciale: elenco, editor, zone dove trascinare. */
+.elenco { margin: 18px 0 22px; }
+.editor { display: grid; gap: 16px; }
+.sezione { gap: 14px; }
+.titoloSezione { margin: 0 0 4px; font-family: var(--c-font-serif); font-size: 20px; font-weight: 600; }
+.riga3 { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+.riga2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.select, .inputPiccolo, .citazioneTesto input, .citazioneTesto textarea {
+  min-height: 38px; padding: 0 10px; background: var(--c-bg-sunken); color: var(--c-ink);
+  border: 1px solid var(--c-line); border-radius: var(--c-radius); font: inherit; font-size: 14px; width: 100%;
+}
+.citazioneTesto textarea { padding: 8px 10px; resize: vertical; line-height: 1.4; }
+.select:focus, .inputPiccolo:focus, .citazioneTesto input:focus, .citazioneTesto textarea:focus { outline: none; border-color: var(--c-amber); }
+.spunta { display: inline-flex; gap: 8px; align-items: center; min-height: 38px; font-size: 13.5px; cursor: pointer; }
+.spunta input { accent-color: var(--c-amber); width: 16px; height: 16px; }
+.date { margin: 0; font-size: 13px; color: var(--c-dim); }
+.date b { color: var(--c-ink); font-weight: 600; }
+.suggerito {
+  justify-self: start; background: none; border: 1px dashed var(--c-line-strong); color: var(--c-dim);
+  border-radius: var(--c-radius); padding: 6px 10px; font-size: 12.5px; cursor: pointer;
+}
+.suggerito:hover { color: var(--c-ink); border-color: var(--c-amber); }
+
+/* La casa: i loghi di TMDB da scegliere, o uno trascinato. */
+.casa { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 14px; align-items: start; }
+.casaScelte { display: grid; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: grid; place-items: center; height: 44px; min-width: 44px; padding: 6px 10px;
+  background: #f2efe9; border: 2px solid transparent; border-radius: var(--c-radius); cursor: pointer; color: #333;
+}
+.chip img { max-height: 28px; max-width: 110px; object-fit: contain; }
+.chip[data-on] { border-color: var(--c-amber); }
+
+/* Le zone dove trascinare. */
+.zona {
+  position: relative; display: grid; place-items: center; min-height: 72px; overflow: hidden;
+  border: 1.5px dashed var(--c-line-strong); border-radius: var(--c-radius-lg); background: var(--c-bg-sunken);
+  transition: border-color var(--c-fast), background var(--c-fast);
+}
+.zona[data-sopra] { border-color: var(--c-amber); background: var(--c-amber-soft); }
+.zona[data-piena] { border-style: solid; }
+.zonaImg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.zonaInvito {
+  position: relative; z-index: 1; display: inline-flex; gap: 8px; align-items: center; padding: 8px 12px;
+  border: 0; border-radius: 999px; background: rgba(0, 0, 0, 0.62); color: #fff; font-size: 13px; cursor: pointer;
+}
+.zona:not([data-piena]) .zonaInvito { background: none; color: var(--c-dim); }
+.zona:not([data-piena]) .zonaInvito:hover { color: var(--c-ink); }
+.zona[data-piena] .zonaInvito { position: absolute; right: 8px; bottom: 8px; }
+.gira { animation: gira 0.9s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+
+/* I fotogrammi di TMDB. */
+.striscia { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.fotogramma {
+  flex: 0 0 auto; width: 132px; aspect-ratio: 16 / 9; padding: 0; overflow: hidden; cursor: pointer;
+  border: 2px solid transparent; border-radius: 6px; background: #000;
+}
+.striscia[data-piccola] .fotogramma { width: 92px; }
+.fotogramma img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fotogramma[data-on] { border-color: var(--c-amber); }
+
+/* Le schede che si riordinano. */
+.ordinabili { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.scheda {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 10px;
+  border: 1px solid var(--c-line); border-radius: var(--c-radius-lg); background: var(--c-bg);
+}
+.scheda[data-sopra] { border-color: var(--c-amber); }
+.schedaComandi { display: grid; gap: 4px; align-content: start; justify-items: center; color: var(--c-dim); }
+.presa { cursor: grab; padding: 4px 0; }
+.presa:active { cursor: grabbing; }
+.freccia { display: grid; place-items: center; width: 26px; height: 26px; background: none; border: 0; color: var(--c-dim); cursor: pointer; border-radius: 4px; }
+.freccia:hover:not(:disabled) { color: var(--c-ink); background: var(--c-bg-sunken); }
+.freccia:disabled { opacity: 0.3; cursor: default; }
+.citazione, .foto { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 12px; align-items: start; }
+.foto img { width: 100%; border-radius: 6px; display: block; }
+.citazioneTesto { display: grid; gap: 8px; min-width: 0; }
+
+/* Le immagini su cui il sito scrive le date. */
+.conDate { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--c-line); }
+.conDateCapo { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.conDateComandi { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.tela { position: relative; container-type: inline-size; user-select: none; touch-action: none; }
+.tela img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+.riquadro {
+  position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: #fff; text-transform: uppercase; white-space: nowrap; line-height: 1.12; cursor: move;
+  outline: 1px dashed var(--c-amber); outline-offset: 3px;
+}
+.riquadro[data-cornice] { border: 0.2cqw solid #fff; }
+.riquadro b { font-size: 2.3cqw; font-weight: 700; }
+.riquadro span { font-size: 2.05cqw; }
+.riquadro[data-verticale] b { font-size: 3.3cqw; }
+.riquadro[data-verticale] span { font-size: 2.95cqw; }
+.maniglia {
+  position: absolute; right: -9px; bottom: -9px; width: 14px; height: 14px; cursor: nwse-resize;
+  background: var(--c-amber); border-radius: 3px;
+}
+
+.salva {
+  position: sticky; bottom: 12px; z-index: 5; display: flex; justify-content: flex-end; gap: 8px; padding: 12px;
+  border: 1px solid var(--c-line); border-radius: var(--c-radius-lg); background: var(--c-bg-raised);
+}
+
+@media (max-width: 760px) {
+  .riga3, .riga2, .casa, .citazione, .foto { grid-template-columns: 1fr; }
+}

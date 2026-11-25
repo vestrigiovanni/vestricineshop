@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Armchair, CalendarRange, Ellipsis, ExternalLink, Film, Library, LogOut, Monitor, Search, Sunrise, Ticket, Wrench } from 'lucide-react';
+import { Armchair, CalendarRange, Ellipsis, ExternalLink, Film, Library, LogOut, Monitor, Search, Sparkles, Sunrise, Ticket, Wrench } from 'lucide-react';
 import { logoutAdmin } from '@/actions/authActions';
 import CommandPalette from './CommandPalette';
 import Dialog from './Dialog';
@@ -19,6 +19,7 @@ const ICONS: Record<RoomKey, React.ComponentType<{ size?: number }>> = {
   cassa: Ticket,
   sale: Armchair,
   display: Monitor,
+  speciale: Sparkles,
   attrezzi: Wrench,
 };
 

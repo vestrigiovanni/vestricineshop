@@ -5,7 +5,7 @@
  * "Altro". `inBar: false` le toglie dalle linguette in alto: Attrezzi si apre
  * dall'icona accanto alla ricerca e da ⌘K.
  */
-export type RoomKey = 'oggi' | 'programma' | 'film' | 'catalogo' | 'cassa' | 'sale' | 'display' | 'attrezzi';
+export type RoomKey = 'oggi' | 'programma' | 'film' | 'catalogo' | 'cassa' | 'sale' | 'display' | 'speciale' | 'attrezzi';
 
 export interface Room {
   key: RoomKey;
@@ -71,6 +71,13 @@ export const ROOMS: Room[] = [
     href: '/admin/display',
     mobile: false,
     keywords: ['schermo', 'ingresso', 'preroll', 'info on screen', 'monitor'],
+  },
+  {
+    key: 'speciale',
+    label: 'Speciale',
+    href: '/admin/speciale',
+    mobile: false,
+    keywords: ['proiezione speciale', 'evento', 'anteprima', 'banner', 'locandina', 'critica', 'citazioni', 'foto di scena', 'home'],
   },
   {
     key: 'attrezzi',

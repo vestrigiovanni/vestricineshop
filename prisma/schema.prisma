@@ -244,3 +244,44 @@ model PlanningDraft {
 
   @@index([updatedAt])
 }
+
+/**
+ * Una proiezione speciale (25 novembre 2026): finché il film ha spettacoli in
+ * programma, la home si apre con la sua pagina e mette i suoi intermezzi fra
+ * gli atti. Si inserisce, si cambia e si toglie nella stanza "Speciale" del
+ * gestionale. Le immagini sono riferimenti: un percorso TMDB ("/abc.jpg"), un
+ * file in public ("/speciali/…") o un'immagine caricata ("/api/speciale/immagine/<id>").
+ */
+model ProiezioneSpeciale {
+  id        String   @id @default(cuid())
+  tmdbId    Int
+  /** Spenta: resta salvata ma il sito non la mostra. */
+  attiva    Boolean  @default(true)
+  /** Il primo giorno della rassegna, AAAA-MM-GG. */
+  inizio    String
+  /** La riga piccola sopra il titolo. */
+  sopra     String   @default("")
+  casaNome  String   @default("")
+  casaLogo  String   @default("")
+  /** Il fotogramma della pagina d'apertura. */
+  fondale   String
+  /** [{ testo, fonte, fondale }] */
+  citazioni Json     @default("[]")
+  /** Banner, locandina, trailer verticale e foto di scena: vedi `Materiale` in proiezioneSpeciale.ts. */
+  materiale Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([attiva])
+}
+
+/** Un'immagine caricata dal gestionale, già ridotta nel browser (al massimo 2400 px). */
+model ImmagineSpeciale {
+  id        String   @id @default(cuid())
+  nome      String
+  tipo      String
+  w         Int
+  h         Int
+  dati      Bytes
+  createdAt DateTime @default(now())
+}

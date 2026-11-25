@@ -13,6 +13,12 @@ export type { Film, Show } from './metadati';
 export { crediti, durata, giornoBreve, giornoDi, lingua, maiuscola, ora, quando, tecnica } from './metadati';
 
 export const img = (path: string | null | undefined, size = 'w1280') => getTMDBImageUrl(path, size) || '';
+/**
+ * Un'immagine della proiezione speciale: un percorso TMDB ("/abc.jpg"), un file
+ * del sito ("/speciali/…") o un'immagine caricata dal gestionale ("/api/…").
+ */
+export const immagine = (ref: string | null | undefined, size = 'w1280') =>
+  ref && (ref.startsWith('/speciali/') || ref.startsWith('/api/')) ? ref : img(ref, size);
 
 export function prefersMotion(): boolean {
   return typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
