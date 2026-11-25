@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Clapperboard, Download, ExternalLink, Eye, EyeOff, GripVertical, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Clapperboard, Download, ExternalLink, Eye, EyeOff, GripVertical, Images, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import {
   specialeAccendi, specialeCriticaChiedi, specialeCriticaStato, specialeDalDistributore, specialeDistributore, specialeElenco, specialeElimina,
-  specialeFotogrammi, specialeSalva, type DalDistributore, type DatiSpeciale, type DistributoreDelFilm, type FilmInProgramma, type FotogrammiTmdb,
+  specialeFotogrammi, specialeSalva, specialeSonda, type Candidato, type DalDistributore, type DatiSpeciale, type DistributoreDelFilm, type FilmInProgramma, type FotogrammiTmdb,
 } from '@/actions/specialeActions';
 import type { SpecialeSalvata } from '@/services/speciali';
 import { periodo, type Citazione, type ConDate, type FotoDiScena, type Materiale, type Posto } from '@/components/Home/proiezioneSpeciale';
@@ -15,6 +15,7 @@ import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { SENZA_RISPOSTA } from '@/services/esito';
 import Trascina, { anteprima, type Caricata } from './Trascina';
 import Riquadro from './Riquadro';
+import ChiHaLeFoto from './ChiHaLeFoto';
 import stanza from '../../_stanza.module.css';
 import s from './Speciale.module.css';
 
@@ -91,6 +92,8 @@ export default function SpecialeRoom() {
   /** «Critica dal trailer»: il messaggio del Mac mentre lavora, null quando è fermo. */
   const [leggo, setLeggo] = useState<string | null>(null);
   const [paginaDist, setPaginaDist] = useState('');
+  /** «Chi ha le foto?»: null finché non si apre; per ogni film la risposta, o l'errore. */
+  const [candidati, setCandidati] = useState<Map<number, Candidato | { errore: string }> | null>(null);
 
   const carica = useCallback(async () => {
     // Le azioni rispondono { ok, errore } e non lanciano: il catch è solo per la chiamata caduta.
@@ -267,6 +270,7 @@ export default function SpecialeRoom() {
         </div>
         <div className={stanza.headActions}>
           <Button href="/" variant="ghost">Apri il sito</Button>
+          <Button variant="ghost" onClick={() => setCandidati(c => c ?? new Map())}><Images size={16} /> Chi ha le foto?</Button>
           {!bozza && <Button variant="fill" onClick={() => setBozza(vuota())}><Plus size={16} /> Nuova</Button>}
         </div>
       </header>
@@ -302,6 +306,25 @@ export default function SpecialeRoom() {
           ))}
         </ul>
       </section>
+
+      {candidati && (
+        <ChiHaLeFoto film={film} risposte={candidati} speciali={speciali ?? []}
+          controlla={async (ids, ancora) => {
+            // Tre alla volta: ogni film sono decine di richieste ai distributori.
+            setCandidati(m => { const n = new Map(m); for (const id of ids) n.delete(id); return n; });
+            const coda = [...ids];
+            const lavora = async () => {
+              for (let id = coda.shift(); id !== undefined; id = coda.shift()) {
+                const r = await specialeSonda(id, ancora).catch(() => ({ ok: false as const, errore: SENZA_RISPOSTA }));
+                const risposta = r.ok ? r.candidato : { errore: r.errore };
+                setCandidati(m => new Map(m).set(id, risposta));
+              }
+            };
+            await Promise.all([lavora(), lavora(), lavora()]);
+          }}
+          scegli={f => { setBozza(vuota(f)); setDist(null); }}
+          chiudi={() => setCandidati(null)} />
+      )}
 
       {/* ─── L'editor ─── */}
       {bozza && (

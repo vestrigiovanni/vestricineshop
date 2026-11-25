@@ -131,3 +131,14 @@
   font-size: 13px;
   opacity: 0.85;
 }
+
+/* «Chi ha le foto?»: i film in programma divisi per come sta il materiale. */
+.candidati { margin: 0 0 22px; }
+.candidatiTesta { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.gruppo { display: grid; gap: 2px; padding-top: 6px; border-top: 1px solid var(--c-line); }
+.gruppo[data-verdetto='pronto'] > p:first-child { color: var(--c-ok); }
+.gruppo[data-verdetto='niente'] li > div:first-child { opacity: 0.75; }
+.cosa { font-size: 13px; color: var(--c-ink); }
+.gruppo[data-verdetto='pronto'] .cosa { color: var(--c-ok); }
+.dist { font-weight: 600; color: var(--c-ink); }
+.gia { font-weight: 400; color: var(--c-amber); font-size: 12.5px; }

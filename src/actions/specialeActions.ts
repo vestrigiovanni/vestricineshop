@@ -10,6 +10,7 @@ import { testo, trovaPagina } from '@/services/stampa/distributori';
 import { distribuitoDa, distributoreItaliano, notaArea, type Area } from '@/services/stampa/italiani';
 import { slug } from '@/services/stampa/scegli';
 import { riempi, type DalDistributore } from '@/services/stampa/riempi';
+import { cosaPrende, riassunto, sonda, verdetto, type Sondato, type Verdetto } from '@/services/stampa/sonda';
 import { entro, esito, Spiegato, type Esito } from '@/services/esito';
 
 export type { DalDistributore } from '@/services/stampa/riempi';
@@ -288,6 +289,75 @@ export async function specialeDalDistributore(tmdbId: number, pagina?: string): 
       `${trovata.distributore} è troppo lento: in ${Math.round(SCADENZA_RIEMPI / 1000)} secondi non ho finito di scaricare. Apri la pagina (${trovata.pagina}) e trascina le immagini a mano, oppure riprova.`,
     );
   });
+}
+
+export interface Candidato {
+  tmdbId: number;
+  verdetto: Verdetto;
+  distributore: DistributoreDelFilm | null;
+  /** Cosa c'è da scaricare, in due parole. */
+  cosa: string;
+  materiale?: Sondato;
+  /** Perché no, o cosa fare invece. */
+  nota: string;
+}
+
+/** Le risposte di «Chi ha le foto?» per un'ora: i distributori cambiano poco, e ogni giro sono decine di richieste. */
+const sondati = new Map<number, { quando: number; c: Candidato }>();
+const SCADENZA_SONDA = 50_000;
+
+/**
+ * «Chi ha le foto?»: per un film in programma, il distributore italiano e se
+ * il suo materiale si scarica davvero (pagina del film raggiungibile, foto o
+ * zip che rispondono). Non scarica e non salva niente.
+ */
+export async function specialeSonda(tmdbId: number, ancora = false): Promise<Esito<{ candidato: Candidato }>> {
+  return esito('Controllare il materiale del distributore', async () => {
+    await soloGestionale();
+    const m = sondati.get(tmdbId);
+    if (m && !ancora && Date.now() - m.quando < 3600_000) return { candidato: m.c };
+    const c = await entro(sondaFilm(tmdbId), SCADENZA_SONDA, 'Il distributore è troppo lento a rispondere: riprova più tardi.');
+    sondati.set(tmdbId, { quando: Date.now(), c });
+    return { candidato: c };
+  });
+}
+
+async function sondaFilm(tmdbId: number): Promise<Candidato> {
+  const { chi, anni, chiave } = await filmTmdb(tmdbId);
+  const muti: string[] = [];
+  const trovata = await trovaPagina(chi, undefined, muti).catch(err => {
+    if (err instanceof Spiegato) return { errore: err.message } as const;
+    throw err;
+  });
+  if (trovata && !('errore' in trovata)) {
+    const noto = distributoreItaliano(trovata.distributore);
+    const distributore: DistributoreDelFilm = {
+      nome: noto?.nome ?? trovata.distributore, sito: noto?.sito, pagina: trovata.pagina,
+      logo: await logoCasa(noto?.tmdb, chiave), area: noto?.area, nota: notaArea(noto?.area), fonte: 'area stampa',
+    };
+    const materiale = await sonda(trovata);
+    const v = verdetto(materiale);
+    const nota = v === 'pronto'
+      ? `«Riempi dal distributore» prende ${cosaPrende(materiale)}${materiale.foto && materiale.foto < 3 && !materiale.zip.length ? ' (poche foto: le altre dai fotogrammi TMDB)' : ''}.` + (materiale.rotti.length ? ` Non rispondono: ${materiale.rotti.slice(0, 3).join(', ')}.` : '')
+      : v === 'a-mano'
+        ? 'C’è qualcosa, ma va preso a mano dalla pagina del film.'
+        : materiale.rotti.length
+          ? `La pagina c’è, ma i link non rispondono (${materiale.rotti.slice(0, 3).join(', ')}).`
+          : 'La pagina del film c’è, ma senza foto da scaricare (ancora).';
+    return { tmdbId, verdetto: v, distributore, cosa: riassunto(materiale), materiale, nota };
+  }
+  // Non è fra le aree stampa che sappiamo leggere: chi lo distribuisce, per sapere cosa fare.
+  const dove = await daMyMovies(chi.titoli, anni).catch(() => null);
+  const noto = dove ? distributoreItaliano(dove.nome) : null;
+  const distributore: DistributoreDelFilm | null = dove
+    ? { nome: noto?.nome ?? dove.nome, sito: noto?.sito, logo: await logoCasa(noto?.tmdb, chiave), area: noto?.area, nota: notaArea(noto?.area), fonte: dove.pagina }
+    : null;
+  const nota = trovata && 'errore' in trovata
+    ? trovata.errore
+    : muti.length
+      ? `${muti.join(', ')} non ${muti.length > 1 ? 'hanno' : 'ha'} risposto: riprova più tardi.`
+      : distributore ? distributore.nota : 'Distributore italiano non trovato (né nelle aree stampa né su MyMovies).';
+  return { tmdbId, verdetto: 'niente', distributore, cosa: '', nota };
 }
 
 export interface CriticaDalTrailer {
