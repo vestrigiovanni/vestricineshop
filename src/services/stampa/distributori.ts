@@ -1,6 +1,7 @@
 import { unzipSync } from 'fflate';
 import { laPagina, slug, type Chi } from './scegli';
 import { retePersa, rispostaSito, Spiegato } from '../esito';
+import { ITALIANI } from './italiani';
 
 /**
  * Dove i distributori italiani mettono il materiale stampa, e come leggerlo
@@ -209,7 +210,12 @@ export async function trovaPagina(chi: Chi, pagina?: string, muti: string[] = []
   if (pagina) {
     const host = indirizzo(pagina).host;
     const d = DISTRIBUTORI.find(x => x.host.test(host));
-    if (!d) throw new Spiegato(`Non so ancora leggere ${host}. Conosco: ${DISTRIBUTORI.map(x => x.nome).join(', ')}. Per gli altri trascina le immagini a mano.`);
+    if (!d) {
+      const senzaWww = (h: string) => h.replace(/^www\./, '');
+      const noto = ITALIANI.find(x => x.sito && senzaWww(new URL(x.sito).host) === senzaWww(host));
+      if (noto?.area === 'login') throw new Spiegato(`${noto.nome} (${host}) tiene il materiale in un’area stampa con login: da qui non posso scaricarlo. Scarica banner e foto da lì e trascinali qui.`);
+      throw new Spiegato(`Non so ancora leggere ${host}. Conosco: ${DISTRIBUTORI.map(x => x.nome).join(', ')}. Per gli altri trascina le immagini a mano.`);
+    }
     return { distributore: d.nome, pagina, voci: await leggiDa(d, pagina) };
   }
   const trovate = await Promise.all(DISTRIBUTORI.map(async d => {

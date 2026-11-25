@@ -7,7 +7,7 @@ import { sala } from './metadati';
 import type { SpecialeInSala } from './proiezioneSpeciale';
 import { useStanze, varDi } from './Luce';
 import { Posti } from './Dati';
-import { Film, Prenota, immagine } from './shared';
+import { Film, FilmLogo, Prenota, immagine } from './shared';
 import { logoTestata } from './loghiStampa';
 import base from './Home.module.css';
 import s from './Speciale.module.css';
@@ -56,7 +56,12 @@ export default function Speciale({ dati, now }: { dati: SpecialeInSala<Film>; no
         </div>
         <div className={s.copia}>
           {speciale.sopra && <p className={s.sopra}>{speciale.sopra}</p>}
-          <h2 id="speciale-titolo" className={s.titolo}>{movie.title}</h2>
+          {/* Il logo del film, come nel materiale del distributore; senza logo, il titolo scritto. */}
+          <h2 id="speciale-titolo" className={s.titolo}>
+            {movie.logo_path && movie.logo_path !== 'none'
+              ? <FilmLogo film={movie} className={s.logoTitolo} subito taglia="original" sizes="(max-width: 860px) 86vw, 760px" />
+              : movie.title}
+          </h2>
           <p className={s.evento}>Proiezione speciale</p>
           <p className={s.dove}>{dati.periodo}</p>
           {(dove || quando) && <p className={s.orari}>{[dove, quando].filter(Boolean).join(', ')}</p>}

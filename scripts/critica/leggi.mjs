@@ -118,7 +118,9 @@ export function frase(righe) {
     .replace(/^[\s.…]*["“”«„']+/, '')
     .replace(/["“”»']+\s*[.…]*$/, '')
     .replace(/'/g, '’')
-    .trim();
+    .trim()
+    // La virgola (o il punto e virgola) prima della virgoletta di chiusura: nel sito non serve.
+    .replace(/\s*[,;:]+$/, '');
 }
 
 /**
@@ -134,6 +136,14 @@ export function citazioneDi(righe) {
   let fine = -1;
   for (let i = inizio; i < Math.min(rr.length, inizio + 4); i++) {
     if (CHIUDE.test(rr[i].t) && (i > inizio || rr[i].t.trim().length > 2)) { fine = i; break; }
+  }
+  // La virgoletta di chiusura persa (scritta colorata sopra una scena): la frase
+  // finisce allora dove comincia la firma, «-VANITY FAIR» o una testata nota.
+  if (fine < 0) {
+    for (let i = inizio + 1; i < Math.min(rr.length, inizio + 5); i++) {
+      const t = rr[i].t.trim();
+      if (/^[-–—]\s*\p{L}/u.test(t) || riconosci(t).punti >= 0.9) { fine = i - 1; break; }
+    }
   }
   if (fine < 0) return null;
   const testo = frase(rr.slice(inizio, fine + 1).map(r => r.t));
@@ -154,7 +164,7 @@ export function citazioneDi(righe) {
   const box = rr.slice(inizio, fine + 1);
   const x = Math.min(...box.map(r => r.x)), y = Math.min(...box.map(r => r.y));
   const x2 = Math.max(...box.map(r => r.x + r.w)), y2 = Math.max(...box.map(r => r.y + r.h));
-  return { testo, critico: critico ? maiuscole(critico) : '', fonte, box: { x, y, w: x2 - x, h: y2 - y }, righe: box.map(r => ({ t: r.t, box: { x: r.x, y: r.y, w: r.w, h: r.h } })) };
+  return { testo, critico: critico ? maiuscole(critico) : '', fonte, box: { x, y, w: x2 - x, h: y2 - y }, righe: box.map(r => ({ t: r.t, box: { x: r.x, y: r.y, w: r.w, h: r.h }, ...(r.e ? { e: r.e } : {}) })) };
 }
 
 /**
@@ -195,4 +205,90 @@ export function piuVotato(xs) {
   const conta = new Map();
   for (const x of xs) if (x) conta.set(x, (conta.get(x) ?? 0) + 1);
   return [...conta.entries()].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0]?.[0] ?? '';
+}
+
+// ── L'accento della È maiuscola ─────────────────────────────────────────────
+
+/**
+ * La E ha l'accento? `cime` sono, colonna per colonna dentro la E, le righe
+ * (dall'alto) dove comincia l'inchiostro. La cima della E maiuscola è piatta;
+ * l'accento della È, nei caratteri dei trailer, è un cuneo stretto attaccato
+ * sopra: la fa sporgere di qualche pixel su un tratto corto. Vision lo legge
+ * come E. Torna i pixel di sporgenza (0 se è piatta o se a sporgere è mezza lettera).
+ */
+export function sporgenza(cime) {
+  const v = cime.filter(c => c >= 0).sort((a, b) => a - b);
+  if (v.length < 5) return 0;
+  const piano = v[Math.floor(v.length / 2)];
+  const sopra = v.filter(c => c < piano - 2).length;
+  if (sopra > v.length * 0.4) return 0;
+  return piano - v[0];
+}
+
+/** Abbastanza per dire «accento»: almeno 3 pixel e l'1,2 % dell'altezza della riga (le tonde sporgono meno, ma qui si misura la E piatta). */
+export function conAccento(sporge, altezza) {
+  return sporge >= Math.max(3, 0.012 * altezza);
+}
+
+/**
+ * Le parole maiuscole che senza accento non esistono (o quasi): Vision li
+ * perde anche in fondo alla parola («È GIA UN CULT»). Solo parole sicure:
+ * niente «NE», «DA», «LA», che hanno senso anche senza.
+ */
+const PAROLE_ACCENTATE = Object.fromEntries([
+  'GIÀ', 'PIÙ', 'PERCHÉ', 'POICHÉ', 'AFFINCHÉ', 'BENCHÉ', 'NÉ', 'CIOÈ', 'COSÌ', 'PERÒ', 'PUÒ', 'FINCHÉ', 'LASSÙ', 'LAGGIÙ', 'QUAGGIÙ',
+  'CITTÀ', 'VERITÀ', 'ETÀ', 'LIBERTÀ', 'UMANITÀ', 'REALTÀ', 'NOVITÀ', 'QUALITÀ', 'INTENSITÀ', 'ORIGINALITÀ', 'CRUDELTÀ', 'IDENTITÀ',
+  'SENSIBILITÀ', 'MATURITÀ', 'MODERNITÀ', 'VITALITÀ', 'FELICITÀ', 'COMICITÀ', 'CREATIVITÀ', 'ATTUALITÀ', 'SINCERITÀ', 'BONTÀ', 'BELTÀ',
+  'FRAGILITÀ', 'COMPLESSITÀ', 'SEMPLICITÀ', 'AUTENTICITÀ',
+].map(p => [p.normalize('NFD').replace(/[\u0300-\u036f]/g, ''), p]));
+
+/** Le «E» isolate di una frase (anche «E'»), nell'ordine in cui si leggono. */
+const E_SOLA = /(^|[\s"“«'’])E(?=\s)/g;
+
+/**
+ * Rimette gli accenti: «E'» e «E’» diventano sempre «È»; le altre E isolate
+ * solo dove `accenti` (nell'ordine di lettura) dice che sopra c'è il segno.
+ */
+export function accenta(testo, accenti = []) {
+  let n = 0;
+  return testo
+    .replace(/\p{Lu}+/gu, p => PAROLE_ACCENTATE[p] ?? p)
+    .replace(/(^|[\s"“«])E['’](?=\s|$)/g, '$1È')
+    .replace(E_SOLA, (m, prima) => (accenti[n++] ? `${prima}È` : m));
+}
+
+// ── Doppioni e cartelli ─────────────────────────────────────────────────────
+
+/**
+ * Senza la firma attaccata in fondo: quando Vision perde la virgoletta di
+ * chiusura, un pezzo della testata può finire nella frase («… E PROFANA FAIR»
+ * con la firma «-VANITY FAIR»). Si tolgono le ultime parole che sono parole della testata.
+ */
+export function senzaFirma(testo, fonte) {
+  const parole = new Set((fonte ?? '').split(/\s+/).map(chiave).filter(p => p.length > 1));
+  if (!parole.size) return testo;
+  const pezzi = testo.split(/\s+/);
+  while (pezzi.length > 2 && parole.has(chiave(pezzi[pezzi.length - 1]))) pezzi.pop();
+  return pezzi.join(' ').replace(/\s*[,;:]+$/, '');
+}
+
+/**
+ * Le citazioni da tenere: una sola per frase (la stessa schermata riletta due
+ * volte o in due trailer), e niente cartelli col titolo del film («THE
+ * SUBSTANCE» sotto i nomi degli attori non è una citazione). A parità resta
+ * quella con lo sfondo, poi quella con la testata.
+ */
+export function uniche(citazioni, titoli = []) {
+  const vietate = new Set(titoli.map(chiave).filter(Boolean));
+  const viste = new Map();
+  citazioni = citazioni.map(c => ({ ...c, testo: senzaFirma(c.testo, c.fonte) }));
+  for (const c of citazioni) {
+    const k = chiave(c.testo);
+    if (!k || vietate.has(k)) continue;
+    const prima = viste.get(k);
+    const punti = x => (x.fondale ? 2 : 0) + (x.fonte ? 1 : 0);
+    if (!prima || punti(c) > punti(prima)) viste.set(k, c);
+  }
+  // L'ordine del trailer, non quello delle sostituzioni.
+  return citazioni.filter(c => viste.get(chiave(c.testo)) === c);
 }

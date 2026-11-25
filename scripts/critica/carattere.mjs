@@ -24,6 +24,9 @@ export const FAMIGLIE = [
   'Jost', 'Josefin Sans', 'Raleway', 'Lato', 'Open Sans', 'Barlow', 'IBM Plex Sans', 'Figtree', 'Hanken Grotesk', 'Outfit',
   'Oswald', 'Bebas Neue', 'Anton', 'Playfair Display', 'Libre Caslon Text', 'EB Garamond', 'Cormorant Garamond',
   'Bodoni Moda', 'Libre Baskerville', 'Lora', 'Crimson Pro', 'Newsreader', 'DM Serif Display', 'Spectral', 'Cinzel',
+  // I bastoni stretti e alti delle citazioni nei trailer americani (Anora, The Substance): aggiunti il 25/11/2026.
+  'League Gothic', 'Antonio', 'Fjalla One', 'Pathway Gothic One', 'Six Caps', 'Big Shoulders Display', 'Barlow Condensed',
+  'Roboto Condensed', 'Sofia Sans Extra Condensed', 'Archivo Narrow', 'Saira Extra Condensed', 'Teko', 'Alumni Sans', 'Staatliches',
 ];
 const PESI = [300, 400, 500, 600, 700];
 const ALTEZZA = 64;
@@ -53,12 +56,56 @@ export async function fileCarattere(famiglia, peso, est = 'ttf') {
 }
 
 /**
+ * Le lettere di un ritaglio, 255 dove c'è la scritta e 0 altrove. Le scritte
+ * dei trailer non sono sempre bianche: quelle di Anora sono rosa sopra un
+ * volto chiaro, quelle di The Substance nere su grigio chiaro. Quindi:
+ * - se una parte buona del ritaglio è di un colore acceso, la scritta è quel
+ *   colore (la tinta più frequente fra i pixel saturi);
+ * - se no si guarda la luce; se il bordo del ritaglio (il fondo) è chiaro,
+ *   la scritta è scura e si inverte.
+ */
+export async function inchiostroDi(input) {
+  const { data: rgb, info } = await sharp(input).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const n = info.width * info.height;
+  const tinte = new Uint32Array(36);
+  const hsv = new Float32Array(n * 2); // tinta, saturazione
+  let saturi = 0;
+  for (let i = 0; i < n; i++) {
+    const r = rgb[i * 3] / 255, g = rgb[i * 3 + 1] / 255, b = rgb[i * 3 + 2] / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    const s = max ? d / max : 0;
+    let h = 0;
+    if (d) h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    hsv[i * 2] = h * 60; hsv[i * 2 + 1] = s * (max > 0.35 ? 1 : 0);
+    if (hsv[i * 2 + 1] > 0.55) { saturi++; tinte[Math.floor(hsv[i * 2] / 10) % 36]++; }
+  }
+  const data = Buffer.alloc(n);
+  if (saturi > n * 0.06) {
+    const tinta = tinte.indexOf(Math.max(...tinte)) * 10 + 5;
+    for (let i = 0; i < n; i++) {
+      const dh = Math.abs(((hsv[i * 2] - tinta + 540) % 360) - 180);
+      data[i] = hsv[i * 2 + 1] > 0.4 && dh < 25 ? 255 : 0;
+    }
+  } else {
+    const grigio = await sharp(input).greyscale().normalise().threshold(128).raw().toBuffer();
+    // Il fondo è quello che tocca il bordo del ritaglio: se il bordo è chiaro, la scritta è scura.
+    const W = info.width, H = info.height;
+    let bordo = 0, chiari = 0;
+    for (let x = 0; x < W; x++) for (const y of [0, H - 1]) { bordo++; if (grigio[y * W + x] > 127) chiari++; }
+    for (let y = 0; y < H; y++) for (const x of [0, W - 1]) { bordo++; if (grigio[y * W + x] > 127) chiari++; }
+    const inverti = chiari > bordo * 0.5;
+    for (let i = 0; i < n; i++) data[i] = (grigio[i] > 127) !== inverti ? 255 : 0;
+  }
+  return { data, info: { width: info.width, height: info.height } };
+}
+
+/**
  * Una sagoma in bianco e nero, alta ALTEZZA: solo la fascia di righe più alta
  * con dell'inchiostro (i pezzi della riga sopra o sotto restano fuori),
  * rifilata ai lati. Uint8Array di 0/1 più la larghezza.
  */
 async function sagoma(input) {
-  const { data, info } = await sharp(input).greyscale().normalise().threshold(128).raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await inchiostroDi(input);
   const { width: W, height: H } = info;
   const inchiostro = y => { let n = 0; for (let x = 0; x < W; x++) if (data[y * W + x] > 127) n++; return n; };
   const righe = Array.from({ length: H }, (_, y) => inchiostro(y) > W * 0.004);

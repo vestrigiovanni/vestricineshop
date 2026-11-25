@@ -70,14 +70,14 @@ export function Prenota({ show, film, now, variante = 'pieno', className = '' }:
  * sull'immagine servita da Next (stessa origine, quindi leggibile). Senza
  * logo, il titolo.
  */
-export function FilmLogo({ film, className = '', sizes = '(max-width: 860px) 70vw, 420px', subito = false, verso = 'basso' }: { film: Film; className?: string; sizes?: string; subito?: boolean; verso?: 'basso' | 'centro' }) {
+export function FilmLogo({ film, className = '', sizes = '(max-width: 860px) 70vw, 420px', subito = false, verso = 'basso', taglia = 'w500' }: { film: Film; className?: string; sizes?: string; subito?: boolean; verso?: 'basso' | 'centro'; /** La misura TMDB: un logo grande (la proiezione speciale) vuole l'originale. */ taglia?: string }) {
   const [acceso, setAcceso] = useState(false);
   const path = film.logo_path && film.logo_path !== 'none' ? film.logo_path : '';
   if (!path) return <span className={`${base.logoBox} ${base.logoTesto} ${className}`}>{film.title}</span>;
   return (
     <span className={`${base.logoBox} ${className}`} data-verso={verso}>
       <Image
-        src={img(path, 'w500')}
+        src={img(path, taglia)}
         alt={film.title}
         fill
         sizes={sizes}

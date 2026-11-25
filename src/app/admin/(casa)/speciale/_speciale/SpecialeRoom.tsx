@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Clapperboard, Download, ExternalLink, Eye, EyeOff, GripVertical, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import {
-  specialeAccendi, specialeCriticaChiedi, specialeCriticaStato, specialeDalDistributore, specialeElenco, specialeElimina,
-  specialeFotogrammi, specialeSalva, type DalDistributore, type DatiSpeciale, type FilmInProgramma, type FotogrammiTmdb,
+  specialeAccendi, specialeCriticaChiedi, specialeCriticaStato, specialeDalDistributore, specialeDistributore, specialeElenco, specialeElimina,
+  specialeFotogrammi, specialeSalva, type DalDistributore, type DatiSpeciale, type DistributoreDelFilm, type FilmInProgramma, type FotogrammiTmdb,
 } from '@/actions/specialeActions';
 import type { SpecialeSalvata } from '@/services/speciali';
 import { periodo, type Citazione, type ConDate, type FotoDiScena, type Materiale, type Posto } from '@/components/Home/proiezioneSpeciale';
@@ -51,6 +51,21 @@ function daSalvata(x: SpecialeSalvata): DatiSpeciale {
   };
 }
 
+/** Il distributore italiano del film: chi è, dove sta il materiale, com'è la sua area stampa. */
+function Distributore({ d }: { d: DistributoreDelFilm | null | undefined }) {
+  if (d === undefined) return <p className={stanza.meta}><Loader2 size={12} className={s.gira} /> Cerco il distributore italiano…</p>;
+  if (!d) return <p className={stanza.meta}>Distributore italiano non trovato (né nelle aree stampa né su MyMovies).</p>;
+  return (
+    <p className={stanza.meta}>
+      <b>{d.nome}</b>
+      {d.sito && <> · <a href={d.sito} target="_blank" rel="noreferrer">sito <ExternalLink size={12} /></a></>}
+      {d.pagina && <> · <a href={d.pagina} target="_blank" rel="noreferrer">pagina del film <ExternalLink size={12} /></a></>}
+      {d.fonte.startsWith('http') && <> · <a href={d.fonte} target="_blank" rel="noreferrer">scheda MyMovies <ExternalLink size={12} /></a></>}
+      <br />{d.nota}
+    </p>
+  );
+}
+
 /** Sposta l'elemento `da` al posto `a`. */
 function sposta<T>(xs: T[], da: number, a: number): T[] {
   if (a < 0 || a >= xs.length || da === a) return xs;
@@ -67,6 +82,8 @@ export default function SpecialeRoom() {
   const [film, setFilm] = useState<FilmInProgramma[]>([]);
   const [bozza, setBozza] = useState<DatiSpeciale | null>(null);
   const [tmdb, setTmdb] = useState<FotogrammiTmdb | null>(null);
+  /** Il distributore italiano del film scelto: undefined mentre lo cerco, null se non lo trovo. */
+  const [distIt, setDistIt] = useState<DistributoreDelFilm | null | undefined>(undefined);
   const [salvo, setSalvo] = useState(false);
   const [daEliminare, setDaEliminare] = useState<SpecialeSalvata | null>(null);
   const [dist, setDist] = useState<DalDistributore | null>(null);
@@ -94,6 +111,23 @@ export default function SpecialeRoom() {
     if (!tmdbId) return;
     let vivo = true;
     specialeFotogrammi(tmdbId).then(r => { if (vivo) setTmdb(r.ok ? r : null); }).catch(() => { if (vivo) setTmdb(null); });
+    return () => { vivo = false; };
+  }, [tmdbId]);
+
+  // Il distributore italiano: chi ha il materiale. In una bozza nuova senza logo,
+  // la pagina d'apertura parte già con «Vestri Cinema × il distributore».
+  useEffect(() => {
+    if (!tmdbId) return;
+    let vivo = true;
+    setDistIt(undefined);
+    specialeDistributore(tmdbId)
+      .then(r => {
+        if (!vivo) return;
+        const d = r.ok ? r.distributore : null;
+        setDistIt(d);
+        if (d?.logo) setBozza(b => (b && !b.id && !b.casaLogo && b.tmdbId === tmdbId ? { ...b, casaLogo: d.logo!, casaNome: d.nome } : b));
+      })
+      .catch(() => { if (vivo) setDistIt(null); });
     return () => { vivo = false; };
   }, [tmdbId]);
 
@@ -308,7 +342,18 @@ export default function SpecialeRoom() {
 
             <div className={s.casa}>
               <div className={s.casaScelte}>
-                <span className={stanza.section}>Logo della casa</span>
+                <span className={stanza.section}>Distributore italiano</span>
+                <Distributore d={distIt} />
+                {distIt?.logo && (
+                  <div className={s.chips}>
+                    <button type="button" className={s.chip} data-on={bozza.casaLogo === distIt.logo ? '' : undefined}
+                      onClick={() => cambia({ casaLogo: distIt.logo!, casaNome: distIt.nome })} title={distIt.nome}>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- logo TMDB */}
+                      <img src={getTMDBImageUrl(distIt.logo, 'w185') || ''} alt={distIt.nome} />
+                    </button>
+                  </div>
+                )}
+                <span className={stanza.section}>Oppure una casa di produzione (TMDB)</span>
                 <div className={s.chips}>
                   {tmdb?.loghiCase.map(c => (
                     <button key={c.logo} type="button" className={s.chip} data-on={bozza.casaLogo === c.logo ? '' : undefined}
@@ -382,6 +427,7 @@ export default function SpecialeRoom() {
               Cerca il film fra I Wonder, Lucky Red, BIM, Notorious e Teodora, e mette banner, locandina e foto nei posti ancora vuoti.
               Ci vuole anche un minuto: gli zip del distributore pesano decine di mega.
             </p>
+            <Distributore d={distIt} />
             {dist && (
               <div className={s.trovato}>
                 <p className={stanza.meta}>

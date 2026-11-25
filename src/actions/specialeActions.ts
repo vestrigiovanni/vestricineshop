@@ -6,7 +6,9 @@ import prisma from '@/lib/prisma';
 import { checkAdminSession } from '@/actions/authActions';
 import { tutteLeSpeciali, type SpecialeSalvata } from '@/services/speciali';
 import type { Carattere, Citazione, Materiale } from '@/components/Home/proiezioneSpeciale';
-import { trovaPagina } from '@/services/stampa/distributori';
+import { testo, trovaPagina } from '@/services/stampa/distributori';
+import { distribuitoDa, distributoreItaliano, notaArea, type Area } from '@/services/stampa/italiani';
+import { slug } from '@/services/stampa/scegli';
 import { riempi, type DalDistributore } from '@/services/stampa/riempi';
 import { entro, esito, Spiegato, type Esito } from '@/services/esito';
 
@@ -155,6 +157,99 @@ export async function specialeFotogrammi(tmdbId: number): Promise<Esito<Fotogram
   });
 }
 
+/** Il film da TMDB in italiano, con quello che serve a riconoscerlo presso i distributori. */
+async function filmTmdb(tmdbId: number) {
+  const chiave = process.env.TMDB_API_KEY;
+  if (!chiave) throw new Spiegato('Manca la chiave di TMDB sul server (TMDB_API_KEY).');
+  const film = await fetch(
+    `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${chiave}&language=it-IT&append_to_response=credits,alternative_titles,release_dates`,
+    { cache: 'no-store', signal: AbortSignal.timeout(15000) },
+  ).then(r => (r.ok ? r.json() : null)).catch(() => null);
+  if (!film) throw new Spiegato('TMDB non ha risposto. Riprova fra poco.');
+  const alternativi: string[] = (film.alternative_titles?.titles || [])
+    .filter((t: { iso_3166_1: string }) => ['IT', 'US', 'GB'].includes(t.iso_3166_1))
+    .map((t: { title: string }) => t.title);
+  const chi = {
+    titoli: [...new Set<string>([film.title, film.original_title, ...alternativi].filter(Boolean))],
+    regia: (film.credits?.crew || []).filter((c: { job: string }) => c.job === 'Director').map((c: { name: string }) => c.name),
+  };
+  // Gli anni in cui cercarlo su MyMovies: quello del film e quello dell'uscita italiana.
+  const it = (film.release_dates?.results || []).find((r: { iso_3166_1: string }) => r.iso_3166_1 === 'IT');
+  const anni = [...new Set<string>([
+    (film.release_date || '').slice(0, 4),
+    ...((it?.release_dates || []) as { release_date: string }[]).map(d => d.release_date.slice(0, 4)),
+  ].filter(Boolean))];
+  return { film, chi, anni, chiave };
+}
+
+/** Il distributore italiano secondo MyMovies (la pagina del film: /film/<anno>/<titolo>/). */
+async function daMyMovies(titoli: string[], anni: string[]): Promise<{ nome: string; pagina: string } | null> {
+  const slugs = [...new Set(titoli.flatMap(t => [slug(t), slug(t.split(' - ')[0])]).filter(Boolean))].slice(0, 3);
+  for (const anno of anni.slice(0, 3)) {
+    for (const s of slugs) {
+      const pagina = `https://www.mymovies.it/film/${anno}/${s}/`;
+      const html = await testo(pagina, 8000).catch(() => '');
+      const nome = html && distribuitoDa(html);
+      if (nome) return { nome, pagina };
+    }
+  }
+  return null;
+}
+
+export interface DistributoreDelFilm {
+  /** Il nome com'è nel nostro elenco (o com'è scritto su MyMovies, se non lo conosciamo). */
+  nome: string;
+  sito?: string;
+  /** La pagina del film presso il distributore, quando si trova da sola. */
+  pagina?: string;
+  /** Il logo TMDB, da mettere accanto a Vestri Cinema. */
+  logo?: string;
+  area?: Area;
+  nota: string;
+  /** Da dove viene: «area stampa» o la pagina MyMovies. */
+  fonte: string;
+}
+
+/** Il logo di una casa su TMDB. */
+async function logoCasa(id: number | undefined, chiave: string): Promise<string | undefined> {
+  if (!id) return undefined;
+  const j = await fetch(`https://api.themoviedb.org/3/company/${id}?api_key=${chiave}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => (r.ok ? r.json() : null)).catch(() => null);
+  return j?.logo_path || undefined;
+}
+
+async function trovaDistributore(tmdbId: number): Promise<{ d: DistributoreDelFilm | null; titolo: string; muti: string[] }> {
+  const { film, chi, anni, chiave } = await filmTmdb(tmdbId);
+  const muti: string[] = [];
+  // Prima le aree stampa che sappiamo leggere: lì c'è anche la pagina del film.
+  const trovata = await trovaPagina(chi, undefined, muti).catch(() => null);
+  const dove = trovata ? null : await daMyMovies(chi.titoli, anni);
+  const nome = trovata?.distributore ?? dove?.nome;
+  if (!nome) return { d: null, titolo: film.title, muti };
+  const noto = distributoreItaliano(nome);
+  return {
+    titolo: film.title,
+    muti,
+    d: {
+      nome: noto?.nome ?? nome,
+      sito: noto?.sito,
+      pagina: trovata?.pagina,
+      logo: await logoCasa(noto?.tmdb, chiave),
+      area: noto?.area,
+      nota: notaArea(noto?.area),
+      fonte: trovata ? 'area stampa' : dove!.pagina,
+    },
+  };
+}
+
+/** Il distributore italiano del film: nome, logo, sito, pagina del film e com'è la sua area stampa. */
+export async function specialeDistributore(tmdbId: number): Promise<Esito<{ distributore: DistributoreDelFilm | null }>> {
+  return esito('Cercare il distributore italiano', async () => {
+    await soloGestionale();
+    return { distributore: (await trovaDistributore(tmdbId)).d };
+  });
+}
+
 /** La pagina ha due minuti (maxDuration in page.tsx): si smette di aspettare prima, per poter ancora rispondere. */
 const SCADENZA_RIEMPI = 100_000;
 
@@ -168,26 +263,23 @@ export async function specialeDalDistributore(tmdbId: number, pagina?: string): 
   const via = Date.now();
   return esito('Riempire dal distributore', async () => {
     await soloGestionale();
-    const chiave = process.env.TMDB_API_KEY;
-    if (!chiave) throw new Spiegato('Manca la chiave di TMDB sul server (TMDB_API_KEY).');
-    const film = await fetch(
-      `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${chiave}&language=it-IT&append_to_response=credits,alternative_titles`,
-      { cache: 'no-store', signal: AbortSignal.timeout(15000) },
-    ).then(r => (r.ok ? r.json() : null)).catch(() => null);
-    if (!film) throw new Spiegato('TMDB non ha risposto. Riprova fra poco.');
-    const alternativi: string[] = (film.alternative_titles?.titles || [])
-      .filter((t: { iso_3166_1: string }) => ['IT', 'US', 'GB'].includes(t.iso_3166_1))
-      .map((t: { title: string }) => t.title);
-    const chi = {
-      titoli: [...new Set<string>([film.title, film.original_title, ...alternativi].filter(Boolean))],
-      regia: (film.credits?.crew || []).filter((c: { job: string }) => c.job === 'Director').map((c: { name: string }) => c.name),
-    };
+    const { film, chi, anni } = await filmTmdb(tmdbId);
     const indirizzo = pagina?.trim();
     if (indirizzo && !/^https?:\/\//.test(indirizzo)) throw new Spiegato('L’indirizzo della pagina deve cominciare con https://');
     const muti: string[] = [];
     const trovata = await trovaPagina(chi, indirizzo || undefined, muti);
     if (!trovata) {
       const anche = muti.length ? ` (${muti.join(', ')} non ${muti.length > 1 ? 'hanno' : 'ha'} risposto: riprova fra poco)` : '';
+      // Chi lo distribuisce davvero, per dire cosa fare invece di un generico «non trovo».
+      const altrove = await daMyMovies(chi.titoli, anni).catch(() => null);
+      const noto = altrove && distributoreItaliano(altrove.nome);
+      if (altrove) {
+        const casa = noto?.nome ?? altrove.nome;
+        const cosa = noto?.area === 'login'
+          ? `${casa} tiene il materiale in un’area stampa con login: scarica banner e foto da lì e trascinali qui.`
+          : `${casa} non ha un’area stampa che so leggere: prendi il materiale dalla pagina del film${noto?.sito ? ` su ${noto.sito}` : ''} o chiedilo all’ufficio stampa, poi trascinalo qui.`;
+        throw new Spiegato(`«${film.title}» in Italia è di ${casa}${anche}. ${cosa}`);
+      }
       throw new Spiegato(`Non trovo «${film.title}» fra I Wonder, Lucky Red, BIM, Notorious e Teodora${anche}. Se sai la pagina del distributore, incollala; se il distributore è un altro, trascina le immagini a mano.`);
     }
     return entro(
