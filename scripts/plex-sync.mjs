@@ -15,6 +15,14 @@
  * USO
  *   npm run plex:sync            invia al sito configurato in CATALOG_SYNC_URL
  *   npm run plex:sync -- --dry   legge Plex e mostra cosa manderebbe, senza inviare
+ *   npm run plex:sync -- --tutto rimanda tutti i film, anche quelli già mandati
+ *
+ * SOLO I FILM CAMBIATI — rimandare ogni volta tutti i ~1000 film costa minuti
+ * (il sito li controlla uno per uno sul database online). Lo script si segna in
+ * .plex-sync-inviati.json cosa ha già mandato e spedisce solo i film nuovi o
+ * cambiati. L'elenco completo delle chiavi (per capire chi è uscito) parte
+ * comunque, ma è una chiamata sola. Una volta a settimana, o con --tutto, rimanda
+ * tutto per riallineare il sito se qualcuno ha cambiato il catalogo a mano.
  *
  * VARIABILI (in .env.local, solo su questa macchina)
  *   PLEX_URL            es. http://localhost:32400
@@ -30,6 +38,8 @@ import { execFileSync } from 'node:child_process';
 import { mergeAcrossLibraries } from './plexMerge.mjs';
 
 const BATCH_SIZE = 150;
+const INVIATI_FILE = path.join(process.cwd(), '.plex-sync-inviati.json');
+const TUTTO_OGNI = 7 * 24 * 60 * 60_000; // una volta a settimana si rimanda tutto
 
 // ── Configurazione ───────────────────────────────────────────────────────────
 
@@ -48,6 +58,13 @@ loadEnvFile(path.join(process.cwd(), '.env.local'));
 loadEnvFile(path.join(process.cwd(), '.env'));
 
 const DRY_RUN = process.argv.includes('--dry');
+const TUTTO = process.argv.includes('--tutto');
+
+/** Cosa è già stato mandato al sito: { url, tuttoIl, film: { plexKey: impronta } }. */
+function leggiInviati() {
+  try { return JSON.parse(fs.readFileSync(INVIATI_FILE, 'utf-8')); } catch { return null; }
+}
+const impronta = (film) => JSON.stringify(film);
 
 /**
  * Token del server Plex, senza farlo passare per le mani di nessuno.
@@ -206,7 +223,20 @@ function normalizeFilm(item, libraryTitle) {
 
 // ── Invio al sito ────────────────────────────────────────────────────────────
 
+// Un intoppo del database online (errore 5xx, rete) passa quasi sempre da solo: si riprova
+// una volta dopo 5 secondi prima di arrendersi.
 async function post(body) {
+  try {
+    return await postUnaVolta(body);
+  } catch (err) {
+    if (err.name === 'TimeoutError' || /risposto 4\d\d/.test(err.message)) throw err;
+    console.log('     (il sito ha avuto un intoppo, riprovo tra 5 secondi…)');
+    await new Promise((r) => setTimeout(r, 5000));
+    return postUnaVolta(body);
+  }
+}
+
+async function postUnaVolta(body) {
   const res = await fetch(SYNC_URL, {
     method: 'POST',
     headers: {
@@ -214,6 +244,8 @@ async function post(body) {
       Authorization: `Bearer ${SYNC_SECRET}`,
     },
     body: JSON.stringify(body),
+    // Se il sito non risponde entro 5 minuti è fermo davvero: meglio dirlo che restare appesi.
+    signal: AbortSignal.timeout(5 * 60_000),
   });
   const text = await res.text();
   let payload;
@@ -283,11 +315,33 @@ async function main() {
 
   const totals = { received: 0, created: 0, updated: 0, matchedByTmdb: 0, errors: [] };
 
-  for (let i = 0; i < films.length; i += BATCH_SIZE) {
-    const batch = films.slice(i, i + BATCH_SIZE);
+  // Solo i film nuovi o cambiati dall'ultimo invio riuscito a questo stesso sito.
+  const vecchi = leggiInviati();
+  const giro = TUTTO || !vecchi || vecchi.url !== SYNC_URL || Date.now() - (vecchi.tuttoIl ?? 0) > TUTTO_OGNI;
+  const daMandare = giro ? films : films.filter((f) => vecchi.film?.[f.plexKey] !== impronta(f));
+  console.log(giro
+    ? `   Mando tutti i ${films.length} film (giro completo${TUTTO ? '' : ' settimanale'}: qualche minuto)`
+    : `   Da mandare: ${daMandare.length} film nuovi o cambiati (gli altri ${films.length - daMandare.length} il sito li ha già)`);
+
+  // Prima degli invii: la lista completa delle chiavi permette al sito di capire
+  // quali film sono spariti dalla libreria. Non vengono cancellati — potrebbero
+  // essere già programmati — ma solo marcati come non più in Plex.
+  console.log('   Segnalo i film usciti dalla libreria…');
+  // Tutte le chiavi viste, comprese quelle delle copie che la fusione ha messo
+  // da parte: una riga di catalogo agganciata alla copia 4K non deve risultare
+  // "uscita dalla libreria" solo perché stavolta ha vinto la copia normale.
+  const finale = await post({ finalize: true, allPlexKeys: copies.map((c) => c.plexKey) });
+  console.log(`     ✓ ${finale.removedFromPlex} usciti`);
+  // Va fatto PRIMA degli invii: un film spostato di cartella ha in Plex una chiave nuova, e
+  // la sua vecchia riga deve risultare già "uscita" perché il sito la riusi invece di
+  // provare a crearne un doppione (che il database rifiuta).
+
+  for (let i = 0; i < daMandare.length; i += BATCH_SIZE) {
+    const batch = daMandare.slice(i, i + BATCH_SIZE);
     const n = Math.floor(i / BATCH_SIZE) + 1;
-    const of = Math.ceil(films.length / BATCH_SIZE);
-    process.stdout.write(`   Invio blocco ${n}/${of} (${batch.length} film)… `);
+    const of = Math.ceil(daMandare.length / BATCH_SIZE);
+    // Righe intere (non a metà): aggiorna.sh mostra solo le righe finite.
+    console.log(`   Invio blocco ${n}/${of} (${batch.length} film)…`);
 
     const res = await post({ films: batch });
     totals.received += res.received ?? 0;
@@ -295,18 +349,20 @@ async function main() {
     totals.updated += res.updated ?? 0;
     totals.matchedByTmdb += res.matchedByTmdb ?? 0;
     if (res.errors?.length) totals.errors.push(...res.errors);
-    console.log(`✓ ${res.created} nuovi, ${res.updated} aggiornati`);
+    console.log(`     ✓ ${res.created} nuovi, ${res.updated} aggiornati`);
   }
 
-  // Ultima chiamata: la lista completa delle chiavi permette al sito di capire
-  // quali film sono spariti dalla libreria. Non vengono cancellati — potrebbero
-  // essere già programmati — ma solo marcati come non più in Plex.
-  process.stdout.write('   Segnalo i film usciti dalla libreria… ');
-  // Tutte le chiavi viste, comprese quelle delle copie che la fusione ha messo
-  // da parte: una riga di catalogo agganciata alla copia 4K non deve risultare
-  // "uscita dalla libreria" solo perché stavolta ha vinto la copia normale.
-  const finale = await post({ finalize: true, allPlexKeys: copies.map((c) => c.plexKey) });
-  console.log(`✓ ${finale.removedFromPlex} usciti`);
+
+
+  // Segno cosa ha il sito adesso: solo dopo un invio riuscito, e solo i film presenti
+  // oggi (uno che esce e poi rientra viene rimandato, così il sito lo rimette "in Plex").
+  // Un film finito negli errori non si segna: riparte la volta dopo.
+  const falliti = new Set(totals.errors.map((e) => e.split(': ')[0]));
+  fs.writeFileSync(INVIATI_FILE, JSON.stringify({
+    url: SYNC_URL,
+    tuttoIl: giro ? Date.now() : vecchi.tuttoIl,
+    film: Object.fromEntries(films.filter((f) => !falliti.has(f.title)).map((f) => [f.plexKey, impronta(f)])),
+  }));
 
   // Come "Importa e aggiorna" nel gestionale: i film nuovi prendono locandina e
   // scheda da TMDB. A blocchi, finché ne restano — o finché non si scende più
@@ -320,7 +376,7 @@ async function main() {
         break;
       }
       prima = r.remaining;
-      process.stdout.write(`   ${nome}… ne restano ${r.remaining}\r`);
+      console.log(`   ${nome}… ne restano ${r.remaining}`);
     }
   }
 
@@ -335,6 +391,7 @@ async function main() {
 }
 
 main().catch((err) => {
+  if (err.name === 'TimeoutError') err.message = 'Il sito non risponde da 5 minuti: invio interrotto. Riprova più tardi.';
   const hint = err.cause?.code === 'ECONNREFUSED'
     ? `\n  Plex non risponde su ${PLEX_URL}. È acceso? L'indirizzo è giusto?`
     : '';

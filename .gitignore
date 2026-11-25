@@ -43,3 +43,6 @@ next-env.d.ts
 /src/generated/prisma
 .env*.local
 .superpowers/
+
+# cosa plex-sync ha già mandato al sito (solo su questo Mac)
+/.plex-sync-inviati.json
