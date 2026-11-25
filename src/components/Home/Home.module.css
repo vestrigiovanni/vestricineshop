@@ -147,27 +147,27 @@
 /* ─── Logo del film ───
  * Il logo sta in una scatola di altezza fissa, decisa da chi lo usa: ogni logo
  * ha le sue proporzioni, e senza scatola quando l'immagine arrivava il testo
- * intorno si spostava. Dentro, il logo si appoggia in basso a sinistra.
- * L'ombra (e l'accensione in bianco) sta sulla scatola, mai sull'immagine:
- * Safari un <img> con object-fit e filter insieme lo disegna tagliato. */
+ * intorno si spostava. Dentro, il logo si appoggia in basso a sinistra. */
 .logoBox {
   position: relative;
   display: flex;
   align-items: flex-end;
   width: 100%;
-  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.45));
 }
-.logo {
+/* `.logoBox .logo` e non `.logo`: le card hanno regole come `.quadro img
+ * { object-fit: cover }` per il fondale, che altrimenti prendono anche il
+ * logo e lo tagliano come una foto. */
+.logoBox .logo {
   object-fit: contain;
   object-position: left bottom;
+  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.45));
 }
 .logoBox[data-verso='centro'] { align-items: center; }
 .logoBox[data-verso='centro'] .logo { object-position: left center; }
-.logoAcceso { filter: brightness(0) invert(1) drop-shadow(0 2px 12px rgba(0, 0, 0, 0.45)); }
+.logoBox .logoAcceso { filter: brightness(0) invert(1) drop-shadow(0 2px 12px rgba(0, 0, 0, 0.45)); }
 /* Senza logo, il titolo: è testo, c'è da subito, e la sua altezza è la sua. */
 .logoBox.logoTesto {
   height: auto;
-  filter: none;
   font: var(--v-peso-titolo) 1em/1.05 var(--v-font-display);
   letter-spacing: -0.03em;
   text-wrap: balance;

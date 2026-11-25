@@ -75,14 +75,14 @@ export function FilmLogo({ film, className = '', sizes = '(max-width: 860px) 70v
   const path = film.logo_path && film.logo_path !== 'none' ? film.logo_path : '';
   if (!path) return <span className={`${base.logoBox} ${base.logoTesto} ${className}`}>{film.title}</span>;
   return (
-    <span className={`${base.logoBox} ${acceso ? base.logoAcceso : ''} ${className}`} data-verso={verso}>
+    <span className={`${base.logoBox} ${className}`} data-verso={verso}>
       <Image
         src={img(path, 'w500')}
         alt={film.title}
         fill
         sizes={sizes}
         loading={subito ? 'eager' : 'lazy'}
-        className={base.logo}
+        className={`${base.logo} ${acceso ? base.logoAcceso : ''}`}
         onLoad={e => { if (isDark(e.currentTarget)) setAcceso(true); }}
       />
     </span>
