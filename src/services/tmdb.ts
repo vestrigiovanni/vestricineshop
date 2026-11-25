@@ -541,20 +541,19 @@ export async function getMovieTrailers(id: string, originalLanguage?: string, pr
 }
 
 /**
- * Finds the best available movie logo from TMDB images.
- * Prioritizes Italian ('it'), then English ('en'), then neutral (null).
+ * Il logo del film: in italiano, poi in inglese, poi nella lingua originale
+ * del film. Se non c'è in nessuna delle tre, niente logo: la home scrive il
+ * titolo. Così un film francese con solo loghi in russo e cinese (La ragazza
+ * con il braccialetto) non mostra il logo russo. Regola di Gio, 25 nov 2026.
  */
 export function getMovieLogo(details: MovieDetails): string | null {
-  if (!details.images?.logos || details.images.logos.length === 0) return null;
-
-  const logos = details.images.logos;
-  const itLogo = logos.find(l => l.iso_639_1 === 'it');
-  if (itLogo) return itLogo.file_path;
-
-  const enLogo = logos.find(l => l.iso_639_1 === 'en');
-  if (enLogo) return enLogo.file_path;
-
-  return logos[0].file_path;
+  const logos = details.images?.logos ?? [];
+  for (const lingua of ['it', 'en', details.original_language]) {
+    if (!lingua) continue;
+    const logo = logos.find(l => l.iso_639_1 === lingua);
+    if (logo) return logo.file_path;
+  }
+  return null;
 }
 
 /**
