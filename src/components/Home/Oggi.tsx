@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import Image from 'next/image';
+import Image from '@/components/Immagine';
 import { nextShow, type Slot } from './programma';
 import { Cartellino, Posti } from './Dati';
 import { sala } from './metadati';

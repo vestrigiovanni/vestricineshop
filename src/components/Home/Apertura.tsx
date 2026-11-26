@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import Image from '@/components/Immagine';
 import { X } from 'lucide-react';
 import { useTrailer } from '@/context/TrailerContext';
 import { trailerOf } from './programma';

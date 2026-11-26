@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import Image from 'next/image';
+import Image from '@/components/Immagine';
 import { useTrailer } from '@/context/TrailerContext';
 import { trailerOf } from './programma';
 import { sala } from './metadati';

@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import Image from '@/components/Immagine';
 import type { Slot } from './programma';
 import { useStanze, varDi } from './Luce';
 import { Cartellino, Posti, Quando } from './Dati';

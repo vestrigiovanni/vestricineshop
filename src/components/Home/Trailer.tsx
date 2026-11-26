@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import Image from '@/components/Immagine';
 import { useTrailer } from '@/context/TrailerContext';
 import type { Slot } from './programma';
 import { Cartellino, Posti, Quando } from './Dati';

@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import Image from '@/components/Immagine';
 import type { CSSProperties } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { Giorno, Slot } from './programma';

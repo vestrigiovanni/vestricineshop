@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useRef, useState, type RefObject } from 'react';
-import Image from 'next/image';
+import Image from '@/components/Immagine';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { Posti } from './Dati';
 import { quando, type Film, type Show } from './metadati';
@@ -82,6 +82,9 @@ export function FilmLogo({ film, className = '', sizes = '(max-width: 860px) 70v
         fill
         sizes={sizes}
         loading={subito ? 'eager' : 'lazy'}
+        // Il logo arriva da TMDB, non più da Next: per leggerne i pixel serve
+        // il permesso CORS, che TMDB dà a tutti (access-control-allow-origin: *).
+        crossOrigin="anonymous"
         className={`${base.logo} ${acceso ? base.logoAcceso : ''}`}
         onLoad={e => { if (isDark(e.currentTarget)) setAcceso(true); }}
       />

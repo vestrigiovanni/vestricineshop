@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import Image from '@/components/Immagine';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import styles from './BookingDrawer.module.css';
 import BookingFlow from '../BookingFlow';

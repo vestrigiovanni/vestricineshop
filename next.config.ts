@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
     // che rendeva lo scorrimento a scatti. I fondali di TMDB nascono a
     // 1280px, quindi oltre i 1920 si ingrandiva soltanto.
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    // Le immagini di TMDB non passano più di qui (src/services/tmdbLoader.ts).
+    // Le altre (logo, festival, proiezione speciale) cambiano di rado: tenute
+    // in cache 31 giorni invece di 4 ore, si ritrasformano una volta al mese.
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       {
         protocol: 'https',

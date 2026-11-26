@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import Image from '@/components/Immagine';
 import { QRCodeSVG } from 'qrcode.react';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { formatShowDayLong, formatShowTime } from '@/utils/cinemaDate';

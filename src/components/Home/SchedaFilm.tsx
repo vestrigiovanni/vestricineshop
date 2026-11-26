@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
+import Image from '@/components/Immagine';
 import { useTrailer } from '@/context/TrailerContext';
 import { toCinemaDayKey } from '@/utils/cinemaDate';
 import { trailerOf } from './programma';

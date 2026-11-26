@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import Image from 'next/image';
+import Image from '@/components/Immagine';
 import { ChevronLeft, X } from 'lucide-react';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import type { ShowChoice } from './BookingDrawer/showChoices';
