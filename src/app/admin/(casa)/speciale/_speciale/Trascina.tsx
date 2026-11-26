@@ -11,6 +11,31 @@ export interface Caricata {
   src: string;
   w: number;
   h: number;
+  /** Per i loghi trascinati dalle scelte qui accanto: il nome della casa. */
+  nome?: string;
+}
+
+/** Il tipo dei trascinamenti fra le parti del gestionale (un logo, una foto già scelta). */
+const INTERNO = 'application/x-vestri-immagine';
+
+/**
+ * Rende trascinabile un'immagine già pronta (es. i loghi delle case): si
+ * trascina il bottone intero, perché Firefox non trascina le immagini dentro
+ * un <button>. Nella zona arriva il riferimento così com'è, senza ricaricarla;
+ * fuori dal gestionale arriva l'indirizzo dell'originale.
+ */
+export function trascinabile(ref: string, nome?: string) {
+  return {
+    draggable: true,
+    onDragStart: (e: React.DragEvent) => {
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData(INTERNO, JSON.stringify({ src: ref, nome }));
+      const url = anteprima(ref, 'original');
+      const pieno = url.startsWith('/') ? location.origin + url : url;
+      e.dataTransfer.setData('text/uri-list', pieno);
+      e.dataTransfer.setData('text/plain', pieno);
+    },
+  };
 }
 
 /**
@@ -213,6 +238,14 @@ export default function Trascina({ valore, etichetta, multipla, proporzioni, for
   }
 
   function prendi(dt: DataTransfer | FileList) {
+    const interno = 'getData' in dt ? dt.getData(INTERNO) : '';
+    if (interno) {
+      try {
+        const { src: ref, nome } = JSON.parse(interno) as { src: string; nome?: string };
+        onCaricate([{ src: ref, w: 0, h: 0, nome }]);
+        return;
+      } catch { /* si prova come un trascinamento qualsiasi */ }
+    }
     const files = [...('files' in dt ? dt.files : dt)].filter(x => x.type.startsWith('image/'));
     if (files.length) { tutte(files.map(x => () => carica(x))); return; }
     const urls = 'getData' in dt ? indirizzi(dt) : [];

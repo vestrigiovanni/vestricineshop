@@ -29,7 +29,8 @@
   display: grid; place-items: center; height: 44px; min-width: 44px; padding: 6px 10px;
   background: #f2efe9; border: 2px solid transparent; border-radius: var(--c-radius); cursor: pointer; color: #333;
 }
-.chip img { max-height: 28px; max-width: 110px; object-fit: contain; }
+.chip img { max-height: 28px; max-width: 110px; object-fit: contain; pointer-events: none; }
+.chip[draggable="true"] { cursor: grab; }
 .chip[data-on] { border-color: var(--c-amber); }
 
 /* Le zone dove trascinare. */

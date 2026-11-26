@@ -13,7 +13,7 @@ import Dialog from '@/components/cabina/Dialog';
 import { useToast } from '@/components/cabina/Toast';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { SENZA_RISPOSTA } from '@/services/esito';
-import Trascina, { anteprima, type Caricata } from './Trascina';
+import Trascina, { anteprima, trascinabile, type Caricata } from './Trascina';
 import type { Posto as PostoSito } from '@/services/stampa/formati';
 import Riquadro from './Riquadro';
 import ChiHaLeFoto from './ChiHaLeFoto';
@@ -371,7 +371,8 @@ export default function SpecialeRoom() {
                 {distIt?.logo && (
                   <div className={s.chips}>
                     <button type="button" className={s.chip} data-on={bozza.casaLogo === distIt.logo ? '' : undefined}
-                      onClick={() => cambia({ casaLogo: distIt.logo!, casaNome: distIt.nome })} title={distIt.nome}>
+                      onClick={() => cambia({ casaLogo: distIt.logo!, casaNome: distIt.nome })} title={`${distIt.nome}: clicca o trascinalo nel riquadro`}
+                      {...trascinabile(distIt.logo, distIt.nome)}>
                       {/* eslint-disable-next-line @next/next/no-img-element -- logo TMDB */}
                       <img src={getTMDBImageUrl(distIt.logo, 'w185') || ''} alt={distIt.nome} />
                     </button>
@@ -381,7 +382,8 @@ export default function SpecialeRoom() {
                 <div className={s.chips}>
                   {tmdb?.loghiCase.map(c => (
                     <button key={c.logo} type="button" className={s.chip} data-on={bozza.casaLogo === c.logo ? '' : undefined}
-                      onClick={() => cambia({ casaLogo: c.logo, casaNome: c.nome })} title={c.nome}>
+                      onClick={() => cambia({ casaLogo: c.logo, casaNome: c.nome })} title={`${c.nome}: clicca o trascinalo nel riquadro`}
+                      {...trascinabile(c.logo, c.nome)}>
                       {/* eslint-disable-next-line @next/next/no-img-element -- logo TMDB */}
                       <img src={getTMDBImageUrl(c.logo, 'w185') || ''} alt={c.nome} />
                     </button>
@@ -391,7 +393,7 @@ export default function SpecialeRoom() {
                 <input className={s.inputPiccolo} value={bozza.casaNome} placeholder="Nome della casa" onChange={e => cambia({ casaNome: e.target.value })} />
               </div>
               <Trascina valore={bozza.casaLogo || undefined} etichetta="Trascina un logo (PNG trasparente)" proporzioni="5 / 2" formato="logo"
-                onCaricate={([c]) => cambia({ casaLogo: c.src })} onErrore={errore} />
+                onCaricate={([c]) => cambia(c.nome ? { casaLogo: c.src, casaNome: c.nome } : { casaLogo: c.src })} onErrore={errore} />
             </div>
 
             <span className={stanza.section}>Fotogramma d’apertura</span>
