@@ -47,7 +47,29 @@
 }
 .zona:not([data-piena]) .zonaInvito { background: none; color: var(--c-dim); }
 .zona:not([data-piena]) .zonaInvito:hover { color: var(--c-ink); }
-.zona[data-piena] .zonaInvito { position: absolute; right: 8px; bottom: 8px; }
+.zona:focus-visible { outline: 2px solid var(--c-amber); outline-offset: 2px; }
+.zona:hover { border-color: var(--c-line-strong); }
+/* I comandi (Sostituisci, Ritaglia): al centro nella zona vuota, in basso a destra sull'immagine. */
+.zonaComandi { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.zona[data-piena] .zonaComandi { position: absolute; right: 8px; bottom: 8px; }
+
+/* Accanto a ogni zona: le misure consigliate per quel posto, in rosso se l'immagine è bassa. */
+.trascina { display: grid; gap: 6px; min-width: 0; }
+.misura { margin: 0; font-size: 12px; line-height: 1.4; color: var(--c-dim); }
+.misura[data-bassa] { color: var(--c-alarm); }
+
+/* Ritaglia e adatta */
+.taglio { display: flex; flex-direction: column; gap: 12px; height: 100%; padding: 18px 20px; min-height: 0; }
+.taglioScelte { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.taglioMisure { margin-left: auto; font-size: 13px; color: var(--c-dim); font-variant-numeric: tabular-nums; }
+.taglioMisure[data-bassa] { color: var(--c-alarm); }
+.taglioTela { flex: 1; min-height: 0; display: grid; place-items: center; background: #000; border-radius: var(--c-radius-lg); overflow: hidden; touch-action: none; user-select: none; }
+.taglioQuadro { position: relative; display: inline-block; line-height: 0; }
+.taglioQuadro img { display: block; max-width: 100%; max-height: calc(min(88dvh, 960px) - 220px); cursor: crosshair; }
+.taglioBox { position: absolute; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); outline: 1.5px solid #fff; cursor: move; }
+.taglioAngolo { position: absolute; right: -8px; bottom: -8px; width: 16px; height: 16px; border-radius: 3px; background: var(--c-amber); cursor: nwse-resize; }
+.taglioAiuto { margin: 0; font-size: 12px; color: var(--c-dim); }
+.taglioAzioni { display: flex; justify-content: flex-end; gap: 8px; }
 .gira { animation: gira 0.9s linear infinite; }
 @keyframes gira { to { transform: rotate(360deg); } }
 

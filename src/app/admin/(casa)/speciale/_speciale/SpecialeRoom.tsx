@@ -14,6 +14,7 @@ import { useToast } from '@/components/cabina/Toast';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { SENZA_RISPOSTA } from '@/services/esito';
 import Trascina, { anteprima, type Caricata } from './Trascina';
+import type { Posto as PostoSito } from '@/services/stampa/formati';
 import Riquadro from './Riquadro';
 import ChiHaLeFoto from './ChiHaLeFoto';
 import stanza from '../../_stanza.module.css';
@@ -389,12 +390,12 @@ export default function SpecialeRoom() {
                 </div>
                 <input className={s.inputPiccolo} value={bozza.casaNome} placeholder="Nome della casa" onChange={e => cambia({ casaNome: e.target.value })} />
               </div>
-              <Trascina valore={bozza.casaLogo || undefined} etichetta="Trascina un logo (PNG trasparente)" proporzioni="5 / 2"
+              <Trascina valore={bozza.casaLogo || undefined} etichetta="Trascina un logo (PNG trasparente)" proporzioni="5 / 2" formato="logo"
                 onCaricate={([c]) => cambia({ casaLogo: c.src })} onErrore={errore} />
             </div>
 
             <span className={stanza.section}>Fotogramma d’apertura</span>
-            <Trascina valore={bozza.fondale || undefined} etichetta="Trascina il fotogramma, o sceglilo sotto" proporzioni="16 / 9"
+            <Trascina valore={bozza.fondale || undefined} etichetta="Trascina il fotogramma, o sceglilo sotto" proporzioni="16 / 9" formato="fondale"
               onCaricate={([c]) => cambia({ fondale: c.src })} onErrore={errore} />
             <Fotogrammi lista={tmdb?.fotogrammi ?? []} scelto={bozza.fondale} onScegli={p => cambia({ fondale: p })} />
           </Sezione>
@@ -411,7 +412,7 @@ export default function SpecialeRoom() {
                 </span>
               )}
             </div>
-            <Trascina etichetta="Trascina qui le immagini delle citazioni" multipla
+            <Trascina etichetta="Trascina qui le immagini delle citazioni" multipla formato="fondale"
               onCaricate={cs => cambia({ citazioni: [...bozza.citazioni, ...cs.map(c => ({ testo: '', fonte: '', fondale: c.src }))] })} onErrore={errore} />
             <Ordinabili
               voci={bozza.citazioni}
@@ -419,7 +420,7 @@ export default function SpecialeRoom() {
               chiave={(c, i) => `${i}-${c.fondale}`}
               render={(c, i) => (
                 <div className={s.citazione}>
-                  <Trascina valore={c.fondale || undefined} etichetta="Fotogramma" proporzioni="16 / 9"
+                  <Trascina valore={c.fondale || undefined} etichetta="Fotogramma" proporzioni="16 / 9" formato="fondale"
                     onCaricate={([x]) => cit(i, { fondale: x.src })} onErrore={errore} />
                   <div className={s.citazioneTesto}>
                     <textarea value={c.testo} placeholder="La frase, senza virgolette" rows={3} onChange={e => cit(i, { testo: e.target.value })} />
@@ -472,15 +473,15 @@ export default function SpecialeRoom() {
                 )}
               </div>
             )}
-            <ConLeDate nome="Banner orizzontale (schermo grande)" valore={bozza.materiale?.banner?.orizzontale} posto={POSTO_BANNER} date={date} errore={errore}
+            <ConLeDate formato="bannerOrizzontale" nome="Banner orizzontale (schermo grande)" valore={bozza.materiale?.banner?.orizzontale} posto={POSTO_BANNER} date={date} errore={errore}
               onCambia={v => materiale({ banner: { ...bozza.materiale?.banner, orizzontale: v } })} />
-            <ConLeDate nome="Banner verticale (telefono)" valore={bozza.materiale?.banner?.verticale} posto={POSTO_BANNER} date={date} errore={errore}
+            <ConLeDate formato="bannerVerticale" nome="Banner verticale (telefono)" valore={bozza.materiale?.banner?.verticale} posto={POSTO_BANNER} date={date} errore={errore}
               onCambia={v => materiale({ banner: { ...bozza.materiale?.banner, verticale: v } })} />
-            <ConLeDate nome="Locandina" valore={bozza.materiale?.locandina} posto={POSTO_LOCANDINA} date={date} errore={errore}
+            <ConLeDate formato="locandina" nome="Locandina" valore={bozza.materiale?.locandina} posto={POSTO_LOCANDINA} date={date} errore={errore}
               onCambia={v => materiale({ locandina: v })} />
 
             <span className={stanza.section}>Foto di scena</span>
-            <Trascina etichetta="Trascina qui le foto di scena (anche tante insieme)" multipla
+            <Trascina etichetta="Trascina qui le foto di scena (anche tante insieme)" multipla formato="foto"
               onCaricate={cs => materiale({ foto: [...(bozza.materiale?.foto ?? []), ...cs.map(c => ({ ...c }))] })} onErrore={errore} />
             <Ordinabili<FotoDiScena>
               voci={bozza.materiale?.foto ?? []}
@@ -565,8 +566,8 @@ function Fotogrammi({ lista, scelto, onScegli, piccola }: { lista: string[]; sce
 }
 
 /** Un'immagine su cui il sito scrive le date: si trascina, si sposta il riquadro, si spengono le date. */
-function ConLeDate({ nome, valore, posto, date, onCambia, errore }: {
-  nome: string; valore?: ConDate; posto: Posto; date: string; onCambia: (v: ConDate | undefined) => void; errore: (m: string) => void;
+function ConLeDate({ nome, formato, valore, posto, date, onCambia, errore }: {
+  nome: string; formato: PostoSito; valore?: ConDate; posto: Posto; date: string; onCambia: (v: ConDate | undefined) => void; errore: (m: string) => void;
 }) {
   const metti = (c: Caricata) => onCambia({ src: c.src, w: c.w, h: c.h, date: valore?.date ?? posto });
   return (
@@ -593,6 +594,7 @@ function ConLeDate({ nome, valore, posto, date, onCambia, errore }: {
         <Riquadro src={valore.src} w={valore.w} h={valore.h} posto={valore.date} periodo={date} onCambia={p => onCambia({ ...valore, date: p })} />
       ) : null}
       <Trascina valore={valore && !valore.date ? valore.src : undefined} etichetta={valore ? 'Trascina per sostituire' : `Trascina qui: ${nome.toLowerCase()}`}
+        formato={formato} sorgente={valore ? { src: valore.src, w: valore.w, h: valore.h } : undefined}
         onCaricate={([c]) => metti(c)} onErrore={errore} />
     </div>
   );

@@ -6,8 +6,8 @@ import { eImmagine, iBanner, laLocandina, leFoto, misureDalNome, trailerVertical
 /**
  * Dal materiale trovato alla bozza della stanza "Speciale": scarica solo quello
  * che serve (banner, locandina, foto; mai trailer e DCP), apre zip e cartelle
- * Drive, sceglie, riduce come fa il browser quando trascini (2400 px, JPEG
- * 0,86; i PNG restano PNG) e salva le immagini. Non salva la proiezione: la
+ * Drive, sceglie, riduce come fa il browser quando trascini (3840 px, JPEG
+ * 0,90; i PNG restano PNG) e salva le immagini. Non salva la proiezione: la
  * bozza la controlla Giovanni.
  */
 
@@ -30,7 +30,7 @@ export interface DalDistributore {
   avvisi: string[];
 }
 
-const LATO = 2400;
+const LATO = 3840;
 const SERVE = /banner|poster|locandina|foto|photo|still|immagini|materiali|press|stampa|web|area|street/i;
 /** Trailer, DCP, documenti e i formati da stampa o da social: alla home non servono. */
 const MAI = /trailer|teaser|dcp|clip|\bspot\b|video|scheda|pressbook|caption|h264|\bmp4\b|\bmov\b|quad|instagram|feed|social|esec|70.?100|100.?140|140.?200|33.?70/i;
@@ -91,7 +91,7 @@ async function salva(c: Candidato): Promise<Caricata> {
   const png = m.format === 'png';
   const { data, info } = await img
     .resize({ width: LATO, height: LATO, fit: 'inside', withoutEnlargement: true })
-    [png ? 'png' : 'jpeg'](png ? {} : { quality: 86, mozjpeg: true })
+    [png ? 'png' : 'jpeg'](png ? {} : { quality: 90, mozjpeg: true })
     .toBuffer({ resolveWithObject: true });
   const nome = (c.percorso.split('/').pop() || 'immagine').replace(/\.\w+$/, png ? '.png' : '.jpg').slice(0, 200);
   const riga = await prisma.immagineSpeciale.create({

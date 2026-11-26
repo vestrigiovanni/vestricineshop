@@ -14,7 +14,7 @@ const CARATTERI = ['font/woff2'];
 /**
  * POST /api/speciale/immagine — carica un'immagine per la proiezione speciale.
  * Dal gestionale (cookie del login) o dal Mac (segreto). Il browser la manda già ridotta
- * (al massimo 2400 px) con le sue misure: qui si controlla e si salva.
+ * (al massimo 3840 px, sotto i 4 MB) con le sue misure: qui si controlla e si salva.
  * Risponde col riferimento da usare nella scheda: `/api/speciale/immagine/<id>`.
  */
 export async function POST(request: Request) {

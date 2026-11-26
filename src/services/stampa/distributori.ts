@@ -292,7 +292,8 @@ export async function risolvi(url: string): Promise<string> {
   return u;
 }
 
-export const idFileDrive = (u: string) => u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=)([\w-]{20,})/)?.[1]
+// Anche coi link copiati da chi ha più account Google: drive.google.com/file/u/2/d/<id> (I Wonder, La ballata del re delle api).
+export const idFileDrive = (u: string) => u.match(/drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|open\?id=|uc\?(?:[^#]*&)?id=)([\w-]{20,})/)?.[1]
   ?? u.match(/drive\.usercontent\.google\.com\/download\?(?:[^#]*&)?id=([\w-]{20,})/)?.[1] ?? null;
 export const idCartellaDrive = (u: string) => u.match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([\w-]{20,})/)?.[1] ?? null;
 
@@ -313,7 +314,7 @@ export async function scarica(url: string): Promise<Scaricato> {
     const r = await fetch(dove, { headers: UA, signal: AbortSignal.timeout(90000), cache: 'no-store' });
     if (!r.ok) throw new Spiegato(`download non riuscito (${host} risponde ${r.status})`);
     const lungo = Number(r.headers.get('content-length') || 0);
-    if (lungo > TETTO) throw new Spiegato(`troppo grande (${Math.round(lungo / 1e6)} MB)`);
+    if (lungo > TETTO) throw new Spiegato(`troppo grande da scaricare qui (${Math.round(lungo / 1e6)} MB): aprilo dalla pagina, prendi le foto che ti servono e trascinale`);
     const tipo = r.headers.get('content-type') || '';
     if (tipo.startsWith('text/html')) {
       throw new Spiegato(id
