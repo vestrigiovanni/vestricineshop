@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import Image from '@/components/Immagine';
+import Image from 'next/image';
 import type { Slot } from './programma';
 import { useStanze, varDi } from './Luce';
 import { Cartellino, Posti, Quando } from './Dati';

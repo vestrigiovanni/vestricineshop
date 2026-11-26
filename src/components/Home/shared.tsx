@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useRef, useState, type RefObject } from 'react';
-import Image from '@/components/Immagine';
+import Image from 'next/image';
 import { getTMDBImageUrl } from '@/services/tmdb.utils';
 import { Posti } from './Dati';
 import { quando, type Film, type Show } from './metadati';

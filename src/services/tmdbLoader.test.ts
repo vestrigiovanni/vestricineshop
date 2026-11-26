@@ -16,7 +16,10 @@ describe('tmdbLoader', () => {
     expect(tmdbLoader({ src: t('original'), width: 1920 })).toBe(t('original'));
     expect(tmdbLoader({ src: t('w1280'), width: 1920 })).toBe(t('w1280'));
   });
-  it('le immagini del sito restano all\'ottimizzazione di Next', () => {
-    expect(tmdbLoader({ src: '/logos/venezia_v1.png', width: 96 })).toBe('/_next/image?url=%2Flogos%2Fvenezia_v1.png&w=96&q=75');
+  it('le immagini caricate dal gestionale le riduce il sito', () => {
+    expect(tmdbLoader({ src: '/api/speciale/immagine/abc', width: 828 })).toBe('/api/speciale/immagine/abc?w=828');
+  });
+  it('i file del sito vanno così come sono, senza Vercel', () => {
+    expect(tmdbLoader({ src: '/logos/venezia_v1.png', width: 96 })).toBe('/logos/venezia_v1.png');
   });
 });

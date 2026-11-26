@@ -1,6 +1,6 @@
 'use client';
 
-import Image from '@/components/Immagine';
+import Image from 'next/image';
 import { useTrailer } from '@/context/TrailerContext';
 import { trailerOf } from './programma';
 import { sala } from './metadati';

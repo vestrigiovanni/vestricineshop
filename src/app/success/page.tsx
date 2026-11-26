@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Image from '@/components/Immagine';
+import Image from 'next/image';
 import Link from 'next/link';
 import TicketPDF, { generateTicketPDF } from '@/components/TicketPDF';
 import TicketCard from '@/components/TicketCard/TicketCard';
