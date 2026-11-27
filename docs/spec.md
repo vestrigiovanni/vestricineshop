@@ -53,7 +53,7 @@ Identità nuova: tema **Fornace** (Kiln di hallmark, scelto da Gio il 27/11/2026
 1. **Scheletro**: avvio a doppio clic, lo stesso database, una pagina con le proiezioni future vere. Anteprima su Vercel.
 2. **Design**: tre temi con hallmark, Gio ne sceglie uno.
 3. **Home**: gli atti, la luce del film, il trailer, tutto il programma. *Fatta il 27/11/2026: in `src/home`; «Più avanti» mostra 12 film e rimanda al programma; Prenota apre Pretix fino alla fetta 5.*
-4. **Proiezione speciale**: apertura, intermezzi, critica, `/api/speciale/*`.
+4. **Proiezione speciale**: apertura, intermezzi, critica, `/api/speciale/*`. *Fatta il 27/11/2026: in `src/speciale`; la speciale accesa nel database apre la Home ed esce dagli atti, i tre intermezzi stanno dopo Oggi, Prossimi e Più avanti; «Guarda il trailer» apre YouTube. `/api/speciale/critica` e `/api/speciale/immagine[/<id>]` identiche alla v1; il caricamento dal gestionale (cookie) arriva con la fetta 6, `/api/speciale/immagine/indirizzo` con la fetta 8 (la usa solo la stanza Speciale).*
 5. **Prenotazione e biglietto**: Pretix, sync, webhook, cron, `/api/seats`, `/api/seating-plans`, `/api/schedule`.
 6. **Gestionale**: guscio, login sicuro, Film e Catalogo, sync con Plex.
 7. **Programma e Oggi**, più `/api/planning/*` per l'app.

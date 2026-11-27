@@ -1,0 +1,149 @@
+/* La proiezione speciale nel tema Fornace: l'apertura, le frasi della critica
+ * e i tre intermezzi fra gli atti. Le immagini stanno ferme, scorre la pagina:
+ * si muovono solo le frasi (Critica.tsx). Niente ombre grandi né entrate a tempo. */
+
+.sp { position: relative; }
+.sp-fondale { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* ─── L'apertura ────────────────────────────────────────────────────────── */
+
+.sp-apertura { position: relative; height: 100vh; height: 100svh; min-height: 600px; overflow: hidden; }
+.sp-apertura .sp-fondale { object-position: 30% 35%; }
+/* Scurisce in basso, dove sta il testo, e finisce nel fondo della sala. */
+.sp-apertura__velo { position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(to top, var(--luce-fondo) 0%, rgba(15, 11, 9, 0.8) 42%, rgba(15, 11, 9, 0.15) 74%, rgba(15, 11, 9, 0.5) 100%); }
+
+/* «Vestri Cinema × A24», come la collaborazione di due maison: i due marchi
+ * alla stessa altezza ottica, una croce sottile in mezzo. Sotto la barra. */
+.sp-collab { position: absolute; z-index: 2; inset-inline: 0; top: calc(88px + env(safe-area-inset-top, 0px));
+  display: flex; align-items: center; justify-content: center; gap: clamp(14px, 1.6vw, 22px); pointer-events: none; }
+.sp-collab__marchio { display: block; width: auto; height: 44px; }
+/* Il logo di TMDB è nero su trasparente: si accende nel crema del tema. */
+.sp-collab__casa { display: block; width: auto; height: 32px; max-width: 160px; object-fit: contain; filter: brightness(0) invert(0.94); }
+.sp-collab__per { font: 300 28px/1 var(--font-body); color: var(--color-ink); opacity: 0.8; }
+
+.sp-apertura__testo { position: absolute; z-index: 2; inset-inline: 0; bottom: clamp(48px, 9vh, 104px);
+  display: flex; flex-direction: column; align-items: center; text-align: center; }
+.sp-sopra { font-size: var(--text-lead); color: var(--color-ink-2); text-wrap: balance; }
+.sp-titolo { margin-top: var(--space-md); width: 100%; }
+.sp-titolo .sp-titolo__logo { height: clamp(96px, 18vh, 210px); max-width: min(760px, 100%); margin-inline: auto; }
+.sp-titolo .sp-titolo__logo img { object-position: center bottom; }
+.sp-titolo .logo--testo { height: auto; max-width: 16ch; font-size: var(--text-display); }
+.sp-evento { margin-top: clamp(24px, 4.5vh, 48px); }
+.sp-periodo { margin-top: var(--space-xs); font-family: var(--font-display); font-weight: var(--display-weight);
+  font-size: var(--text-title); letter-spacing: var(--tracking-display); color: var(--color-ink); text-wrap: balance; }
+.sp-orari, .sp-riga { margin-top: var(--space-2xs); color: var(--color-ink-2); }
+.sp-azioni { justify-content: center; }
+
+/* ─── Le frasi della critica: una per schermata, sul suo fotogramma ─────── */
+
+.sp-citazione { position: relative; margin: 0; height: 100vh; height: 100svh; min-height: 520px; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 var(--gutter); text-align: center; }
+.sp-citazione .sp-fondale { object-position: center; }
+/* Un buio uniforme tiene leggibile il crema; l'ultima finisce nel fondo, così l'apertura del film dopo non arriva di colpo. */
+.sp-citazione__buio { position: absolute; inset: 0; pointer-events: none; background: rgba(12, 9, 7, 0.5); }
+.sp-citazione:last-of-type .sp-citazione__buio { background: linear-gradient(to top, var(--luce-fondo), rgba(12, 9, 7, 0.5) 38%); }
+.sp-citazione__frase { position: relative; z-index: 1; margin: 0; }
+/* La misura in `ch` va data alla frase, nel suo carattere grande. */
+.sp-citazione__frase p { margin: 0 auto; max-width: 16ch; font-family: var(--font-display); font-weight: var(--display-weight);
+  font-size: clamp(44px, 6.6vw, 112px); line-height: 0.98; letter-spacing: -0.03em; text-wrap: balance; color: var(--color-ink); }
+.sp-parola { display: inline-block; }
+.sp-citazione__fonte { position: relative; z-index: 1; margin-top: var(--space-lg); display: flex; align-items: center; justify-content: center; gap: 0.5em;
+  font-family: var(--font-outlier); font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink-2); }
+.sp-citazione__fonte span { white-space: pre; }
+/* Il logo ufficiale della testata, bianco su trasparente. */
+.sp-testata { display: block; height: 22px; width: auto; }
+/* Una testata senza logo si scrive col suo nome, grande quanto sarebbe il logo. */
+.sp-testata--scritta { font-family: var(--font-display); font-size: 22px; line-height: 1; letter-spacing: 0.02em; text-transform: none; color: var(--color-ink); }
+
+/* Il carattere del trailer («Critica dal trailer»), servito dal sito. */
+.sp-citazione[data-trailer] .sp-citazione__frase p { max-width: 18ch; font-family: var(--cit-font), var(--font-display);
+  font-weight: var(--cit-peso, 600); font-size: clamp(38px, 5.4vw, 92px); line-height: 1.08; letter-spacing: -0.01em; }
+.sp-citazione[data-trailer] .sp-citazione__fonte { font-family: var(--cit-font), var(--font-body); font-weight: var(--cit-peso, 600);
+  font-size: clamp(12px, 1vw, 16px); letter-spacing: 0.04em; color: var(--color-ink); }
+.sp-citazione[data-trailer] .sp-testata { height: clamp(18px, 1.7vw, 28px); }
+.sp-citazione[data-trailer] .sp-testata--scritta { font-family: var(--cit-font), var(--font-display); font-size: clamp(20px, 1.9vw, 32px); }
+
+/* ─── Le date del cinema, dove il distributore aveva le sue ─────────────────
+ * Il testo si dimensiona sulla larghezza dell'immagine (`cqw`, la cornice è un
+ * contenitore), come le scritte stampate lì attorno. */
+.sp-date { position: absolute; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: #fff; text-align: center; text-transform: uppercase; white-space: nowrap; line-height: 1.12; pointer-events: none; }
+.sp-date[data-riquadro] { border: solid #fff; }
+.sp-date__evento { font-weight: 700; }
+.sp-date__periodo { font-weight: 400; }
+.sp-date[data-tipo="oriz"] { border-width: 0.2cqw; }
+.sp-date[data-tipo="oriz"] .sp-date__evento { font-size: 2.3cqw; }
+.sp-date[data-tipo="oriz"] .sp-date__periodo { font-size: 2.05cqw; }
+.sp-date[data-tipo="vert"] { border-width: 0.3cqw; }
+.sp-date[data-tipo="vert"] .sp-date__evento { font-size: 3.3cqw; }
+.sp-date[data-tipo="vert"] .sp-date__periodo { font-size: 2.95cqw; }
+.sp-date[data-tipo="locandina"] .sp-date__evento { font-size: 3.5cqw; }
+.sp-date[data-tipo="locandina"] .sp-date__periodo { font-size: 3.1cqw; }
+
+/* ─── Intermezzo 1: il banner ───────────────────────────────────────────── */
+
+.sp-banner { padding-top: var(--section-gap); }
+.sp-manifesto { display: block; color: inherit; text-decoration: none; }
+.sp-cornice { position: relative; display: block; width: 100%; overflow: hidden; background: var(--color-paper-2); container-type: inline-size; }
+.sp-cornice img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sp-cornice--vert { display: none; }
+a.sp-manifesto .sp-cornice { transition: opacity var(--dur-short) var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { a.sp-manifesto:hover .sp-cornice { opacity: 0.92; } }
+.sp-banner__piede { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2xs) var(--space-lg); padding-top: var(--space-md); }
+.sp-banner__piede .sp-riga { margin: 0; }
+.sp-banner__piede .azioni { margin-top: 0; }
+
+/* ─── Intermezzo 2: locandina e foto di scena ───────────────────────────── */
+
+.sp-mostra { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--gap-columns); align-items: start; }
+.sp-locandina { position: relative; grid-column: span 4; margin: 0; overflow: hidden; border-radius: var(--radius-well);
+  background: var(--color-paper-2); container-type: inline-size; }
+.sp-locandina img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sp-foto { grid-column: span 8; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-xl) var(--gap-columns); }
+.sp-mostra[data-solo="foto"] .sp-foto { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sp-mostra[data-solo="locandina"] .sp-locandina { grid-column: 4 / span 6; }
+.sp-scatto { margin: 0; }
+.sp-scatto__immagine { position: relative; display: block; overflow: hidden; border-radius: var(--radius-well); background: var(--color-paper-2); }
+.sp-scatto__immagine img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sp-didascalia { display: flex; flex-direction: column; gap: 2px; margin-top: var(--space-xs); font-size: var(--text-sm); color: var(--color-muted); line-height: 1.35; }
+.sp-didascalia__credito { opacity: 0.75; }
+
+/* ─── Intermezzo 3: il trailer verticale ────────────────────────────────── */
+
+.sp-verticale__dentro { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--gap-columns); align-items: center; }
+.sp-verticale__testo { grid-column: 1 / span 6; }
+.sp-verticale__titolo { font-size: var(--text-display); line-height: 0.98; text-wrap: balance; }
+.sp-verticale__sopra { margin-top: var(--space-md); font-size: var(--text-lead); color: var(--color-ink-2); text-wrap: balance; }
+.sp-verticale__testo .sp-periodo { margin-top: var(--space-xl); }
+.sp-telefono { grid-column: 8 / span 4; justify-self: center; width: min(100%, 360px); aspect-ratio: 9 / 16; overflow: hidden;
+  border-radius: var(--radius-card); background: var(--color-paper-2); box-shadow: inset 0 0 0 var(--rule-hair) var(--color-rule); }
+.sp-video { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* ─── Telefono ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 60rem) {
+  .sp-apertura .sp-fondale { object-position: 22% 30%; }
+  .sp-collab { top: calc(80px + env(safe-area-inset-top, 0px)); }
+  .sp-collab__marchio { height: 34px; }
+  .sp-collab__casa { height: 24px; }
+  .sp-collab__per { font-size: 22px; }
+  .sp-apertura__testo { bottom: calc(36px + env(safe-area-inset-bottom, 0px)); }
+  .sp-titolo .sp-titolo__logo { height: clamp(72px, 12vh, 120px); }
+  .sp-citazione__frase p { max-width: 12ch; font-size: clamp(36px, 10.5vw, 64px); }
+  .sp-citazione[data-trailer] .sp-citazione__frase p { max-width: 14ch; font-size: clamp(30px, 8.4vw, 50px); }
+
+  .sp-cornice--oriz { display: none; }
+  .sp-cornice--vert { display: block; }
+  .sp-banner__piede { flex-direction: column; align-items: flex-start; }
+
+  .sp-mostra { grid-template-columns: 1fr; }
+  .sp-locandina { grid-column: auto; width: min(78%, 360px); justify-self: center; }
+  .sp-foto, .sp-mostra[data-solo="foto"] .sp-foto { grid-column: auto; grid-template-columns: 1fr; }
+
+  .sp-verticale__dentro { grid-template-columns: 1fr; gap: var(--space-xl); }
+  .sp-verticale__testo, .sp-telefono { grid-column: auto; }
+  .sp-telefono { width: min(82%, 340px); }
+}

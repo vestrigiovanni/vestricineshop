@@ -5,7 +5,12 @@ import { creaAncore } from '@/home/pezzi';
 import Trailer from '@/home/Trailer';
 import Luce from '@/home/Luce';
 import Motore from '@/home/Motore';
+import { specialiAttive } from '@/speciale/leggi';
+import { specialeInSala } from '@/speciale/proiezioneSpeciale';
+import Speciale from '@/speciale/Speciale';
+import { IntermezzoBanner, IntermezzoQuinte, IntermezzoTrailer } from '@/speciale/Intermezzi';
 import '@/home/home.css';
+import '@/speciale/speciale.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,13 +20,20 @@ export const dynamic = 'force-dynamic';
  * film che hai davanti. Sette atti: il prossimo film, gli altri del giorno,
  * i prossimi giorni, il buio, il trailer, più avanti, tutto il programma.
  *
+ * La proiezione speciale, finché è in programma, apre la pagina prima del
+ * prossimo film ed esce dalla fila degli atti (resta in Tutto il programma);
+ * fra gli atti tornano i suoi tre intermezzi.
+ *
  * `?film=<id>` (i vecchi link /movie/<id>): quel film apre la pagina.
  */
 export default async function Home({ searchParams }: { searchParams: Promise<{ film?: string }> }) {
   const { film: voluto } = await searchParams;
   const now = new Date();
-  const films = await filmInSala(now);
-  let p = buildProgramma(films, now);
+  const [films, speciali] = await Promise.all([filmInSala(now), specialiAttive()]);
+  const sp = specialeInSala(films, now, speciali);
+  const tutti = buildProgramma(films, now);
+  const regia = sp ? buildProgramma(films.filter(f => f.id !== sp.movie.id), now) : tutti;
+  let p = regia && tutti ? { ...regia, film: tutti.film, giorni: tutti.giorni } : tutti;
 
   if (p && voluto && Number(voluto) !== p.primo.movie.id) {
     const id = Number(voluto);
@@ -47,6 +59,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
         <Motore radice="#home" />
         <h1 className="visually-hidden">Vestri Cinema: i film in sala</h1>
 
+        {sp && <Speciale dati={sp} now={now} ancora={ancora} />}
         {!p ? (
           <section className="container vuoto">
             <h2>La sala è chiusa.</h2>
@@ -56,12 +69,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
           <>
             <Apertura slot={p.primo} now={now} ancora={ancora} />
             {p.oggi.length > 0 && <Oggi slots={p.oggi} now={now} ancora={ancora} />}
+            {/* Gli intermezzi della proiezione speciale, distanti fra loro: chi scorre la ritrova. */}
+            {sp && <IntermezzoBanner dati={sp} now={now} />}
             {p.prossimi.length > 0 && (
               <Prossimi slots={p.prossimi} dopo={p.lontani.length + (p.trailer ? 1 : 0)} now={now} ancora={ancora} />
             )}
+            {sp && <IntermezzoQuinte dati={sp} now={now} />}
             {p.trailer && <Silenzio film={p.trailer.slot.movie} />}
             {p.trailer && <Trailer slot={p.trailer.slot} chiave={p.trailer.key} now={now} />}
             {p.lontani.length > 0 && <Lontani slots={p.lontani} now={now} ancora={ancora} />}
+            {sp && <IntermezzoTrailer dati={sp} now={now} />}
             <Tutto film={p.film} giorni={p.giorni} now={now} ancora={ancora} />
           </>
         )}
