@@ -47,7 +47,7 @@ Next.js 16 + Prisma sullo stesso Neon, su Vercel. Una sola libreria per le anima
 L'anteprima va su un progetto Vercel nuovo; vestricinema.com passa alla v2 solo quando lo dice Gio.
 
 ## Aspetto
-Identità nuova: hallmark propone tre temi, Gio ne sceglie uno. Vale per il sito e per il gestionale. La luce del film resta, come idea.
+Identità nuova: tema **Fornace** (Kiln di hallmark, scelto da Gio il 27/11/2026): nero profondo, inchiostro crema, Boska sopra Geist, pillole, un solo accento brace che diventa il colore del film. Token in `src/styles/tokens.css`. Vale per il sito e per il gestionale. La luce del film resta, come idea.
 
 ## Le fette
 1. **Scheletro**: avvio a doppio clic, lo stesso database, una pagina con le proiezioni future vere. Anteprima su Vercel.

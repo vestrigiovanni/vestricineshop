@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { perGiorno } from './programma';
+import { perGiorno, nomeSala } from './programma';
 
 const p = (id: number, iso: string, titolo = 'Film') => ({ id, inizio: new Date(iso), titolo });
 
@@ -20,5 +20,14 @@ describe('perGiorno', () => {
 
   it('senza proiezioni future non restituisce giorni', () => {
     expect(perGiorno([p(1, '2026-11-01T20:00:00Z')], ora)).toEqual([]);
+  });
+});
+
+describe('nomeSala', () => {
+  it('scrive le sale di Pretix come nomi', () => {
+    expect(nomeSala('CA GRANDA')).toBe('Ca Granda');
+    expect(nomeSala('TIMOTHÉE')).toBe('Timothée');
+    expect(nomeSala('A24')).toBe('A24');
+    expect(nomeSala(null)).toBe('');
   });
 });

@@ -33,3 +33,11 @@ export function perGiorno<P extends Proiezione>(proiezioni: P[], ora: Date = new
   }
   return giorni;
 }
+
+/** Pretix scrive le sale in maiuscolo («CA GRANDA»): sul sito vanno come nomi («Ca Granda»). */
+export function nomeSala(sala: string | null | undefined): string {
+  if (!sala) return '';
+  return sala
+    .toLocaleLowerCase('it-IT')
+    .replace(/(^|\s)(\p{L})/gu, (_, spazio: string, lettera: string) => spazio + lettera.toLocaleUpperCase('it-IT'));
+}

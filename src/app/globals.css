@@ -1,0 +1,42 @@
+/* Hallmark · shape: Index-First (programma) · genre: atmospheric · theme: Kiln (deal 3/3, seed sito-cinema-essai-indipendente-08ba·c43cfae3·2026-11-27·r0, scelto da Gio) · job: book · draw: manual
+ * hero: Settled · nav: edge-aligned, wordmark and one action · footer: a mast · imagery: the films' own stills · signature: la luce del film, il colore di ogni film come unico accento · kiln: ember
+ * axes: dark/high-contrast-serif/warm · posture: full-palette · contrast: pass · fold: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P2 H2 E2 S2 R2 V2 · weakest: S, lo scheletro è solo il programma; la signature arriva con la home (fetta 3) */
+/* waive: photo-treatment — i fotogrammi dei film non si tingono: il loro colore è la luce del film */
+@import url("../styles/tokens.css");
+@import url("../styles/base.css");
+
+/* La luce del film: ogni film può sostituire l'accento con il suo colore misurato. */
+:root { --luce: var(--color-accent); --luce-ink: var(--color-accent-ink); }
+
+.barra { position: sticky; top: 0; z-index: var(--z-sticky-nav); background: var(--color-paper); border-bottom: var(--rule-hair) solid var(--color-rule); }
+.barra .container { display: flex; align-items: center; justify-content: space-between; min-height: 72px; }
+.marchio { font-family: var(--font-display); font-weight: var(--display-weight); font-size: var(--text-xl); letter-spacing: var(--tracking-display); text-decoration: none; }
+
+.btn { display: inline-flex; align-items: center; min-height: 50px; padding: 0 var(--space-lg); border-radius: var(--radius-pill); font-weight: 500; text-decoration: none; transition: background-color var(--dur-short) var(--ease-out), box-shadow var(--dur-short) var(--ease-out); }
+.btn--primary { background: var(--luce); color: var(--luce-ink); }
+.btn--primary:hover { background: var(--color-focus); }
+.btn--primary:active { transform: translateY(1px); }
+.btn--ghost { color: var(--color-ink); box-shadow: inset 0 0 0 var(--rule-hair) var(--color-rule); }
+.btn--ghost:hover { box-shadow: inset 0 0 0 var(--rule-hair) var(--color-ink-2); }
+.btn--small { min-height: 40px; padding: 0 var(--space-md); font-size: var(--text-sm); }
+
+.apertura { padding-block: var(--space-3xl) var(--space-2xl); }
+.apertura .lead { margin-top: var(--space-lg); color: var(--color-ink-2); }
+
+.giorno { padding-block: var(--space-xl); }
+.giorno h2 { max-width: none; font-size: var(--text-2xl); padding-bottom: var(--space-md); border-bottom: var(--rule-hair) solid var(--color-rule); }
+.giorno h2::first-letter { text-transform: uppercase; }
+.riga { display: grid; grid-template-columns: 7rem minmax(0, 1fr) 12rem; gap: var(--gap-columns); align-items: baseline; padding-block: var(--space-md); border-bottom: var(--rule-hair) solid var(--color-rule); }
+.riga .ora { font-family: var(--font-display); font-weight: var(--display-weight); font-size: var(--text-xl); letter-spacing: -0.03em; font-variant-numeric: lining-nums tabular-nums; }
+.riga .titolo { font-size: var(--text-lg); min-width: 0; overflow-wrap: break-word; }
+.riga .sala { color: var(--color-muted); font-size: var(--text-sm); font-weight: 500; text-align: right; }
+.vuoto { color: var(--color-muted); padding-block: var(--space-xl); }
+
+.piede { margin-top: var(--section-gap-s); padding-block: var(--space-2xl); border-top: var(--rule-hair) solid var(--color-rule); color: var(--color-muted); font-size: var(--text-sm); }
+.piede .marchio { display: block; color: var(--color-ink); margin-bottom: var(--space-xs); }
+
+@media (max-width: 40rem) {
+  .riga { grid-template-columns: 4.5rem minmax(0, 1fr); }
+  .riga .sala { grid-column: 2; text-align: left; margin-top: calc(var(--space-sm) * -1); }
+}
