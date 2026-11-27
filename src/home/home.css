@@ -1,0 +1,192 @@
+/* La Home nel tema Fornace. Token in src/styles/tokens.css.
+ * Il colore del film: `--luce` per tutta la pagina (il film su cui ci si è
+ * fermati), `--f-accento` sul singolo film (scritto da Luce.tsx su `data-film`).
+ * Il motore scroll-craft sta in un layer: le regole qui sotto vincono sempre. */
+@import url("../vendor/scrollcraft/scrollcraft.css") layer(scrollcraft);
+
+/* ─── La sala ───────────────────────────────────────────────────────────── */
+
+/* La luce d'ambiente: il fondo della pagina e un bagliore del colore della scena.
+ * Cambia sfumando (un colore che si interpola, non un ricalcolo della pagina). */
+.ambiente { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-color: var(--luce-fondo); color: var(--luce-bagliore);
+  transition: background-color 900ms var(--ease-in-out), color 900ms var(--ease-in-out); }
+.ambiente::before { content: ""; position: absolute; inset: -10% -10% 30%; opacity: 0.34;
+  background: radial-gradient(ellipse 70% 60% at 50% 20%, currentColor, transparent 72%);
+  transition: opacity 900ms var(--ease-in-out); }
+html[data-scena="buio"] .ambiente::before { opacity: 0; }
+html[data-scena="tutti"] .ambiente::before { opacity: 0.18; }
+
+.cifre { font-variant-numeric: lining-nums tabular-nums; }
+
+.occhiello { font-family: var(--font-outlier); font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink-2); }
+.occhiello::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: var(--space-xs); border-radius: 50%; vertical-align: 0.15em; background: var(--f-accento, var(--luce)); }
+
+/* ─── I pezzi di ogni film ──────────────────────────────────────────────── */
+
+.logo { position: relative; display: block; height: 64px; max-width: min(100%, 26rem); }
+.logo img { width: 100%; height: 100%; object-fit: contain; object-position: left bottom; filter: drop-shadow(0 2px 18px rgba(0, 0, 0, 0.45)); }
+.logo img[data-acceso] { filter: brightness(0) invert(0.94) drop-shadow(0 2px 18px rgba(0, 0, 0, 0.45)); }
+.logo--testo { height: auto; max-width: 18ch; font-family: var(--font-display); font-weight: var(--display-weight); letter-spacing: var(--tracking-display); line-height: 1; font-size: var(--text-section); text-wrap: balance; }
+
+.quando { display: flex; flex-wrap: wrap; gap: 0 var(--space-sm); font-weight: 500; color: var(--color-ink); }
+.quando__sala { color: var(--color-muted); font-weight: 400; }
+.quando__sala::before { content: "·"; margin-right: var(--space-sm); }
+
+.cartellino { list-style: none; margin: var(--space-sm) 0 0; padding: 0; display: grid; gap: 2px; font-size: var(--text-sm); color: var(--color-muted); }
+.cartellino__premio { color: var(--color-ink); font-weight: 500; }
+.cartellino abbr { text-decoration: none; padding: 0 6px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--color-rule); font-size: var(--text-xs); }
+
+.azioni { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm) var(--space-lg); margin-top: var(--space-lg); }
+.azioni--strette { margin-top: var(--space-sm); gap: var(--space-xs) var(--space-md); }
+
+.prenota { display: inline-flex; align-items: center; min-height: 52px; padding: 0 var(--space-xl); border-radius: var(--radius-pill);
+  background: var(--f-accento, var(--luce)); color: var(--f-ink, var(--luce-ink)); font-weight: 500; text-decoration: none;
+  transition: transform var(--dur-micro) var(--ease-out), filter var(--dur-short) var(--ease-out), background-color var(--dur-long) var(--ease-out); }
+.prenota:hover { filter: brightness(1.08); }
+.prenota:active { transform: translateY(1px); }
+.prenota-link { display: inline-flex; align-items: center; min-height: 40px; gap: 4px; font-weight: 500; text-decoration: none; color: var(--f-accento, var(--luce)); }
+.prenota-link:hover { text-decoration: underline; }
+.esaurito { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--space-md); border-radius: var(--radius-pill); font-size: var(--text-sm); color: var(--color-muted); box-shadow: inset 0 0 0 1px var(--color-rule); }
+.posti { font-size: var(--text-sm); color: var(--color-muted); }
+.posti[data-stato="ultimi"] { color: var(--f-accento, var(--luce)); font-weight: 500; }
+
+/* ─── Gli atti ──────────────────────────────────────────────────────────── */
+
+.atto { padding-top: var(--section-gap); }
+.atto__capo { margin-bottom: var(--space-2xl); }
+.atto__capo h2, .prossimi__capo h2 { font-size: var(--text-display-s); }
+.atto__sotto { margin-top: var(--space-sm); font-size: var(--text-lead); color: var(--color-ink-2); }
+
+/* Atto 1, il prossimo film: il fondale sale dal nero, poi il testo. Mentre si
+ * scende la locandina sale più in fretta della pagina, e l'atto si scioglie nel fondo. */
+.apertura__palco { opacity: calc(1 - max(0, var(--sc-p, 0) - 0.55) * 2.2); }
+.apertura__fondale { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: sorge 1.8s var(--ease-out) both; }
+@keyframes sorge { from { opacity: 0; transform: scale(1.04); } }
+.apertura__velo { position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(15, 11, 9, 1) 0%, rgba(15, 11, 9, 0.7) 34%, rgba(15, 11, 9, 0) 68%), linear-gradient(to right, rgba(15, 11, 9, 0.78), rgba(15, 11, 9, 0) 62%); }
+.apertura__locandina { position: absolute; right: var(--gutter); top: 50%; width: clamp(160px, 16vw, 260px); aspect-ratio: 2 / 3; object-fit: cover;
+  border-radius: var(--radius-well); box-shadow: var(--shadow-card); transform: translateY(calc(-46% - var(--sc-p, 0) * 16vh));
+  animation: entra 1.2s 0.5s var(--ease-out) both; }
+.apertura__testo { position: absolute; inset-inline: 0; bottom: clamp(40px, 10vh, 104px); }
+.apertura__testo > * { max-width: 38rem; animation: entra 1s var(--ease-out) both; }
+.apertura__testo > :nth-child(2) { animation-delay: 0.35s; }
+.apertura__testo > :nth-child(n+3) { animation-delay: 0.6s; }
+@keyframes entra { from { opacity: 0; transform: translateY(14px); } }
+.apertura__titolo { margin-top: var(--space-md); max-width: none; }
+.apertura__titolo .logo { height: clamp(76px, 11vw, 150px); max-width: min(100%, 34rem); }
+.apertura__titolo .logo--testo { height: auto; font-size: var(--text-display); }
+.apertura__quando { margin-top: var(--space-lg); font-size: var(--text-lead); }
+.apertura__trama { margin-top: var(--space-sm); max-width: 46ch; color: var(--color-ink-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Atto 2, gli altri film del giorno: le schede si impilano. */
+.oggi__pila { list-style: none; margin: 0 auto; display: grid; gap: var(--space-xl); }
+.oggi__carta { position: sticky; top: calc(88px + var(--i, 0) * 14px); height: min(72svh, 660px); border-radius: var(--radius-card); overflow: hidden; isolation: isolate;
+  background: var(--color-paper-2); box-shadow: var(--shadow-card), inset 0 0 0 1px var(--color-rule); }
+.oggi__fondale { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+.oggi__velo { position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(to top, rgba(15, 11, 9, 0.95) 0%, rgba(15, 11, 9, 0.55) 45%, rgba(15, 11, 9, 0.1) 80%), linear-gradient(to right, rgba(15, 11, 9, 0.7), rgba(15, 11, 9, 0) 65%); }
+.oggi__testo { position: absolute; inset: auto var(--space-xl) var(--space-xl); max-width: 40rem; }
+.oggi__ora { display: block; font-family: var(--font-display); font-weight: var(--display-weight); font-size: clamp(3.25rem, 7vw, 6.5rem); line-height: 0.9; letter-spacing: -0.03em; color: var(--f-accento, var(--luce)); }
+.oggi__titolo { margin-top: var(--space-md); max-width: none; }
+.oggi__titolo .logo { height: clamp(48px, 6vw, 84px); }
+.oggi__titolo .logo--testo { height: auto; font-size: var(--text-section); }
+.oggi__sala { font-size: var(--text-sm); color: var(--color-ink-2); }
+
+/* Atto 3, nei prossimi giorni: il titolo si ferma e la cornice gli sale sopra. */
+.prossimi__capo { position: sticky; top: 36svh; text-align: center; }
+.prossimi__capo h2 { margin-inline: auto; }
+.prossimi__cornice { position: relative; z-index: var(--z-raised); margin-top: 42svh; padding: var(--space-xl); border-radius: var(--radius-card);
+  background: var(--color-paper-2); box-shadow: var(--shadow-card), inset 0 0 0 1px var(--color-rule); }
+.prossimi__parete { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: var(--space-2xl) var(--space-lg); }
+.opera__locandina { aspect-ratio: 2 / 3; border-radius: var(--radius-well); overflow: hidden; background: var(--color-paper-3); margin-bottom: var(--space-md); }
+.opera__locandina img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--dur-long) var(--ease-out); }
+.opera:hover .opera__locandina img { transform: scale(1.03); }
+.opera__quando { font-size: var(--text-sm); }
+.opera__titolo { margin-top: var(--space-2xs); font-size: var(--text-title); }
+.prossimi__coda { margin-top: var(--space-2xl); text-align: center; color: var(--color-muted); }
+
+/* Atto 4, le luci si spengono. */
+.silenzio { min-height: 70svh; display: grid; place-items: end center; padding: 0 var(--gutter) 18vh; margin-top: var(--section-gap);
+  background: linear-gradient(to bottom, rgba(7, 7, 8, 0), rgba(7, 7, 8, 0.9) 48%, #070708 74%); }
+.silenzio[data-motto] { min-height: 100svh; padding-bottom: 32vh; }
+.silenzio__motto { max-width: 24ch; text-align: center; font-family: var(--font-display); font-weight: var(--display-weight); font-size: clamp(1.5rem, 2.6vw, 2.25rem); line-height: 1.25; letter-spacing: -0.015em; color: var(--color-ink-2); text-wrap: balance; }
+
+/* Atto 5, il trailer: lo schermo si apre nel buio nel primo terzo dell'atto. */
+.trailer { background: #070708; --e: clamp(0, calc(var(--sc-p, 0) / 0.3), 1); }
+.trailer__palco { background: #070708; }
+.trailer__schermo { position: absolute; inset: 0; overflow: hidden; background: #000;
+  clip-path: inset(calc((1 - var(--e)) * 14vh) calc((1 - var(--e)) * 12vw) round calc((1 - var(--e)) * 28px)); }
+.trailer__video { position: absolute; top: 50%; left: 50%; border: 0; pointer-events: none; transform: translate(-50%, -50%);
+  width: max(100vw, 177.78vh); height: max(100vh, 56.25vw); }
+.trailer__attesa { position: absolute; inset: 0; transition: opacity 800ms var(--ease-out); }
+.trailer__attesa[data-via] { opacity: 0; }
+.trailer__attesa img { width: 100%; height: 100%; object-fit: cover; }
+.trailer__velo { position: absolute; inset: 40% 0 0; pointer-events: none; opacity: clamp(0, calc((var(--sc-p, 0) - 0.6) * 5), 1);
+  background: linear-gradient(to top, rgba(7, 7, 8, 0.94), rgba(7, 7, 8, 0.6) 44%, rgba(7, 7, 8, 0)); }
+.trailer__copia { position: absolute; inset-inline: 0; bottom: clamp(40px, 10vh, 104px); z-index: var(--z-raised); }
+.trailer__copia > * { max-width: 38rem; }
+.trailer__titolo { margin-block: var(--space-md) var(--space-md); max-width: none; }
+.trailer__titolo .logo { height: clamp(60px, 8vw, 112px); max-width: min(100%, 30rem); }
+
+/* Atto 6, più avanti: uno grande e uno piccolo, a righe alterne. */
+.lontani__galleria { list-style: none; margin: 0 auto; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--space-3xl) var(--gap-columns); align-items: start; }
+.lontano { grid-column: span 5; }
+.lontano[data-grande] { grid-column: span 7; }
+.lontano:not([data-grande]) { margin-top: var(--space-3xl); }
+.lontano__quadro { position: relative; aspect-ratio: 16 / 10; border-radius: var(--radius-card); overflow: hidden; background: var(--color-paper-2); margin-bottom: var(--space-md); }
+.lontano__quadro img:not([data-logo]) { width: 100%; height: 100%; object-fit: cover; }
+.lontano__velo { position: absolute; inset: 0; background: linear-gradient(to top, rgba(15, 11, 9, 0.85), rgba(15, 11, 9, 0) 55%); }
+.lontano__titolo { position: absolute; inset: auto var(--space-lg) var(--space-lg); max-width: none; }
+.lontano__titolo .logo { height: clamp(40px, 4.5vw, 64px); }
+.lontano__titolo .logo--testo { font-size: var(--text-2xl); }
+
+.lontani__coda { margin-top: var(--space-3xl); font-size: var(--text-lead); color: var(--color-ink-2); }
+.lontani__coda .prenota-link { display: inline; }
+
+/* Atto 7, tutto il programma. */
+.tutto { padding-bottom: var(--section-gap-s); }
+.tutto__parete { list-style: none; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: var(--space-sm); }
+.tutto__locandina { display: block; aspect-ratio: 2 / 3; border-radius: 10px; overflow: hidden; background: var(--color-paper-2);
+  transition: transform var(--dur-short) var(--ease-out), box-shadow var(--dur-short) var(--ease-out); }
+.tutto__locandina img { width: 100%; height: 100%; object-fit: cover; }
+.tutto__locandina:hover { transform: translateY(-3px); box-shadow: 0 0 0 2px var(--f-accento, var(--luce)); }
+.tutto__settimana { margin-top: var(--space-3xl); }
+.giorno { border-top: var(--rule-hair) solid var(--color-rule); }
+.giorno:last-child { border-bottom: var(--rule-hair) solid var(--color-rule); }
+.giorno__capo { display: grid; grid-template-columns: minmax(0, 1fr) auto 24px; align-items: baseline; gap: var(--space-lg); padding-block: var(--space-lg); cursor: pointer; list-style: none; }
+.giorno__capo::-webkit-details-marker { display: none; }
+.giorno__nome { font-size: var(--text-2xl); max-width: none; }
+.giorno__conto { color: var(--color-muted); font-size: var(--text-sm); }
+.giorno__freccia { width: 10px; height: 10px; border-right: 2px solid var(--color-ink-2); border-bottom: 2px solid var(--color-ink-2); transform: rotate(45deg); transition: transform var(--dur-short) var(--ease-out); align-self: center; }
+.giorno[open] .giorno__freccia { transform: rotate(225deg); }
+.giorno__capo:hover .giorno__nome { color: var(--luce); }
+.giorno__righe { list-style: none; margin: 0; padding: 0 0 var(--space-lg); }
+.riga { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) auto; gap: var(--gap-columns); align-items: baseline; padding-block: var(--space-md); border-top: var(--rule-hair) solid var(--color-rule); }
+.riga__ora { font-family: var(--font-display); font-weight: var(--display-weight); font-size: var(--text-xl); letter-spacing: -0.03em; }
+.riga__film { display: grid; gap: 2px; min-width: 0; }
+.riga__titolo { font-size: var(--text-lg); text-decoration: none; overflow-wrap: break-word; }
+.riga__titolo:hover { text-decoration: underline; }
+.riga__dati { font-size: var(--text-sm); color: var(--color-muted); }
+.riga__azione { display: flex; align-items: baseline; gap: var(--space-md); }
+
+.vuoto { min-height: 80svh; display: grid; align-content: center; gap: var(--space-lg); padding-top: 96px; }
+
+/* ─── Telefono ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 60rem) {
+  .apertura__locandina { display: none; }
+  .lontano, .lontano[data-grande] { grid-column: 1 / -1; }
+  .lontano:not([data-grande]) { margin-top: 0; }
+}
+@media (max-width: 40rem) {
+  .oggi__carta { height: min(78svh, 620px); top: calc(80px + var(--i, 0) * 10px); }
+  .oggi__testo { inset: auto var(--space-md) var(--space-lg); }
+  .prossimi__cornice { padding: var(--space-md); }
+  .prossimi__parete { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-xl) var(--space-md); }
+  .riga { grid-template-columns: 4rem minmax(0, 1fr); gap: var(--space-xs) var(--space-md); }
+  .riga__azione { grid-column: 2; }
+  .giorno__capo { grid-template-columns: minmax(0, 1fr) 24px; }
+  .giorno__conto { grid-column: 1; grid-row: 2; }
+  .giorno__freccia { grid-row: 1; grid-column: 2; }
+}
