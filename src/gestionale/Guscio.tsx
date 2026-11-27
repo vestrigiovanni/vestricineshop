@@ -7,14 +7,14 @@ import { Avvisi } from './Avviso';
 
 /**
  * Il guscio del gestionale: il marchio, le stanze come pillole, l'uscita.
- * Le stanze arrivano a fette: Oggi, Programma, Film e Catalogo ora, Speciale
- * con la fetta 8. Oggi è la porta (`/admin`).
+ * Le stanze: Oggi (la porta, `/admin`), Programma, Film, Catalogo e Speciale.
  */
 const STANZE = [
   { href: '/admin', nome: 'Oggi' },
   { href: '/admin/programma', nome: 'Programma' },
   { href: '/admin/film', nome: 'Film' },
   { href: '/admin/catalogo', nome: 'Catalogo' },
+  { href: '/admin/speciale', nome: 'Speciale' },
 ];
 
 export default function Guscio({ children }: { children: React.ReactNode }) {
