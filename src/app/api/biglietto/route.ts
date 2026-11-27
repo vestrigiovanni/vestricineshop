@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { ErrorePretix, ordine } from '@/biglietteria/pretix';
 import { disegnaBiglietto } from '@/biglietteria/biglietto';
+import { nomePosto } from '@/biglietteria/regole';
 import { sala as nomeSala } from '@/home/metadati';
 
 export const dynamic = 'force-dynamic';
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
       fondale: m?.customBackdropPath || '',
       logo: m?.customLogoPath && m.customLogoPath !== 'none' ? m.customLogoPath : '',
       ordine: o.code,
-      posti: o.positions.map(p => ({ segreto: p.secret, posto: p.seat?.name || 'Posto unico' })),
+      posti: o.positions.map(p => ({ segreto: p.secret, posto: nomePosto(p.seat) })),
     });
     return new Response(new Uint8Array(pdf), {
       headers: {

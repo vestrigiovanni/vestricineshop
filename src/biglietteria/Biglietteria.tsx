@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import {
-  avvisoEta, avvisoPostiPresi, divietoNormale, emailValida, file, postiDaPretix, postoBreve, prenotabile,
+  avvisoEta, avvisoPostiPresi, divietoNormale, emailValida, file, nomePosto, postiDaPretix, postoBreve, prenotabile,
   type Posto, type PostoPretix,
 } from './regole';
 
@@ -41,7 +41,7 @@ export interface FilmInVendita {
 const RILEGGI_MS = 20_000;
 const img = (p: string, misura: string) => (!p ? '' : p.startsWith('http') ? p : `https://image.tmdb.org/t/p/${misura}${p}`);
 
-type Ordine = { code: string; secret: string; positions: { id: number; secret: string; seat?: { name?: string } | null }[] };
+type Ordine = { code: string; secret: string; positions: { id: number; secret: string; seat?: { name?: string; row_name?: string; seat_number?: string } | null }[] };
 type Passo = 'eta' | 'sala' | 'conferma' | 'fatto';
 
 export default function Biglietteria({ films }: { films: FilmInVendita[] }) {
@@ -364,8 +364,8 @@ function Biglietti({ ordine, film, show }: { ordine: Ordine; film: FilmInVendita
       <ul className="bt-qr">
         {ordine.positions.map(p => (
           <li key={p.id}>
-            <span className="bt-qr__codice" dangerouslySetInnerHTML={{ __html: qr[p.secret] || '' }} role="img" aria-label={`QR del biglietto, ${p.seat?.name || 'posto unico'}`} />
-            <span className="bt-qr__posto">{postoBreve(p.seat?.name || 'Posto unico')}</span>
+            <span className="bt-qr__codice" dangerouslySetInnerHTML={{ __html: qr[p.secret] || '' }} role="img" aria-label={`QR del biglietto, ${nomePosto(p.seat)}`} />
+            <span className="bt-qr__posto">{postoBreve(nomePosto(p.seat))}</span>
           </li>
         ))}
       </ul>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ITEM_INTERO_ID, ITEM_VIP_ID, avvisoEta, commentoPerPretix, avvisoPostiPresi, disponibilitaDaQuote, divietoNormale, emailValida, file, motivoRifiuto,
+  ITEM_INTERO_ID, ITEM_VIP_ID, avvisoEta, commentoPerPretix, avvisoPostiPresi, disponibilitaDaQuote, divietoNormale, emailValida, file, motivoRifiuto, nomePosto,
   postiDaPretix, postoBreve, prenotabile, quotaEsaurita, quotaIntero, rigaDaSottoevento, tmdbIdDaCommento,
 } from './regole';
 
@@ -83,6 +83,12 @@ describe('testi', () => {
     expect(avvisoEta('VM14')?.divieto).toBe(false);
     expect(avvisoEta('6+')?.testo).toContain('consigliata dai 6 anni');
     expect(avvisoEta('T')).toBeNull();
+  });
+  it('il posto del biglietto in italiano', () => {
+    expect(nomePosto({ name: 'GATE 2, Row 10, Seat 10' })).toBe('Fila 10 - Posto 10');
+    expect(nomePosto({ name: 'x', row_name: 'B', seat_number: '5' })).toBe('Fila B - Posto 5');
+    expect(nomePosto({ name: 'Divano' })).toBe('Divano');
+    expect(nomePosto(null)).toBe('Posto unico');
   });
   it('il posto in breve', () => {
     expect(postoBreve('Fila B - Posto 5')).toBe('B5');

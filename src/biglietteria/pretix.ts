@@ -173,7 +173,7 @@ export interface Ordine {
   code: string;
   secret: string;
   email: string;
-  positions: { id: number; secret: string; subevent: number; seat?: { name?: string; seat_guid?: string } | null; item: number }[];
+  positions: { id: number; secret: string; subevent: number; seat?: { name?: string; seat_guid?: string; row_name?: string; seat_number?: string } | null; item: number }[];
 }
 
 /** Un ordine, per il biglietto. */

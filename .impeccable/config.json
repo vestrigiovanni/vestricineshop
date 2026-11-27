@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "src/biglietteria/biglietteria.css"
+        ],
+        "createdAt": "2026-11-27T19:19:12.446Z",
+        "reason": "Claude: .bt-schermo::before is the curved cinema screen of the seat map (an arc drawn with border-top on an ellipse), not a rounded card"
+      }
+    ]
+  }
+}

@@ -248,6 +248,20 @@ export function avvisoEta(rating?: string | null): { divieto: boolean; testo: st
   return null;
 }
 
+/**
+ * Il posto di un biglietto, in italiano. Negli ordini Pretix lo scrive nella
+ * lingua della pianta («GATE 2, Row 10, Seat 10»): se ci sono fila e numero si
+ * riscrive «Fila 10 - Posto 10» (la forma della mappa, che `postoBreve`
+ * accorcia); se no resta com'è. Senza posto è un posto unico.
+ */
+export function nomePosto(seat?: { name?: string | null; row_name?: string | null; seat_number?: string | null } | null): string {
+  if (!seat) return 'Posto unico';
+  const nome = seat.name || '';
+  const fila = seat.row_name || nome.match(/(?:fila|row)\s*([A-Z0-9]+)/i)?.[1];
+  const numero = seat.seat_number || nome.match(/(?:posto|seat)\s*([A-Z0-9]+)/i)?.[1];
+  return fila && numero ? `Fila ${fila} - Posto ${numero}` : nome || 'Posto unico';
+}
+
 /** "Fila B - Posto 5" → "B5"; con una fila numerica "12·3", se no "123" non si legge. */
 export function postoBreve(etichetta: string): string {
   const m = etichetta.match(/^Fila (\S+) - Posto (\S+)$/);
