@@ -1,6 +1,8 @@
 import prisma from '@/lib/prisma';
 import { cambiaSpettacolo, quote, sale, spettacoli, spettacolo } from './pretix';
 import { commentoPerPretix, quotaIntero, rigaDaSottoevento, tmdbIdDaCommento } from './regole';
+import { assicuraSchede } from '@/gestionale/film/riempi';
+import { STUB } from '@/gestionale/film/scheda';
 
 /**
  * Pretix → database unico (Neon), come nella v1:
@@ -14,23 +16,11 @@ import { commentoPerPretix, quotaIntero, rigaDaSottoevento, tmdbIdDaCommento } f
  * Con `VESTRI_SYNC_OFF=1` non si scrive niente: serve quando si guarda il sito
  * in locale senza toccare il database vero.
  *
- * Fino alla fetta 6 il film nuovo nasce come scheda «Caricamento…» senza
- * passare da TMDB: la riempie la v1 finché è online, poi il gestionale.
+ * Il film nuovo nasce con la sua scheda presa da TMDB (`assicuraSchede`): i
+ * testi di Gio, se ci sono, non si toccano. Solo se TMDB non risponde nasce
+ * «Caricamento...», e la sync dopo ci riprova.
  */
 export const syncSpenta = (env: Record<string, string | undefined> = process.env) => env.VESTRI_SYNC_OFF === '1';
-
-const STUB = 'Caricamento...';
-
-/** Le schede dei film che mancano, perché PretixSync possa puntarci. */
-async function assicuraFilm(ids: Iterable<string>) {
-  for (const tmdbId of ids) {
-    await prisma.movieOverride.upsert({
-      where: { tmdbId },
-      update: {},
-      create: { tmdbId, customTitle: STUB, isManualOverride: false, isDraft: false },
-    });
-  }
-}
 
 export async function syncCompleta({ senzaInvio = false } = {}) {
   if (syncSpenta()) return { success: true, upserted: 0, projectionsCleaned: 0, moviesCleaned: 0, duration: 0 };
@@ -44,7 +34,7 @@ export async function syncCompleta({ senzaInvio = false } = {}) {
     return { success: true, upserted: 0, projectionsCleaned: 0, moviesCleaned: 0, duration: Date.now() - inizio };
   }
 
-  await assicuraFilm(new Set(lista.map(se => tmdbIdDaCommento(se.comment)).filter((x): x is string => !!x)));
+  await assicuraSchede(new Set(lista.map(se => tmdbIdDaCommento(se.comment)).filter((x): x is string => !!x)));
   for (const se of lista) {
     const riga = rigaDaSottoevento(se, nomiSale);
     await prisma.pretixSync.upsert({ where: { pretixId: se.id }, update: riga, create: { pretixId: se.id, ...riga } });
@@ -65,9 +55,14 @@ export async function syncCompleta({ senzaInvio = false } = {}) {
   };
 }
 
-/** I metadati del film rimandati nel commento dello spettacolo su Pretix, solo se sono cambiati. */
-async function inviaMetadati() {
-  const righe = await prisma.pretixSync.findMany({ where: { active: true, tmdbId: { not: null } } });
+/**
+ * I metadati del film rimandati nel commento dello spettacolo su Pretix, solo
+ * se sono cambiati. Con `tmdbId` solo quel film (dopo un salvataggio nella
+ * stanza Film), e la lingua si aggiorna subito anche nel database: la Home la
+ * legge spettacolo per spettacolo.
+ */
+export async function inviaMetadati(tmdbId?: string) {
+  const righe = await prisma.pretixSync.findMany({ where: { active: true, tmdbId: tmdbId ?? { not: null } } });
   const schede = await prisma.movieOverride.findMany({
     where: { tmdbId: { in: [...new Set(righe.map(r => r.tmdbId!))] } },
     include: { awards: true },
@@ -77,12 +72,12 @@ async function inviaMetadati() {
     const s = perId.get(r.tmdbId!);
     if (!s || s.customTitle === STUB) continue;
     const commento = JSON.stringify(commentoPerPretix(r.tmdbId!, s));
-    if (r.comment === commento) continue;
+    const lingua = s.versionLanguage?.trim() || 'ITA';
+    const sottotitoli = s.subtitles?.trim() || 'NESSUNO';
+    if (r.comment === commento && (!tmdbId || (r.metaLingua === lingua && r.metaSottotitoli === sottotitoli))) continue;
     try {
-      await cambiaSpettacolo(r.pretixId, {
-        comment: commento,
-        meta_data: { lingua: s.versionLanguage?.trim() || 'ITA', sottotitoli: s.subtitles?.trim() || 'NESSUNO' },
-      });
+      await cambiaSpettacolo(r.pretixId, { comment: commento, meta_data: { lingua, sottotitoli } });
+      await prisma.pretixSync.update({ where: { pretixId: r.pretixId }, data: { comment: commento, metaLingua: lingua, metaSottotitoli: sottotitoli } });
     } catch (e) {
       console.error(`[sync] metadati non inviati a Pretix per ${r.pretixId}:`, e);
     }
@@ -145,7 +140,7 @@ export async function syncSpettacoli(ids: number[]) {
       const se = await spettacolo(id);
       if (!se) continue;
       const riga = rigaDaSottoevento(se, nomiSale);
-      if (riga.tmdbId) await assicuraFilm([riga.tmdbId]);
+      if (riga.tmdbId) await assicuraSchede([riga.tmdbId]);
       await prisma.pretixSync.upsert({
         where: { pretixId: id },
         update: riga,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { dalMac } from '@/lib/segretoMac';
+import { entrato } from '@/gestionale/guardia';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,15 +13,15 @@ const CARATTERI = ['font/woff2'];
 
 /**
  * POST /api/speciale/immagine — carica un'immagine per la proiezione speciale.
- * Risposte identiche alla v1. Dal Mac (segreto) già ora; dal gestionale (cookie
- * del login) dalla fetta 6, quando arriva il login sicuro.
+ * Risposte identiche alla v1. Passa chi ha il cookie del gestionale (la stanza
+ * Speciale) o il segreto del Mac («Critica dal trailer»).
  * Il browser la manda già ridotta (al massimo 3840 px, sotto i 4 MB) con le sue
  * misure: qui si controlla e si salva.
  * Risponde col riferimento da usare nella scheda: `/api/speciale/immagine/<id>`.
  */
 export async function POST(request: Request) {
   const mac = dalMac(request);
-  if (!mac) return NextResponse.json({ error: 'Serve il login del gestionale.' }, { status: 401 });
+  if (!mac && !(await entrato())) return NextResponse.json({ error: 'Serve il login del gestionale.' }, { status: 401 });
   const form = await request.formData();
   const file = form.get('file');
   const w = Number(form.get('w')), h = Number(form.get('h'));
