@@ -62,7 +62,7 @@ export function IntermezzoBanner({ dati, now }: Props) {
       aria-label={`${dati.movie.title}, proiezione speciale`}>
       {dati.show.isSoldOut
         ? <div className="sp-manifesto">{cornici}</div>
-        : <a className="sp-manifesto" href={linkPrenota(dati.show)}
+        : <a className="sp-manifesto" href={linkPrenota(dati.show)} data-prenota={dati.show.id}
           aria-label={`Prenota ${dati.movie.title}, proiezione speciale: ${dati.periodo.toLowerCase()}`}>{cornici}</a>}
       <div className="container sp-banner__piede">
         <p className="sp-riga">{doveQuando(dati)}</p>

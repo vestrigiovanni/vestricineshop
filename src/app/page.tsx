@@ -9,8 +9,14 @@ import { specialiAttive } from '@/speciale/leggi';
 import { specialeInSala } from '@/speciale/proiezioneSpeciale';
 import Speciale from '@/speciale/Speciale';
 import { IntermezzoBanner, IntermezzoQuinte, IntermezzoTrailer } from '@/speciale/Intermezzi';
+import { after } from 'next/server';
+import Biglietteria, { type FilmInVendita } from '@/biglietteria/Biglietteria';
+import { syncLeggera } from '@/biglietteria/sync';
+import { divietoNormale } from '@/biglietteria/regole';
+import { giornoDi, lingua, ora, sala } from '@/home/metadati';
 import '@/home/home.css';
 import '@/speciale/speciale.css';
+import '@/biglietteria/biglietteria.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +30,12 @@ export const dynamic = 'force-dynamic';
  * prossimo film ed esce dalla fila degli atti (resta in Tutto il programma);
  * fra gli atti tornano i suoi tre intermezzi.
  *
+ * Ogni Prenota apre la sala del sito (Biglietteria.tsx). Dopo aver risposto,
+ * la pagina aggiorna da Pretix posti liberi e programma, al massimo una volta
+ * al minuto (`syncLeggera`), come nella v1.
+ *
  * `?film=<id>` (i vecchi link /movie/<id>): quel film apre la pagina.
+ * `?subevent=<id>`: si apre la sala di quello spettacolo.
  */
 export default async function Home({ searchParams }: { searchParams: Promise<{ film?: string }> }) {
   const { film: voluto } = await searchParams;
@@ -41,6 +52,21 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
     const via = <T extends { movie: { id: number } }>(xs: T[]) => xs.filter(x => x.movie.id !== id);
     if (scelto) p = { ...p, primo: scelto, oggi: [p.primo, ...via(p.oggi)], prossimi: via(p.prossimi), lontani: via(p.lontani) };
   }
+
+  after(syncLeggera);
+
+  // Quello che serve alla sala, film per film: niente altro va nel browser.
+  const inVendita: FilmInVendita[] = films.map(f => ({
+    id: f.id,
+    titolo: f.title,
+    logo: f.logo_path || '',
+    fondale: f.backdrop_path || '',
+    divieto: divietoNormale(f.rating),
+    spettacoli: f.subevents
+      .filter(s => new Date(s.date) >= now)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(s => ({ id: s.id, data: s.date, giorno: giornoDi(s.date, now), ora: ora(s), sala: sala(s), lingua: lingua(s), esaurito: !!s.isSoldOut })),
+  }));
 
   const ancora = creaAncore();
   const luce = films.map(f => ({ id: f.id, fondale: f.backdrop_path || f.poster_path || '' }));
@@ -90,6 +116,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
           <p>I biglietti sono gratuiti e si prenotano qui.</p>
         </div>
       </footer>
+
+      <Biglietteria films={inVendita} />
     </>
   );
 }

@@ -12,8 +12,9 @@ export const img = (path: string | null | undefined, size = 'w1280') =>
   !path ? '' : path.startsWith('http') ? path : `https://image.tmdb.org/t/p/${size}${path}`;
 
 /**
- * Fino alla fetta 5 (prenotazione nel sito) Prenota apre la cassa di Pretix
- * su quello spettacolo, come i link che Gio manda già oggi.
+ * La cassa di Pretix su quello spettacolo, come i link che Gio manda già oggi.
+ * Con JavaScript Prenota apre la sala del sito (`data-prenota`, la legge
+ * Biglietteria.tsx); senza, porta qui.
  */
 export const linkPrenota = (s: Show) => `https://pretix.eu/vestri/npkez/${s.id}/`;
 
@@ -31,7 +32,7 @@ export type Ancora = ReturnType<typeof creaAncore>;
 export function Prenota({ show, film, now, variante = 'pieno' }: { show: Show; film: Film; now: Date; variante?: 'pieno' | 'link' }) {
   if (show.isSoldOut) return <span className="esaurito">Esaurito</span>;
   return (
-    <a className={variante === 'pieno' ? 'prenota' : 'prenota-link'} href={linkPrenota(show)}
+    <a className={variante === 'pieno' ? 'prenota' : 'prenota-link'} href={linkPrenota(show)} data-prenota={show.id}
       aria-label={`Prenota ${film.title}, ${quando(show, now).toLowerCase()}`}>
       Prenota{variante === 'link' && <span aria-hidden> →</span>}
     </a>

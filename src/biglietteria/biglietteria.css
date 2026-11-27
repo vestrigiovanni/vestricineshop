@@ -1,0 +1,135 @@
+/* La biglietteria nel tema Fornace: la sala buia sopra la pagina, il fotogramma
+ * del film appena acceso dietro, i posti come pillole. Il colore è quello del
+ * film su cui si è premuto Prenota (`--f-accento`), se no la brace del tema. */
+
+.bt { position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: stretch;
+  background: var(--color-paper); color: var(--color-ink); overflow: hidden; }
+.bt-fondale { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.14; filter: saturate(0.7); pointer-events: none; }
+.bt-pannello { position: relative; overflow-y: auto; overscroll-behavior: contain; display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); grid-template-rows: auto 1fr;
+  grid-template-areas: "sala testa" "sala piede"; gap: 0 var(--space-xl); padding: var(--space-lg) var(--gutter);
+  max-width: var(--container); width: 100%; margin-inline: auto; min-height: 100%; }
+
+.bt-etichetta { display: block; font-family: var(--font-outlier); font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-muted); }
+.bt-tasto { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--space-md); border: 0; border-radius: var(--radius-pill);
+  background: transparent; color: var(--color-ink); font-size: var(--text-sm); font-weight: 500; cursor: pointer;
+  box-shadow: inset 0 0 0 var(--rule-hair) var(--color-rule); transition: box-shadow var(--dur-short) var(--ease-out); }
+.bt-tasto:hover:not(:disabled) { box-shadow: inset 0 0 0 var(--rule-hair) var(--color-ink-2); }
+.bt-tasto:disabled { opacity: 0.45; cursor: default; }
+.bt-chiudi { width: 44px; justify-content: center; padding: 0; font-size: 22px; line-height: 1; }
+.bt .prenota { border: 0; cursor: pointer; font: inherit; font-weight: 500; }
+.bt .prenota:disabled { cursor: default; background: var(--color-paper-3); color: var(--color-muted); filter: none; }
+
+/* ─── La colonna: il film, quando, e il conto ───────────────────────────── */
+
+.bt-testa { grid-area: testa; padding-top: var(--space-xs); }
+.bt-barra { display: flex; justify-content: space-between; align-items: center; }
+.bt-film { margin-top: var(--space-xl); }
+.bt-logo { display: block; width: auto; max-width: 100%; height: 72px; object-fit: contain; object-position: left bottom; filter: drop-shadow(0 2px 14px rgba(0, 0, 0, 0.5)); }
+.bt-titolo { font-size: var(--text-2xl); }
+.bt-dati { margin-top: var(--space-sm); color: var(--color-ink-2); font-size: var(--text-sm); }
+.bt-quando { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px var(--space-md); margin-top: var(--space-xl);
+  padding-top: var(--space-md); border-top: var(--rule-hair) solid var(--color-rule); }
+.bt-quando .bt-etichetta { grid-column: 1 / -1; }
+.bt-giorno { font-family: var(--font-display); font-size: var(--text-xl); letter-spacing: var(--tracking-display); }
+.bt-ora { font-family: var(--font-display); font-size: var(--text-xl); }
+.bt-cambia { grid-column: 1 / -1; justify-self: start; margin-top: var(--space-xs); padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--f-accento, var(--color-accent)); font-size: var(--text-sm); font-weight: 500; min-height: 32px; }
+.bt-cambia:hover { text-decoration: underline; }
+.bt-orari { list-style: none; margin: var(--space-sm) 0 0; padding: 0; display: grid; gap: 4px; max-height: 240px; overflow-y: auto; }
+.bt-orari button { width: 100%; display: flex; justify-content: space-between; gap: var(--space-md); min-height: 40px; padding: 0 var(--space-md);
+  border: 0; border-radius: var(--radius-well); background: var(--color-paper-2); color: var(--color-ink); font-size: var(--text-sm); cursor: pointer; }
+.bt-orari button:hover:not(:disabled) { background: var(--color-paper-3); }
+.bt-orari button:disabled { color: var(--color-muted); cursor: default; }
+
+.bt-piede { grid-area: piede; align-self: end; padding-block: var(--space-xl) var(--space-sm); }
+.bt-legale { margin-bottom: var(--space-md); font-size: var(--text-sm); color: var(--color-ink-2); }
+.bt-conto { display: grid; grid-template-columns: 1fr auto; gap: var(--space-md); margin: 0 0 var(--space-lg); padding-top: var(--space-md); border-top: var(--rule-hair) solid var(--color-rule); }
+.bt-conto dd { margin: 4px 0 0; font-family: var(--font-display); font-size: var(--text-xl); }
+.bt-conto div:last-child { text-align: right; }
+.bt-avanti { width: 100%; justify-content: center; }
+.bt-nota { margin-top: var(--space-sm); font-size: var(--text-xs); color: var(--color-muted); }
+
+/* ─── La sala ───────────────────────────────────────────────────────────── */
+
+.bt-sala { grid-area: sala; align-self: center; min-width: 0; padding-block: var(--space-xl); }
+.bt-sala--vuota { display: grid; place-content: center; gap: var(--space-sm); text-align: center; min-height: 50vh; color: var(--color-ink-2); }
+.bt-avviso-titolo { font-family: var(--font-display); font-size: var(--text-2xl); color: var(--color-ink); }
+.bt-rubato { margin-bottom: var(--space-lg); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-well);
+  background: var(--color-paper-2); box-shadow: inset 3px 0 0 var(--f-accento, var(--color-accent)); font-size: var(--text-sm); }
+
+/* Lo schermo: una curva di luce in alto, del colore del film. */
+.bt-schermo { position: relative; height: 48px; margin: 0 auto var(--space-2xl); max-width: 560px; text-align: center; }
+.bt-schermo::before { content: ""; position: absolute; inset: 0 0 auto; height: 22px; border-radius: 50% / 100% 100% 0 0;
+  border-top: 3px solid var(--f-accento, var(--color-accent)); box-shadow: 0 -10px 40px -12px var(--f-accento, var(--color-accent)); }
+.bt-schermo span { position: relative; top: 22px; font-family: var(--font-outlier); font-size: var(--text-xs); letter-spacing: 0.3em; text-transform: uppercase; color: var(--color-muted); }
+
+.bt-file { display: grid; gap: 8px; justify-content: center; overflow-x: auto; padding-bottom: var(--space-xs); }
+.bt-fila { display: flex; align-items: center; gap: var(--space-sm); animation: bt-fila var(--dur-long) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 40ms); }
+@keyframes bt-fila { from { opacity: 0; transform: translateY(6px); } }
+.bt-nome-fila { width: 1.5em; text-align: center; font-family: var(--font-outlier); font-size: var(--text-xs); color: var(--color-muted); }
+.bt-poltrone { display: flex; gap: 6px; }
+.bt-posto { width: 34px; height: 34px; padding: 0; border: 0; border-radius: 10px 10px 6px 6px; cursor: pointer;
+  font-size: 11px; font-variant-numeric: tabular-nums; color: var(--color-ink-2); background: var(--color-paper-3);
+  box-shadow: inset 0 0 0 var(--rule-hair) var(--color-rule); transition: background-color var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-out); }
+.bt-posto[data-stato="libero"]:hover { background: color-mix(in oklab, var(--f-accento, var(--color-accent)) 30%, var(--color-paper-3)); color: var(--color-ink); }
+.bt-posto[data-stato="scelto"] { background: var(--f-accento, var(--color-accent)); color: var(--f-ink, var(--color-accent-ink)); font-weight: 500; box-shadow: none; }
+.bt-posto[data-stato="preso"] { background: transparent; color: transparent; cursor: default; box-shadow: inset 0 0 0 var(--rule-hair) var(--color-rule); opacity: 0.5; }
+.bt-posto:active:not(:disabled) { transform: scale(0.94); }
+
+.bt-legenda { display: flex; justify-content: center; gap: var(--space-lg); list-style: none; margin: var(--space-2xl) 0 0; padding: 0; font-size: var(--text-xs); color: var(--color-muted); }
+.bt-legenda li::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; background: var(--color-paper-3); }
+.bt-legenda li[data-stato="scelto"]::before { background: var(--f-accento, var(--color-accent)); }
+.bt-legenda li[data-stato="preso"]::before { background: transparent; box-shadow: inset 0 0 0 1px var(--color-rule); }
+.bt-sala[inert] .bt-file { opacity: 0.55; }
+
+/* ─── La conferma ───────────────────────────────────────────────────────── */
+
+.bt-conferma { padding-top: var(--space-md); border-top: var(--rule-hair) solid var(--color-rule); }
+.bt-scelti { margin: 4px 0 var(--space-lg); font-family: var(--font-display); font-size: var(--text-2xl); }
+.bt-email { margin-top: var(--space-lg); }
+.bt-email label { display: block; margin-bottom: var(--space-xs); font-size: var(--text-sm); color: var(--color-ink-2); }
+.bt-email div { display: flex; gap: var(--space-xs); }
+.bt-email input { flex: 1; min-width: 0; min-height: 44px; padding: 0 var(--space-md); border: 0; border-radius: var(--radius-pill);
+  background: var(--color-paper-2); color: var(--color-ink); box-shadow: inset 0 0 0 var(--rule-hair) var(--color-rule); }
+.bt-email input:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.bt-errore { margin-top: var(--space-md); color: var(--color-error); font-size: var(--text-sm); }
+
+/* ─── Il 18+ e il biglietto ─────────────────────────────────────────────── */
+
+.bt-avviso, .bt-fatto { grid-column: 1 / -1; grid-row: 2; align-self: center; justify-self: center; max-width: 34rem; padding-block: var(--space-2xl); text-align: center; }
+.bt-avviso h3, .bt-fatto h3 { margin-inline: auto; font-size: var(--text-display-s); }
+.bt-avviso p { margin: var(--space-md) auto 0; color: var(--color-ink-2); }
+.bt-avviso .azioni, .bt-fatto .azioni { justify-content: center; }
+.bt[data-passo="eta"] .bt-pannello, .bt[data-passo="fatto"] .bt-pannello { grid-template-columns: minmax(0, 1fr); grid-template-areas: "testa" "sala"; }
+.bt[data-passo="fatto"] .bt-testa, .bt[data-passo="eta"] .bt-testa { max-width: 34rem; width: 100%; justify-self: center; }
+.bt[data-passo="fatto"] .bt-film, .bt[data-passo="fatto"] .bt-quando { display: none; }
+.bt-fatto .bt-dati { margin-top: var(--space-sm); }
+.bt-qr { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-lg); list-style: none; margin: var(--space-xl) 0 0; padding: 0; }
+.bt-qr li { display: grid; gap: var(--space-xs); justify-items: center; padding: var(--space-md); border-radius: var(--radius-well); background: var(--color-ink); color: var(--color-paper); }
+.bt-qr__codice { display: block; width: 148px; height: 148px; }
+.bt-qr__codice svg { width: 100%; height: 100%; }
+.bt-qr__posto { font-weight: 500; font-size: var(--text-sm); }
+
+/* ─── Telefono: tutto in colonna, il conto in fondo sempre a portata ────── */
+
+@media (max-width: 60rem) {
+  .bt-pannello { grid-template-columns: minmax(0, 1fr); grid-template-areas: "testa" "sala" "piede"; grid-template-rows: auto 1fr auto; padding: var(--space-md) var(--space-md) 0; }
+  .bt-film { margin-top: var(--space-md); }
+  .bt-logo { height: 52px; }
+  .bt-quando { margin-top: var(--space-md); }
+  .bt-sala { padding-block: var(--space-lg); }
+  .bt-schermo { margin-bottom: var(--space-xl); }
+  /* Al centro, ma una sala più larga dello schermo comincia dal bordo e scorre. */
+  .bt-file { justify-content: start; justify-content: safe center; }
+  .bt-posto { width: 30px; height: 30px; font-size: 10px; }
+  .bt-poltrone { gap: 4px; }
+  .bt-piede { position: sticky; bottom: 0; margin-inline: calc(-1 * var(--space-md)); padding: var(--space-md) var(--space-md) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+    background: color-mix(in oklab, var(--color-paper) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: var(--rule-hair) solid var(--color-rule); }
+  .bt-conto { border-top: 0; padding-top: 0; margin-bottom: var(--space-md); }
+  .bt-conferma { border-top: 0; padding-top: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bt-fila { animation: none; }
+}

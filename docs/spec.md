@@ -52,9 +52,9 @@ Identità nuova: tema **Fornace** (Kiln di hallmark, scelto da Gio il 27/11/2026
 ## Le fette
 1. **Scheletro**: avvio a doppio clic, lo stesso database, una pagina con le proiezioni future vere. Anteprima su Vercel.
 2. **Design**: tre temi con hallmark, Gio ne sceglie uno.
-3. **Home**: gli atti, la luce del film, il trailer, tutto il programma. *Fatta il 27/11/2026: in `src/home`; «Più avanti» mostra 12 film e rimanda al programma; Prenota apre Pretix fino alla fetta 5.*
+3. **Home**: gli atti, la luce del film, il trailer, tutto il programma. *Fatta il 27/11/2026: in `src/home`; «Più avanti» mostra 12 film e rimanda al programma.*
 4. **Proiezione speciale**: apertura, intermezzi, critica, `/api/speciale/*`. *Fatta il 27/11/2026: in `src/speciale`; la speciale accesa nel database apre la Home ed esce dagli atti, i tre intermezzi stanno dopo Oggi, Prossimi e Più avanti; «Guarda il trailer» apre YouTube. `/api/speciale/critica` e `/api/speciale/immagine[/<id>]` identiche alla v1; il caricamento dal gestionale (cookie) arriva con la fetta 6, `/api/speciale/immagine/indirizzo` con la fetta 8 (la usa solo la stanza Speciale).*
-5. **Prenotazione e biglietto**: Pretix, sync, webhook, cron, `/api/seats`, `/api/seating-plans`, `/api/schedule`.
+5. **Prenotazione e biglietto**: Pretix, sync, webhook, cron, `/api/seats`, `/api/seating-plans`, `/api/schedule`. *Fatta il 27/11/2026: in `src/biglietteria`. Prenota apre la sala sopra la Home (anche `/?subevent=<id>`), conferma con o senza email, QR e «Scarica PDF» disegnato dal server (`/api/biglietto`, serve la chiave dell'ordine). Il browser parla solo con `/api/seats` e `/api/book`. Sync completa, leggera, webhook e cron come nella v1, ma senza TMDB: i film nuovi nascono «Caricamento...» fino alla fetta 6. Il cron non accetta più `?manual=true`. `/api/schedule` ora legge dal database. Fuori per ora: «Salva nelle Foto».*
 6. **Gestionale**: guscio, login sicuro, Film e Catalogo, sync con Plex.
 7. **Programma e Oggi**, più `/api/planning/*` per l'app.
 8. **Stanza Speciale**: Riempi dal distributore e Chi ha le foto.
