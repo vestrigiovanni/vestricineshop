@@ -201,3 +201,18 @@ export async function mediaTmdb(tmdbId: string): Promise<Media> {
     video: { it: yt(it?.results), en: yt(en?.results) },
   };
 }
+
+// ─── Le risposte di TMDB così come sono ───────────────────────────────────
+// Per `/api/planning/tmdb`: l'app iOS legge i campi di TMDB, come nella v1.
+
+/** I risultati della ricerca, senza i titoli in caratteri non latini. */
+export async function cercaGrezza(testo: string): Promise<Record<string, unknown>[]> {
+  const d = await chiedi<{ results?: Record<string, unknown>[] }>('/search/movie', { query: testo, language: 'it-IT', page: '1' });
+  return (d?.results ?? []).filter(r => !nonLatino(typeof r.title === 'string' ? r.title : ''));
+}
+
+/** I dettagli di un film con i crediti, come li dà TMDB. */
+export function dettagliGrezzi(tmdbId: string): Promise<Record<string, unknown> | null> {
+  if (!/^\d+$/.test(tmdbId)) return Promise.resolve(null);
+  return chiedi<Record<string, unknown>>(`/movie/${tmdbId}`, { language: 'it-IT', append_to_response: 'credits,images,release_dates', include_image_language: 'it,en,null' });
+}

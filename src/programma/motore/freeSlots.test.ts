@@ -1,0 +1,223 @@
+import { describe, it, expect } from 'vitest';
+import { checkSlot, findFreeSlots, SLOT_SPACING } from './freeSlots';
+import { CLOSING_MINUTE, MINUTES_PER_DAY, MIN_GAP_MINUTES, OPENING_MINUTE, formatClock } from './times';
+
+/** Intervallo del giorno 0 espresso in ore decimali. */
+const at = (fromHour: number, toHour: number) => ({
+  start: Math.round(fromHour * 60),
+  end: Math.round(toHour * 60),
+});
+
+/** Uno spettacolo già in sala, con la pausa già inclusa nella fine. */
+const busy = (fromHour: number, runtime: number) => ({
+  start: Math.round(fromHour * 60),
+  end: Math.round(fromHour * 60) + runtime + MIN_GAP_MINUTES,
+});
+
+const clocks = (slots: { startMinute: number }[]) => slots.map((s) => formatClock(s.startMinute));
+
+describe('findFreeSlots', () => {
+  it('in una giornata vuota propone orari sparsi da mattina a sera', () => {
+    const slots = findFreeSlots({ runtime: 110, dayIndex: 0, occupied: [] });
+
+    expect(slots.length).toBeGreaterThan(1);
+    // Il primo non può precedere l'apertura, l'ultimo deve finire entro la chiusura.
+    expect(slots[0].startMinute).toBeGreaterThanOrEqual(OPENING_MINUTE);
+    expect(slots[slots.length - 1].endMinute).toBeLessThanOrEqual(CLOSING_MINUTE);
+    // Distribuiti, non tutti ammassati in matinée.
+    expect(new Set(slots.map((s) => s.band)).size).toBeGreaterThan(1);
+  });
+
+  it('propone solo orari eleganti, e preferisce i più tondi', () => {
+    const slots = findFreeSlots({ runtime: 100, dayIndex: 0, occupied: [] });
+    for (const s of slots) expect(s.startMinute % 5).toBe(0);
+    // Con la giornata libera non c'è motivo di scendere sotto le :00 e le :30.
+    // L'eccezione è l'ultimo spettacolo: lì comanda l'ora di chiusura, e il
+    // tondo può semplicemente non esserci più.
+    expect(slots.slice(0, -1).every((s) => s.rank === 0)).toBe(true);
+    expect(slots[slots.length - 1].rank).toBeLessThanOrEqual(1);
+  });
+
+  it('rispetta la pausa minima prima e dopo ciò che è già in sala', () => {
+    // Un film 15:00–16:50, quindi occupato fino alle 17:00 con la pausa.
+    const occupied = [busy(15, 110)];
+    // Senza raggruppamento né tetto: qui si controlla la regola, non la scelta.
+    const slots = findFreeSlots({ runtime: 110, dayIndex: 0, occupied, limit: 1000, spacing: 5 });
+
+    for (const s of slots) {
+      // O finisce (più pausa) prima che l'altro cominci, o comincia dopo la sua pausa.
+      const okBefore = s.endMinute + MIN_GAP_MINUTES <= occupied[0].start;
+      const okAfter = s.startMinute >= occupied[0].end;
+      expect(okBefore || okAfter).toBe(true);
+    }
+    // Le 15:00 sono ovviamente escluse, le 13:00 (finisce 14:50) ci stanno.
+    expect(clocks(slots)).not.toContain('15:00');
+    expect(clocks(slots)).toContain('13:00');
+  });
+
+  it('non propone niente se la giornata è piena', () => {
+    const slots = findFreeSlots({
+      runtime: 110,
+      dayIndex: 0,
+      occupied: [{ start: OPENING_MINUTE, end: CLOSING_MINUTE }],
+    });
+    expect(slots).toEqual([]);
+  });
+
+  it('non propone niente se il film è più lungo delle ore utili', () => {
+    expect(findFreeSlots({ runtime: 1000, dayIndex: 0, occupied: [] })).toEqual([]);
+  });
+
+  it('un film lungo entra solo dove c\'è davvero spazio', () => {
+    // Libero 10:00–14:00 (240′) e 20:00–01:00 (300′): un film di 250′ più la
+    // pausa non sta nella mattina, sta solo nella seconda finestra.
+    const occupied = [at(14, 20)];
+    const slots = findFreeSlots({ runtime: 250, dayIndex: 0, occupied, limit: 1000, spacing: 5 });
+
+    expect(slots.length).toBeGreaterThan(0);
+    for (const s of slots) expect(s.startMinute).toBeGreaterThanOrEqual(20 * 60);
+    // L'ultimo possibile: 250′ che finiscono entro l'01:00 partono alle 20:50.
+    expect(clocks(slots)).toContain('20:50');
+    expect(clocks(slots)).not.toContain('21:00');
+  });
+
+  it('non propone orari già passati', () => {
+    // Sono le 17:20: prima non si programma.
+    const notBefore = 17 * 60 + 20;
+    const slots = findFreeSlots({ runtime: 110, dayIndex: 0, occupied: [], notBefore, limit: 40 });
+    for (const s of slots) expect(s.startMinute).toBeGreaterThanOrEqual(notBefore);
+    // Le 17:20 sarebbero valide, ma a portata di mano ci sono le 17:30.
+    expect(clocks(slots)[0]).toBe('17:30');
+  });
+
+  it('la fascia richiesta è un vincolo, non una preferenza', () => {
+    const slots = findFreeSlots({ runtime: 110, dayIndex: 0, occupied: [], band: 'evening', limit: 40, spacing: 5 });
+    expect(slots.length).toBeGreaterThan(0);
+    for (const s of slots) expect(s.band).toBe('evening');
+  });
+
+  it('due orari troppo vicini sono la stessa occasione: ne resta uno', () => {
+    const slots = findFreeSlots({ runtime: 110, dayIndex: 0, occupied: [], limit: 40 });
+    for (let i = 1; i < slots.length; i++) {
+      expect(slots[i].startMinute - slots[i - 1].startMinute).toBeGreaterThanOrEqual(SLOT_SPACING);
+    }
+  });
+
+  it('lavora sul giorno giusto quando l\'indice non è zero', () => {
+    const day = 4;
+    const base = day * MINUTES_PER_DAY;
+    const slots = findFreeSlots({ runtime: 110, dayIndex: day, occupied: [] });
+    expect(slots.length).toBeGreaterThan(0);
+    for (const s of slots) {
+      expect(s.startMinute).toBeGreaterThanOrEqual(base + OPENING_MINUTE);
+      expect(s.endMinute).toBeLessThanOrEqual(base + CLOSING_MINUTE);
+    }
+  });
+
+  it('la coda dopo la mezzanotte appartiene ancora alla stessa serata', () => {
+    // Occupato fino alle 22:00; un film di 130′ ci sta ancora, finendo alle 00:10.
+    const slots = findFreeSlots({
+      runtime: 130,
+      dayIndex: 0,
+      occupied: [{ start: OPENING_MINUTE, end: 22 * 60 }],
+      limit: 40,
+      spacing: 5,
+    });
+    expect(clocks(slots)).toContain('22:00');
+    expect(slots[0].endMinute).toBeGreaterThan(MINUTES_PER_DAY);
+  });
+
+  it('una durata assurda non produce proposte', () => {
+    expect(findFreeSlots({ runtime: 0, dayIndex: 0, occupied: [] })).toEqual([]);
+    expect(findFreeSlots({ runtime: Number.NaN, dayIndex: 0, occupied: [] })).toEqual([]);
+  });
+});
+
+describe('checkSlot', () => {
+  const runtime = 110;
+
+  it('un orario libero dentro gli orari di apertura va bene', () => {
+    const c = checkSlot({ runtime, startMinute: 15 * 60, occupied: [] });
+    expect(c.ok).toBe(true);
+    expect(c.problem).toBeUndefined();
+    expect(c.clashes).toEqual([]);
+    expect(c.endMinute).toBe(15 * 60 + runtime);
+    expect(c.band).toBe('afternoon');
+    expect(c.dayIndex).toBe(0);
+  });
+
+  it('accetta anche un orario non elegante: sceglierlo è già una decisione', () => {
+    expect(checkSlot({ runtime, startMinute: 14 * 60 + 7, occupied: [] }).ok).toBe(true);
+  });
+
+  it('rifiuta prima dell\'apertura e dopo la chiusura', () => {
+    expect(checkSlot({ runtime, startMinute: 9 * 60, occupied: [] }).problem).toBe('beforeOpening');
+    // 23:30 + 110′ finisce all'01:20, oltre la chiusura dell'01:00.
+    expect(checkSlot({ runtime, startMinute: 23 * 60 + 30, occupied: [] }).problem).toBe('afterClosing');
+  });
+
+  it('fuori orario riporta lo stesso chi occupa la sala', () => {
+    // `planningCheckManualSlot` declassa il fuori orario ad avvertimento e in
+    // quel caso decide sui `clashes` di questo stesso esito: se qui le
+    // sovrapposizioni sparissero, un orario notturno sopra un altro spettacolo
+    // risulterebbe «libero, solo tardi» e il conflitto salterebbe fuori solo
+    // alla creazione.
+    const altro = { start: 23 * 60, end: 24 * 60 + 30 }; // 23:00–00:20 + pausa
+    const c = checkSlot({ runtime, startMinute: 23 * 60 + 30, occupied: [altro] });
+    expect(c.problem).toBe('afterClosing');
+    expect(c.clashes).toEqual([altro]);
+    // E senza niente in sala, fuori orario e basta: nessuna sovrapposizione.
+    expect(checkSlot({ runtime, startMinute: 23 * 60 + 30, occupied: [] }).clashes).toEqual([]);
+  });
+
+  it('rifiuta il passato, e il passato viene prima di tutto', () => {
+    const c = checkSlot({ runtime, startMinute: 11 * 60, occupied: [], notBefore: 12 * 60 });
+    expect(c.problem).toBe('past');
+  });
+
+  it('quando è occupato dice da cosa', () => {
+    // Uno spettacolo 15:00–16:50, pausa inclusa fino alle 17:00.
+    const altro = { start: 15 * 60, end: 17 * 60 };
+    const c = checkSlot({ runtime, startMinute: 16 * 60, occupied: [altro] });
+    expect(c.ok).toBe(false);
+    expect(c.problem).toBe('occupied');
+    expect(c.clashes).toEqual([altro]);
+  });
+
+  it('la pausa minima conta come occupazione, in entrambi i versi', () => {
+    const altro = { start: 15 * 60, end: 17 * 60 }; // fine film 16:50 + 10′
+    // Iniziare alle 16:55 invaderebbe la pausa dell'altro.
+    expect(checkSlot({ runtime, startMinute: 16 * 60 + 55, occupied: [altro] }).problem).toBe('occupied');
+    // Alle 17:00 esatte si può.
+    expect(checkSlot({ runtime, startMinute: 17 * 60, occupied: [altro] }).ok).toBe(true);
+    // Finire troppo a ridosso dell'inizio dell'altro è ugualmente occupato:
+    // 13:15 + 110′ = 15:05, che sfora dentro l'altro spettacolo.
+    expect(checkSlot({ runtime, startMinute: 13 * 60 + 15, occupied: [altro] }).problem).toBe('occupied');
+    // 13:00 + 110′ = 14:50, più 10′ di pausa: arriva esatto alle 15:00.
+    expect(checkSlot({ runtime, startMinute: 13 * 60, occupied: [altro] }).ok).toBe(true);
+  });
+
+  it('raccoglie tutti gli spettacoli che si accavallano, non solo il primo', () => {
+    const a = { start: 15 * 60, end: 17 * 60 };
+    const b = { start: 17 * 60, end: 19 * 60 };
+    const c = checkSlot({ runtime: 180, startMinute: 15 * 60, occupied: [a, b] });
+    expect(c.clashes).toEqual([a, b]);
+  });
+
+  it('la coda dopo la mezzanotte appartiene alla serata precedente', () => {
+    // 00:20 del giorno 1 è la nottata del giorno 0, e lì ci sta ancora.
+    const c = checkSlot({ runtime: 30, startMinute: MINUTES_PER_DAY + 20, occupied: [] });
+    expect(c.dayIndex).toBe(0);
+    expect(c.ok).toBe(true);
+    // 00:40 + 30′ finisce all'01:10: oltre la chiusura di quella serata.
+    expect(checkSlot({ runtime: 30, startMinute: MINUTES_PER_DAY + 40, occupied: [] }).problem)
+      .toBe('afterClosing');
+  });
+
+  it('lavora sul giorno giusto quando l\'indice non è zero', () => {
+    const base = 4 * MINUTES_PER_DAY;
+    const c = checkSlot({ runtime, startMinute: base + 15 * 60, occupied: [] });
+    expect(c.dayIndex).toBe(4);
+    expect(c.ok).toBe(true);
+  });
+});

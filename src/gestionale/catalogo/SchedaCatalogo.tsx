@@ -125,6 +125,7 @@ export default function SchedaCatalogo({ film, onCambiato, onTolto, onChiudi }: 
         {dubbio && film.tmdbId && (
           <button type="button" className="g-tasto g-tasto--pieno" onClick={ok} disabled={lavoro !== null}>{lavoro === 'conferma' ? 'Confermo…' : 'Sì, è lui'}</button>
         )}
+        {film.tmdbId && <Link className="g-tasto" href={`/admin/programma?tmdb=${film.tmdbId}`}>Programma</Link>}
         {film.tmdbId && <Link className="g-tasto" href={`/admin/film?tmdb=${film.tmdbId}`}>Scheda del film</Link>}
         <button type="button" className="g-tasto" onClick={() => setCorreggo(v => !v)} aria-expanded={correggo}>
           {correggo ? 'Chiudi la correzione' : 'Film sbagliato? Correggi'}

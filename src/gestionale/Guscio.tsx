@@ -7,10 +7,12 @@ import { Avvisi } from './Avviso';
 
 /**
  * Il guscio del gestionale: il marchio, le stanze come pillole, l'uscita.
- * Le stanze arrivano a fette: Film e Catalogo ora, Oggi e Programma con la
- * fetta 7, Speciale con la fetta 8.
+ * Le stanze arrivano a fette: Oggi, Programma, Film e Catalogo ora, Speciale
+ * con la fetta 8. Oggi è la porta (`/admin`).
  */
 const STANZE = [
+  { href: '/admin', nome: 'Oggi' },
+  { href: '/admin/programma', nome: 'Programma' },
   { href: '/admin/film', nome: 'Film' },
   { href: '/admin/catalogo', nome: 'Catalogo' },
 ];
@@ -33,7 +35,7 @@ export default function Guscio({ children }: { children: React.ReactNode }) {
         </Link>
         <nav className="g-stanze" aria-label="Stanze">
           {STANZE.map(s => (
-            <Link key={s.href} href={s.href} className="g-stanza" aria-current={path === s.href || path.startsWith(s.href + '/') ? 'page' : undefined}>
+            <Link key={s.href} href={s.href} className="g-stanza" aria-current={path === s.href || (s.href !== '/admin' && path.startsWith(s.href + '/')) ? 'page' : undefined}>
               {s.nome}
             </Link>
           ))}
