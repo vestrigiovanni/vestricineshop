@@ -88,12 +88,12 @@ export function sala(s: Show): string {
 
 // ─── Il film ──────────────────────────────────────────────────────────────
 
-/** "2 h 27 min", "52 min", "2 h". */
+/** "2 h 27 min", "52 min", "2 h". Con spazi che non vanno a capo: "2 / h 50 min" su due righe non si legge. */
 export function durata(m?: number | null): string {
   if (!m || m <= 0 || !Number.isFinite(m)) return '';
   const h = Math.floor(m / 60), min = Math.round(m % 60);
-  if (!h) return `${min} min`;
-  return min ? `${h} h ${String(min).padStart(2, '0')} min` : `${h} h`;
+  if (!h) return `${min}\u00a0min`;
+  return min ? `${h}\u00a0h\u00a0${String(min).padStart(2, '0')}\u00a0min` : `${h}\u00a0h`;
 }
 
 /** Regia, anno, durata: i crediti, in quest'ordine. */

@@ -122,7 +122,7 @@
   .bt-schermo { margin-bottom: var(--space-xl); }
   /* Al centro, ma una sala più larga dello schermo comincia dal bordo e scorre. */
   .bt-file { justify-content: start; justify-content: safe center; }
-  .bt-posto { width: 30px; height: 30px; font-size: 10px; }
+  .bt-posto { width: 30px; height: 30px; font-size: 11px; }
   .bt-poltrone { gap: 4px; }
   .bt-piede { position: sticky; bottom: 0; margin-inline: calc(-1 * var(--space-md)); padding: var(--space-md) var(--space-md) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
     background: color-mix(in oklab, var(--color-paper) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: var(--rule-hair) solid var(--color-rule); }

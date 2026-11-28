@@ -1,7 +1,7 @@
 # Vestri Cinema — sito e biglietteria, v2
 
-v1: `~/Desktop/code/VestriCinema/VESTRICINEMASHOP` (si legge, non si tocca).
-v2: `~/Desktop/code/VestriCinema/VESTRICINEMASHOP v2` (alla fine prende il nome della v1). Online: vestricinema.com.
+v1: `~/Desktop/code/VESTRICINEMASHOP` (si legge, non si tocca).
+v2: `~/Desktop/code/VESTRICINEMASHOP v2` (alla fine prende il nome della v1). Online: vestricinema.com.
 
 ## Cosa fa
 1. **Home a sette atti**: dal film più vicino al più lontano, con la luce del film, il trailer e tutto il programma.
@@ -9,10 +9,11 @@ v2: `~/Desktop/code/VestriCinema/VESTRICINEMASHOP v2` (alla fine prende il nome 
 3. **Prenotazione**: la sala, il posto e il biglietto con QR in PDF. I biglietti sono gratuiti e passano da Pretix.
 4. **Gestionale — Programma e Oggi**: la settimana come una timeline e «Manda in sala» su Pretix.
 5. **Gestionale — Film e Catalogo**: le schede, TMDB e la sync con Plex.
-6. **Gestionale — Speciale**: le proiezioni speciali, «Riempi dal distributore» e «Chi ha le foto?».
+6. **Gestionale — Speciale**: le proiezioni speciali, «Riempi dal distributore», «Critica dal trailer» e «Chi ha le foto?».
+7. **Il display d'ingresso** (`/display-esterno`, `/api/display`): gli spettacoli di oggi e dei prossimi giorni sullo schermo orizzontale. Entrato il 28/11/2026.
 
 ## Cosa resta fuori
-Il display d'ingresso (`/display-esterno`), la Cassa e la stampa termica (`/api/print`, `/api/cassa`: le fa il Botteghino), Sale, Display e Attrezzi come stanze, `debug-sync`, `clear-cache`, `admin/relatinize`.
+La Cassa e la stampa termica (`/api/print`, `/api/cassa`: le fa il Botteghino), Sale, Display e Attrezzi come stanze, `debug-sync`, `clear-cache`, `admin/relatinize`.
 Fuori anche gli avanzi: scratch, tmp, debug.html, subevents.json, YCSE, .reanimate, i vecchi worktree.
 
 ## Da portare dalla v1
@@ -58,4 +59,4 @@ Identità nuova: tema **Fornace** (Kiln di hallmark, scelto da Gio il 27/11/2026
 6. **Gestionale**: guscio, login sicuro, Film e Catalogo, sync con Plex. *Fatta il 27/11/2026: in `src/gestionale`. Login senza chiave di riserva: senza `ADMIN_PASSWORD` e `ADMIN_SESSION_SECRET` (almeno 32 caratteri, da mettere anche su Vercel) il gestionale resta chiuso; cookie firmato di un anno, freno sui tentativi, ogni azione ricontrolla il cookie. Film: in sala o tutte le schede, la scheda di Gio vince su TMDB (`film/scheda.ts`), «Rileggi da TMDB», «Torna come su TMDB», premi da MUBI, salvando si aggiorna subito Pretix. Catalogo: libreria Plex, filtri, Sorprendimi, conferma e correzione dell'abbinamento, «Abbina a TMDB» (il CSV della v1 non c'è più). `/api/catalog/plex-sync` identica alla v1, script `npm run plex:sync` col suo stato. La sync da Pretix riempie i film nuovi da TMDB (stub solo se TMDB non risponde). Upload della speciale anche col cookie. `/admin` apre Film finché non c'è Oggi. Fuori per ora: il «Colpo d'occhio» e la latinizzazione dei nomi del cast.*
 7. **Programma e Oggi**, più `/api/planning/*` per l'app. *Fatta il 27/11/2026: Oggi è la porta di `/admin` (`src/gestionale/oggi`: in sala adesso, la giornata con la sala di ogni spettacolo, i numeri, «Da guardare» con «Rileggi da Pretix»). Programma (`src/gestionale/programma`): la settimana di una sala come timeline (parte dalla sala con più spettacoli), la libreria accanto per accendere i posti dove un film ci sta o trascinarlo sul giorno, «Riempi i buchi» (Scelgo io dai poster o Scegli tu), «Rimescola», la bozza salvata in `PlanningDraft`, «Manda in sala» a lotti (`PlanningCommitJob`/`Item`, si riprende se resta a metà), sposta ed elimina con il controllo dei biglietti presi. Il motore della v1 sta in `src/programma/motore` con i suoi test (date-fns-tz sostituito da Intl); `src/programma/sala.ts` è l'unico posto che crea, sposta e cancella su Pretix; `planning.ts` è `planningActions` senza `'use server'` (le azioni del gestionale ricontrollano il cookie). `/api/planning/*` identiche alla v1, con la chiave `VESTRI_API_KEY` (da mettere sul progetto Vercel nuovo: senza, rispondono 503). Le sale sono quelle di Pretix in ordine di nome, senza preferiti (il registro della v1 stava in /tmp). Fuori per ora: la scheda «altre info» alla Netflix e gli scaffali della libreria.*
 8. **Stanza Speciale**: Riempi dal distributore e Chi ha le foto. *Fatta il 27/11/2026: in `src/gestionale/speciale`. Elenco delle speciali (accendi, spegni, cambia, togli), l'editor con il film e le date come le scriverà il sito, la pagina d'apertura (regia, logo del distributore o di una casa TMDB, fotogrammi senza scritte), la critica («Critica dal trailer» col Mac, o trascinata), il materiale con il riquadro delle date su banner e locandina, foto di scena, trailer verticale, «Ritaglia e adatta». «Riempi dal distributore» e «Chi ha le foto?» con la logica della v1 e i suoi test (`stampa/*`, `esito.ts`). Nuova `/api/speciale/immagine/indirizzo` (solo col cookie). Niente arriva al sito senza «Salva».*
-9. **Rifinitura, prova, cambio di dominio**. Poi via la v1.
+9. **Rifinitura, prova, cambio di dominio**. Poi via la v1. *28/11/2026: audit e polish (durate che non vanno a capo, la sala sotto l'orario nelle locandine, numeri dei posti a 11px); test, tipi e build verdi; «Da portare» spuntato; portati `scripts/critica-dal-trailer.mjs` con `scripts/critica/` (l'app «Critica dal trailer» ora sta in `~/Applications`, da rifare con `scripts/critica/installa.sh` quando la cartella cambia nome) e `scripts/letterboxd-taste.mjs`; il cron senza `CRON_SECRET` resta chiuso. API confrontate con vestricinema.com: stesse risposte (le `/api/planning/*` in locale dicono 503 perché manca `VESTRI_API_KEY`, come previsto).*

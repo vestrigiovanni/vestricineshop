@@ -12,8 +12,13 @@ export const maxDuration = 300;
  * usava nessuno, e qui non c'è più.
  */
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === 'production' && request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized', { status: 401 });
+  if (process.env.NODE_ENV === 'production') {
+    // Senza CRON_SECRET il confronto sarebbe con "Bearer undefined": chiunque
+    // l'avrebbe indovinato. Senza segreto, la rotta resta chiusa.
+    const segreto = process.env.CRON_SECRET;
+    if (!segreto || request.headers.get('authorization') !== `Bearer ${segreto}`) {
+      return new Response('Unauthorized', { status: 401 });
+    }
   }
   try {
     return NextResponse.json(await syncCompleta());

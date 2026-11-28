@@ -1,0 +1,115 @@
+/* Lo schermo d'ingresso (/display-esterno): nero, avorio e il colore del film, come la Home.
+ * Si legge da lontano, su uno schermo orizzontale: tutte le misure sono in `--u`, un
+ * centesimo dell'altezza (o, su schermi più stretti del 16:9, della larghezza), così la
+ * pagina è la stessa su un televisore da 32" e su uno da 65". Non scorre mai: se gli
+ * spettacoli non ci stanno si alternano a pagine. */
+
+.display {
+  --u: min(1vh, 0.5625vw);
+  --brace: var(--color-accent);
+  --luce: var(--brace);
+  --luce-ink: var(--color-accent-ink);
+  --luce-fondo: var(--color-paper);
+  --luce-bagliore: var(--heat-2);
+  position: fixed; inset: 0; z-index: var(--z-base);
+  display: flex; flex-direction: column;
+  padding: calc(var(--u) * 4.2) calc(var(--u) * 7) calc(var(--u) * 3.2);
+  overflow: hidden; isolation: isolate;
+  background: var(--luce-fondo); color: var(--color-ink);
+  font-size: calc(var(--u) * 2.2);
+  cursor: none;
+  transition: background-color 1.4s var(--ease-out);
+}
+.display--mouse { cursor: default; }
+
+/* La luce d'ambiente e il fondale del film che apre la pagina. */
+.display__bagliore {
+  position: absolute; inset: 0; z-index: -2; pointer-events: none;
+  background: var(--luce-bagliore); opacity: 0.5;
+  -webkit-mask-image: radial-gradient(60% 75% at 88% 8%, #000, transparent 72%);
+  mask-image: radial-gradient(60% 75% at 88% 8%, #000, transparent 72%);
+  transition: background-color 1.4s var(--ease-out);
+}
+.display__fondale {
+  position: absolute; top: 0; right: 0; z-index: -1; width: 66%; height: 100%; object-fit: cover; pointer-events: none;
+  opacity: 0.3;
+  -webkit-mask-image: linear-gradient(to left, #000 0%, transparent 92%);
+  mask-image: linear-gradient(to left, #000 0%, transparent 92%);
+  animation: display-entra 1.6s var(--ease-out) both;
+}
+
+/* Testa: il marchio e l'orologio. */
+.display__testa { display: flex; align-items: flex-end; justify-content: space-between; gap: calc(var(--u) * 4); margin-bottom: calc(var(--u) * 2.4); }
+.display__marchio { font-family: var(--font-display); font-weight: var(--display-weight); font-size: calc(var(--u) * 4.2); line-height: 1; letter-spacing: var(--tracking-display); }
+.display__orologio { display: flex; align-items: baseline; gap: calc(var(--u) * 2.4); }
+.display__orologio time { font-size: calc(var(--u) * 6.6); font-weight: 500; line-height: 0.9; letter-spacing: -0.02em; }
+.display__orologio span { font-size: calc(var(--u) * 2.4); color: var(--color-ink-2); }
+
+/* Corpo: le pagine di spettacoli. */
+.display__corpo { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.display__pagina { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: calc(var(--u) * 1.2); animation: display-entra 0.9s var(--ease-out) both; }
+.display__vuoto { margin: auto; text-align: center; font-family: var(--font-display); font-size: calc(var(--u) * 5.4); line-height: 1.1; letter-spacing: var(--tracking-display); color: var(--color-ink-2); }
+.display__vuoto p { max-width: 24ch; margin-inline: auto; }
+.display__vuoto .display__vuoto-sotto { margin-top: calc(var(--u) * 2); font-family: var(--font-body); font-size: calc(var(--u) * 2.6); color: var(--color-muted); }
+
+.giorno { flex: var(--righe, 1) 1 0; min-height: 0; max-height: calc(var(--u) * (7 + 15 * var(--righe, 1))); display: flex; flex-direction: column; }
+.giorno__testa { flex: none; display: flex; align-items: baseline; gap: calc(var(--u) * 2); height: calc(var(--u) * 6.4); padding-bottom: calc(var(--u) * 0.8); }
+.display h2 { max-width: none; font-size: calc(var(--u) * 3.6); line-height: 1; }
+.giorno__testa span { font-size: calc(var(--u) * 2.2); color: var(--color-muted); }
+.giorno__righe { flex: 1 1 0; min-height: 0; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+
+/* Una riga: l'ora, la locandina, il film, i posti. */
+.riga {
+  --acc: var(--riga, var(--brace));
+  flex: 1 1 0; min-height: 0; max-height: calc(var(--u) * 15);
+  display: grid; grid-template-columns: calc(var(--u) * 17) calc(var(--u) * 6.2) minmax(0, 1fr) calc(var(--u) * 31);
+  align-items: center; column-gap: calc(var(--u) * 3);
+  padding-block: calc(var(--u) * 0.6);
+  border-top: var(--rule-hair) solid var(--color-rule);
+}
+.riga__ora { display: grid; gap: calc(var(--u) * 0.3); }
+.riga__ora time { font-size: calc(var(--u) * 5.6); font-weight: 500; line-height: 1; letter-spacing: -0.02em; color: var(--acc); }
+.riga__ora span { font-size: calc(var(--u) * 1.7); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink-2); }
+.riga__locandina { width: calc(var(--u) * 6.2); height: calc(var(--u) * 9.3); object-fit: cover; border-radius: calc(var(--u) * 0.6); background: var(--color-paper-2); }
+.riga__locandina--vuota { display: block; }
+.riga__film { min-width: 0; display: grid; gap: calc(var(--u) * 0.5); }
+.display h3 {
+  max-width: none; font-size: calc(var(--u) * 3.9); line-height: 1.04;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+}
+.riga__divieto { display: inline-block; vertical-align: 0.35em; margin-left: calc(var(--u) * 1.2); padding: 0 calc(var(--u) * 0.9); border: 1.5px solid var(--color-muted); border-radius: var(--radius-pill); font-family: var(--font-body); font-size: calc(var(--u) * 1.7); font-weight: 500; letter-spacing: 0; line-height: 1.5; color: var(--color-ink-2); }
+.riga__film p { font-size: calc(var(--u) * 2.2); line-height: 1.25; color: var(--color-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.riga--corso .riga__ora time { color: var(--color-ink-2); }
+
+/* I posti: il conto grande, a destra; sotto, quanta sala resta. */
+.posti { display: grid; justify-items: end; gap: calc(var(--u) * 0.7); text-align: right; }
+.posti__riga { display: flex; align-items: baseline; justify-content: flex-end; gap: calc(var(--u) * 1.2); max-width: none !important; }
+.posti__n { font-size: calc(var(--u) * 6.4); font-weight: 500; line-height: 0.95; letter-spacing: -0.03em; color: var(--acc); }
+.posti__t { font-size: calc(var(--u) * 2.3); color: var(--color-ink-2); }
+.posti__barra { display: block; width: calc(var(--u) * 15); height: calc(var(--u) * 0.5); border-radius: var(--radius-pill); background: var(--color-rule); overflow: hidden; }
+.posti__barra i { display: block; height: 100%; border-radius: inherit; background: var(--acc); }
+.posti--ultimi .posti__n, .posti--ultimi .posti__t { color: var(--color-focus); }
+.posti--ultimi .posti__t { font-weight: 500; }
+.posti--ultimi .posti__barra i { background: var(--color-focus); }
+.posti--ignoti .posti__n, .posti--ignoti .posti__t { color: var(--color-muted); }
+.posti__esaurito { display: inline-block; padding: calc(var(--u) * 0.7) calc(var(--u) * 2.2); border: 2px solid var(--color-muted); border-radius: var(--radius-pill); font-size: calc(var(--u) * 2.5); font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink-2); }
+.riga--esaurito .riga__film, .riga--esaurito .riga__locandina, .riga--esaurito .riga__ora time { opacity: 0.5; }
+.riga--esaurito .riga__ora time { color: var(--color-ink-2); }
+
+/* Piede: gratuità, pagine, e se la rete è caduta. */
+.display__piede { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: calc(var(--u) * 3); margin-top: calc(var(--u) * 1.6); font-size: calc(var(--u) * 1.9); color: var(--color-muted); }
+.display__piede p { max-width: none !important; }
+.display__stato { justify-self: end; text-align: right; }
+.display__stato--spento { padding: calc(var(--u) * 0.5) calc(var(--u) * 1.8); border: 2px solid var(--color-focus); border-radius: var(--radius-pill); font-weight: 500; color: var(--color-focus); }
+.display__punti { display: flex; gap: calc(var(--u) * 1); }
+.display__punti span { width: calc(var(--u) * 1); height: calc(var(--u) * 1); border-radius: 50%; background: var(--color-rule); transition: background-color var(--dur-long) var(--ease-out); }
+.display__punti .attivo { background: var(--color-ink-2); }
+
+/* Il filo che dice quando cambia pagina. */
+.display__giro { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--luce); opacity: 0.55; transform-origin: left; animation: display-giro var(--giro, 12s) linear both; }
+
+.display__suggerimento { position: absolute; right: calc(var(--u) * 7); bottom: calc(var(--u) * 7.5); padding: calc(var(--u) * 0.6) calc(var(--u) * 1.6); border-radius: var(--radius-pill); background: var(--color-paper-3); font-size: calc(var(--u) * 1.8); color: var(--color-ink-2); opacity: 0; transition: opacity var(--dur-long) var(--ease-out); pointer-events: none; }
+.display--mouse .display__suggerimento { opacity: 1; }
+
+@keyframes display-entra { from { opacity: 0; transform: translateY(calc(var(--u) * 1.2)); } to { opacity: 1; transform: none; } }
+@keyframes display-giro { from { transform: scaleX(0); } to { transform: scaleX(1); } }

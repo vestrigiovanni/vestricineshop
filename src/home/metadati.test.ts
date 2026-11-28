@@ -23,10 +23,10 @@ const SERA = show({ language: 'Inglese', subtitles: 'Italiano', roomName: 'CA GR
 
 describe('le parole dei metadati', () => {
   it('la durata si scrive come si dice', () => {
-    expect(durata(147)).toBe('2 h 27 min');
-    expect(durata(65)).toBe('1 h 05 min');
-    expect(durata(52)).toBe('52 min');
-    expect(durata(120)).toBe('2 h');
+    expect(durata(147)).toBe('2\u00a0h\u00a027\u00a0min');
+    expect(durata(65)).toBe('1\u00a0h\u00a005\u00a0min');
+    expect(durata(52)).toBe('52\u00a0min');
+    expect(durata(120)).toBe('2\u00a0h');
   });
 
   it('una durata che manca non si scrive', () => {
@@ -144,7 +144,7 @@ describe('il cartellino: che cosa si mostra quando un dato manca', () => {
     expect(cartellino(PIENO, SERA, NOW)).toMatchObject({
       quando: 'Oggi alle 20:30',
       sala: 'Sala Ca Granda',
-      film: 'Ruben Östlund · 2022 · 2 h 27 min',
+      film: 'Ruben Östlund · 2022 · 2\u00a0h\u00a027\u00a0min',
       versione: 'Inglese, sottotitoli in italiano · 4K · Dolby Atmos',
       generi: 'Commedia · Dramma',
       divieto: '14+',
@@ -154,7 +154,7 @@ describe('il cartellino: che cosa si mostra quando un dato manca', () => {
   });
 
   it('senza regia, anno o durata la riga del film si accorcia, senza separatori orfani', () => {
-    expect(cartellino(film({ director: 'Ruben Östlund', runtime: 147 }), SERA, NOW).film).toBe('Ruben Östlund · 2 h 27 min');
+    expect(cartellino(film({ director: 'Ruben Östlund', runtime: 147 }), SERA, NOW).film).toBe('Ruben Östlund · 2\u00a0h\u00a027\u00a0min');
     expect(cartellino(film({ release_year: '2022' }), SERA, NOW).film).toBe('2022');
     expect(cartellino(film({ director: '  ', runtime: 0 }), SERA, NOW).film).toBe('');
     expect(unisci(['', null, undefined, false, '  '])).toBe('');

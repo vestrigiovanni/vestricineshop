@@ -102,7 +102,9 @@ html[data-scena="tutti"] .ambiente::before { opacity: 0.18; }
 .opera__locandina { aspect-ratio: 2 / 3; border-radius: var(--radius-well); overflow: hidden; background: var(--color-paper-3); margin-bottom: var(--space-md); }
 .opera__locandina img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--dur-long) var(--ease-out); }
 .opera:hover .opera__locandina img { transform: scale(1.03); }
-.opera__quando { font-size: var(--text-sm); }
+.opera__quando { flex-direction: column; font-size: var(--text-sm); }
+/* Nella colonna stretta della locandina la sala va sempre a capo: senza il punto, che a inizio riga resterebbe orfano. */
+.opera__quando .quando__sala::before { content: none; }
 .opera__titolo { margin-top: var(--space-2xs); font-size: var(--text-title); }
 .prossimi__coda { margin-top: var(--space-2xl); text-align: center; color: var(--color-muted); }
 
